@@ -1,0 +1,25 @@
+{
+  "name": "sdk-nodejs",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "nyc mocha tests/unit/*.js",
+    "integrations": "nyc mocha tests/integration/*.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/incountry/sdk-nodejs.git"
+  },
+  "author": "InCountry",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/incountry/sdk-nodejs/issues"
+  },
+  "homepage": "https://github.com/incountry/sdk-nodejs#readme",
+  "dependencies": {
+    "chai": "^4.2.0",
+    "mocha": "^6.1.4",
+    "nyc": "^14.1.1"
+  }
+}
