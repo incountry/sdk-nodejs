@@ -18,6 +18,7 @@
   },
   "homepage": "https://github.com/incountry/sdk-nodejs#readme",
   "dependencies": {
+    "axios": "^0.19.0",
     "chai": "^4.2.0",
     "mocha": "^6.1.4",
     "nyc": "^14.1.1"
