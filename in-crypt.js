@@ -1,5 +1,6 @@
-var //aes = require('aes-js'),
-    crypto = require('crypto');
+var aesjs = require('aes-js'),
+    crypto = require('crypto'),
+    utf8 = require('utf8');
 
 const BLOCK_SIZE = 16; // Bytes
 const pad = function(s) {
@@ -24,27 +25,42 @@ const unpad = function(s) {
 
 class InCrypt {
     constructor(key) {
-//     ba = hashlib.sha256(key.encode('utf-8')).hexdigest();
-//     self.salt = bytes.fromhex(ba)
-//     self.key = self.salt[0:16]
-//     self.iv = self.salt[16:32]
-        //var ba = crypto.
-        //this._salt = aes.
+        this._key = Buffer.allocUnsafe(16);
+        this._iv = Buffer.allocUnsafe(16);
+
+        let hash = crypto.createHash('sha256');
+        let encodedKey = utf8.encode(key);
+        let ba = hash.update(encodedKey).digest('hex');
+        let salt = Buffer.from(ba, 'hex');
+
+        salt.copy(this._key, 0, 0, 16);
+        salt.copy(this._iv, 0, 16, 32);
     }
     
     encrypt(raw) {
-        var padded = pad(raw);
-//      cipher = AES.new(self.key, AES.MODE_CBC, self.iv)
-//     return cipher.encrypt(raw).hex()
+        let aesCbc = new aesjs.ModeOfOperation.cbc(this._key, this._iv)
+
+        let padded = pad(raw);
+        let paddedBytes = aesjs.utils.utf8.toBytes(padded);
+        let encryptedBytes = aesCbc.encrypt(paddedBytes);
+        let encryptedHex = aesjs.utils.hex.fromBytes(encryptedBytes);
+
+        return encryptedHex;
     }
 
-    decrypt(enc) {
-//     enc = bytes.fromhex(enc)
-//     cipher = AES.new(self.key, AES.MODE_CBC, self.iv)
-//     return unpad(cipher.decrypt(enc)).decode('utf8')
+    decrypt(encryptedHex) {
+        let aesCbc = new aesjs.ModeOfOperation.cbc(this._key, this._iv)
+
+        let encryptedBytes = aesjs.utils.hex.toBytes(encryptedHex)
+        let paddedBytes = aesCbc.decrypt(encryptedBytes);
+        let padded = aesjs.utils.utf8.fromBytes(paddedBytes);
+        let raw = unpad(padded);
+
+        return raw;
     }
     
     hash(data) {
+// Not yet imnplemented
 //     hash = hmac.new(self.salt, data.encode('utf-8'), digestmod=hashlib.sha256).digest().hex()
 //     return hash
     }
@@ -52,6 +68,6 @@ class InCrypt {
 
 }
 
-module.exports = InCrypt;
+module.exports.InCrypt = InCrypt;
 module.exports.pad = pad;
 module.exports.unpad = unpad;

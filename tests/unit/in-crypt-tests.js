@@ -21,15 +21,28 @@ describe('InCrypt', function() {
             "eeeeeeeeeeeeee",
             "fffffffffffffff",
             "0000000000000000",
-            "seventeen chars 0"
+            "seventeen chars 0",
+            "I am the very model of a modern major general"
         ].forEach(function(testCase) {
             it(`should pad the text and then unpad the text correctly: ${testCase}`, function() {
-                //var incrypt = new InCrypt();
                 var padded = pad(testCase);
                 var unpadded = unpad(padded);
-                //console.log(`"${padded}"`);
+
                 expect(unpadded).to.equal(testCase);
+                expect(padded).to.not.equal(unpadded);
             })
-        })        
+
+            it(`should encrypt and decrypt correctly: ${testCase}`, function() {
+                var incrypt = new InCrypt('supersecret');
+
+                var encrypted = incrypt.encrypt(testCase);
+                console.log(`e: ${encrypted}`);
+
+                var decrypted = incrypt.decrypt(encrypted);
+                console.log(`d: ${decrypted}`);
+                expect(decrypted).to.equal(testCase);
+                expect(encrypted).to.not.equal(decrypted);
+            })
+        })
     })
 })
