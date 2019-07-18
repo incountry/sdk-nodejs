@@ -79,6 +79,7 @@ class Storage {
         var result = {};
 
         [
+            'key',
             'body',
             'profile_key',
             'key2',
@@ -89,8 +90,6 @@ class Storage {
             }
         });
 
-        result['key'] = record['key'];
-
         return result;
     }
 
@@ -99,7 +98,10 @@ class Storage {
             this._validate(request);
 
             let countryCode = request.country.toLowerCase();
-            let key = request.key;
+            let key = this._encrypt
+                ? this._crypto.encrypt(request.key)
+                : request.key;
+
             var endpoint = (await this._getEndpointAsync(countryCode, `v2/storage/records/${countryCode}/${key}`))
             console.log(`GET from: ${endpoint}`);
             
@@ -133,6 +135,7 @@ class Storage {
         var result = {};
 
         [
+            'key',
             'body',
             'profile_key',
             'key2',
@@ -143,8 +146,6 @@ class Storage {
             }
         });
 
-        result['key'] = record['key'];
-
         return result;
     }
 
@@ -153,7 +154,10 @@ class Storage {
             this._validate(request);
 
             let countryCode = request.country.toLowerCase();
-            let key = request.key;
+            let key = this._encrypt
+                ? this._crypto.encrypt(request.key)
+                : request.key;
+                
             let endpoint = (await this._getEndpointAsync(countryCode, `v2/storage/records/${countryCode}/${key}`))
             console.log(`DELETE from: ${endpoint}`);
 

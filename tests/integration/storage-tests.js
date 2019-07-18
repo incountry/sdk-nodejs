@@ -21,7 +21,6 @@ describe('Storage', function() {
         ].forEach(function(testCase) {
             var storage = new Storage(testCase);
             var testBody = 'inc test';
-            var encryptedKey;
 
             it(`should write using these options: ${JSON.stringify(testCase)}`, async function(){
                 var writeResponse = await storage.writeAsync({
@@ -41,7 +40,6 @@ describe('Storage', function() {
                     key: 'record1'
                 });
 
-                //console.log(readResponse);
                 expect(readResponse).to.exist;
                 expect(readResponse.status).to.equal(200);
                 expect(readResponse.data).to.exist;
