@@ -56,7 +56,7 @@ class Storage {
 
             var endpoint = (await this._getEndpointAsync(countrycode, `v2/storage/records/${countrycode}`))
             console.log(`POST to: ${endpoint}`)
-            
+
             // Not yet working
             if (this._encrypt) {
 
@@ -73,6 +73,32 @@ class Storage {
         }
         catch(exc) {
             console.log(exc);
+            throw(exc);
+        }
+    }
+
+    async readAsync(request) {
+        try {
+            this._validate(request);
+
+            let countryCode = request.country.toLowerCase();
+            let key = request.key;
+    
+            var endpoint = (await this._getEndpointAsync(countryCode, `v2/storage/records/${countryCode}/${key}`))
+            console.log(`GET from: ${endpoint}`);
+            
+            var response = await axios({
+                method: 'get',
+                url: endpoint,
+                headers: this.headers()
+            });
+
+            return response;
+        }
+        catch (exc) {
+            // log
+            console.log(exc);
+            throw(exc);
         }
     }
 

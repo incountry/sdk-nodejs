@@ -17,24 +17,36 @@ describe('Storage', function() {
             }
         ].forEach(function(testCase) {
             var storage = new Storage(testCase);
+            var testBody = 'inc test';
 
-            it(`should write to, read from (NA), and delete from (NA) storage: ${JSON.stringify(testCase)}`, async function(){
-                var x = await storage.writeAsync({
+            it(`should write to, read from, and delete from (NA) storage using these options: ${JSON.stringify(testCase)}`, async function(){
+                var writeResponse = await storage.writeAsync({
                     country: 'US',
                     key: 'record1',
-                    body: 'jables test'
+                    body: testBody
                 });
 
-                // var y = await storage.readAsync({
+                //console.log(writeResponse);
+                expect(writeResponse).to.exist;
+                expect(writeResponse.status).to.equal(201);
+
+                var readResponse = await storage.readAsync({
+                    country: 'US',
+                    key: 'record1'
+                });
+
+                //console.log(readResponse);
+                expect(readResponse).to.exist;
+                expect(readResponse.status).to.equal(200);
+                expect(readResponse.data).to.exist;
+                expect(readResponse.data.body).to.equal(testBody);
+
+                // var deleteResponse = await storage.deleteAsync({
 
                 // });
 
                 return;
             })
-
-            it(`should read from storage: ${JSON.stringify(testCase)}`, async function() {
-
-            })
-        })        
+        })
     })
 })
