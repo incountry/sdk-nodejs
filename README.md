@@ -10,5 +10,5 @@ Setup
 3. In terminal run `npm install`
 4. Ensure tests pass
     1. In terminal run `npm test` for unit tests
-    2. In terminal run `npm run integration` to run integration tests
+    2. In terminal run `npm run integrations` to run integration tests
     
