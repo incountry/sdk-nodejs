@@ -2,10 +2,10 @@ var axios = require('axios');
 
 class CountriesCache {
     constructor(portalHost, expiresOn) {
-         this._host = portalHost || 'portal-api-staging.incountry.io';
+        this._host = portalHost || 'portal-api-staging.incountry.io';
         this._expiresOn = expiresOn || Date.now() + 30000;
 
-        this._getUrl = `${this._protocol}://${this._host}/countries`;
+        this._getUrl = `http://${this._host}/countries`;
         this._countries;
     }
 

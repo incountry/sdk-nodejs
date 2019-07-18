@@ -29,14 +29,6 @@ class Storage {
         console.log(JSON.stringify(this));
     }
 
-    headers() {
-        return {
-            'Authorization': `Bearer ${this._apiKey}`,
-            'x-zone-id': this._zoneId,
-            'Content-Type': 'application/json'
-        };
-    }
-
     async writeAsync(request) {
         try {
             this._validate(request);
@@ -77,13 +69,16 @@ class Storage {
         }
     }
 
+    _encrypt(record) {
+
+    }
+
     async readAsync(request) {
         try {
             this._validate(request);
 
             let countryCode = request.country.toLowerCase();
             let key = request.key;
-    
             var endpoint = (await this._getEndpointAsync(countryCode, `v2/storage/records/${countryCode}/${key}`))
             console.log(`GET from: ${endpoint}`);
             
@@ -102,8 +97,31 @@ class Storage {
         }
     }
 
-    _encrypt(record) {
+    _decrypt(record) {
+        
+    }
 
+    async deleteAsync(request) {
+        try {
+            this._validate(request);
+
+            let countryCode = request.country.toLowerCase();
+            let key = request.key;
+            let endpoint = (await this._getEndpointAsync(countryCode, `v2/storage/records/${countryCode}/${key}`))
+            console.log(`DELETE from: ${endpoint}`);
+
+            var response = await axios({
+                method: 'delete',
+                url: endpoint,
+                headers: this.headers()
+            });
+
+            return response;
+        }
+        catch (exc) {
+            console.log(exc);
+            throw(exc);
+        }
     }
 
     _validate(request) {
@@ -120,13 +138,21 @@ class Storage {
             [0];
 
         if (countryToUse) {
-            console.log('Country came back as direct')
+            //console.log('Country came back as direct')
             return `${protocol}://${countryCode}.api.incountry.io/${path}`;
         } else {
             // This might not be what we want, still under discussion
-            console.log('Country not found, forwarding to us for minipop reroute...')
+            //console.log('Country not found, forwarding to us for minipop reroute...')
             return `${protocol}://${this._endpoint}/${path}`;
         }
+    }
+
+    headers() {
+        return {
+            'Authorization': `Bearer ${this._apiKey}`,
+            'x-zone-id': this._zoneId,
+            'Content-Type': 'application/json'
+        };
     }
 }
 

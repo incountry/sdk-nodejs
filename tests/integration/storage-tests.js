@@ -10,16 +10,18 @@ describe('Storage', function() {
     context('with valid constructor options', function() {
         [
             {
-                tls: true // Use defaults from .env file
+                tls: true, // Use defaults from .env file
+                encrypt: false
             },
             {
-                tls: true
+                tls: true,
+                encrypt: true
             }
         ].forEach(function(testCase) {
             var storage = new Storage(testCase);
             var testBody = 'inc test';
 
-            it(`should write to, read from, and delete from (NA) storage using these options: ${JSON.stringify(testCase)}`, async function(){
+            it(`should write using these options: ${JSON.stringify(testCase)}`, async function(){
                 var writeResponse = await storage.writeAsync({
                     country: 'US',
                     key: 'record1',
@@ -29,7 +31,9 @@ describe('Storage', function() {
                 //console.log(writeResponse);
                 expect(writeResponse).to.exist;
                 expect(writeResponse.status).to.equal(201);
+            });
 
+            it(`should read using these options: ${JSON.stringify(testCase)}`, async function() {
                 var readResponse = await storage.readAsync({
                     country: 'US',
                     key: 'record1'
@@ -40,10 +44,16 @@ describe('Storage', function() {
                 expect(readResponse.status).to.equal(200);
                 expect(readResponse.data).to.exist;
                 expect(readResponse.data.body).to.equal(testBody);
+            });
 
-                // var deleteResponse = await storage.deleteAsync({
+            it(`should delete using these options: ${JSON.stringify(testCase)}`, async function() {
+                var deleteResponse = await storage.deleteAsync({
+                    country: 'US',
+                    key: 'record1'
+                });
 
-                // });
+                expect(deleteResponse).to.exist;
+                expect(deleteResponse.status).to.equal(200);
 
                 return;
             })
