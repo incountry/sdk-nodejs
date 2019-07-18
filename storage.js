@@ -1,7 +1,8 @@
 require('dotenv').config();
 
 var axios = require('axios'),
-    CountriesCache = require('./countries-cache');
+    CountriesCache = require('./countries-cache'),
+    InCrypt = require('./in-crypt').InCrypt;
 
 var apiDefault = 'us.staging-api.incountry.io';
 
@@ -16,17 +17,19 @@ class Storage {
         this._endpoint = options.endpoint || process.env.INC_ENDPOINT;
         if (!this._endpoint) throw new Error('Please pass endpoint in options or set INC_ENDPOINT env var')
 
-        if (!!options.encrpt) {
-            this._encrypt = options.encrpt;
+        if (!!options.encrypt) {
+            this._encrypt = options.encrypt;
             this._secretKey = options.secretKey || process.env.INC_SECRET_KEY;
             if (!this._secretKey) throw new Error('Encryption is on. Please pass secretKey in options or set INC_SECRET_KEY env var')
+        
+            this._crypto = new InCrypt(this._secretKey);
         }
         
         this._tls = options.tls;
 
         this._countriesCache = countriesCache || new CountriesCache();
 
-        console.log(JSON.stringify(this));
+        //console.log(JSON.stringify(this));
     }
 
     async writeAsync(request) {
@@ -35,7 +38,7 @@ class Storage {
 
             let countrycode = request.country.toLowerCase();
 
-            let data = {
+            var data = {
                 country: countrycode,
                 key: request.key
             }
@@ -47,12 +50,14 @@ class Storage {
             if (request.key3) data['key3'] = request.key3;
 
             var endpoint = (await this._getEndpointAsync(countrycode, `v2/storage/records/${countrycode}`))
+            
             console.log(`POST to: ${endpoint}`)
-
-            // Not yet working
             if (this._encrypt) {
-
+                console.log('Encrypting...');
+                data = this._encryptIt(data);
             }
+
+            console.log(`Raw data: ${JSON.stringify(data)}`);
 
             var response = await axios({
                 method: 'post',
@@ -69,8 +74,24 @@ class Storage {
         }
     }
 
-    _encrypt(record) {
+    _encryptIt(record) {
+        var that = this;
+        var result = {};
 
+        [
+            'body',
+            'profile_key',
+            'key2',
+            'key3'
+        ].forEach(function(prop) {
+            if (record[prop]) {
+                result[prop] = that._crypto.encrypt(record[prop]);
+            }
+        });
+
+        result['key'] = record['key'];
+
+        return result;
     }
 
     async readAsync(request) {
@@ -88,6 +109,16 @@ class Storage {
                 headers: this.headers()
             });
 
+            if(response.status == 400) {
+                return response;
+            }
+
+            console.log(`Raw data: ${JSON.stringify(response.data)}`);
+            if (this._encrypt) {
+                console.log('Decrypting...')
+                response.data = this._decryptIt(response.data)
+            }
+
             return response;
         }
         catch (exc) {
@@ -97,8 +128,24 @@ class Storage {
         }
     }
 
-    _decrypt(record) {
-        
+    _decryptIt(record) {
+        var that = this;
+        var result = {};
+
+        [
+            'body',
+            'profile_key',
+            'key2',
+            'key3'
+        ].forEach(function(prop) {
+            if (record[prop]) {
+                result[prop] = that._crypto.decrypt(record[prop]);
+            }
+        });
+
+        result['key'] = record['key'];
+
+        return result;
     }
 
     async deleteAsync(request) {

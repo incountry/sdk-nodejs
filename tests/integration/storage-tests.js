@@ -15,11 +15,13 @@ describe('Storage', function() {
             },
             {
                 tls: true,
-                encrypt: true
+                encrypt: true,
+                secretKey: 'supersecret'
             }
         ].forEach(function(testCase) {
             var storage = new Storage(testCase);
             var testBody = 'inc test';
+            var encryptedKey;
 
             it(`should write using these options: ${JSON.stringify(testCase)}`, async function(){
                 var writeResponse = await storage.writeAsync({
