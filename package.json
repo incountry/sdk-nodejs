@@ -1,7 +1,7 @@
 {
-  "name": "sdk-nodejs",
-  "version": "1.0.0",
-  "description": "",
+  "name": "incountry",
+  "version": "0.2.0",
+  "description": "SDK for writing, reading, and deleting records using Incountry's storage suite",
   "main": "index.js",
   "scripts": {
     "test": "nyc mocha tests/unit/*.js",
@@ -11,8 +11,8 @@
     "type": "git",
     "url": "git+https://github.com/incountry/sdk-nodejs.git"
   },
-  "author": "InCountry",
-  "license": "ISC",
+  "author": "Joel Bruce <joel@incountry.com> (https://incountry.com/)",
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/incountry/sdk-nodejs/issues"
   },
