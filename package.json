@@ -1,29 +1,35 @@
 {
-  "name": "incountry",
-  "version": "0.2.0",
-  "description": "SDK for writing, reading, and deleting records using Incountry's storage suite",
-  "main": "index.js",
-  "scripts": {
-    "test": "nyc mocha tests/unit/*.js",
-    "integrations": "nyc mocha tests/integration/*.js"
+  "author": {
+    "name": "Joel Bruce",
+    "email": "joel@incountry.com",
+    "url": "https://incountry.com/"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/incountry/sdk-nodejs.git"
-  },
-  "author": "Joel Bruce <joel@incountry.com> (https://incountry.com/)",
-  "license": "MIT",
   "bugs": {
     "url": "https://github.com/incountry/sdk-nodejs/issues"
   },
-  "homepage": "https://github.com/incountry/sdk-nodejs#readme",
+  "bundleDependencies": false,
   "dependencies": {
     "aes-js": "^3.1.2",
     "axios": "^0.19.0",
     "chai": "^4.2.0",
-    "dotenv": "^8.0.0",
-    "mocha": "^6.1.4",
+    "dotenv": "^8.1.0",
+    "mocha": "^6.2.0",
     "nyc": "^14.1.1",
     "utf8": "^3.0.0"
-  }
+  },
+  "deprecated": false,
+  "description": "SDK for writing, reading, and deleting records using Incountry's storage suite",
+  "homepage": "https://github.com/incountry/sdk-nodejs#readme",
+  "license": "MIT",
+  "main": "index.js",
+  "name": "incountry",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/incountry/sdk-nodejs.git"
+  },
+  "scripts": {
+    "integrations": "nyc mocha tests/integration/*.js --timeout 20000",
+    "test": "nyc mocha tests/unit/*.js"
+  },
+  "version": "0.3.0"
 }

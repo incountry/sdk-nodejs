@@ -1,13 +1,15 @@
 require('dotenv').config();
 
+var forEachAsync = require('./foreach-async');
+
 var axios = require('axios'),
     CountriesCache = require('./countries-cache'),
     InCrypt = require('./in-crypt').InCrypt;
 
-var apiDefault = 'us.staging-api.incountry.io';
-
 class Storage {
-    constructor(options, countriesCache) {
+    constructor(options, countriesCache, cryptKeyAccessor, logger) {
+        this._logger = logger || require('./logger').withBaseLogLevel('debug');
+
         this._apiKey = options.apiKey || process.env.INC_API_KEY;
         if (!this._apiKey) throw new Error('Please pass apiKey in options or set INC_API_KEY env var')
 
@@ -19,17 +21,73 @@ class Storage {
 
         if (!!options.encrypt) {
             this._encrypt = options.encrypt;
-            this._secretKey = options.secretKey || process.env.INC_SECRET_KEY;
-            if (!this._secretKey) throw new Error('Encryption is on. Please pass secretKey in options or set INC_SECRET_KEY env var')
-        
-            this._crypto = new InCrypt(this._secretKey);
+            this._crypto = new InCrypt(cryptKeyAccessor);
         }
-        
-        this._tls = options.tls;
+
+        this._overrideWithEndpoint = options.overrideWithEndpoint;
 
         this._countriesCache = countriesCache || new CountriesCache();
+    }
 
-        //console.log(JSON.stringify(this));
+    async batchAsync(batchRequest) {
+        var that = this;
+        try {
+            var encryptedRequest = null;
+            var mappings = {};
+            if (this._encrypt) {
+                var keysToSend = [];
+                await forEachAsync(batchRequest["GET"], async (key, i) => {
+                    var encrypted = await that._crypto.encryptAsync(key);
+                    keysToSend[i] = encrypted;
+                    mappings[encrypted] = key;
+                });
+
+                encryptedRequest = {
+                    "GET": keysToSend
+                }
+            }
+
+            let countryCode = batchRequest.country.toLowerCase();
+            var endpoint = await this._getEndpointAsync(countryCode, `v2/storage/batches/${countryCode}`);
+            this._logger.write("debug", `POST from: ${endpoint}`);
+
+            var response = await axios({
+                method: 'post',
+                url: endpoint,
+                headers: this.headers(),
+                data: encryptedRequest || batchRequest
+            });
+
+            this._logger.write("debug", `Raw data: ${JSON.stringify(response.data)}`);
+            if (response.data) {
+                var results = []
+                var recordsRetrieved = response.data["GET"];
+                if (recordsRetrieved) {
+                    await forEachAsync(encryptedRequest["GET"], async (requestKey, i) => {
+                        var match = recordsRetrieved.filter(record => record.key == requestKey)[0];
+                        if (match) {
+                            results[i] = this._encrypt ? await that._decryptIt(match) : match;
+                        }
+                        else {
+                            results[i] = {
+                                "body": mappings[requestKey],
+                                "error": "Record not found"
+                            }
+                        }
+                    });
+                    response.data["GET"] = results;
+
+                    if (this._encrypt) {
+                        this._logger.write("debug", `Decrypted data: ${JSON.stringify(response.data)}`);
+                    }
+                }
+            }
+
+            return response;
+        }
+        catch (err) {
+            this._logger.write("error", err);
+        }
     }
 
     async writeAsync(request) {
@@ -49,15 +107,15 @@ class Storage {
             if (request.key2) data['key2'] = request.key2;
             if (request.key3) data['key3'] = request.key3;
 
-            var endpoint = (await this._getEndpointAsync(countrycode, `v2/storage/records/${countrycode}`))
+            var endpoint = await this._getEndpointAsync(countrycode, `v2/storage/records/${countrycode}`);
             
-            console.log(`POST to: ${endpoint}`)
+            this._logger.write("debug", `POST to: ${endpoint}`)
             if (this._encrypt) {
-                console.log('Encrypting...');
-                data = this._encryptIt(data);
+                this._logger.write("debug", 'Encrypting...');
+                data = await this._encryptIt(data);
             }
 
-            console.log(`Raw data: ${JSON.stringify(data)}`);
+            this._logger.write("debug", `Raw data: ${JSON.stringify(data)}`);
 
             var response = await axios({
                 method: 'post',
@@ -68,85 +126,113 @@ class Storage {
 
             return response;
         }
-        catch(exc) {
-            console.log(exc);
-            throw(exc);
+        catch(err) {
+            this._logger.write("error", err);
+            throw(err);
         }
     }
 
-    _encryptIt(record) {
+    async _encryptIt(record) {
         var that = this;
-        var result = {};
+        return new Promise(function(resolve, reject) {
+            try {
+                var result = {};
 
-        [
-            'key',
-            'body',
-            'profile_key',
-            'key2',
-            'key3'
-        ].forEach(function(prop) {
-            if (record[prop]) {
-                result[prop] = that._crypto.encrypt(record[prop]);
+                forEachAsync(
+                [
+                    'key',
+                    'body',
+                    'profile_key',
+                    'key2',
+                    'key3'
+                ], async (key) => {
+                    if (record[key]) {
+                        result[key] = await that._crypto.encryptAsync(record[key]);
+                    }
+                }).then(r => { resolve(result); });
+            }
+            catch (err) {
+                reject(err);
             }
         });
-
-        return result;
     }
 
     async readAsync(request) {
+        var response;
         try {
             this._validate(request);
 
             let countryCode = request.country.toLowerCase();
             let key = this._encrypt
-                ? this._crypto.encrypt(request.key)
+                ? await this._crypto.encryptAsync(request.key)
                 : request.key;
 
-            var endpoint = (await this._getEndpointAsync(countryCode, `v2/storage/records/${countryCode}/${key}`))
-            console.log(`GET from: ${endpoint}`);
+            var endpoint = await this._getEndpointAsync(countryCode, `v2/storage/records/${countryCode}/${key}`);
+            this._logger.write("debug", `GET from: ${endpoint}`);
             
-            var response = await axios({
+            response = await axios({
                 method: 'get',
                 url: endpoint,
                 headers: this.headers()
             });
 
-            if(response.status == 400) {
-                return response;
-            }
-
-            console.log(`Raw data: ${JSON.stringify(response.data)}`);
+            this._logger.write("debug", `Raw data: ${JSON.stringify(response.data)}`);
             if (this._encrypt) {
-                console.log('Decrypting...')
-                response.data = this._decryptIt(response.data)
+                this._logger.write("debug", 'Decrypting...')
+                response.data = await this._decryptIt(response.data)
             }
+            this._logger.write("debug", `Decrypted data: ${JSON.stringify(response.data)}`);
 
             return response;
         }
-        catch (exc) {
-            // log
-            console.log(exc);
-            throw(exc);
+        catch (err) {
+            if (/Request failed with status code 404/i.test(err.message)) {
+                this._logger.write("warn", "Resource not found, return key in response data with status of 404");
+                return {
+                    data: {
+                        "body": undefined,
+                        "key": request.key,
+                        "key2": undefined,
+                        "key3": undefined,
+                        "profile_key": undefined,
+                        "range_key": undefined,
+                        "version": undefined,
+                        "zone_id": undefined,
+                    },
+                    "error": `Could not find a record for key: ${request.key}`,
+                    "status": 404
+                };
+            }
+            else {
+                this._logger.write("error", err);
+                throw(err);
+            }
         }
     }
 
-    _decryptIt(record) {
+    async _decryptIt(record) {
         var that = this;
-        var result = {};
+        return new Promise(function(resolve, reject) {
+            try {
+                var result = {};
 
-        [
-            'key',
-            'body',
-            'profile_key',
-            'key2',
-            'key3'
-        ].forEach(function(prop) {
-            if (record[prop]) {
-                result[prop] = that._crypto.decrypt(record[prop]);
+                forEachAsync(
+                [
+                    'key',
+                    'body',
+                    'profile_key',
+                    'key2',
+                    'key3'
+                ], async function(key) {
+                    if (record[key]) {
+                        result[key] = await that._crypto.decryptAsync(record[key]);
+                    }
+                }).then(r => { resolve(result); });
+            }
+            catch (err) {
+                reject(err)
             }
         });
-
-        return result;
     }
 
     async deleteAsync(request) {
@@ -155,11 +241,11 @@ class Storage {
 
             let countryCode = request.country.toLowerCase();
             let key = this._encrypt
-                ? this._crypto.encrypt(request.key)
+                ? await this._crypto.encryptAsync(request.key)
                 : request.key;
                 
             let endpoint = (await this._getEndpointAsync(countryCode, `v2/storage/records/${countryCode}/${key}`))
-            console.log(`DELETE from: ${endpoint}`);
+            this._logger.write("debug", `DELETE from: ${endpoint}`);
 
             var response = await axios({
                 method: 'delete',
@@ -169,9 +255,9 @@ class Storage {
 
             return response;
         }
-        catch (exc) {
-            console.log(exc);
-            throw(exc);
+        catch (err) {
+            this._logger.write("error", err);
+            throw(err);
         }
     }
 
@@ -181,20 +267,21 @@ class Storage {
     }
 
     async _getEndpointAsync(countryCode, path) {
-        var protocol = !!this._tls ? 'https' : 'http';
+        // Hard-coded for now, since we only currently support https
+        // When support for other protocols becomes availavle,
+        //  we will add a protocol field in the options passed into the constructor.
+        var protocol = 'https';
 
-        var countryRegex = new RegExp(countryCode, 'i');
-        var countryToUse = (await this._countriesCache.getCountriesAsync())
-            .filter(country => countryRegex.test(country.id))
-            [0];
-
-        if (countryToUse) {
-            //console.log('Country came back as direct')
+        if (this._overrideWithEndpoint) {
+            return `${this._endpoint}/${path}`;
+        }
+        else {
+            // Todo: Fix: Experimental for now
+            // var countryRegex = new RegExp(countryCode, 'i');
+            // var countryToUse = (await this._countriesCache.getCountriesAsync())
+            //     .filter(country => countryRegex.test(country.id))
+            //     [0];
             return `${protocol}://${countryCode}.api.incountry.io/${path}`;
-        } else {
-            // This might not be what we want, still under discussion
-            //console.log('Country not found, forwarding to us for minipop reroute...')
-            return `${protocol}://${this._endpoint}/${path}`;
         }
     }
 

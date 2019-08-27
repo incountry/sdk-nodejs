@@ -2,13 +2,14 @@ var aesjs = require('aes-js'),
     crypto = require('crypto'),
     utf8 = require('utf8');
 
+const CryptKeyAccessor = require('./crypt-key-accessor');
+
 const BLOCK_SIZE = 16; // Bytes
 const pad = function(s) {
     let slotsToPad = BLOCK_SIZE - (s.length % BLOCK_SIZE);
     let repeatedChar = String.fromCharCode(slotsToPad);
     let result = s + repeatedChar.repeat(slotsToPad);
 
-    console.log(`slotsToPad: ${slotsToPad}, repeatedChar: ${repeatedChar}, result:${result}`);
     return result;
 };
 
@@ -19,44 +20,71 @@ const unpad = function(s) {
     let slotsToPad = repeatedChar.charCodeAt(0);
     let result = s.substring(0, end - slotsToPad);
     
-    console.log(`end: ${end}, slotsToPad: ${slotsToPad}, repeatedChar: ${repeatedChar}, result:${result}`);
     return result;
 }
 
 class InCrypt {
-    constructor(key) {
-        this._key = Buffer.allocUnsafe(16);
-        this._iv = Buffer.allocUnsafe(16);
-
-        let hash = crypto.createHash('sha256');
-        let encodedKey = utf8.encode(key);
-        let ba = hash.update(encodedKey).digest('hex');
-        let salt = Buffer.from(ba, 'hex');
-
-        salt.copy(this._key, 0, 0, 16);
-        salt.copy(this._iv, 0, 16, 32);
-    }
-    
-    encrypt(raw) {
-        let aesCbc = new aesjs.ModeOfOperation.cbc(this._key, this._iv)
-
-        let padded = pad(raw);
-        let paddedBytes = aesjs.utils.utf8.toBytes(padded);
-        let encryptedBytes = aesCbc.encrypt(paddedBytes);
-        let encryptedHex = aesjs.utils.hex.fromBytes(encryptedBytes);
-
-        return encryptedHex;
+    constructor(cryptKeyAccessor) {
+        this._cryptKeyAccessor = cryptKeyAccessor;
     }
 
-    decrypt(encryptedHex) {
-        let aesCbc = new aesjs.ModeOfOperation.cbc(this._key, this._iv)
+    async encryptAsync(raw) {
+        var that = this;
+        return new Promise(function(resolve, reject) {
+            try {
+               that._cryptKeyAccessor.secureAccessor(secret => {
+                    let key = Buffer.allocUnsafe(16);
+                    let iv = Buffer.allocUnsafe(16);
+                    let hash = crypto.createHash('sha256');
+        
+                    let encodedKey = utf8.encode(secret);
+                    let ba = hash.update(encodedKey).digest('hex');
+                    let salt = Buffer.from(ba, 'hex');
+                    salt.copy(key, 0, 0, 16);
+                    salt.copy(iv, 0, 16, 32);
+        
+                    let aesCbc = new aesjs.ModeOfOperation.cbc(key, iv);
+                    let padded = pad(raw);
+                    let paddedBytes = aesjs.utils.utf8.toBytes(padded);
+                    let encryptedBytes = aesCbc.encrypt(paddedBytes);
+                    let encryptedHex = aesjs.utils.hex.fromBytes(encryptedBytes);
+                    resolve(encryptedHex);
+               });
+            }
+            catch (err) {
+                reject(err)
+            }
+        });
+    }
 
-        let encryptedBytes = aesjs.utils.hex.toBytes(encryptedHex)
-        let paddedBytes = aesCbc.decrypt(encryptedBytes);
-        let padded = aesjs.utils.utf8.fromBytes(paddedBytes);
-        let raw = unpad(padded);
+    async decryptAsync(encryptedHex) {
+        var that = this;
+        return new Promise(function(resolve, reject) {
+            try {
+                that._cryptKeyAccessor.secureAccessor(secret => {
+                    let key = Buffer.allocUnsafe(16);
+                    let iv = Buffer.allocUnsafe(16);
+                    let hash = crypto.createHash('sha256');
+        
+                    let encodedKey = utf8.encode(secret);
+                    let ba = hash.update(encodedKey).digest('hex');
+                    let salt = Buffer.from(ba, 'hex');
+                    salt.copy(key, 0, 0, 16);
+                    salt.copy(iv, 0, 16, 32);
+        
+                    let aesCbc = new aesjs.ModeOfOperation.cbc(key, iv);
 
-        return raw;
+                    let encryptedBytes = aesjs.utils.hex.toBytes(encryptedHex)
+                    let paddedBytes = aesCbc.decrypt(encryptedBytes);
+                    let padded = aesjs.utils.utf8.fromBytes(paddedBytes);
+                    let raw = unpad(padded);
+                    resolve(raw);
+                });
+            }
+            catch (err) {
+                reject(err);
+            }
+        })
     }
     
     hash(data) {
@@ -64,8 +92,6 @@ class InCrypt {
 //     hash = hmac.new(self.salt, data.encode('utf-8'), digestmod=hashlib.sha256).digest().hex()
 //     return hash
     }
-
-
 }
 
 module.exports.InCrypt = InCrypt;

@@ -4,7 +4,7 @@ Pull Request Checklist
 Work relates to:
 ----------------
 Link to Jira Task/User Story/Bug/Epic:
-
+[]
 
 Code Quality
 ------------

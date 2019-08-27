@@ -1,4 +1,5 @@
 var {InCrypt, pad, unpad} = require('../../in-crypt');
+var CryptKeyAccessor = require('../../crypt-key-accessor');
 
 var expect = require('chai').expect;
 
@@ -24,7 +25,7 @@ describe('InCrypt', function() {
             "seventeen chars 0",
             "I am the very model of a modern major general"
         ].forEach(function(testCase) {
-            it(`should pad the text and then unpad the text correctly: ${testCase}`, function() {
+            it(`should pad the text and then unpad the text correctly: ${testCase}`, async function() {
                 var padded = pad(testCase);
                 var unpadded = unpad(padded);
 
@@ -32,13 +33,14 @@ describe('InCrypt', function() {
                 expect(padded).to.not.equal(unpadded);
             })
 
-            it(`should encrypt and decrypt correctly: ${testCase}`, function() {
-                var incrypt = new InCrypt('supersecret');
+            it(`should encrypt and decrypt correctly: ${testCase}`, async function() {
+                var cryptKeyAccessor = new CryptKeyAccessor(function() { return 'supersecret'; });
+                var incrypt = new InCrypt(cryptKeyAccessor);
 
-                var encrypted = incrypt.encrypt(testCase);
+                var encrypted = await incrypt.encryptAsync(testCase);
                 console.log(`e: ${encrypted}`);
 
-                var decrypted = incrypt.decrypt(encrypted);
+                var decrypted = await incrypt.decryptAsync(encrypted);
                 console.log(`d: ${decrypted}`);
                 expect(decrypted).to.equal(testCase);
                 expect(encrypted).to.not.equal(decrypted);
