@@ -1,12 +1,15 @@
 var axios = require('axios');
 
 class CountriesCache {
-    constructor(portalHost, expiresOn) {
-        this._host = portalHost || 'portal-api-staging.incountry.io';
-        this._expiresOn = expiresOn || Date.now() + 30000;
+    constructor(portalHost, slidingWindowMilliseconds, expiresOn, logger) {
+        this._host = portalHost || 'portal-backend.incountry.com';
+        this._slidingWindowMilliseconds = slidingWindowMilliseconds || 60000
+        this._expiresOn = expiresOn || Date.now() + slidingWindowMilliseconds;
 
         this._getUrl = `http://${this._host}/countries`;
         this._countries;
+
+        this._logger = logger || require('./logger').withBaseLogLevel("error")
     }
 
     async getCountriesAsync(timeStamp) {
@@ -20,13 +23,14 @@ class CountriesCache {
 
     async _hardRefreshAsync() {
         try {
+            this._expiresOn += this._slidingWindowMilliseconds;
             var response = await axios.get(this._getUrl);
             if (response.data) {
                 return response.data.countries;
             }
         }
         catch (exc) {
-            console.log(exc);
+            this._logger.write("error", exc);
             throw(exc);
         }
     }
