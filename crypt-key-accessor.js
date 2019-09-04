@@ -5,19 +5,25 @@ class CryptKeyAccessor {
     
     /**
      * Summary.
-     * 
+     *
      * Description.
      * 
-     * @since 0.2.8
-     * @param {function(secretKey)} useKeySecurelyCallback Only the key as a string will be passed into this callback Ensure the key is never leaked outside due to closure.
+     * @since 0.4.0
+     * @return Promise which resolve to key string
      */
-    secureAccessor(useKeySecurelyCallback) {
-        let key = {
-            "closedOver": this._getKeySecurely()
-        };
-
-        useKeySecurelyCallback(key.closedOver);
-        delete key.closedOver;
+    secureAccessor() {
+        return new Promise((resolve, reject) => {
+            let key = {
+                "closedOver": this._getKeySecurely()
+            };
+            if (typeof key.closedOver.then === 'function') {
+                key.closedOver.then(resolve).catch(reject);
+                delete key.closedOver;
+            } else {
+                resolve(key.closedOver);
+                delete key.closedOver;
+            }
+        })
     }
 }
 

@@ -8,7 +8,7 @@ describe('logger', () => {
     const message = 'test message';
     const prefix ='testPrefix';
     const createExpected = (level) => `${timestamp} [${level}] ${message}`;
-    const createExpectedTrace = (level) => `${timestamp} [${level}] ${prefix}${message}`;
+    const createExpectedTrace = (level, id) => `${timestamp} [${level}] ${prefix}${message}`;
     let spy;
     const levels = [
         "debug",
