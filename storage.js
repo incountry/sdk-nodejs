@@ -8,7 +8,11 @@ var axios = require('axios'),
 
 class Storage {
     constructor(options, countriesCache, cryptKeyAccessor, logger) {
-        this._logger = logger || require('./logger').withBaseLogLevel('debug');
+        if (logger) {
+            this.setLogger(logger)
+        } else {
+            this._logger = require('./logger').withBaseLogLevel('debug');
+        }
 
         this._apiKey = options.apiKey || process.env.INC_API_KEY;
         if (!this._apiKey) throw new Error('Please pass apiKey in options or set INC_API_KEY env var')
@@ -27,6 +31,19 @@ class Storage {
         this._overrideWithEndpoint = options.overrideWithEndpoint;
 
         this._countriesCache = countriesCache || new CountriesCache();
+    }
+
+    setLogger(logger) {
+        if (!logger) {
+            throw new Error('Please specify a logger')
+        }
+        if (logger.write || typeof logger.write !== 'function') {
+            throw new Error('Logger must implement write function')
+        }
+        if (logger.write.length < 2) {
+            throw new Error('Logger.write must have at least 2 parameters')
+        }
+        this._logger = logger;
     }
 
     async batchAsync(batchRequest) {

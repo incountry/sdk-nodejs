@@ -1,6 +1,7 @@
+
 module.exports = {
     withBaseLogLevel: function(baseLogLevel) {
-        var filterLevels = {
+        const filterLevels = {
             "debug": 0,
             "info": 1,
             "log": 2,
@@ -8,37 +9,43 @@ module.exports = {
             "error": 4
         };
 
-        var baseLevel = filterLevels[baseLogLevel];
+        const baseLevel = filterLevels[baseLogLevel];
 
-        var write = function(logLevel, message, id, timeStamp) {
+        const write = function(logLevel, message, id, timestamp) {
             if (filterLevels[logLevel] >= baseLevel) {
-                let logEntry = {
-                    message: message,
-                    id: id,
-                    timeStamp: timeStamp || (new Date()).toISOString()
+                const logEntry = {
+                    type: 'application.proxy.app_log',
+                    time: timestamp || new Date().toISOString(),
+                    level: logLevel,
+                    message,
                 };
-                console[logLevel](logEntry);
+                if (id) {
+                    logEntry.id = id
+                }
+                console.log(`${logEntry.time} [${logEntry.level}] ${logEntry.message}`);
                 return true;
             }
 
             return false;
         };
 
-        return {
-            write: write,
+        const logger = {
+            write,
             trace: function(id) {
                 return {
                     withPrefix: function(prefix) {
                         return {
-                            debug: (message) => write("debug", `${prefix}${message}`, id),
-                            info: (message) => write("info", `${prefix}${message}`, id),
-                            log: (message) => write("log", `${prefix}${message}`, id),
-                            warn: (message) => write("warn", `${prefix}${message}`, id),
-                            error: (message) => write("error", `${prefix}${message}`, id)
+                            debug: (message, timestamp) => write("debug", `${prefix}${message}`, id, timestamp),
+                            info: (message, timestamp) => write("info", `${prefix}${message}`, id, timestamp),
+                            log: (message, timestamp) => write("log", `${prefix}${message}`, id, timestamp),
+                            warn: (message, timestamp) => write("warn", `${prefix}${message}`, id, timestamp),
+                            error: (message, timestamp) => write("error", `${prefix}${message}`, id, timestamp)
                         }
                     }
                 }
             }
-        }
+        };
+
+        return logger
     }
-}
+};
