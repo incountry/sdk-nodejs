@@ -62,6 +62,21 @@ var deleteResponse = await storage.deleteAsync({
 
 // Use deleteResponse.status for status code.
 ```
+6. Logging
+You can specify a custom logger as following:
+```
+const logger = {
+    write: (level, message) => { console.log(`[${level}] ${message}`) }
+}
+
+storage.setLogger(logger);
+```
+Logger must be an object implementing method `write`, which has following signature:
+```
+write(level, message)
+```
+`level` (string) - message level: DEBUG, INFO, etc.
+`message` (string) - log message
 
 Testing Locally
 -----
