@@ -40,10 +40,8 @@ describe('InCrypt', function() {
                 const incrypt = new InCrypt(cryptKeyAccessor);
 
                 const encrypted = await incrypt.encryptAsync(testCase);
-                console.log(`e: ${encrypted}`);
 
                 const decrypted = await incrypt.decryptAsync(encrypted);
-                console.log(`d: ${decrypted}`);
                 expect(decrypted).to.equal(testCase);
                 expect(encrypted).to.not.equal(decrypted);
             })
@@ -53,10 +51,8 @@ describe('InCrypt', function() {
                 const incrypt = new InCrypt(cryptKeyAccessor);
 
                 const encrypted = await incrypt.encryptAsync(testCase);
-                console.log(`e: ${encrypted}`);
 
                 const decrypted = await incrypt.decryptAsync(encrypted);
-                console.log(`d: ${decrypted}`);
                 expect(decrypted).to.equal(testCase);
                 expect(encrypted).to.not.equal(decrypted);
             })

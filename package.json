@@ -5,7 +5,7 @@
     "url": "https://incountry.com/"
   },
   "bugs": {
-    "url": "https://github.com/incountry/incountry-sdks/issues"
+    "url": "https://github.com/incountry/sdk-nodejs/issues"
   },
   "bundleDependencies": false,
   "dependencies": {
@@ -16,13 +16,13 @@
   },
   "deprecated": false,
   "description": "SDK for writing, reading, and deleting records using Incountry's storage suite",
-  "homepage": "https://github.com/incountry/incountry-sdks#readme",
+  "homepage": "https://github.com/incountry/sdk-nodejs#readme",
   "license": "MIT",
   "main": "index.js",
   "name": "incountry",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/incountry/incountry-sdks.git"
+    "url": "git+https://github.com/incountry/sdk-nodejs.git"
   },
   "scripts": {
     "integrations": "nyc mocha tests/integration/*.js --timeout 20000",
