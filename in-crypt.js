@@ -6,7 +6,7 @@ const pbkdf2 = util.promisify(crypto.pbkdf2);
 const IV_SIZE = 12;
 const KEY_SIZE = 32;
 const SALT_SIZE = 64;
-const PBKDF2_ITERATIONS_COUNT = 100000;
+const PBKDF2_ITERATIONS_COUNT = 10000;
 const AUTH_TAG_SIZE = 16;
 
 class InCrypt {
