@@ -1,0 +1,8 @@
+addons:
+  sonarcloud:
+    organization: "incountry"
+
+script:
+  - npm install
+  - npm test
+  - sonar-scanner
