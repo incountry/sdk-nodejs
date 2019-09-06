@@ -1,4 +1,4 @@
-const {InCrypt, pad, unpad} = require('../../in-crypt');
+const {InCrypt} = require('../../in-crypt');
 const CryptKeyAccessor = require('../../crypt-key-accessor');
 
 const expect = require('chai').expect;
@@ -25,14 +25,6 @@ describe('InCrypt', function() {
             "seventeen chars 0",
             "I am the very model of a modern major general"
         ].forEach(function(testCase) {
-            it(`should pad the text and then unpad the text correctly: ${testCase}`, async function() {
-                const padded = pad(testCase);
-                const unpadded = unpad(padded);
-
-                expect(unpadded).to.equal(testCase);
-                expect(padded).to.not.equal(unpadded);
-            })
-
             it(`should encrypt and decrypt correctly (asynchronous accessor): ${testCase}`, async function() {
                 const cryptKeyAccessor = new CryptKeyAccessor(function() {
                     return new Promise((resolve) => { resolve('supersecret') })
