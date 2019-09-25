@@ -17,8 +17,8 @@ class Storage {
         this._apiKey = options.apiKey || process.env.INC_API_KEY;
         if (!this._apiKey) throw new Error('Please pass apiKey in options or set INC_API_KEY env var')
 
-        this._envId = options.envId || process.env.INC_ENV_ID;
-        if (!this._envId) throw new Error('Please pass envId in options or set INC_ENV_ID env var')
+        this._envId = options.environmentId || process.env.INC_ENVIRONMENT_ID;
+        if (!this._envId) throw new Error('Please pass environmentId in options or set INC_ENVIRONMENT_ID env var')
 
         this._endpoint = options.endpoint || process.env.INC_ENDPOINT;
         if (!this._endpoint) throw new Error('Please pass endpoint in options or set INC_ENDPOINT env var')
