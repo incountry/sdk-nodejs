@@ -25,8 +25,8 @@
     "url": "git+https://github.com/incountry/sdk-nodejs.git"
   },
   "scripts": {
-    "integrations": "nyc mocha tests/integration/*.js --timeout 20000",
-    "test": "nyc mocha tests/unit/*.js"
+    "integrations": "nyc --reporter=lcov --reporter=text --report-dir=it-coverage mocha tests/integration/*.js --timeout 20000",
+    "test": "nyc --reporter=lcov --reporter=text --report-dir=ut-coverage mocha tests/unit/*.js"
   },
   "version": "0.4.1",
   "devDependencies": {
