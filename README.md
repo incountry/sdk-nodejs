@@ -8,7 +8,7 @@ Usage
 ```
 var storage = new Storage({
     apiKey: 'string',               // Required to be passed in, or as environment variable INC_API_KEY
-    zoneId: 'string',               // Required to be passed in, or as environment variable INC_ZONE_ID
+    envId: 'string',                // Required to be passed in, or as environment variable INC_ENV_ID
     endpoint: 'string url',         // Required to be passed in, or as environment variable INC_ENDPOINT
     encrypt: boolean,               // Optional, defaults to true
     overrideWithEndpoint: boolean,  // If set to true, the endpoint must also include protocol
