@@ -1,8 +1,8 @@
 require('dotenv').config();
-
 const axios = require('axios');
-const forEachAsync = require('./foreach-async');
 
+const defaultLogger = require('./logger');
+const forEachAsync = require('./foreach-async');
 const CountriesCache = require('./countries-cache');
 const { InCrypt } = require('./in-crypt');
 
@@ -11,7 +11,7 @@ class Storage {
     if (logger) {
       this.setLogger(logger);
     } else {
-      this._logger = require('./logger').withBaseLogLevel('debug');
+      this._logger = defaultLogger.withBaseLogLevel('debug');
     }
 
     this._apiKey = options.apiKey || process.env.INC_API_KEY;
@@ -81,7 +81,7 @@ class Storage {
         const recordsRetrieved = response.data.GET;
         if (recordsRetrieved) {
           await forEachAsync(encryptedRequest.GET, async (requestKey, i) => {
-            const match = recordsRetrieved.filter((record) => record.key == requestKey)[0];
+            const match = recordsRetrieved.filter((record) => record.key === requestKey)[0];
             if (match) {
               results[i] = this._encrypt ? await that._decryptIt(match) : match;
             } else {
@@ -107,7 +107,7 @@ class Storage {
 
   async writeAsync(request) {
     try {
-      this._validate(request);
+      Storage._validate(request);
 
       const countrycode = request.country.toLowerCase();
 
@@ -164,7 +164,7 @@ class Storage {
               result[key] = await that._crypto.encryptAsync(record[key]);
             }
           },
-        ).then((r) => { resolve(result); });
+        ).then(() => { resolve(result); });
       } catch (err) {
         reject(err);
       }
@@ -174,7 +174,7 @@ class Storage {
   async readAsync(request) {
     let response;
     try {
-      this._validate(request);
+      Storage._validate(request);
 
       const countryCode = request.country.toLowerCase();
       const key = this._encrypt
@@ -240,7 +240,7 @@ class Storage {
               result[key] = await that._crypto.decryptAsync(record[key]);
             }
           },
-        ).then((r) => { resolve(result); });
+        ).then(() => { resolve(result); });
       } catch (err) {
         reject(err);
       }
@@ -249,7 +249,7 @@ class Storage {
 
   async deleteAsync(request) {
     try {
-      this._validate(request);
+      Storage._validate(request);
 
       const countryCode = request.country.toLowerCase();
       const key = this._encrypt
@@ -272,7 +272,7 @@ class Storage {
     }
   }
 
-  _validate(request) {
+  static _validate(request) {
     if (!request.country) throw new Error('Missing country');
     if (!request.key) throw new Error('Missing key');
   }

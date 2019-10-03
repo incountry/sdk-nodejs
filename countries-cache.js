@@ -1,15 +1,14 @@
 const axios = require('axios');
+const defaultLogger = require('./logger');
 
 class CountriesCache {
   constructor(portalHost, slidingWindowMilliseconds, expiresOn, logger) {
     this._host = portalHost || 'portal-backend.incountry.com';
     this._slidingWindowMilliseconds = slidingWindowMilliseconds || 60000;
     this._expiresOn = expiresOn || Date.now() + slidingWindowMilliseconds;
-
     this._getUrl = `http://${this._host}/countries`;
-    this._countries;
 
-    this._logger = logger || require('./logger').withBaseLogLevel('error');
+    this._logger = logger || defaultLogger.withBaseLogLevel('error');
   }
 
   async getCountriesAsync(timeStamp) {
@@ -21,6 +20,7 @@ class CountriesCache {
     return this._countries;
   }
 
+  // eslint-disable-next-line consistent-return
   async _hardRefreshAsync() {
     try {
       this._expiresOn += this._slidingWindowMilliseconds;
