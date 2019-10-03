@@ -6,7 +6,7 @@
 //     context('with invalid constructor options', function() {
 
 //     })
-    
+
 //     context('with default constructor options', function() {
 //         it(`should return list of countries on hardRefreshAsync`, async function() {
 //             let countriesCache = new CountriesCache();
