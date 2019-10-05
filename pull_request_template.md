@@ -1,14 +1,23 @@
 Pull Request Checklist
 ======================
 
+Please read this for our PR Culture:
+------------------------------------
+https://incountry.atlassian.net/wiki/spaces/ED/pages/46858869/Pull+requests+culture+Draft
+
 Work relates to:
 ----------------
-Link to Jira Task/User Story/Bug/Epic:
-[]
+Link(s) to Jira Task/User Story/Bug/Epic:
+- [ ]
 
-Code Quality
+Code Quality (Before submitting PR)
 ------------
-[] Ensure code compiles or passes linter locally.
-[] Ensure all unit tests pass.
-[] Do your best to ensure integration tests pass. This is not always possible and should not gate the merge.
-[] Remove, ignore, or mark pending any brittle tests.
+- [ ] Ensure code compiles and passes Sonar Lint.
+- [ ] Do your best to ensure integration tests pass. If they don't then...
+- [ ] Remove, ignore, or mark pending any brittle tests.
+- [ ] Remove commented out code.
+
+Target Release
+--------------
+- [ ] Please put the target release vehicle this needs to be bundled with.
+- [ ] Did you increment the version in package.json? What is the new version?
