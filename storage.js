@@ -17,8 +17,8 @@ class Storage {
         this._apiKey = options.apiKey || process.env.INC_API_KEY;
         if (!this._apiKey) throw new Error('Please pass apiKey in options or set INC_API_KEY env var')
 
-        this._zoneId = options.zoneId || process.env.INC_ZONE_ID;
-        if (!this._zoneId) throw new Error('Please pass zoneId in options or set INC_ZONE_ID env var')
+        this._envId = options.environmentId || process.env.INC_ENVIRONMENT_ID;
+        if (!this._envId) throw new Error('Please pass environmentId in options or set INC_ENVIRONMENT_ID env var')
 
         this._endpoint = options.endpoint || process.env.INC_ENDPOINT;
         if (!this._endpoint) throw new Error('Please pass endpoint in options or set INC_ENDPOINT env var')
@@ -125,7 +125,7 @@ class Storage {
             if (request.key3) data['key3'] = request.key3;
 
             var endpoint = await this._getEndpointAsync(countrycode, `v2/storage/records/${countrycode}`);
-            
+
             this._logger.write("debug", `POST to: ${endpoint}`)
             if (this._encrypt) {
                 this._logger.write("debug", 'Encrypting...');
@@ -186,7 +186,7 @@ class Storage {
 
             var endpoint = await this._getEndpointAsync(countryCode, `v2/storage/records/${countryCode}/${key}`);
             this._logger.write("debug", `GET from: ${endpoint}`);
-            
+
             response = await axios({
                 method: 'get',
                 url: endpoint,
@@ -214,7 +214,7 @@ class Storage {
                         "profile_key": undefined,
                         "range_key": undefined,
                         "version": undefined,
-                        "zone_id": undefined,
+                        "env_id": undefined,
                     },
                     "error": `Could not find a record for key: ${request.key}`,
                     "status": 404
@@ -260,7 +260,7 @@ class Storage {
             let key = this._encrypt
                 ? await this._crypto.encryptAsync(request.key)
                 : request.key;
-                
+
             let endpoint = (await this._getEndpointAsync(countryCode, `v2/storage/records/${countryCode}/${key}`))
             this._logger.write("debug", `DELETE from: ${endpoint}`);
 
@@ -305,7 +305,7 @@ class Storage {
     headers() {
         return {
             'Authorization': `Bearer ${this._apiKey}`,
-            'x-zone-id': this._zoneId,
+            'x-env-id': this._envId,
             'Content-Type': 'application/json'
         };
     }
