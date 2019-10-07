@@ -1,5 +1,7 @@
 require('dotenv').config();
 const axios = require('axios');
+const queryString = require('query-string');
+const crypto = require('crypto');
 
 const defaultLogger = require('./logger');
 const forEachAsync = require('./foreach-async');
@@ -24,13 +26,18 @@ class Storage {
     if (!this._endpoint) throw new Error('Please pass endpoint in options or set INC_ENDPOINT env var');
 
     if (options.encrypt) {
-      this._encrypt = options.encrypt;
+      this._encryptionEnabled = options.encrypt;
       this._crypto = new InCrypt(cryptKeyAccessor);
     }
 
     this._overrideWithEndpoint = options.overrideWithEndpoint;
 
     this._countriesCache = countriesCache || new CountriesCache();
+  }
+
+  createKeyHash(s) {
+    const stringToHash = `${s}:${this._zoneId}`;
+    return crypto.createHash('sha256').update(stringToHash, 'utf8').digest('hex');
   }
 
   setLogger(logger) {
@@ -51,7 +58,7 @@ class Storage {
     try {
       let encryptedRequest = null;
       const mappings = {};
-      if (this._encrypt) {
+      if (this._encryptionEnabled) {
         const keysToSend = [];
         await forEachAsync(batchRequest.GET, async (key, i) => {
           const encrypted = await that._crypto.encryptAsync(key);
@@ -83,7 +90,7 @@ class Storage {
           await forEachAsync(encryptedRequest.GET, async (requestKey, i) => {
             const match = recordsRetrieved.filter((record) => record.key === requestKey)[0];
             if (match) {
-              results[i] = this._encrypt ? await that._decryptIt(match) : match;
+              results[i] = this._encryptionEnabled ? await that._decryptPayload(match) : match;
             } else {
               results[i] = {
                 body: mappings[requestKey],
@@ -93,7 +100,7 @@ class Storage {
           });
           response.data.GET = results;
 
-          if (this._encrypt) {
+          if (this._encryptionEnabled) {
             this._logger.write('debug', `Decrypted data: ${JSON.stringify(response.data)}`);
           }
         }
@@ -105,15 +112,14 @@ class Storage {
     }
   }
 
-  async writeAsync(request) {
+  async writeAsync(request, filter) {
     try {
-      Storage._validate(request);
-
       const countrycode = request.country.toLowerCase();
 
       let data = {
         country: countrycode,
         key: request.key,
+        filter,
       };
 
       if (request.body) data.body = request.body;
@@ -125,9 +131,9 @@ class Storage {
       const endpoint = await this._getEndpointAsync(countrycode, `v2/storage/records/${countrycode}`);
 
       this._logger.write('debug', `POST to: ${endpoint}`);
-      if (this._encrypt) {
+      if (this._encryptionEnabled) {
         this._logger.write('debug', 'Encrypting...');
-        data = await this._encryptIt(data);
+        data = await this._encryptPayload(data);
       }
 
       this._logger.write('debug', `Raw data: ${JSON.stringify(data)}`);
@@ -146,42 +152,44 @@ class Storage {
     }
   }
 
-  async _encryptIt(record) {
-    const that = this;
-    return new Promise(((resolve, reject) => {
-      try {
-        const result = {};
+  async find(country, filter, options) {
+    if (typeof country !== 'string') {
+      throw new Error('Missing country');
+    }
+    
+    const countryCode = country.toLowerCase();
+    const endpoint = await this._getEndpointAsync(countryCode, `v2/storage/records/${countryCode}/find`);
+    const data = {
+      filter,
+      options,
+    };
 
-        forEachAsync(
-          [
-            'key',
-            'body',
-            'profile_key',
-            'key2',
-            'key3',
-          ], async (key) => {
-            if (record[key]) {
-              result[key] = await that._crypto.encryptAsync(record[key]);
-            }
-          },
-        ).then(() => { resolve(result); });
-      } catch (err) {
-        reject(err);
-      }
-    }));
+    const response = await axios({
+      method: 'post',
+      url: endpoint,
+      headers: this.headers(),
+      data,
+    });
   }
 
-  async readAsync(request) {
+  async readAsync(request, country) {
     let response;
     try {
-      Storage._validate(request);
+      const { country: requestCountry, ...requestBody } = request;
+      if (!(country || requestCountry)) {
+        throw new Error('Missing country');
+      }
+      if (!Object.keys(request) || !Object.keys(request).length) {
+        throw new Error('Invalid request');
+      }
 
-      const countryCode = request.country.toLowerCase();
-      const key = this._encrypt
-        ? await this._crypto.encryptAsync(request.key)
-        : request.key;
+      const { key } = requestBody;
+      const countryCode = (country || requestCountry).toLowerCase();
 
-      const endpoint = await this._getEndpointAsync(countryCode, `v2/storage/records/${countryCode}/${key}`);
+      let endpoint = await this._getEndpointAsync(countryCode, `v2/storage/records/${countryCode}/${key}`);
+      if (Object.keys(requestBody).length > 1) {
+        endpoint = await this._getEndpointAsync(countryCode, `v2/storage/records/${countryCode}?${queryString(requestBody)}`);
+      }
       this._logger.write('debug', `GET from: ${endpoint}`);
 
       response = await axios({
@@ -191,9 +199,9 @@ class Storage {
       });
 
       this._logger.write('debug', `Raw data: ${JSON.stringify(response.data)}`);
-      if (this._encrypt) {
+      if (this._encryptionEnabled) {
         this._logger.write('debug', 'Decrypting...');
-        response.data = await this._decryptIt(response.data);
+        response.data = await this._decryptPayload(response.data);
       }
       this._logger.write('debug', `Decrypted data: ${JSON.stringify(response.data)}`);
 
@@ -222,29 +230,28 @@ class Storage {
     }
   }
 
-  async _decryptIt(record) {
-    const that = this;
-    return new Promise(((resolve, reject) => {
-      try {
-        const result = {};
-
-        forEachAsync(
-          [
-            'key',
-            'body',
-            'profile_key',
-            'key2',
-            'key3',
-          ], async (key) => {
-            if (record[key]) {
-              result[key] = await that._crypto.decryptAsync(record[key]);
-            }
-          },
-        ).then(() => { resolve(result); });
-      } catch (err) {
-        reject(err);
+  async _encryptPayload(originalRecord) {
+    const record = { ...originalRecord };
+    ['profile_key', 'key', 'key2', 'key3'].forEach((field) => {
+      if (record[field] != null) {
+        record[field] = this.createKeyHash(record[field]);
       }
-    }));
+    });
+    if (record.body) {
+      record.body = await this._crypto.encryptAsync(record.body);
+    }
+    return record;
+  }
+
+  async _decryptPayload(record) {
+    if (record.body) {
+      const decryptedBody = await this._crypto.decryptAsync(record.body);
+      return {
+        ...record,
+        body: decryptedBody,
+      };
+    }
+    return record;
   }
 
   async deleteAsync(request) {
@@ -252,11 +259,7 @@ class Storage {
       Storage._validate(request);
 
       const countryCode = request.country.toLowerCase();
-      const key = this._encrypt
-        ? await this._crypto.encryptAsync(request.key)
-        : request.key;
-
-      const endpoint = (await this._getEndpointAsync(countryCode, `v2/storage/records/${countryCode}/${key}`));
+      const endpoint = (await this._getEndpointAsync(countryCode, `v2/storage/records/${countryCode}/${request.key}`));
       this._logger.write('debug', `DELETE from: ${endpoint}`);
 
       const response = await axios({
