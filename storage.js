@@ -53,6 +53,11 @@ class Storage {
     this._logger = logger;
   }
 
+  _logAndThrowError(error) {
+    this._logger.write('error', error);
+    throw (error);
+  }
+
   async batchAsync(batchRequest) {
     const that = this;
     try {
@@ -153,6 +158,33 @@ class Storage {
   }
 
   /**
+   * Update records matching filter.
+   * @param {string} country - Country code.
+   * @param {object} filter - The filter to apply.
+   * @param {object} doc - New values to be set in matching records.
+   * @param {object} options - Options.
+   * @return {bool} Operation result.
+  */
+  async update(country, filter, doc, options = {}) {
+    if (typeof country !== 'string') {
+      this._logAndThrowError('Missing country')
+    }
+
+    const countryCode = country.toLowerCase();
+    const endpoint = await this._getEndpointAsync(countryCode, `v2/storage/records/${countryCode}/update`);
+    const data = {
+      filter,
+      options,
+    };
+    const response = await axios({
+      method: 'post',
+      url: endpoint,
+      headers: this.headers(),
+      data,
+    });
+  }
+
+  /**
    * Find records matching filter.
    * @param {string} country - Country code.
    * @param {object} filter - The filter to apply.
@@ -161,17 +193,17 @@ class Storage {
   */
   async find(country, filter, options = {}) {
     if (typeof country !== 'string') {
-      throw new Error('Missing country');
+      this._logAndThrowError('Missing country');
     }
     const MAX_LIMIT = 100;
     if (options.limit && options.limit > MAX_LIMIT) {
-      throw new Error(`Max limit is ${MAX_LIMIT}. Use offset to populate more`);
+      this._logAndThrowError(`Max limit is ${MAX_LIMIT}. Use offset to populate more`);
     }
 
     const countryCode = country.toLowerCase();
     const endpoint = await this._getEndpointAsync(countryCode, `v2/storage/records/${countryCode}/find`);
     const data = {
-      filter,
+      filter: this._encryptionEnabled ? this._encryptPayload(filter) : filter,
       options,
     };
 
@@ -260,7 +292,7 @@ class Storage {
 
   async _encryptPayload(originalRecord) {
     const record = { ...originalRecord };
-    ['profile_key', 'key', 'key2', 'key3'].forEach((field) => {
+    ['profile_key', 'key2', 'key3'].forEach((field) => {
       if (record[field] != null) {
         record[field] = this.createKeyHash(record[field]);
       }
