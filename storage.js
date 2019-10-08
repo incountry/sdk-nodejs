@@ -185,6 +185,14 @@ class Storage {
     return response;
   }
 
+  async findOne(country, filter, options = {}) {
+    const result = await this.find(country, filter, options);
+    if (result && result.data && result.data.length) {
+      return result.data[0];
+    }
+    return null;
+  }
+
   async readAsync(request, country) {
     let response;
     try {
