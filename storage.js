@@ -152,6 +152,13 @@ class Storage {
     }
   }
 
+  /**
+   * Find records matching filter.
+   * @param {string} country - Country code.
+   * @param {object} filter - The filter to apply.
+   * @param {object} options - The options to pass to PoP.
+   * @return {object} Matching records.
+  */
   async find(country, filter, options = {}) {
     if (typeof country !== 'string') {
       throw new Error('Missing country');
