@@ -6,7 +6,8 @@ class CountriesCache {
         this._slidingWindowMilliseconds = slidingWindowMilliseconds || 60000
         this._expiresOn = expiresOn || Date.now() + slidingWindowMilliseconds;
 
-        this._getUrl = `http://${this._host}/countries`;
+        this._getUrl = `https://${this._host}/countries`;
+
         this._countries;
 
         this._logger = logger || require('./logger').withBaseLogLevel("error")
@@ -23,7 +24,7 @@ class CountriesCache {
 
     async _hardRefreshAsync() {
         try {
-            this._expiresOn += this._slidingWindowMilliseconds;
+            this._expiresOn = Date.now() + this._slidingWindowMilliseconds;
             var response = await axios.get(this._getUrl);
             if (response.data) {
                 return response.data.countries;
