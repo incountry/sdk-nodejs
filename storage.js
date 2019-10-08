@@ -152,11 +152,15 @@ class Storage {
     }
   }
 
-  async find(country, filter, options) {
+  async find(country, filter, options = {}) {
     if (typeof country !== 'string') {
       throw new Error('Missing country');
     }
-    
+    const MAX_LIMIT = 100;
+    if (options.limit && options.limit > MAX_LIMIT) {
+      throw new Error(`Max limit is ${MAX_LIMIT}. Use offset to populate more`);
+    }
+
     const countryCode = country.toLowerCase();
     const endpoint = await this._getEndpointAsync(countryCode, `v2/storage/records/${countryCode}/find`);
     const data = {
@@ -170,6 +174,15 @@ class Storage {
       headers: this.headers(),
       data,
     });
+
+    if (response.data && this._encryptionEnabled) {
+      const decryptedData = await Promise.all(response.data.map((item) => this._decryptPayload(item)));
+      return {
+        ...response,
+        data: decryptedData,
+      };
+    }
+    return response;
   }
 
   async readAsync(request, country) {
