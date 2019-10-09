@@ -294,22 +294,33 @@ class Storage {
     const record = { ...originalRecord };
     ['profile_key', 'key2', 'key3'].forEach((field) => {
       if (record[field] != null) {
-        record[field] = this.createKeyHash(record[field]);
+        if (Array.isArray(record[field])) {
+          record[field] = record[field].map((v) => this.createKeyHash(v));
+        } else {
+          record[field] = this.createKeyHash(record[field]);
+        }
       }
     });
+    if (record.key) {
+      if (Array.isArray(record.key)) {
+        record.key = await Promise.all(record.key.map((v) => this._crypto.encryptAsync(v)));
+      } else {
+        record.key = await this._crypto.encryptAsync(record.key);
+      }
+    }
     if (record.body) {
       record.body = await this._crypto.encryptAsync(record.body);
     }
     return record;
   }
 
-  async _decryptPayload(record) {
+  async _decryptPayload(originalRecord) {
+    const record = { ...originalRecord };
     if (record.body) {
-      const decryptedBody = await this._crypto.decryptAsync(record.body);
-      return {
-        ...record,
-        body: decryptedBody,
-      };
+      record.body = await this._crypto.decryptAsync(record.body);
+    }
+    if (record.key) {
+      record.key = await this._crypto.decryptAsync(record.key);
     }
     return record;
   }
