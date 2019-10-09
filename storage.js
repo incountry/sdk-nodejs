@@ -117,71 +117,51 @@ class Storage {
     }
   }
 
-  async writeAsync(request, filter) {
+  _validate(request) {
+    if (!request.country) throw new Error('Missing country');
+    if (!request.key) throw new Error('Missing key');
+  }
+
+  async writeAsync(request) {
     try {
-      const countrycode = request.country.toLowerCase();
+      this._validate(request);
 
-      let data = {
+      let countrycode = request.country.toLowerCase();
+
+      var data = {
         country: countrycode,
-        key: request.key,
-        filter,
-      };
+        key: request.key
+      }
 
-      if (request.body) data.body = request.body;
-      if (request.profileKey) data.profile_key = request.profileKey;
-      if (request.rangeKey) data.range_key = request.rangeKey;
-      if (request.key2) data.key2 = request.key2;
-      if (request.key3) data.key3 = request.key3;
+      if (request.body) data['body'] = request.body;
+      if (request.profileKey) data['profile_key'] = request.profileKey;
+      if (request.rangeKey) data['range_key'] = request.rangeKey;
+      if (request.key2) data['key2'] = request.key2;
+      if (request.key3) data['key3'] = request.key3;
 
-      const endpoint = await this._getEndpointAsync(countrycode, `v2/storage/records/${countrycode}`);
+      var endpoint = await this._getEndpointAsync(countrycode, `v2/storage/records/${countrycode}`);
 
-      this._logger.write('debug', `POST to: ${endpoint}`);
+      this._logger.write("debug", `POST to: ${endpoint}`)
       if (this._encryptionEnabled) {
-        this._logger.write('debug', 'Encrypting...');
+        this._logger.write("debug", 'Encrypting...');
         data = await this._encryptPayload(data);
       }
 
-      this._logger.write('debug', `Raw data: ${JSON.stringify(data)}`);
+      this._logger.write("debug", `Raw data: ${JSON.stringify(data)}`);
 
-      const response = await axios({
+      var response = await axios({
         method: 'post',
         url: endpoint,
         headers: this.headers(),
-        data,
+        data: data
       });
 
       return response;
-    } catch (err) {
-      this._logger.write('error', err);
-      throw (err);
     }
-  }
-
-  /**
-   * Update records matching filter.
-   * @param {string} country - Country code.
-   * @param {object} filter - The filter to apply.
-   * @param {object} doc - New values to be set in matching records.
-   * @param {object} options - Options.
-   * @return {bool} Operation result.
-   */
-  async update(country, filter, doc, options = {}) {
-    if (typeof country !== 'string') {
-      this._logAndThrowError('Missing country')
+    catch(err) {
+      this._logger.write("error", err);
+      throw(err);
     }
-
-    const countryCode = country.toLowerCase();
-    const endpoint = await this._getEndpointAsync(countryCode, `v2/storage/records/${countryCode}/update`);
-    const data = {
-      filter,
-      options,
-    };
-    const response = await axios({
-      method: 'post',
-      url: endpoint,
-      headers: this.headers(),
-      data,
-    });
   }
 
   /**
@@ -232,61 +212,56 @@ class Storage {
     return null;
   }
 
-  async readAsync(request, country) {
-    let response;
+  async readAsync(request) {
+    var response;
     try {
-      const { country: requestCountry, ...requestBody } = request;
-      if (!(country || requestCountry)) {
-        throw new Error('Missing country');
-      }
-      if (!Object.keys(request) || !Object.keys(request).length) {
-        throw new Error('Invalid request');
-      }
+      this._validate(request);
 
-      const { key } = requestBody;
-      const countryCode = (country || requestCountry).toLowerCase();
+      let countryCode = request.country.toLowerCase();
+      let key = this._encryptionEnabled
+        ? await this._crypto.encryptAsync(request.key)
+        : request.key;
 
-      let endpoint = await this._getEndpointAsync(countryCode, `v2/storage/records/${countryCode}/${key}`);
-      if (Object.keys(requestBody).length > 1) {
-        endpoint = await this._getEndpointAsync(countryCode, `v2/storage/records/${countryCode}?${queryString(requestBody)}`);
-      }
-      this._logger.write('debug', `GET from: ${endpoint}`);
+      var endpoint = await this._getEndpointAsync(countryCode, `v2/storage/records/${countryCode}/${key}`);
+      this._logger.write("debug", `GET from: ${endpoint}`);
 
       response = await axios({
         method: 'get',
         url: endpoint,
-        headers: this.headers(),
+        headers: this.headers()
       });
 
-      this._logger.write('debug', `Raw data: ${JSON.stringify(response.data)}`);
+      this._logger.write("debug", `Raw data: ${JSON.stringify(response.data)}`);
       if (this._encryptionEnabled) {
-        this._logger.write('debug', 'Decrypting...');
-        response.data = await this._decryptPayload(response.data);
+        this._logger.write("debug", 'Decrypting...')
+        response.data = await this._decryptPayload(response.data)
       }
-      this._logger.write('debug', `Decrypted data: ${JSON.stringify(response.data)}`);
+      this._logger.write("debug", `Decrypted data: ${JSON.stringify(response.data)}`);
 
       return response;
-    } catch (err) {
+    }
+    catch (err) {
       if (/Request failed with status code 404/i.test(err.message)) {
-        this._logger.write('warn', 'Resource not found, return key in response data with status of 404');
+        this._logger.write("warn", "Resource not found, return key in response data with status of 404");
         return {
           data: {
-            body: undefined,
-            key: request.key,
-            key2: undefined,
-            key3: undefined,
-            profile_key: undefined,
-            range_key: undefined,
-            version: undefined,
-            env_id: undefined,
+            "body": undefined,
+            "key": request.key,
+            "key2": undefined,
+            "key3": undefined,
+            "profile_key": undefined,
+            "range_key": undefined,
+            "version": undefined,
+            "env_id": undefined,
           },
-          error: `Could not find a record for key: ${request.key}`,
-          status: 404,
+          "error": `Could not find a record for key: ${request.key}`,
+          "status": 404
         };
       }
-
-      this._logger.write('error', err);
-      throw (err);
+      else {
+        this._logger.write("error", err);
+        throw(err);
+      }
     }
   }
 
@@ -327,7 +302,7 @@ class Storage {
 
   async deleteAsync(request) {
     try {
-      Storage._validate(request);
+      this._validate(request);
 
       const countryCode = request.country.toLowerCase();
       const endpoint = (await this._getEndpointAsync(countryCode, `v2/storage/records/${countryCode}/${request.key}`));
@@ -344,11 +319,6 @@ class Storage {
       this._logger.write('error', err);
       throw (err);
     }
-  }
-
-  static _validate(request) {
-    if (!request.country) throw new Error('Missing country');
-    if (!request.key) throw new Error('Missing key');
   }
 
   async _getEndpointAsync(countryCode, path) {
