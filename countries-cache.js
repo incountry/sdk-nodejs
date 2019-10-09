@@ -8,7 +8,7 @@ class CountriesCache {
 
         this._getUrl = `https://${this._host}/countries`;
 
-        this._countries;
+        this._countries = null;  // Lazy load this on demand
 
         this._logger = logger || require('./logger').withBaseLogLevel("error")
     }
