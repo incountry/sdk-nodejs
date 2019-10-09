@@ -284,21 +284,20 @@ class Storage {
     }
 
     async _getEndpointAsync(countryCode, path) {
-        // Hard-coded for now, since we only currently support https
-        // When support for other protocols becomes availavle,
-        //  we will add a protocol field in the options passed into the constructor.
-        var protocol = 'https';
-
         if (this._overrideWithEndpoint) {
             return `${this._endpoint}/${path}`;
         }
         else {
-            // Todo: Fix: Experimental for now
-            // var countryRegex = new RegExp(countryCode, 'i');
-            // var countryToUse = (await this._countriesCache.getCountriesAsync())
-            //     .filter(country => countryRegex.test(country.id))
-            //     [0];
-            return `${protocol}://${countryCode}.api.incountry.io/${path}`;
+            const protocol = 'https';
+
+            const countryRegex = new RegExp(countryCode, 'i');
+            const countryToUse = (await this._countriesCache.getCountriesAsync())
+                .find(country => countryRegex.test(country.id));
+            const result = !!countryToUse
+                ? `${protocol}://${countryCode}.api.incountry.io/${path}`
+                : `${this._endpoint}/${path}`;
+
+            return result;
         }
     }
 

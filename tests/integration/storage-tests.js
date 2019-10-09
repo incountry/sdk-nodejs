@@ -14,15 +14,21 @@ describe('Storage', function() {
                 tls: true,
                 encrypt: true,
                 overrideWithEndpoint: true,
-                endpoint: "https://ruc1.api.incountry.io"
+                endpoint: "https://us.api.incountry.io"
+            },
+            {
+                tls: true,
+                encrypt: true,
+                overrideWithEndpoint: false,
+                endpoint: "https://us.api.incountry.io"
             }
         ].forEach(function(testCase) {
             var storage = new Storage(testCase, null, new CryptKeyAccessor(function() { return 'supersecret'; }));
-            var testBody = 'inc test';
+            var testBody = JSON.stringify({ "name": "last" });
 
             it(`should write using these options: ${JSON.stringify(testCase)}`, async function(){
                 var writeResponse = await storage.writeAsync({
-                    country: 'RU',
+                    country: 'US',
                     key: 'record0',
                     body: testBody
                 });
@@ -34,7 +40,7 @@ describe('Storage', function() {
 
             it(`should read using these options: ${JSON.stringify(testCase)}`, async function() {
                 var readResponse = await storage.readAsync({
-                    country: 'RU',
+                    country: 'US',
                     key: 'record0'
                 });
 
@@ -46,7 +52,7 @@ describe('Storage', function() {
 
             it(`should delete using these options: ${JSON.stringify(testCase)}`, async function() {
                 var deleteResponse = await storage.deleteAsync({
-                    country: 'RU',
+                    country: 'US',
                     key: 'record0'
                 });
 
@@ -58,18 +64,18 @@ describe('Storage', function() {
 
             it(`should post to batches using these options: ${JSON.stringify(testCase)}`, async function() {
                 // Post 10 writes
-                for (let i = 1; i <= 10; i++) {
+                for (let i = 1; i <= 4; i++) {
                     await storage.writeAsync({
-                        country: 'RU',
-                        key: `record${i}`,
+                        country: 'US',
+                        key: `record${i}000`,
                         body: `test data ${i}`
                     });
                 }
                 
                 var batchResponse = await storage.batchAsync({
-                    "country": "RU",
+                    "country": "US",
                     "GET": [
-                        "record1", "recordA", "record2", "record3", "record10", "record111"
+                        "record1000", "recordA", "record2000", "record3000", "record10000", "record111"
                     ]
                 })
 
