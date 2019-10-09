@@ -20,11 +20,11 @@ class Storage {
         this._envId = options.environmentId || process.env.INC_ENVIRONMENT_ID;
         if (!this._envId) throw new Error('Please pass environmentId in options or set INC_ENVIRONMENT_ID env var')
 
-        this._endpoint = options.endpoint || process.env.INC_ENDPOINT;
-        if (!this._endpoint) throw new Error('Please pass endpoint in options or set INC_ENDPOINT env var')
+        this._endpoint = options.endpoint || 'https://us.api.incountry.io';
 
-        if (!!options.encrypt) {
-            this._encrypt = options.encrypt;
+        if (options.encrypt !== false)
+        {
+            this._encrypt = true;
             this._crypto = new InCrypt(cryptKeyAccessor);
         }
 
@@ -68,19 +68,23 @@ class Storage {
             var endpoint = await this._getEndpointAsync(countryCode, `v2/storage/batches/${countryCode}`);
             this._logger.write("debug", `POST from: ${endpoint}`);
 
+            const payloadUsed = encryptedRequest || batchRequest;
+
             var response = await axios({
                 method: 'post',
                 url: endpoint,
                 headers: this.headers(),
-                data: encryptedRequest || batchRequest
+                data: payloadUsed
             });
+
 
             this._logger.write("debug", `Raw data: ${JSON.stringify(response.data)}`);
             if (response.data) {
                 var results = []
+
                 var recordsRetrieved = response.data["GET"];
                 if (recordsRetrieved) {
-                    await forEachAsync(encryptedRequest["GET"], async (requestKey, i) => {
+                    await forEachAsync(payloadUsed["GET"], async (requestKey, i) => {
                         var match = recordsRetrieved.filter(record => record.key == requestKey)[0];
                         if (match) {
                             results[i] = this._encrypt ? await that._decryptIt(match) : match;

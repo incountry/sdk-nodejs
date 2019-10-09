@@ -12,13 +12,10 @@ describe('Storage', function() {
         [
             {
                 tls: true,
-                encrypt: true,
-                overrideWithEndpoint: true,
-                endpoint: "https://us.api.incountry.io"
+                encrypt: false,
             },
             {
                 tls: true,
-                encrypt: true,
                 overrideWithEndpoint: false,
                 endpoint: "https://us.api.incountry.io"
             }
