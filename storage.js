@@ -288,13 +288,10 @@ class Storage {
             return `${this._endpoint}/${path}`;
         }
         else {
-            // Hard-coded for now, since we only currently support https
-            // When support for other protocols becomes available,
-            //  we will add a protocol field in the options passed into the constructor.
-            var protocol = 'https';
+            const protocol = 'https';
 
-            var countryRegex = new RegExp(countryCode, 'i');
-            var countryToUse = (await this._countriesCache.getCountriesAsync())
+            const countryRegex = new RegExp(countryCode, 'i');
+            const countryToUse = (await this._countriesCache.getCountriesAsync())
                 .filter(country => countryRegex.test(country.id))
                 [0];
             const result = !!countryToUse
