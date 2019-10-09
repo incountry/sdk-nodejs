@@ -292,8 +292,7 @@ class Storage {
 
             const countryRegex = new RegExp(countryCode, 'i');
             const countryToUse = (await this._countriesCache.getCountriesAsync())
-                .filter(country => countryRegex.test(country.id))
-                [0];
+                .find(country => countryRegex.test(country.id));
             const result = !!countryToUse
                 ? `${protocol}://${countryCode}.api.incountry.io/${path}`
                 : `${this._endpoint}/${path}`;
