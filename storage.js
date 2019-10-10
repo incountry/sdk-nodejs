@@ -22,11 +22,12 @@ class Storage {
     this._envId = options.envId || process.env.INC_ENV_ID;
     if (!this._envId) throw new Error('Please pass envId in options or set INC_ENV_ID env var');
 
-    this._endpoint = options.endpoint || process.env.INC_ENDPOINT;
+        this._endpoint = options.endpoint || 'https://us.api.incountry.io';
     if (!this._endpoint) throw new Error('Please pass endpoint in options or set INC_ENDPOINT env var');
 
-    if (options.encrypt) {
-      this._encryptionEnabled = options.encrypt;
+        if (options.encrypt !== false)
+        {
+            this._encryptionEnabled = true;
       this._crypto = new InCrypt(cryptKeyAccessor);
     }
 
@@ -80,11 +81,13 @@ class Storage {
       const endpoint = await this._getEndpointAsync(countryCode, `v2/storage/batches/${countryCode}`);
       this._logger.write('debug', `POST from: ${endpoint}`);
 
-      const response = await axios({
-        method: 'post',
-        url: endpoint,
-        headers: this.headers(),
-        data: encryptedRequest || batchRequest,
+            const payloadUsed = encryptedRequest || batchRequest;
+
+            var response = await axios({
+                method: 'post',
+                url: endpoint,
+                headers: this.headers(),
+                data: payloadUsed
       });
 
       this._logger.write('debug', `Raw data: ${JSON.stringify(response.data)}`);
@@ -92,7 +95,7 @@ class Storage {
         const results = [];
         const recordsRetrieved = response.data.GET;
         if (recordsRetrieved) {
-          await forEachAsync(encryptedRequest.GET, async (requestKey, i) => {
+                    await forEachAsync(payloadUsed["GET"], async (requestKey, i) => {
             const match = recordsRetrieved.filter((record) => record.key === requestKey)[0];
             if (match) {
               results[i] = this._encryptionEnabled ? await that._decryptPayload(match) : match;
@@ -322,21 +325,20 @@ class Storage {
   }
 
   async _getEndpointAsync(countryCode, path) {
-    // Hard-coded for now, since we only currently support https
-    // When support for other protocols becomes availavle,
-    //  we will add a protocol field in the options passed into the constructor.
-    const protocol = 'https';
+        if (this._overrideWithEndpoint) {
+            return `${this._endpoint}/${path}`;
+        }
+        else {
+            const protocol = 'https';
 
-    if (this._overrideWithEndpoint) {
-      return `${this._endpoint}/${path}`;
-    }
+            const countryRegex = new RegExp(countryCode, 'i');
+            const countryToUse = (await this._countriesCache.getCountriesAsync())
+                .find(country => countryRegex.test(country.id));
+            const result = !!countryToUse
+                ? `${protocol}://${countryCode}.api.incountry.io/${path}`
+                : `${this._endpoint}/${path}`;
 
-    // Todo: Fix: Experimental for now
-    // var countryRegex = new RegExp(countryCode, 'i');
-    // var countryToUse = (await this._countriesCache.getCountriesAsync())
-    //     .filter(country => countryRegex.test(country.id))
-    //     [0];
-    return `${protocol}://${countryCode}.api.incountry.io/${path}`;
+            return result;
   }
 
   headers() {

@@ -2,7 +2,15 @@ addons:
   sonarcloud:
     organization: "incountry"
 
-script:
+language: node_js
+node_js:
+  - 11
+
+install:
   - npm install
-  - npm test
+  - if [[ ($TRAVIS_BRANCH == "master") && ($TRAVIS_EVENT_TYPE == "cron") ]]; then npm install -g snyk; fi
+
+script:
+  - if [[ ($TRAVIS_BRANCH == "master") && ($TRAVIS_EVENT_TYPE == "cron") ]]; then snyk monitor --org=incountry; fi
+  - npm run test
   - sonar-scanner
