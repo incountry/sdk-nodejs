@@ -6,7 +6,7 @@ const crypto = require('crypto');
 const defaultLogger = require('./logger');
 const forEachAsync = require('./foreach-async');
 const CountriesCache = require('./countries-cache');
-const { InCrypt } = require('./in-crypt');
+const {InCrypt} = require('./in-crypt');
 
 class Storage {
   constructor(options, countriesCache, cryptKeyAccessor, logger) {
@@ -22,12 +22,11 @@ class Storage {
     this._envId = options.envId || process.env.INC_ENV_ID;
     if (!this._envId) throw new Error('Please pass envId in options or set INC_ENV_ID env var');
 
-        this._endpoint = options.endpoint || 'https://us.api.incountry.io';
+    this._endpoint = options.endpoint || 'https://us.api.incountry.io';
     if (!this._endpoint) throw new Error('Please pass endpoint in options or set INC_ENDPOINT env var');
 
-        if (options.encrypt !== false)
-        {
-            this._encryptionEnabled = true;
+    if (options.encrypt !== false) {
+      this._encryptionEnabled = true;
       this._crypto = new InCrypt(cryptKeyAccessor);
     }
 
@@ -81,13 +80,13 @@ class Storage {
       const endpoint = await this._getEndpointAsync(countryCode, `v2/storage/batches/${countryCode}`);
       this._logger.write('debug', `POST from: ${endpoint}`);
 
-            const payloadUsed = encryptedRequest || batchRequest;
+      const payloadUsed = encryptedRequest || batchRequest;
 
-            var response = await axios({
-                method: 'post',
-                url: endpoint,
-                headers: this.headers(),
-                data: payloadUsed
+      var response = await axios({
+        method: 'post',
+        url: endpoint,
+        headers: this.headers(),
+        data: payloadUsed
       });
 
       this._logger.write('debug', `Raw data: ${JSON.stringify(response.data)}`);
@@ -95,7 +94,7 @@ class Storage {
         const results = [];
         const recordsRetrieved = response.data.GET;
         if (recordsRetrieved) {
-                    await forEachAsync(payloadUsed["GET"], async (requestKey, i) => {
+          await forEachAsync(payloadUsed["GET"], async (requestKey, i) => {
             const match = recordsRetrieved.filter((record) => record.key === requestKey)[0];
             if (match) {
               results[i] = this._encryptionEnabled ? await that._decryptPayload(match) : match;
@@ -160,8 +159,7 @@ class Storage {
       });
 
       return response;
-    }
-    catch(err) {
+    } catch (err) {
       this._logger.write("error", err);
       throw(err);
     }
@@ -242,8 +240,7 @@ class Storage {
       this._logger.write("debug", `Decrypted data: ${JSON.stringify(response.data)}`);
 
       return response;
-    }
-    catch (err) {
+    } catch (err) {
       if (/Request failed with status code 404/i.test(err.message)) {
         this._logger.write("warn", "Resource not found, return key in response data with status of 404");
         return {
@@ -260,8 +257,7 @@ class Storage {
           "error": `Could not find a record for key: ${request.key}`,
           "status": 404
         };
-      }
-      else {
+      } else {
         this._logger.write("error", err);
         throw(err);
       }
@@ -269,7 +265,7 @@ class Storage {
   }
 
   async _encryptPayload(originalRecord) {
-    const record = { ...originalRecord };
+    const record = {...originalRecord};
     ['profile_key', 'key2', 'key3'].forEach((field) => {
       if (record[field] != null) {
         if (Array.isArray(record[field])) {
@@ -293,7 +289,7 @@ class Storage {
   }
 
   async _decryptPayload(originalRecord) {
-    const record = { ...originalRecord };
+    const record = {...originalRecord};
     if (record.body) {
       record.body = await this._crypto.decryptAsync(record.body);
     }
@@ -325,20 +321,20 @@ class Storage {
   }
 
   async _getEndpointAsync(countryCode, path) {
-        if (this._overrideWithEndpoint) {
-            return `${this._endpoint}/${path}`;
-        }
-        else {
-            const protocol = 'https';
+    if (this._overrideWithEndpoint) {
+      return `${this._endpoint}/${path}`;
+    } else {
+      const protocol = 'https';
 
-            const countryRegex = new RegExp(countryCode, 'i');
-            const countryToUse = (await this._countriesCache.getCountriesAsync())
-                .find(country => countryRegex.test(country.id));
-            const result = !!countryToUse
-                ? `${protocol}://${countryCode}.api.incountry.io/${path}`
-                : `${this._endpoint}/${path}`;
+      const countryRegex = new RegExp(countryCode, 'i');
+      const countryToUse = (await this._countriesCache.getCountriesAsync())
+        .find(country => countryRegex.test(country.id));
+      const result = !!countryToUse
+        ? `${protocol}://${countryCode}.api.incountry.io/${path}`
+        : `${this._endpoint}/${path}`;
 
-            return result;
+      return result;
+    }
   }
 
   headers() {
