@@ -184,7 +184,7 @@ class Storage {
     const countryCode = country.toLowerCase();
     const endpoint = await this._getEndpointAsync(countryCode, `v2/storage/records/${countryCode}/find`);
     const data = {
-      filter: this._encryptionEnabled ? this._encryptPayload(filter) : filter,
+      filter: this._encryptionEnabled ? this._hashKeys(filter) : filter,
       options,
     };
 
