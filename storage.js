@@ -220,7 +220,7 @@ class Storage {
 
       let countryCode = request.country.toLowerCase();
       let key = this._encryptionEnabled
-        ? await this._crypto.encryptAsync(request.key)
+        ? await this.createKeyHash(request.key)
         : request.key;
 
       var endpoint = await this._getEndpointAsync(countryCode, `v2/storage/records/${countryCode}/${key}`);
@@ -278,7 +278,7 @@ class Storage {
     if (record.body) {
       body.payload = record.body;
     }
-    record.body = await this._crypto.encryptAsync(body)
+    record.body = await this._crypto.encryptAsync(JSON.stringify(body))
     return record;
   }
 
@@ -298,7 +298,7 @@ class Storage {
 
   async _decryptPayload(originalRecord) {
     const record = {...originalRecord};
-    const body = await this._crypto.decryptAsync(record.body);
+    const body = JSON.parse(await this._crypto.decryptAsync(record.body)); // throw
     if (body.meta) {
       Object.keys(body.meta).forEach((key) => {
         record[key] = body.meta[key]
