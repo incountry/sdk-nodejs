@@ -64,7 +64,7 @@ describe('Storage', function () {
         fakeCountriesCache,
         new CryptKeyAccessor(() => SECRET_KEY)
       )
-    })
+    });
     it('should write a record', function (done) {
       const scope = nock('https://us.api.incountry.io')
         .post('/v2/storage/records/us')
@@ -79,6 +79,15 @@ describe('Storage', function () {
           done(e)
         }
       });
+    });
+    it('should read a record', async function () {
+      const encrypted = await storage._encryptPayload(convertKeys(testCase));
+      nock('https://us.api.incountry.io')
+        .get(`/v2/storage/records/us/${encrypted.key}`)
+        .reply(200, encrypted);
+      const {data} = await storage.readAsync(testCase);
+      const expected = _.pick(testCase, ['key', 'body']);
+      expect(data).to.deep.include(expected);
     })
   })
 })
