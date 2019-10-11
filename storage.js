@@ -266,7 +266,25 @@ class Storage {
 
   async _encryptPayload(originalRecord) {
     const record = {...originalRecord};
-    ['profile_key', 'key2', 'key3'].forEach((field) => {
+    const body = {
+      meta: {},
+    };
+    ['profile_key', 'key', 'key2', 'key3'].forEach((field) => {
+      if (record[field] != null) {
+        body.meta[field] = record[field];
+        record[field] = this.createKeyHash(record[field]);
+      }
+    });
+    if (record.body) {
+      body.payload = record.body;
+    }
+    record.body = await this._crypto.encryptAsync(body)
+    return record;
+  }
+
+  async _hashKeys(originalRecord) {
+    const record = {...originalRecord};
+    ['profile_key', 'key', 'key2', 'key3'].forEach((field) => {
       if (record[field] != null) {
         if (Array.isArray(record[field])) {
           record[field] = record[field].map((v) => this.createKeyHash(v));
@@ -275,26 +293,21 @@ class Storage {
         }
       }
     });
-    if (record.key) {
-      if (Array.isArray(record.key)) {
-        record.key = await Promise.all(record.key.map((v) => this._crypto.encryptAsync(v)));
-      } else {
-        record.key = await this._crypto.encryptAsync(record.key);
-      }
-    }
-    if (record.body) {
-      record.body = await this._crypto.encryptAsync(record.body);
-    }
     return record;
   }
 
   async _decryptPayload(originalRecord) {
     const record = {...originalRecord};
-    if (record.body) {
-      record.body = await this._crypto.decryptAsync(record.body);
+    const body = await this._crypto.decryptAsync(record.body);
+    if (body.meta) {
+      Object.keys(body.meta).forEach((key) => {
+        record[key] = body.meta[key]
+      })
     }
-    if (record.key) {
-      record.key = await this._crypto.decryptAsync(record.key);
+    if (body.payload) {
+      record.body = body.payload
+    } else {
+      delete record.body;
     }
     return record;
   }
