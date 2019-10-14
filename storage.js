@@ -20,15 +20,13 @@ class Storage {
         this._envId = options.environmentId || process.env.INC_ENVIRONMENT_ID;
         if (!this._envId) throw new Error('Please pass environmentId in options or set INC_ENVIRONMENT_ID env var')
 
-        this._endpoint = options.endpoint || 'https://us.api.incountry.io';
+        this._endpoint = options.endpoint;
 
         if (options.encrypt !== false)
         {
             this._encrypt = true;
             this._crypto = new InCrypt(cryptKeyAccessor);
         }
-
-        this._overrideWithEndpoint = options.overrideWithEndpoint;
 
         this._countriesCache = countriesCache || new CountriesCache();
     }
@@ -288,7 +286,7 @@ class Storage {
     }
 
     async _getEndpointAsync(countryCode, path) {
-        if (this._overrideWithEndpoint) {
+        if (this._endpoint) {
             return `${this._endpoint}/${path}`;
         }
         else {
@@ -299,7 +297,7 @@ class Storage {
                 .find(country => countryRegex.test(country.id));
             const result = !!countryToUse
                 ? `${protocol}://${countryCode}.api.incountry.io/${path}`
-                : `${this._endpoint}/${path}`;
+                : `https://us.api.incountry.io/${path}`;
 
             return result;
         }
