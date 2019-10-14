@@ -170,4 +170,39 @@ describe('Storage', function () {
     const rec = await storage.findOne('us', filter, options)
     expect(rec).to.eql(convertKeys(TEST_RECORDS[4]))
   })
+  context('exceptions', function () {
+    context('delete', function () {
+      it('should throw when invalid url', function (done) {
+        const INVALID_KEY = 'invalid';
+        const scope = nock('https://us.api.incountry.io')
+          .delete(`/v2/storage/records/us/${storage.createKeyHash(INVALID_KEY)}`)
+          .reply(404);
+        scope.on('error', done);
+        scope.on('request', () => done())
+        expect(storage.deleteAsync({country: 'us', key: INVALID_KEY})).to.be.rejected;
+      })
+    })
+    context('read', function () {
+      it('should return error when not found', function (done) {
+        const INVALID_KEY = 'invalid';
+        const scope = nock('https://us.api.incountry.io')
+          .get(`/v2/storage/records/us/${storage.createKeyHash(INVALID_KEY)}`)
+          .reply(404);
+        scope.on('error', done);
+        storage.readAsync({country: 'us', key: INVALID_KEY})
+          .then((res) => res.error ? done() : done('Should return error'))
+          .catch(done)
+      })
+      it('should return error when server error', function (done) {
+        const INVALID_KEY = 'invalid';
+        const scope = nock('https://us.api.incountry.io')
+          .get(`/v2/storage/records/us/${storage.createKeyHash(INVALID_KEY)}`)
+          .reply(500);
+        scope.on('error', done);
+        storage.readAsync({country: 'us', key: INVALID_KEY})
+          .then(() => done('Should return error'))
+          .catch(() => done())
+      })
+    })
+  })
 })
