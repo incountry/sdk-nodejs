@@ -89,5 +89,15 @@ describe('Storage', function () {
       const expected = _.pick(testCase, ['key', 'body']);
       expect(data).to.deep.include(expected);
     })
+    it('should delete a record', function (done) {
+      storage._encryptPayload(convertKeys(testCase)).then((encrypted) => {
+        const scope = nock('https://us.api.incountry.io')
+          .delete(`/v2/storage/records/us/${encrypted.key}`)
+          .reply(200);
+        storage.deleteAsync(testCase)
+        scope.on('error', done);
+        scope.on('request', () => done())
+      }).catch(done);
+    })
   })
 })

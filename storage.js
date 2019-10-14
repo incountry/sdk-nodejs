@@ -316,8 +316,12 @@ class Storage {
     try {
       this._validate(request);
 
+      let key = this._encryptionEnabled
+        ? await this.createKeyHash(request.key)
+        : request.key;
+
       const countryCode = request.country.toLowerCase();
-      const endpoint = (await this._getEndpointAsync(countryCode, `v2/storage/records/${countryCode}/${request.key}`));
+      const endpoint = (await this._getEndpointAsync(countryCode, `v2/storage/records/${countryCode}/${key}`));
       this._logger.write('debug', `DELETE from: ${endpoint}`);
 
       const response = await axios({
