@@ -29,7 +29,7 @@
     "integrations": "nyc --reporter=lcov --reporter=text --report-dir=it-coverage mocha tests/integration/*.js --timeout 20000",
     "test": "nyc --reporter=lcov --reporter=text --report-dir=ut-coverage mocha tests/unit/*.js"
   },
-  "version": "0.4.2",
+  "version": "0.4.3",
   "devDependencies": {
     "chai": "4.2.0",
     "chai-as-promised": "7.1.1",
