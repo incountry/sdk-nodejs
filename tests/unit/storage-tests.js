@@ -35,7 +35,7 @@ const TEST_RECORDS = [
     "key": uuid(),
     "body": "test",
     "key2": "key2",
-    "key3": "key3",
+    "key3": "uniqueKey3",
     "profileKey": "profile_key",
   },
   {
@@ -149,5 +149,25 @@ describe('Storage', function () {
       });
     const rec = await storage.find('us', filter, options)
     expect(rec.data.length).to.eql(2)
+  })
+  it('should findOne by random key', async function () {
+    const filter = {key3: TEST_RECORDS[4].key3}
+    const options = {limit: 1, offset: 1}
+    const encryptedRecords = await Promise.all(TEST_RECORDS.map((record) => storage._encryptPayload(convertKeys(record))))
+    nock('https://us.api.incountry.io')
+      .post(`/v2/storage/records/us/find`)
+      .reply(200, (uri, requestBody) => {
+        const filterKeys = Object.keys(requestBody.filter);
+        return  encryptedRecords.filter((rec) => {
+          for(let i = 0; i < filterKeys.length; i += 1) {
+            if (rec[filterKeys[i]] !== requestBody.filter[filterKeys[i]]) {
+              return false
+            }
+          }
+          return true
+        })
+      });
+    const rec = await storage.findOne('us', filter, options)
+    expect(rec).to.eql(convertKeys(TEST_RECORDS[4]))
   })
 })
