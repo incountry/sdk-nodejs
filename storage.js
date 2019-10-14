@@ -66,7 +66,7 @@ class Storage {
       if (this._encryptionEnabled) {
         const keysToSend = [];
         await forEachAsync(batchRequest.GET, async (key, i) => {
-          const encrypted = await that._crypto.encryptAsync(key);
+          const encrypted = await this.createKeyHash(key);
           keysToSend[i] = encrypted;
           mappings[encrypted] = key;
         });

@@ -1,5 +1,5 @@
 const chai = require('chai');
-const { expect } = chai;
+const {expect} = chai;
 
 const nock = require('nock');
 const uuid = require('uuid/v4');
@@ -20,7 +20,7 @@ const convertKeys = (o) => {
   return Object.keys(o).reduce((accum, key) => {
     return {
       ...accum,
-      [dict[key] || key]:  o[key]
+      [dict[key] || key]: o[key]
     }
   }, {})
 };
@@ -54,50 +54,80 @@ const fakeCountriesCache = {
 }
 
 describe('Storage', function () {
-  TEST_RECORDS.forEach((testCase) => {
-    let storage;
-    beforeEach(function() {
-      storage = new Storage({
-          apiKey: 'string',
-          environmentId: 'string',
-        },
-        fakeCountriesCache,
-        new CryptKeyAccessor(() => SECRET_KEY)
-      )
-    });
-    it('should write a record', function (done) {
+  let storage;
+  beforeEach(function () {
+    storage = new Storage({
+        apiKey: 'string',
+        environmentId: 'string',
+      },
+      fakeCountriesCache,
+      new CryptKeyAccessor(() => SECRET_KEY)
+    )
+  });
+  TEST_RECORDS.forEach((testCase, idx) => {
+    context(`with test case ${idx}`, function () {
+      it('should write a record', function (done) {
+        const scope = nock('https://us.api.incountry.io')
+          .post('/v2/storage/records/us')
+          .reply(200);
+        storage.writeAsync(testCase)
+        scope.on('request', async function(req, interceptor, body) {
+          try {
+            const encrypted = await storage._encryptPayload(convertKeys(testCase))
+            expect(JSON.parse(body)).to.deep.equal(encrypted);
+            done();
+          } catch (e) {
+            done(e)
+          }
+        });
+      });
+      it('should read a record', async function () {
+        const encrypted = await storage._encryptPayload(convertKeys(testCase));
+        nock('https://us.api.incountry.io')
+          .get(`/v2/storage/records/us/${encrypted.key}`)
+          .reply(200, encrypted);
+        const {data} = await storage.readAsync(testCase);
+        const expected = _.pick(testCase, ['key', 'body']);
+        expect(data).to.deep.include(expected);
+      })
+      it('should delete a record', function (done) {
+        storage._encryptPayload(convertKeys(testCase)).then((encrypted) => {
+          const scope = nock('https://us.api.incountry.io')
+            .delete(`/v2/storage/records/us/${encrypted.key}`)
+            .reply(200);
+          storage.deleteAsync(testCase)
+          scope.on('error', done);
+          scope.on('request', () => done())
+        }).catch(done);
+      })
+    })
+  });
+  it('should batch read', function (done) {
+    const request = {
+      country: 'us',
+      GET: TEST_RECORDS.map((record) => record.key),
+    };
+    Promise.all(TEST_RECORDS.map((testCase) => storage._encryptPayload(convertKeys(testCase)))).then((encrypted) => {
       const scope = nock('https://us.api.incountry.io')
-        .post('/v2/storage/records/us')
-        .reply(200);
-      storage.writeAsync(testCase)
-      scope.on('request', async function(req, interceptor, body) {
+        .post('/v2/storage/batches/us')
+        .reply(200, {GET: encrypted});
+      scope.on('request', async function (req, interceptor, body) {
         try {
-          const encrypted = await storage._encryptPayload(convertKeys(testCase))
-          expect(JSON.parse(body)).to.deep.equal(encrypted);
-          done();
+          const expected = {GET: request.GET.map((id) => storage.createKeyHash(id))}
+          expect(JSON.parse(body)).to.eql(expected)
         } catch (e) {
           done(e)
         }
       });
-    });
-    it('should read a record', async function () {
-      const encrypted = await storage._encryptPayload(convertKeys(testCase));
-      nock('https://us.api.incountry.io')
-        .get(`/v2/storage/records/us/${encrypted.key}`)
-        .reply(200, encrypted);
-      const {data} = await storage.readAsync(testCase);
-      const expected = _.pick(testCase, ['key', 'body']);
-      expect(data).to.deep.include(expected);
-    })
-    it('should delete a record', function (done) {
-      storage._encryptPayload(convertKeys(testCase)).then((encrypted) => {
-        const scope = nock('https://us.api.incountry.io')
-          .delete(`/v2/storage/records/us/${encrypted.key}`)
-          .reply(200);
-        storage.deleteAsync(testCase)
-        scope.on('error', done);
-        scope.on('request', () => done())
-      }).catch(done);
+      scope.on('error', done);
+      storage.batchAsync(request).then((response) => {
+        try {
+          expect(response.data).to.eql({GET: TEST_RECORDS.map((record) => convertKeys(record))})
+          done()
+        } catch (e) {
+          done(e)
+        }
+      })
     })
   })
 })
