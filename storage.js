@@ -8,6 +8,19 @@ const forEachAsync = require('./foreach-async');
 const CountriesCache = require('./countries-cache');
 const {InCrypt} = require('./in-crypt');
 
+const convertKeys = (o) => {
+  const dict = {
+    profileKey: 'profile_key',
+    rangeKey: 'range_key',
+  }
+  return Object.keys(o).reduce((accum, key) => {
+    return {
+      ...accum,
+      [dict[key] || key]: o[key]
+    }
+  }, {})
+};
+
 class Storage {
   constructor(options, countriesCache, cryptKeyAccessor, logger) {
     if (logger) {
@@ -184,7 +197,7 @@ class Storage {
     const countryCode = country.toLowerCase();
     const endpoint = await this._getEndpointAsync(countryCode, `v2/storage/records/${countryCode}/find`);
     const data = {
-      filter: this._encryptionEnabled ? this._hashKeys(filter) : filter,
+      filter: this._encryptionEnabled ? this._hashKeys(convertKeys(filter)) : convertKeys(filter),
       options,
     };
 
@@ -194,7 +207,6 @@ class Storage {
       headers: this.headers(),
       data,
     });
-
     if (response.data && this._encryptionEnabled) {
       const decryptedData = await Promise.all(response.data.map((item) => this._decryptPayload(item)));
       return {
@@ -282,7 +294,7 @@ class Storage {
     return record;
   }
 
-  async _hashKeys(originalRecord) {
+  _hashKeys(originalRecord) {
     const record = {...originalRecord};
     ['profile_key', 'key', 'key2', 'key3'].forEach((field) => {
       if (record[field] != null) {
