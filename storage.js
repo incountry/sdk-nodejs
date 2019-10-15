@@ -307,7 +307,16 @@ class Storage {
 
   async _decryptPayload(originalRecord) {
     const record = {...originalRecord};
-    const body = JSON.parse(await this._crypto.decryptAsync(record.body)); // throw
+    const decrypted = await this._crypto.decryptAsync(record.body);
+    let body;
+    try {
+      body = JSON.parse(decrypted)
+    } catch (e) {
+      return {
+        ...record,
+        body: decrypted
+      }
+    }
     if (body.meta) {
       Object.keys(body.meta).forEach((key) => {
         record[key] = body.meta[key]
