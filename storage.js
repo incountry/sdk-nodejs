@@ -22,6 +22,10 @@ const convertKeys = (o) => {
 };
 
 class Storage {
+  static get MAX_LIMIT() {
+    return 100;
+  };
+
   constructor(options, countriesCache, cryptKeyAccessor, logger) {
     if (logger) {
       this.setLogger(logger);
@@ -54,7 +58,7 @@ class Storage {
     if (!logger) {
       throw new Error('Please specify a logger');
     }
-    if (logger.write || typeof logger.write !== 'function') {
+    if (!logger.write || typeof logger.write !== 'function') {
       throw new Error('Logger must implement write function');
     }
     if (logger.write.length < 2) {
@@ -186,9 +190,8 @@ class Storage {
     if (typeof country !== 'string') {
       this._logAndThrowError('Missing country');
     }
-    const MAX_LIMIT = 100;
-    if (options.limit && options.limit > MAX_LIMIT) {
-      this._logAndThrowError(`Max limit is ${MAX_LIMIT}. Use offset to populate more`);
+    if (options.limit && options.limit > Storage.MAX_LIMIT) {
+      this._logAndThrowError(`Max limit is ${Storage.MAX_LIMIT}. Use offset to populate more`);
     }
 
     const countryCode = country.toLowerCase();
@@ -223,7 +226,6 @@ class Storage {
   }
 
   async readAsync(request) {
-    var response;
     try {
       this._validate(request);
 
@@ -235,7 +237,7 @@ class Storage {
       var endpoint = await this._getEndpointAsync(countryCode, `v2/storage/records/${countryCode}/${key}`);
       this._logger.write("debug", `GET from: ${endpoint}`);
 
-      response = await axios({
+      const response = await axios({
         method: 'get',
         url: endpoint,
         headers: this.headers()
