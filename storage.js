@@ -24,7 +24,7 @@ const convertKeys = (o) => {
 class Storage {
   static get MAX_LIMIT() {
     return 100;
-  };
+  }
 
   constructor(options, countriesCache, cryptKeyAccessor, logger) {
     if (logger) {
