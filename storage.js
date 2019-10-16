@@ -332,6 +332,44 @@ class Storage {
     return record;
   }
 
+  /**
+   * Update records matching filter.
+   * @param {string} country - Country code.
+   * @param {object} filter - The filter to apply.
+   * @param {object} doc - New values to be set in matching records.
+   * @param {object} options - Options.
+   * @return {bool} Operation result.
+   */
+  async update(country, filter, doc, options = {}) {
+    if (typeof country !== 'string') {
+      this._logAndThrowError('Missing country')
+    }
+
+    const countryCode = country.toLowerCase();
+    const endpoint = await this._getEndpointAsync(countryCode, `v2/storage/records/${countryCode}/update`);
+
+    const existingData = await this.findOne(country, filter);
+    if (existingData) {
+      const newData = {
+        ...existingData,
+        ...doc,
+      };
+      const encryptedData = await this._encryptPayload(newData);
+      return axios({
+        method: 'post',
+        url: endpoint,
+        headers: this.headers(),
+        data: {
+          filter,
+          data: encryptedData,
+          options
+        },
+      });
+    } else {
+      throw new Error('Record not found')
+    }
+  }
+
   async deleteAsync(request) {
     try {
       this._validate(request);
