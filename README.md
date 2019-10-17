@@ -13,13 +13,9 @@ Usage
 ```
 var storage = new Storage({
     apiKey: 'string',               // Required to be passed in, or as environment variable INC_API_KEY
-    zoneId: 'string',               // Required to be passed in, or as environment variable INC_ZONE_ID
-    endpoint: 'string url',         // Required to be passed in, or as environment variable INC_ENDPOINT
-    encrypt: boolean,               // Optional, defaults to true
-    overrideWithEndpoint: boolean,  // If set to true, the endpoint must also include protocol
-    tls: boolean                    // [No longer used, all requests use https protocol for now]
+    environmentId: 'string',        // Required to be passed in, or as environment variable INC_ENVIRONMENT_ID
 },
-    countriesCache,                 // Argument that controls cache for countries listing, currently unused
+    countriesCache,                 // Controls how often to update the countries listing the SDK uses for routing requests
     cryptKeyAccessor,               // Allows for a secure callback to grab the secret to use for crypto
     logger                          // Allows for logging at different log levels in a consistent manner
 );
@@ -27,13 +23,13 @@ var storage = new Storage({
 2. Writes
 ```
 var writeResponse = await storage.writeAsync({
-    country: 'string',      // Required country code
+    country: 'string',      // Required country code of where to store the data
     key: 'string',          // Required record key
     body: 'string',         // Optional payload
     profile_key: 'string',  // Optional
     range_key: 'string',    // Optional
-    key2: 'string',         // Reserved for record_id
-    key3: 'string'          // Reserved for field_name
+    key2: 'string',         // Optional
+    key3: 'string'          // Optional
 });
 
 // Use writeReponse.status for status code.
@@ -80,8 +76,8 @@ Logger must be an object implementing method `write`, which has following signat
 ```
 write(level, message)
 ```
-`level` (string) - message level: DEBUG, INFO, etc.
-`message` (string) - log message
+* `level` (string) - message level: DEBUG, INFO, etc.
+* `message` (string) - log message
 
 Testing Locally
 -----
