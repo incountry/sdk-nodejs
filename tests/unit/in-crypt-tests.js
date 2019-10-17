@@ -1,61 +1,56 @@
-const {InCrypt, pad, unpad} = require('../../in-crypt');
+/* eslint-disable prefer-arrow-callback,func-names */
+const { expect } = require('chai');
+const { InCrypt } = require('../../in-crypt');
 const CryptKeyAccessor = require('../../crypt-key-accessor');
 
-const expect = require('chai').expect;
+const PLAINTEXTS = [
+  '',
+  'Howdy', // <-- English
+  'Привет медвед', // <-- Russian
+  'مرحبا', // <-- Arabic
+  'हाय', // <-- Hindi
+  '안녕', // <-- Korean
+  'こんにちは', // Japanese
+  '你好', // <- Chinese
+];
 
-describe('InCrypt', function() {
-    context('with variable length unencrypted text', function() {
-        [
-            "1",
-            "22",
-            "333",
-            "4444",
-            "55555",
-            "666666",
-            "7777777",
-            "88888888",
-            "999999999",
-            "aaaaaaaaaa",
-            "bbbbbbbbbbb",
-            "cccccccccccc",
-            "ddddddddddddd",
-            "eeeeeeeeeeeeee",
-            "fffffffffffffff",
-            "0000000000000000",
-            "seventeen chars 0",
-            "I am the very model of a modern major general"
-        ].forEach(function(testCase) {
-            it(`should pad the text and then unpad the text correctly: ${testCase}`, async function() {
-                const padded = pad(testCase);
-                const unpadded = unpad(padded);
+const PREPARED_DATA_BY_VERSION = [
+  {
+    encrypted: '1:8b02d29be1521e992b49a9408f2777084e9d8195e4a3392c68c70545eb559670b70ec928c8eeb2e34f118d32a23d77abdcde38446241efacb71922579d1dcbc23fca62c1f9ec5d97fbc3a9862c0a9e1bb630aaa3585eac160a65b24a96af5becef3cdc2b29',
+    version: '1',
+    plain: 'InCountry',
+    password: 'password',
+  },
+  {
+    encrypted: '7765618db31daf5366a6fc3520010327',
+    version: '0',
+    plain: 'InCountry',
+    password: 'password',
+  },
+];
 
-                expect(unpadded).to.equal(testCase);
-                expect(padded).to.not.equal(unpadded);
-            })
 
-            it(`should encrypt and decrypt correctly (asynchronous accessor): ${testCase}`, async function() {
-                const cryptKeyAccessor = new CryptKeyAccessor(function() {
-                    return new Promise((resolve) => { resolve('supersecret') })
-                });
-                const incrypt = new InCrypt(cryptKeyAccessor);
-
-                const encrypted = await incrypt.encryptAsync(testCase);
-
-                const decrypted = await incrypt.decryptAsync(encrypted);
-                expect(decrypted).to.equal(testCase);
-                expect(encrypted).to.not.equal(decrypted);
-            })
-
-            it(`should encrypt and decrypt correctly (synchronous accessor): ${testCase}`, async function() {
-                const cryptKeyAccessor = new CryptKeyAccessor(() => 'supersecret');
-                const incrypt = new InCrypt(cryptKeyAccessor);
-
-                const encrypted = await incrypt.encryptAsync(testCase);
-
-                const decrypted = await incrypt.decryptAsync(encrypted);
-                expect(decrypted).to.equal(testCase);
-                expect(encrypted).to.not.equal(decrypted);
-            })
-        })
-    })
-})
+describe('InCrypt', function () {
+  context('with different plain texts', function () {
+    PLAINTEXTS.forEach((plain) => {
+      it(`should encrypt and decrypt text: ${plain}`, async function () {
+        const cryptKeyAccessor = new CryptKeyAccessor((() => new Promise((resolve) => { resolve('supersecret'); })));
+        const incrypt = new InCrypt(cryptKeyAccessor);
+        const encrypted = await incrypt.encryptAsync(plain);
+        const decrypted = await incrypt.decryptAsync(encrypted);
+        expect(encrypted).not.to.eql(plain);
+        expect(decrypted).to.eql(plain);
+      });
+    });
+  });
+  context('with different encrypted text versions', function () {
+    PREPARED_DATA_BY_VERSION.forEach((item) => {
+      it(`should decrypt v${item.version} data`, async function () {
+        const cryptKeyAccessor = new CryptKeyAccessor((() => new Promise((resolve) => { resolve(item.password); })));
+        const incrypt = new InCrypt(cryptKeyAccessor);
+        const decrypted = await incrypt.decryptAsync(item.encrypted);
+        expect(decrypted).to.eql(item.plain);
+      });
+    });
+  });
+});

@@ -1,14 +1,13 @@
+/* eslint-disable */
 const chai = require('chai');
-const {expect} = chai;
-
 const nock = require('nock');
 const uuid = require('uuid/v4');
 const _ = require('lodash');
-
 const Storage = require('../../storage');
 const CryptKeyAccessor = require('../../crypt-key-accessor');
 
-const POPAPI_URL = "popapi.com"
+const {expect} = chai;
+
 const COUNTRY = 'us'
 const SECRET_KEY = 'password'
 
@@ -74,7 +73,8 @@ describe('Storage', function () {
         scope.on('request', async function(req, interceptor, body) {
           try {
             const encrypted = await storage._encryptPayload(convertKeys(testCase))
-            expect(JSON.parse(body)).to.deep.equal(encrypted);
+            const bodyObj = JSON.parse(body);
+            expect(_.omit(bodyObj, ['body'])).to.deep.equal(_.omit(encrypted, ['body']));
             done();
           } catch (e) {
             done(e)
@@ -216,7 +216,7 @@ describe('Storage', function () {
     context('delete', function () {
       it('should throw when invalid url', function (done) {
         const INVALID_KEY = 'invalid';
-        const scope = nock('https://us.api.incountry.io')
+        nock('https://us.api.incountry.io')
           .delete(`/v2/storage/records/us/${storage.createKeyHash(INVALID_KEY)}`)
           .reply(404);
         storage.deleteAsync({country: 'us', key: INVALID_KEY}).then(() => done('should be rejected')).catch(() => done())

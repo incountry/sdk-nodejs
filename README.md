@@ -1,6 +1,11 @@
 InCountry Storage SDK
 ============
 
+Important notes
+---------------
+We've changed the encryption algorithm since version `0.5.0` so it is not compatible with earlier versions.
+
+
 Usage
 -----
 
