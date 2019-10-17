@@ -138,7 +138,7 @@ describe('Storage', function () {
       .post(`/v2/storage/records/us/find`)
       .reply(200, (uri, requestBody) => {
         const filterKeys = Object.keys(requestBody.filter);
-        return  encryptedRecords.filter((rec) => {
+        const records =  encryptedRecords.filter((rec) => {
           for(let i = 0; i < filterKeys.length; i += 1) {
             if (rec[filterKeys[i]] !== requestBody.filter[filterKeys[i]]) {
               return false
@@ -146,6 +146,7 @@ describe('Storage', function () {
           }
           return true
         })
+        return {meta: {total: records.length}, data: records}
       });
     const rec = await storage.find('us', filter, options)
     expect(rec.data.length).to.eql(2)
@@ -158,7 +159,7 @@ describe('Storage', function () {
       .post(`/v2/storage/records/us/find`)
       .reply(200, (uri, requestBody) => {
         const filterKeys = Object.keys(requestBody.filter);
-        return  encryptedRecords.filter((rec) => {
+        const records = encryptedRecords.filter((rec) => {
           for(let i = 0; i < filterKeys.length; i += 1) {
             if (rec[filterKeys[i]] !== requestBody.filter[filterKeys[i]]) {
               return false
@@ -166,11 +167,52 @@ describe('Storage', function () {
           }
           return true
         })
+        return {meta: {total: records.length}, data: records}
       });
     const rec = await storage.findOne('us', filter, options)
     expect(rec).to.eql(convertKeys(TEST_RECORDS[4]))
   })
+  it('should update one by profile key', function (done) {
+    const payload = {profileKey: 'updatedProfileKey'}
+    storage._encryptPayload(TEST_RECORDS[4]).then((encrypted) => {
+      nock('https://us.api.incountry.io')
+        .post('/v2/storage/records/us/find')
+        .reply(200, {data: [encrypted], meta: {total: 1}});
+      const writeNock = nock('https://us.api.incountry.io')
+        .post('/v2/storage/records/us')
+        .reply(200, {data: [encrypted], meta: {total: 1}});
+      writeNock.on('request', (req, interceptor, body) => {
+        const expectedPlain = {
+          ...convertKeys(TEST_RECORDS[4]),
+          ...convertKeys(payload),
+        }
+        storage._decryptPayload(JSON.parse(body)).then((decrypted) => {
+          try {
+            expect(decrypted).to.eql(expectedPlain)
+            done()
+          } catch (e) {
+            done(e)
+          }
+        })
+      })
+      storage.updateOne('us', {profileKey: TEST_RECORDS[4].profileKey}, payload)
+    })
+  })
   context('exceptions', function () {
+    context('updateOne', function () {
+      it('should reject if too many records found', function (done) {
+        nock('https://us.api.incountry.io')
+          .post('/v2/storage/records/us/find')
+          .reply(200, {data: [], meta: {total: 2}});
+        storage.updateOne('us', {}, {}).then(() => done('Should reject')).catch(() => done())
+      })
+      it('should reject if no records found', function (done) {
+        nock('https://us.api.incountry.io')
+          .post('/v2/storage/records/us/find')
+          .reply(200, {data: [], meta: {total: 0}});
+        storage.updateOne('us', {}, {}).then(() => done('Should reject')).catch(() => done())
+      })
+    })
     context('delete', function () {
       it('should throw when invalid url', function (done) {
         const INVALID_KEY = 'invalid';
