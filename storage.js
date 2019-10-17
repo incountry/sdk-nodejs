@@ -69,7 +69,7 @@ class Storage {
 
   _logAndThrowError(error) {
     this._logger.write('error', error);
-    throw (error);
+    throw new Error(error);
   }
 
   async batchAsync(batchRequest) {
@@ -208,9 +208,9 @@ class Storage {
       data,
     });
     if (response.data && this._encryptionEnabled) {
-      const decryptedData = await Promise.all(response.data.map((item) => this._decryptPayload(item)));
+      const decryptedData = await Promise.all(response.data.data.map((item) => this._decryptPayload(item)));
       return {
-        ...response,
+        ...response.data,
         data: decryptedData,
       };
     }
@@ -330,6 +330,36 @@ class Storage {
       delete record.body;
     }
     return record;
+  }
+
+  /**
+   * Update a record matching filter.
+   * @param {string} country - Country code.
+   * @param {object} filter - The filter to apply.
+   * @param {object} doc - New values to be set in matching records.
+   * @return {bool} Operation result.
+   */
+  async updateOne(country, filter, doc) {
+    if (typeof country !== 'string') {
+      this._logAndThrowError('Missing country')
+    }
+
+    const existingRecord = await this.find(country, filter, { limit: 1 });
+    if (existingRecord.meta.total >= 2) {
+      this._logAndThrowError('Multiple records found')
+    }
+    if (existingRecord.meta.total === 1) {
+      const newData = {
+        ...existingRecord.data[0],
+        ...doc,
+      };
+      return this.writeAsync({
+        country,
+        ...newData,
+      })
+    } else {
+      throw new Error('Record not found')
+    }
   }
 
   async deleteAsync(request) {
