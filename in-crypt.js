@@ -9,7 +9,7 @@ const KEY_SIZE = 32;
 const SALT_SIZE = 64;
 const PBKDF2_ITERATIONS_COUNT = 10000;
 const AUTH_TAG_SIZE = 16;
-const VERSION = '2';
+const VERSION = '1';
 
 class InCrypt {
   constructor(cryptKeyAccessor) {
@@ -37,14 +37,14 @@ class InCrypt {
     if (parts.length === 2) {
       [version, encryptedHex] = parts;
     } else {
-      version = '1';
+      version = '0';
       encryptedHex = s;
     }
     const decrypt = this[`decryptV${version}`].bind(this);
     return decrypt(encryptedHex);
   }
 
-  async decryptV2(encryptedHex) {
+  async decryptV1(encryptedHex) {
     const secret = await this._cryptKeyAccessor.secureAccessor();
     const bData = Buffer.from(encryptedHex, 'hex');
 
@@ -61,7 +61,7 @@ class InCrypt {
     return decipher.update(encrypted, 'binary', 'utf8') + decipher.final('utf8');
   }
 
-  async decryptV1(encryptedHex) {
+  async decryptV0(encryptedHex) {
     const secret = await this._cryptKeyAccessor.secureAccessor();
     const key = Buffer.allocUnsafe(16);
     const iv = Buffer.allocUnsafe(16);
