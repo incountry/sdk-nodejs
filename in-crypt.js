@@ -4,16 +4,6 @@ const utf8 = require('utf8');
 
 const pbkdf2 = util.promisify(crypto.pbkdf2);
 
-const unpad = function (s) {
-  const end = s.length;
-
-  const repeatedChar = s[end - 1];
-  const slotsToPad = repeatedChar.charCodeAt(0);
-  const result = s.substring(0, end - slotsToPad);
-
-  return result;
-};
-
 const IV_SIZE = 12;
 const KEY_SIZE = 32;
 const SALT_SIZE = 64;
@@ -84,11 +74,11 @@ class InCrypt {
     salt.copy(iv, 0, 16, 32);
 
     const encryptedBytes = Buffer.from(encryptedHex, 'hex');
-    const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
+    const decipher = crypto.createDecipheriv('aes-128-cbc', key, iv);
 
     let decrypted = decipher.update(encryptedBytes);
     decrypted = Buffer.concat([decrypted, decipher.final()]);
-    return unpad(decrypted.toString());
+    return decrypted.toString();
   }
 }
 

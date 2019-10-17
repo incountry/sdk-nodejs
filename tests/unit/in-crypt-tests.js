@@ -47,6 +47,13 @@ describe('InCrypt', function () {
         expect(decrypted).to.equal(testCase);
         expect(encrypted).to.not.equal(decrypted);
       });
+
+      it('should devrypt legacy', async function () {
+        const cryptKeyAccessor = new CryptKeyAccessor(() => 'supersecret');
+        const incrypt = new InCrypt(cryptKeyAccessor);
+        const decrypted = await incrypt.decryptAsync('caee598134917da2573b089df328e8f1c9dcecee55e41d7497125b090976d668');
+        console.log(decrypted)
+      });
     });
   });
 });
