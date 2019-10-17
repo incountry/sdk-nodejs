@@ -1,10 +1,11 @@
+/* eslint-disable prefer-arrow-callback,func-names */
 const { expect } = require('chai');
 const { InCrypt } = require('../../in-crypt');
 const CryptKeyAccessor = require('../../crypt-key-accessor');
 
 
-describe('InCrypt', () => {
-  context('with variable length unencrypted text', () => {
+describe('InCrypt', function () {
+  context('with variable length unencrypted text', function () {
     [
       '1',
       '22',
@@ -25,7 +26,7 @@ describe('InCrypt', () => {
       'seventeen chars 0',
       'I am the very model of a modern major general',
     ].forEach((testCase) => {
-      it(`should encrypt and decrypt correctly (asynchronous accessor): ${testCase}`, async () => {
+      it(`should encrypt and decrypt correctly (asynchronous accessor): ${testCase}`, async function () {
         const cryptKeyAccessor = new CryptKeyAccessor((() => new Promise((resolve) => { resolve('supersecret'); })));
         const incrypt = new InCrypt(cryptKeyAccessor);
 
@@ -36,7 +37,7 @@ describe('InCrypt', () => {
         expect(encrypted).to.not.equal(decrypted);
       });
 
-      it(`should encrypt and decrypt correctly (synchronous accessor): ${testCase}`, async () => {
+      it(`should encrypt and decrypt correctly (synchronous accessor): ${testCase}`, async function () {
         const cryptKeyAccessor = new CryptKeyAccessor(() => 'supersecret');
         const incrypt = new InCrypt(cryptKeyAccessor);
 

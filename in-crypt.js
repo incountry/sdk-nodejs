@@ -1,13 +1,25 @@
 const crypto = require('crypto');
 const util = require('util');
+const utf8 = require('utf8');
 
 const pbkdf2 = util.promisify(crypto.pbkdf2);
+
+const unpad = function (s) {
+  const end = s.length;
+
+  const repeatedChar = s[end - 1];
+  const slotsToPad = repeatedChar.charCodeAt(0);
+  const result = s.substring(0, end - slotsToPad);
+
+  return result;
+};
 
 const IV_SIZE = 12;
 const KEY_SIZE = 32;
 const SALT_SIZE = 64;
 const PBKDF2_ITERATIONS_COUNT = 10000;
 const AUTH_TAG_SIZE = 16;
+const VERSION = '2';
 
 class InCrypt {
   constructor(cryptKeyAccessor) {
@@ -24,10 +36,25 @@ class InCrypt {
     const encrypted = Buffer.concat([cipher.update(text, 'utf8'), cipher.final()]);
     const tag = cipher.getAuthTag();
 
-    return Buffer.concat([salt, iv, encrypted, tag]).toString('hex');
+    const ciphertext = Buffer.concat([salt, iv, encrypted, tag]).toString('hex');
+    return `${VERSION}:${ciphertext}`;
   }
 
-  async decryptAsync(encryptedHex) {
+  async decryptAsync(s) {
+    const parts = s.split(':');
+    let version;
+    let encryptedHex;
+    if (parts.length === 2) {
+      [version, encryptedHex] = parts;
+    } else {
+      version = '1';
+      encryptedHex = s;
+    }
+    const decrypt = this[`decryptV${version}`].bind(this);
+    return decrypt(encryptedHex);
+  }
+
+  async decryptV2(encryptedHex) {
     const secret = await this._cryptKeyAccessor.secureAccessor();
     const bData = Buffer.from(encryptedHex, 'hex');
 
@@ -42,6 +69,26 @@ class InCrypt {
     decipher.setAuthTag(tag);
 
     return decipher.update(encrypted, 'binary', 'utf8') + decipher.final('utf8');
+  }
+
+  async decryptV1(encryptedHex) {
+    const secret = await this._cryptKeyAccessor.secureAccessor();
+    const key = Buffer.allocUnsafe(16);
+    const iv = Buffer.allocUnsafe(16);
+    const hash = crypto.createHash('sha256');
+
+    const encodedKey = utf8.encode(secret);
+    const ba = hash.update(encodedKey).digest('hex');
+    const salt = Buffer.from(ba, 'hex');
+    salt.copy(key, 0, 0, 16);
+    salt.copy(iv, 0, 16, 32);
+
+    const encryptedBytes = Buffer.from(encryptedHex, 'hex');
+    const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
+
+    let decrypted = decipher.update(encryptedBytes);
+    decrypted = Buffer.concat([decrypted, decipher.final()]);
+    return unpad(decrypted.toString());
   }
 }
 
