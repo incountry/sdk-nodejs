@@ -48,11 +48,12 @@ describe('InCrypt', function () {
         expect(encrypted).to.not.equal(decrypted);
       });
 
-      it('should devrypt legacy', async function () {
+      it('should decrypt legacy', async function () {
         const cryptKeyAccessor = new CryptKeyAccessor(() => 'supersecret');
         const incrypt = new InCrypt(cryptKeyAccessor);
-        const decrypted = await incrypt.decryptAsync('caee598134917da2573b089df328e8f1c9dcecee55e41d7497125b090976d668');
-        console.log(decrypted)
+        const decrypted = await incrypt.decryptAsync('04aebf149ed5539aabbb3d817b90d324a96fdf6e8193370d5b45c7aaa9b0ba353d2f899c9b014a3e9284c1bf8f592511');
+        const expected = 'I am the very model of a modern major general';
+        expect(decrypted).to.eql(expected);
       });
     });
   });
