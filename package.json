@@ -11,7 +11,6 @@
   "dependencies": {
     "axios": "0.19.0",
     "dotenv": "8.0.0",
-    "query-string": "6.8.3",
     "utf8": "3.0.0"
   },
   "deprecated": false,
@@ -28,7 +27,7 @@
     "integrations": "nyc --reporter=lcov --reporter=text --report-dir=it-coverage mocha tests/integration/*.js --timeout 20000",
     "test": "nyc --reporter=lcov --reporter=text --report-dir=ut-coverage mocha tests/unit/*.js"
   },
-  "version": "0.5.2",
+  "version": "0.5.3",
   "devDependencies": {
     "chai": "4.2.0",
     "chai-as-promised": "7.1.1",
