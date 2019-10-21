@@ -35,7 +35,7 @@ const TEST_RECORDS = [
     "body": "test",
     "key2": "key2",
     "key3": "uniqueKey3",
-    "profileKey": "profile_key",
+    "profile_key": "profile_key",
   },
   {
     "country": COUNTRY,
@@ -43,8 +43,8 @@ const TEST_RECORDS = [
     "body": "test",
     "key2": "key2",
     "key3": "key3",
-    "profileKey": "profile_key",
-    "rangeKey": 1,
+    "profile_key": "profile_key",
+    "range_key": 1,
   },
 ]
 
@@ -72,7 +72,7 @@ describe('Storage', function () {
         storage.writeAsync(testCase)
         scope.on('request', async function(req, interceptor, body) {
           try {
-            const encrypted = await storage._encryptPayload(convertKeys(testCase))
+            const encrypted = await storage._encryptPayload(testCase)
             const bodyObj = JSON.parse(body);
             expect(_.omit(bodyObj, ['body'])).to.deep.equal(_.omit(encrypted, ['body']));
             done();
@@ -82,7 +82,7 @@ describe('Storage', function () {
         });
       });
       it('should read a record', async function () {
-        const encrypted = await storage._encryptPayload(convertKeys(testCase));
+        const encrypted = await storage._encryptPayload(testCase);
         nock('https://us.api.incountry.io')
           .get(`/v2/storage/records/us/${encrypted.key}`)
           .reply(200, encrypted);
@@ -91,7 +91,7 @@ describe('Storage', function () {
         expect(data).to.deep.include(expected);
       })
       it('should delete a record', function (done) {
-        storage._encryptPayload(convertKeys(testCase)).then((encrypted) => {
+        storage._encryptPayload(testCase).then((encrypted) => {
           const scope = nock('https://us.api.incountry.io')
             .delete(`/v2/storage/records/us/${encrypted.key}`)
             .reply(200);
@@ -107,7 +107,7 @@ describe('Storage', function () {
       country: 'us',
       GET: TEST_RECORDS.map((record) => record.key),
     };
-    Promise.all(TEST_RECORDS.map((testCase) => storage._encryptPayload(convertKeys(testCase)))).then((encrypted) => {
+    Promise.all(TEST_RECORDS.map((testCase) => storage._encryptPayload(testCase))).then((encrypted) => {
       const scope = nock('https://us.api.incountry.io')
         .post('/v2/storage/batches/us')
         .reply(200, {GET: encrypted});
@@ -122,7 +122,7 @@ describe('Storage', function () {
       scope.on('error', done);
       storage.batchAsync(request).then((response) => {
         try {
-          expect(response.data).to.eql({GET: TEST_RECORDS.map((record) => convertKeys(record))})
+          expect(response.data).to.eql({GET: TEST_RECORDS})
           done()
         } catch (e) {
           done(e)
@@ -131,9 +131,9 @@ describe('Storage', function () {
     })
   })
   it('should find by random key', async function () {
-    const filter = {profileKey: TEST_RECORDS[4].profileKey}
+    const filter = {profile_key: TEST_RECORDS[4].profile_key}
     const options = {limit: 1, offset: 1}
-    const encryptedRecords = await Promise.all(TEST_RECORDS.map((record) => storage._encryptPayload(convertKeys(record))))
+    const encryptedRecords = await Promise.all(TEST_RECORDS.map((record) => storage._encryptPayload(record)))
     nock('https://us.api.incountry.io')
       .post(`/v2/storage/records/us/find`)
       .reply(200, (uri, requestBody) => {
@@ -154,7 +154,7 @@ describe('Storage', function () {
   it('should findOne by random key', async function () {
     const filter = {key3: TEST_RECORDS[4].key3}
     const options = {limit: 1, offset: 1}
-    const encryptedRecords = await Promise.all(TEST_RECORDS.map((record) => storage._encryptPayload(convertKeys(record))))
+    const encryptedRecords = await Promise.all(TEST_RECORDS.map((record) => storage._encryptPayload(record)))
     nock('https://us.api.incountry.io')
       .post(`/v2/storage/records/us/find`)
       .reply(200, (uri, requestBody) => {
@@ -170,10 +170,10 @@ describe('Storage', function () {
         return {meta: {total: records.length}, data: records}
       });
     const rec = await storage.findOne('us', filter, options)
-    expect(rec).to.eql(convertKeys(TEST_RECORDS[4]))
+    expect(rec).to.eql(TEST_RECORDS[4])
   })
   it('should update one by profile key', function (done) {
-    const payload = {profileKey: 'updatedProfileKey'}
+    const payload = {profile_key: 'updatedProfileKey'}
     storage._encryptPayload(TEST_RECORDS[4]).then((encrypted) => {
       nock('https://us.api.incountry.io')
         .post('/v2/storage/records/us/find')
@@ -183,8 +183,8 @@ describe('Storage', function () {
         .reply(200, {data: [encrypted], meta: {total: 1}});
       writeNock.on('request', (req, interceptor, body) => {
         const expectedPlain = {
-          ...convertKeys(TEST_RECORDS[4]),
-          ...convertKeys(payload),
+          ...TEST_RECORDS[4],
+          ...payload,
         }
         storage._decryptPayload(JSON.parse(body)).then((decrypted) => {
           try {
