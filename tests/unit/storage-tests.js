@@ -11,19 +11,6 @@ const {expect} = chai;
 const COUNTRY = 'us'
 const SECRET_KEY = 'password'
 
-const convertKeys = (o) => {
-  const dict = {
-    profileKey: 'profile_key',
-    rangeKey: 'range_key',
-  }
-  return Object.keys(o).reduce((accum, key) => {
-    return {
-      ...accum,
-      [dict[key] || key]: o[key]
-    }
-  }, {})
-};
-
 const TEST_RECORDS = [
   {"country": COUNTRY, "key": uuid()},
   {"country": COUNTRY, "key": uuid(), "body": "test"},
