@@ -15,6 +15,7 @@ npm install incountry --save
 
 Usage  
 -----  
+To access your data in InCountry using NodeJS SDK, you need to create an instance of `Storage` class.
 1. Create storage instance  
 
 ```  
@@ -29,7 +30,7 @@ const storage = new Storage({
  logger                          // Allows for logging at different log levels in a consistent manner
 );
 ```  
-`apiKey` and `environmentId` can be fetched from your dashboard in `Incountry` site.
+`apiKey` and `environmentId` can be fetched from your dashboard on `Incountry` site.
 
 `endpoint` defines PoP API URL and is used to override default one.
 
