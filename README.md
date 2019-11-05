@@ -1,5 +1,6 @@
 
 
+
 InCountry Storage SDK  
 ============  
   
@@ -38,7 +39,9 @@ You can turn off encryption (not recommended). Set `encrypt` property to `false`
 #### Encryption key
 
 `secretKeyAccessor` is used to pass a secret used for encryption. 
+
 Note: even though PBKDF2 is used internally to generate a cryptographically strong encryption key, you must make sure that you use strong enough password.
+
 Here are some examples how you can use `SecretKeyAccessor`.
 ```
 const SecretKeyAccessor = require('incountry/secret-key-accessor');
@@ -200,7 +203,8 @@ const deleteResponse = await storage.deleteAsync({
 You can specify a custom logger at any time as following:  
 ```  
 const logger = {  
- write: (level, message) => { console.log(`[${level}] ${message}`) }}  
+ write: (level, message) => { console.log(`[${level}] ${message}`) }
+}  
   
 storage.setLogger(logger);  
 ```  
