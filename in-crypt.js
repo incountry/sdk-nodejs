@@ -45,7 +45,7 @@ class InCrypt {
   }
 
   async decryptV2(encryptedBase64) {
-    const secret = await this._cryptKeyAccessor.secureAccessor();
+    const secret = await this._secretKeyAccessor.secureAccessor();
     const bData = Buffer.from(encryptedBase64, 'base64');
 
     const salt = bData.slice(0, SALT_SIZE);
