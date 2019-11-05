@@ -1,4 +1,5 @@
 
+
 InCountry Storage SDK  
 ============  
   
@@ -16,8 +17,6 @@ npm install incountry --save
 Usage  
 -----  
 To access your data in InCountry using NodeJS SDK, you need to create an instance of `Storage` class.
-1. Create storage instance  
-
 ```  
 const Storage = require('incountry/storage');
 const storage = new Storage({  
@@ -68,7 +67,9 @@ const customLogger = {
 }
 ```
 
-2. Writes  
+### Writing data to Storage  
+
+Use `writeAsync` method in order to create a record.
 ```  
 const writeResponse = await storage.writeAsync({  
 	country: 'string',      // Required country code of where to store the data 
@@ -84,7 +85,7 @@ const writeResponse = await storage.writeAsync({
 ```  
 #### Encryption
 InCountry uses client-side encryption for your data. Note that only body is encrypted. Some of other fields are hashed.
-Here is how data is transformed:
+Here is how data is transformed and stored in InCountry database:
 ```
 {  
 	key, 		// hashed
@@ -95,7 +96,8 @@ Here is how data is transformed:
 	key3 		// hashed
  }
 ```
-3. Reads  
+### Reading stored data
+  
 Stored record can be read by `key` using `readAsync` method. It accepts an object with two fields: `country` and `key`
 ```  
 const readResponse = await storage.readAsync({  
@@ -107,7 +109,8 @@ const readResponse = await storage.readAsync({
 ```  
 Note that `readAsync` returns a `Promise` which is always fulfilled. Use `status` property in order check if operation was successful or not.
 
-4. Find
+### Find records matching filter
+
 It is possible to search by random keys using `find` method. 
 ```
 const records = await storage.find(country, filter, options)
@@ -166,14 +169,18 @@ One of the values:
 ```
 Available request options for `range_key`: `$lt`, `$lte`, `$gt`, `$gte`.
 
-5. Find One
-If you need to find the first document matching filter, you can use the `findOne` method.
+### Find one record matching filter
+
+If you need to find the first record matching filter, you can use the `findOne` method.
 ```
 const record = await storage.findOne(country, filter)
 ```
 If record not found, it will return `null`.
 
-6. Batches  
+### Batch read
+
+Warning. This method is deprecated. It is recommended to use `find` instead.
+
 It is possible to get a number of records by `key` at once. 
 ```  
 // Currently only GET batches are supported  
@@ -182,9 +189,9 @@ const batchResponse = await storage.batchAsync({
   
 // Use batchResponse.status for status code, and batchResponse.data for payload received.  
 ```  
-Note: this method is deprecated. Use `find` instead.
 
-7. Deletes  
+### Delete records
+Use `deleteAsync` method in order to delete a record from InCountry storage. It is only possible using `key` field. 
 ```  
 const deleteResponse = await storage.deleteAsync({  
 	country: 'string',      // Required country code 
@@ -193,7 +200,7 @@ const deleteResponse = await storage.deleteAsync({
   
 // Use deleteResponse.status for status code.  
 ```  
-8. Logging  
+### Logging  
 You can specify a custom logger at any time as following:  
 ```  
 const logger = {  
