@@ -4,7 +4,7 @@ const nock = require('nock');
 const uuid = require('uuid/v4');
 const _ = require('lodash');
 const Storage = require('../../storage');
-const CryptKeyAccessor = require('../../crypt-key-accessor');
+const SecretKeyAccessor = require('../../secret-key-accessor');
 
 const {expect} = chai;
 
@@ -59,8 +59,7 @@ describe('Storage', function () {
         apiKey: 'string',
         environmentId: 'string',
       },
-      fakeCountriesCache,
-      new CryptKeyAccessor(() => SECRET_KEY)
+      new SecretKeyAccessor(() => SECRET_KEY)
     )
   });
   TEST_RECORDS.forEach((testCase, idx) => {

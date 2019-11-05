@@ -12,12 +12,12 @@ const AUTH_TAG_SIZE = 16;
 const VERSION = '1';
 
 class InCrypt {
-  constructor(cryptKeyAccessor) {
-    this._cryptKeyAccessor = cryptKeyAccessor;
+  constructor(secretKeyAccessor) {
+    this._secretKeyAccessor = secretKeyAccessor;
   }
 
   async encryptAsync(text) {
-    const secret = await this._cryptKeyAccessor.secureAccessor();
+    const secret = await this._secretKeyAccessor.secureAccessor();
     const iv = crypto.randomBytes(IV_SIZE);
     const salt = crypto.randomBytes(SALT_SIZE);
     const key = await pbkdf2(secret, salt, PBKDF2_ITERATIONS_COUNT, KEY_SIZE, 'sha512');
@@ -45,7 +45,7 @@ class InCrypt {
   }
 
   async decryptV1(encryptedHex) {
-    const secret = await this._cryptKeyAccessor.secureAccessor();
+    const secret = await this._secretKeyAccessor.secureAccessor();
     const bData = Buffer.from(encryptedHex, 'hex');
 
     const salt = bData.slice(0, SALT_SIZE);
@@ -62,7 +62,7 @@ class InCrypt {
   }
 
   async decryptV0(encryptedHex) {
-    const secret = await this._cryptKeyAccessor.secureAccessor();
+    const secret = await this._secretKeyAccessor.secureAccessor();
     const key = Buffer.allocUnsafe(16);
     const iv = Buffer.allocUnsafe(16);
     const hash = crypto.createHash('sha256');

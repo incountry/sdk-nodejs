@@ -1,4 +1,4 @@
-class CryptKeyAccessor {
+class SecretKeyAccessor {
   constructor(getKeySecurely) {
     this._getKeySecurely = getKeySecurely;
   }
@@ -27,4 +27,4 @@ class CryptKeyAccessor {
   }
 }
 
-module.exports = CryptKeyAccessor;
+module.exports = SecretKeyAccessor;
