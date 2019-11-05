@@ -22,7 +22,7 @@ const Storage = require('incountry/storage');
 const storage = new Storage({  
  apiKey: 'string',               // Required to be passed in, or as environment variable INC_API_KEY 
  environmentId: 'string',        // Required to be passed in, or as environment variable INC_ENVIRONMENT_ID 
- endpoint: 'string',             // Optional. Defines PoP API URL
+ endpoint: 'string',             // Optional. Defines API URL
  encrypt: bool',                 // Optional. If false, encryption is not used
 },  
  secretKeyAccessor,              // Instance of SecretKeyAccessor class. Used to fetch encryption secret 
@@ -31,7 +31,7 @@ const storage = new Storage({
 ```  
 `apiKey` and `environmentId` can be fetched from your dashboard on `Incountry` site.
 
-`endpoint` defines PoP API URL and is used to override default one.
+`endpoint` defines API URL and is used to override default one.
 
 You can turn off encryption (not recommended). Set `encrypt` property to `false` if you want to do this.
 
@@ -109,22 +109,16 @@ const readResponse = await storage.readAsync({
 ```  
 Note that `readAsync` returns a `Promise` which is always fulfilled. Use `status` property in order check if operation was successful or not.
 
-### Find records matching filter
+### Find records
 
 It is possible to search by random keys using `find` method. 
 ```
 const records = await storage.find(country, filter, options)
 ```
 Parameters:
-`country` - country code of the Storage,
-`filter` - an object to filter records,
-`options` - an object containing search options. It has the following format:
-```
-{
-	limit: integer,
-	offset: integer
-}
-```
+`country` - country code,
+`filter` - a filter object (see below),
+`options` - an object containing search options. 
 
 Here is the example of how `find` method can be used:
 ```
@@ -136,7 +130,8 @@ const records = await storage.find('us', {
 	offset: 10
 }
 ```
-This call returns all records with `key2` equals `kitty` AND `key3` equals `mew` OR `purr`.
+This call returns all records with `key2` equals `kitty` AND `key3` equals `mew` OR `purr`. The `options` parameter defines the number of records to return and the starting index. It is useful to implement pagination. Note: SDK returns 100 records at most.
+
 The return object looks like the following: 
 ```
 {
@@ -168,6 +163,7 @@ One of the values:
 }
 ```
 Available request options for `range_key`: `$lt`, `$lte`, `$gt`, `$gte`.
+You can search by any keys: `key`, `key2`, `key2`, `profile_key`, `range_key`.
 
 ### Find one record matching filter
 
@@ -179,7 +175,7 @@ If record not found, it will return `null`.
 
 ### Batch read
 
-Warning. This method is deprecated. It is recommended to use `find` instead.
+**Warning**. This method is deprecated. It is recommended to use `find` instead.
 
 It is possible to get a number of records by `key` at once. 
 ```  
