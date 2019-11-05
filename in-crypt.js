@@ -9,7 +9,7 @@ const KEY_SIZE = 32;
 const SALT_SIZE = 64;
 const PBKDF2_ITERATIONS_COUNT = 10000;
 const AUTH_TAG_SIZE = 16;
-const VERSION = '1';
+const VERSION = '2';
 
 class InCrypt {
   constructor(secretKeyAccessor) {
@@ -26,7 +26,7 @@ class InCrypt {
     const encrypted = Buffer.concat([cipher.update(text, 'utf8'), cipher.final()]);
     const tag = cipher.getAuthTag();
 
-    const ciphertext = Buffer.concat([salt, iv, encrypted, tag]).toString('hex');
+    const ciphertext = Buffer.concat([salt, iv, encrypted, tag]).toString('base64');
     return `${VERSION}:${ciphertext}`;
   }
 
@@ -42,6 +42,23 @@ class InCrypt {
     }
     const decrypt = this[`decryptV${version}`].bind(this);
     return decrypt(encryptedHex);
+  }
+
+  async decryptV2(encryptedBase64) {
+    const secret = await this._cryptKeyAccessor.secureAccessor();
+    const bData = Buffer.from(encryptedBase64, 'base64');
+
+    const salt = bData.slice(0, SALT_SIZE);
+    const iv = bData.slice(SALT_SIZE, SALT_SIZE + IV_SIZE);
+    const encrypted = bData.slice(SALT_SIZE + IV_SIZE, bData.length - AUTH_TAG_SIZE);
+    const tag = bData.slice(-AUTH_TAG_SIZE);
+
+    const key = await pbkdf2(secret, salt, PBKDF2_ITERATIONS_COUNT, KEY_SIZE, 'sha512');
+
+    const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
+    decipher.setAuthTag(tag);
+
+    return decipher.update(encrypted, 'binary', 'utf8') + decipher.final('utf8');
   }
 
   async decryptV1(encryptedHex) {
