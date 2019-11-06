@@ -1,7 +1,7 @@
 /* eslint-disable prefer-arrow-callback,func-names */
 const { expect } = require('chai');
 const { InCrypt } = require('../../in-crypt');
-const CryptKeyAccessor = require('../../crypt-key-accessor');
+const SecretKeyAccessor = require('../../secret-key-accessor');
 
 const PLAINTEXTS = [
   '',
@@ -40,8 +40,8 @@ describe('InCrypt', function () {
   context('with different plain texts', function () {
     PLAINTEXTS.forEach((plain) => {
       it(`should encrypt and decrypt text: ${plain}`, async function () {
-        const cryptKeyAccessor = new CryptKeyAccessor((() => new Promise((resolve) => { resolve('supersecret'); })));
-        const incrypt = new InCrypt(cryptKeyAccessor);
+        const secretKeyAccessor = new SecretKeyAccessor((() => new Promise((resolve) => { resolve('supersecret'); })));
+        const incrypt = new InCrypt(secretKeyAccessor);
         const encrypted = await incrypt.encryptAsync(plain);
         const decrypted = await incrypt.decryptAsync(encrypted);
         expect(encrypted).not.to.eql(plain);
@@ -52,8 +52,8 @@ describe('InCrypt', function () {
   context('with different encrypted text versions', function () {
     PREPARED_DATA_BY_VERSION.forEach((item) => {
       it(`should decrypt v${item.version} data`, async function () {
-        const cryptKeyAccessor = new CryptKeyAccessor((() => new Promise((resolve) => { resolve(item.password); })));
-        const incrypt = new InCrypt(cryptKeyAccessor);
+        const secretKeyAccessor = new SecretKeyAccessor((() => new Promise((resolve) => { resolve(item.password); })));
+        const incrypt = new InCrypt(secretKeyAccessor);
         const decrypted = await incrypt.decryptAsync(item.encrypted);
         expect(decrypted).to.eql(item.plain);
       });

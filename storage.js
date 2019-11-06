@@ -5,6 +5,7 @@ const crypto = require('crypto');
 const defaultLogger = require('./logger');
 const forEachAsync = require('./foreach-async');
 const CountriesCache = require('./countries-cache');
+const SecretKeyAccessor = require('./secret-key-accessor');
 const { InCrypt } = require('./in-crypt');
 
 class Storage {
@@ -12,7 +13,7 @@ class Storage {
     return 100;
   }
 
-  constructor(options, countriesCache, cryptKeyAccessor, logger) {
+  constructor(options, secretKeyAccessor, logger, countriesCache) {
     if (logger) {
       this.setLogger(logger);
     } else {
@@ -29,7 +30,7 @@ class Storage {
 
     if (options.encrypt !== false) {
       this._encryptionEnabled = true;
-      this._crypto = new InCrypt(cryptKeyAccessor);
+      this._crypto = new InCrypt(secretKeyAccessor);
     }
 
     this._countriesCache = countriesCache || new CountriesCache();
@@ -51,6 +52,20 @@ class Storage {
       throw new Error('Logger.write must have at least 2 parameters');
     }
     this._logger = logger;
+  }
+
+  setSecretKeyAccessor(secretKeyAccessor) {
+    if (!(secretKeyAccessor instanceof SecretKeyAccessor)) {
+      throw new Error('You must pass an instance of SecretKeyAccessor');
+    }
+    this._crypto = new InCrypt(secretKeyAccessor);
+  }
+
+  setCountriesCache(countriesCache) {
+    if (!(countriesCache instanceof CountriesCache)) {
+      throw new Error('You must pass an instance of CountriesCache');
+    }
+    this._countriesCache = countriesCache;
   }
 
   _logAndThrowError(error) {

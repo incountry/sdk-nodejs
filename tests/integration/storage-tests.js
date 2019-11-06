@@ -1,5 +1,5 @@
 var Storage = require('../../storage');
-var CryptKeyAccessor = require('../../crypt-key-accessor');
+var SecretKeyAccessor = require('../../secret-key-accessor');
 
 var expect = require('chai').expect;
 
@@ -7,7 +7,7 @@ describe('Storage', function() {
     context('with invalid constructor options', function() {
 
     })
-    
+
     context('with valid constructor options', function() {
         [
             {
@@ -20,7 +20,7 @@ describe('Storage', function() {
                 endpoint: "https://us.api.incountry.io"
             }
         ].forEach(function(testCase) {
-            var storage = new Storage(testCase, null, new CryptKeyAccessor(function() { return 'supersecret'; }));
+            var storage = new Storage(testCase, new SecretKeyAccessor(function() { return 'supersecret'; }));
             var testBody = JSON.stringify({ "name": "last" });
 
             it(`should write using these options: ${JSON.stringify(testCase)}`, async function(){
@@ -68,7 +68,7 @@ describe('Storage', function() {
                         body: `test data ${i}`
                     });
                 }
-                
+
                 var batchResponse = await storage.batchAsync({
                     "country": "US",
                     "GET": [
