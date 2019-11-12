@@ -15,7 +15,7 @@ script:
   - if [[ ($TRAVIS_BRANCH == "master") && ($TRAVIS_EVENT_TYPE == "cron") ]]; then snyk monitor --org=incountry; fi
   - npm run test
   - sonar-scanner
-  - if [[ $TRAVIS_BRANCH =~ ^master|^RC_.*|^SB_.*|DEVOPS-718.* ]]; then ./dependencytrack_upload.sh $DEPTRACK_API $DEPTRACK_URL $DEPTRACK_PROJECT-$TRAVIS_BRANCH; fi
+  - if [[ $TRAVIS_BRANCH =~ ^master|^RC_.*|^SB_.* ]]; then ./dependencytrack_upload.sh $DEPTRACK_API $DEPTRACK_URL $DEPTRACK_PROJECT-$TRAVIS_BRANCH; fi
 
 env:
   global:
