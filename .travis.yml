@@ -9,8 +9,17 @@ node_js:
 install:
   - npm install
   - if [[ ($TRAVIS_BRANCH == "master") && ($TRAVIS_EVENT_TYPE == "cron") ]]; then npm install -g snyk; fi
+  - npm install -g @cyclonedx/bom
 
 script:
   - if [[ ($TRAVIS_BRANCH == "master") && ($TRAVIS_EVENT_TYPE == "cron") ]]; then snyk monitor --org=incountry; fi
   - npm run test
   - sonar-scanner
+  - if [[ $TRAVIS_BRANCH =~ ^master|^RC_.*|^SB_.*|DEVOPS-718.* ]]; then ./dependencytrack_upload.sh $DEPTRACK_API $DEPTRACK_URL $DEPTRACK_PROJECT-$TRAVIS_BRANCH; fi
+
+env:
+  global:
+    - DEPTRACK_URL='https://dependency.tools.incountry.com'
+    - DEPTRACK_PROJECT="proxy"
+# DEPTRACK_API
+    - secure: "AShMD19LW0NmwVV9d9h3oRd59qgRBT1c+bDp+wcukTiC7OiY/iKyJ5HbXikEfVJ2cRfAxBXB2RKlgQW+OMnhSSRQ+cklau1DqS2mJIxnLyDHyarzXnA/uZMb7S9iX6AQwcCirKW4ng8OvirvUECI7yzWhDaKOWp0vpuwtk3taQK7ZrjG8ADhdudDoFhJNSuqpBBNA+FWUnlKl1fTOcxZ0b6NXkLxP4QbqLrvSiL4zdAUfuD+hI4P25TObvllkFPR0//v1RZ6M7Wj8bydTD7Xy30QOGsdJQZW/0sfOtnJKAOBYPybCGqu1lkj4DECNx1ZHLcOMsa+FlC7sfV3X9DamE0fnmoL4xS3ynMoMWf0+mwg2NJZaPjhq6ldg7TZoT6IzmdkSoahs/wRutM1WFwz30AQHI5R2DI9zVTAsFDpIotNmRE8kd5DAqTygLN09NTnBAQccqDksoUj6EaVuE1Evul05DN86xhA052hWWtLkK3Uf+4/9ivqs9wtN2G68Ifr81QpOppHSY5kmPOVrmxaMcfNixLOLJzlOebpULJ94dEBya4s9qnbqL6Siv0OfB3qC1Bym1mboEMrq2D9G3rPHt6TW2awhzCXJehbO05DO2rIp2hCG4u8v+GYqsctt+AHlIfzg5otV7dZ6bdByDf//3dCovic2JHY51VVsJi3A7I="
