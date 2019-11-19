@@ -25,10 +25,10 @@ const convertKeys = (o) => {
 };
 
 const TEST_RECORDS = [
-  {"country": COUNTRY, "key": uuid()},
-  {"country": COUNTRY, "key": uuid(), "body": "test"},
-  {"country": COUNTRY, "key": uuid(), "body": "test", "key2": "key2"},
-  {"country": COUNTRY, "key": uuid(), "body": "test", "key2": "key2", "key3": "key3"},
+  {"country": COUNTRY, "key": uuid(), version: 0},
+  {"country": COUNTRY, "key": uuid(), "body": "test", version: 0},
+  {"country": COUNTRY, "key": uuid(), "body": "test", "key2": "key2", version: 0},
+  {"country": COUNTRY, "key": uuid(), "body": "test", "key2": "key2", "key3": "key3", version: 0},
   {
     "country": COUNTRY,
     "key": uuid(),
@@ -36,6 +36,7 @@ const TEST_RECORDS = [
     "key2": "key2",
     "key3": "uniqueKey3",
     "profile_key": "profile_key",
+    version: 0
   },
   {
     "country": COUNTRY,
@@ -45,6 +46,7 @@ const TEST_RECORDS = [
     "key3": "key3",
     "profile_key": "profile_key",
     "range_key": 1,
+    version: 0
   },
 ]
 
