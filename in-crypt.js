@@ -20,11 +20,10 @@ class InCrypt {
   }
 
   async encryptAsync(text) {
-    const keysObject = await this._secretKeyAccessor.secureAccessor();
-    const keyObj = keysObject.keys.find(k => k.keyVersion == keysObject.currentKeyVersion);
+    const secret = await this._secretKeyAccessor.getKey();
     const iv = crypto.randomBytes(IV_SIZE);
     const salt = crypto.randomBytes(SALT_SIZE);
-    const key = await pbkdf2(keyObj.key, salt, PBKDF2_ITERATIONS_COUNT, KEY_SIZE, 'sha512');
+    const key = await pbkdf2(secret.key, salt, PBKDF2_ITERATIONS_COUNT, KEY_SIZE, 'sha512');
 
     const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
     const encrypted = Buffer.concat([cipher.update(text, 'utf8'), cipher.final()]);
@@ -33,7 +32,7 @@ class InCrypt {
     const ciphertext = Buffer.concat([salt, iv, encrypted, tag]).toString('base64');
     return { 
       message: `${VERSION}:${ciphertext}`, 
-      keyVersion: keysObject.currentKeyVersion 
+      keyVersion: secret.keyVersion 
     };
   }
 
@@ -43,12 +42,8 @@ class InCrypt {
    * @param {number} keyVersion 
    */
   async decryptAsync(s, keyVersion) {
-    const keysObject = await this._secretKeyAccessor.secureAccessor();
-    const keyObj = keysObject.keys.find(k => k.keyVersion == keyVersion);
-    if (!keyObj) {
-      throw new Error(`Please provide secret key for this data`);
-    }
-
+    const secret = await this._secretKeyAccessor.getKey(keyVersion);
+  
     const parts = s.split(':');
     let version;
     let encryptedHex;
@@ -59,7 +54,7 @@ class InCrypt {
       encryptedHex = s;
     }
     const decrypt = this[`decryptV${version}`].bind(this);
-    return decrypt(encryptedHex, keyObj.key);
+    return decrypt(encryptedHex, secret.key);
   }
 
   /**

@@ -28,6 +28,8 @@ const KeysObjectIO = t.brand(
   'KeysObjectIO'
 )
 
+const DEFAULT_VERSION = 0;
+
 /**
  * Callback handles fetching keys and is provided by SDK user
  * Can return: 
@@ -48,13 +50,26 @@ class SecretKeyAccessor {
   }
 
   /**
-   * @since 0.4.0
+   * @param {number} keyVersion
+   * @return {Promise<{ key: string, keyVersion: number }>}
+   */
+  getKey(keyVersion) {
+    return this._getKeys().then(ko => {
+      const version = keyVersion !== undefined ? keyVersion : ko.currentKeyVersion;
+      const item = ko.keys.find(k => k.keyVersion == version);
+      return item !== undefined ? 
+        item : 
+        Promise.reject(new Error('Please provide secret key for this data'));
+    });
+  }
+
+  /**
    * @return {Promise<KeysObject>}
    */
-  secureAccessor() {
+  _getKeys() {
     return Promise
       .resolve(this._getKeySecurely())
-      .then(v => typeof v === 'string' ? this._wrapToKeysObject(v) : toPromise(KeysObjectIO.decode(v)))
+      .then(v => typeof v === 'string' ? this._wrapToKeysObject(v) : toPromise(KeysObjectIO.decode(v)));
   }
 
   /**
@@ -63,10 +78,10 @@ class SecretKeyAccessor {
    */
   _wrapToKeysObject(key) {
     return {
-      currentKeyVersion: 0,
+      currentKeyVersion: DEFAULT_VERSION,
       keys: [{
         key, 
-        keyVersion: 0
+        keyVersion: DEFAULT_VERSION
       }]
     }
   }
