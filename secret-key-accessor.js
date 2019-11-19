@@ -50,7 +50,7 @@ class SecretKeyAccessor {
   }
 
   /**
-   * @param {number} keyVersion
+   * @param {number} keyVersion optional, will fallback to "currentKeyVersion"
    * @return {Promise<{ key: string, keyVersion: number }>}
    */
   getKey(keyVersion) {
