@@ -42,7 +42,7 @@ class InCrypt {
    * @param {number} secretVersion 
    */
   async decryptAsync(s, secretVersion) {
-    const secret = await this._secretKeyAccessor.getSecret(secretVersion);
+    const { secret } = await this._secretKeyAccessor.getSecret(secretVersion);
   
     const parts = s.split(':');
     let version;
@@ -54,7 +54,7 @@ class InCrypt {
       encryptedHex = s;
     }
     const decrypt = this[`decryptV${version}`].bind(this);
-    return decrypt(encryptedHex, secret.secret);
+    return decrypt(encryptedHex, secret);
   }
 
   /**
