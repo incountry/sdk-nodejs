@@ -7,10 +7,12 @@
   "bugs": {
     "url": "https://github.com/incountry/sdk-nodejs/issues"
   },
-  "bundleDependencies": false,
+  "bundleDependencies": [],
   "dependencies": {
     "axios": "0.19.0",
     "dotenv": "8.0.0",
+    "fp-ts": "2.1.2",
+    "io-ts": "2.0.1",
     "utf8": "3.0.0"
   },
   "deprecated": false,

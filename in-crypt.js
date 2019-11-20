@@ -12,12 +12,15 @@ const AUTH_TAG_SIZE = 16;
 const VERSION = '2';
 
 class InCrypt {
+  /**
+  * @param {import('./secret-key-accessor')} secretKeyAccessor
+  */
   constructor(secretKeyAccessor) {
     this._secretKeyAccessor = secretKeyAccessor;
   }
 
   async encryptAsync(text) {
-    const secret = await this._secretKeyAccessor.secureAccessor();
+    const { secret, version } = await this._secretKeyAccessor.getSecret();
     const iv = crypto.randomBytes(IV_SIZE);
     const salt = crypto.randomBytes(SALT_SIZE);
     const key = await pbkdf2(secret, salt, PBKDF2_ITERATIONS_COUNT, KEY_SIZE, 'sha512');
@@ -27,10 +30,20 @@ class InCrypt {
     const tag = cipher.getAuthTag();
 
     const ciphertext = Buffer.concat([salt, iv, encrypted, tag]).toString('base64');
-    return `${VERSION}:${ciphertext}`;
+    return { 
+      message: `${VERSION}:${ciphertext}`, 
+      secretVersion: version 
+    };
   }
 
-  async decryptAsync(s) {
+  /**
+   * 
+   * @param {string} s 
+   * @param {number} secretVersion 
+   */
+  async decryptAsync(s, secretVersion) {
+    const { secret } = await this._secretKeyAccessor.getSecret(secretVersion);
+  
     const parts = s.split(':');
     let version;
     let encryptedHex;
@@ -41,11 +54,15 @@ class InCrypt {
       encryptedHex = s;
     }
     const decrypt = this[`decryptV${version}`].bind(this);
-    return decrypt(encryptedHex);
+    return decrypt(encryptedHex, secret);
   }
 
-  async decryptV2(encryptedBase64) {
-    const secret = await this._secretKeyAccessor.secureAccessor();
+  /**
+   * 
+   * @param {string} encryptedBase64 
+   * @param {string} secret 
+   */
+  async decryptV2(encryptedBase64, secret) {
     const bData = Buffer.from(encryptedBase64, 'base64');
 
     const salt = bData.slice(0, SALT_SIZE);
@@ -61,8 +78,12 @@ class InCrypt {
     return decipher.update(encrypted, 'binary', 'utf8') + decipher.final('utf8');
   }
 
-  async decryptV1(encryptedHex) {
-    const secret = await this._secretKeyAccessor.secureAccessor();
+  /**
+   * 
+   * @param {string} encryptedHex 
+   * @param {string} secret 
+   */
+  async decryptV1(encryptedHex, secret) {
     const bData = Buffer.from(encryptedHex, 'hex');
 
     const salt = bData.slice(0, SALT_SIZE);
@@ -78,8 +99,12 @@ class InCrypt {
     return decipher.update(encrypted, 'binary', 'utf8') + decipher.final('utf8');
   }
 
-  async decryptV0(encryptedHex) {
-    const secret = await this._secretKeyAccessor.secureAccessor();
+  /**
+   * 
+   * @param {string} encryptedHex 
+   * @param {string} secret 
+   */
+  async decryptV0(encryptedHex, secret) {
     const key = Buffer.allocUnsafe(16);
     const iv = Buffer.allocUnsafe(16);
     const hash = crypto.createHash('sha256');

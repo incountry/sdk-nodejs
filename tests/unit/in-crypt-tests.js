@@ -42,8 +42,8 @@ describe('InCrypt', function () {
       it(`should encrypt and decrypt text: ${plain}`, async function () {
         const secretKeyAccessor = new SecretKeyAccessor((() => new Promise((resolve) => { resolve('supersecret'); })));
         const incrypt = new InCrypt(secretKeyAccessor);
-        const encrypted = await incrypt.encryptAsync(plain);
-        const decrypted = await incrypt.decryptAsync(encrypted);
+        const { message: encrypted, keyVersion } = await incrypt.encryptAsync(plain);
+        const decrypted = await incrypt.decryptAsync(encrypted, keyVersion);
         expect(encrypted).not.to.eql(plain);
         expect(decrypted).to.eql(plain);
       });
@@ -54,7 +54,7 @@ describe('InCrypt', function () {
       it(`should decrypt v${item.version} data`, async function () {
         const secretKeyAccessor = new SecretKeyAccessor((() => new Promise((resolve) => { resolve(item.password); })));
         const incrypt = new InCrypt(secretKeyAccessor);
-        const decrypted = await incrypt.decryptAsync(item.encrypted);
+        const decrypted = await incrypt.decryptAsync(item.encrypted, 0);
         expect(decrypted).to.eql(item.plain);
       });
     });

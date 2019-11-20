@@ -8,11 +8,24 @@ const CountriesCache = require('./countries-cache');
 const SecretKeyAccessor = require('./secret-key-accessor');
 const { InCrypt } = require('./in-crypt');
 
+/**
+ * @typedef StorageOptions
+ * @property {string} apiKey
+ * @property {string} environmentId
+ * @property {string} endpoint
+ * @property {boolean} encrypt
+ */
+
 class Storage {
   static get MAX_LIMIT() {
     return 100;
   }
 
+  /**
+  * @param {StorageOptions} options
+  * @param {import('./secret-key-accessor')} secretKeyAccessor
+  * @param {import('./logger')} logger
+  */
   constructor(options, secretKeyAccessor, logger, countriesCache) {
     if (logger) {
       this.setLogger(logger);
@@ -289,7 +302,9 @@ class Storage {
       body.payload = record.body;
     }
 
-    record.body = await this._crypto.encryptAsync(JSON.stringify(body));
+    const { message, secretVersion } = await this._crypto.encryptAsync(JSON.stringify(body));
+    record.body = message;
+    record.version = secretVersion;
     return record;
   }
 
@@ -309,7 +324,7 @@ class Storage {
 
   async _decryptPayload(originalRecord) {
     const record = { ...originalRecord };
-    const decrypted = await this._crypto.decryptAsync(record.body);
+    const decrypted = await this._crypto.decryptAsync(record.body, record.version);
     let body;
     try {
       body = JSON.parse(decrypted);
