@@ -302,9 +302,9 @@ class Storage {
       body.payload = record.body;
     }
 
-    const { message, keyVersion } = await this._crypto.encryptAsync(JSON.stringify(body));
+    const { message, secretVersion } = await this._crypto.encryptAsync(JSON.stringify(body));
     record.body = message;
-    record.version = keyVersion;
+    record.version = secretVersion;
     return record;
   }
 

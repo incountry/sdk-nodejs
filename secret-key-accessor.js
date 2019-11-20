@@ -2,30 +2,30 @@ const t = require('io-ts');
 const { toPromise } = require('./utils');
 
 /**
- * @typedef KeysObject
- * @property {Array<{ key: string, keyVersion: number }>} keys
- * @property {number} currentKeyVersion 
+ * @typedef SecretsObject
+ * @property {Array<{ secret: string, version: number }>} secrets
+ * @property {number} currentVersion 
  */
 
 /**
- * @param {KeysObject} o
+ * @param {SecretsObject} o
  * @return {boolean}
  */
-function hasKeyOfCurrentVersion(o) {
-  return o.keys.findIndex(k => k.keyVersion === o.currentKeyVersion) !== -1;
+function hasSecretOfCurrentVersion(o) {
+  return o.secrets.findIndex(s => s.version === o.currentVersion) !== -1;
 }
 
-const KeysObjectIO = t.brand(
+const SecretsObjectIO = t.brand(
   t.type({
-    currentKeyVersion: t.Int,
-    keys: t.array(
+    currentVersion: t.Int,
+    secrets: t.array(
       t.type({ 
-        key: t.string, keyVersion: t.Int 
+        secret: t.string, version: t.Int 
       })
     )
   }),
-  ko => hasKeyOfCurrentVersion(ko), 
-  'KeysObjectIO'
+  so => hasSecretOfCurrentVersion(so), 
+  'SecretsObjectIO'
 )
 
 const DEFAULT_VERSION = 0;
@@ -38,25 +38,25 @@ const DEFAULT_VERSION = 0;
  * - Promise<string> or Promise<KeyObject> for any async jobs
  * 
  * @callback GetKeySecurelyCallback
- * @returns {string|KeysObject|Promise<string>|Promise<KeysObject>|unknown}
+ * @returns {string|SecretsObject|Promise<string>|Promise<SecretsObject>|unknown}
  */
 
 class SecretKeyAccessor {
   /**
    * @param {GetKeySecurelyCallback} getKeySecurely
    */
-  constructor(getKeySecurely) {
-    this._getKeySecurely = getKeySecurely;
+  constructor(getSecretCallback) {
+    this._getSecretCallback = getSecretCallback;
   }
 
   /**
-   * @param {number} keyVersion optional, will fallback to "currentKeyVersion"
-   * @return {Promise<{ key: string, keyVersion: number }>}
+   * @param {number} secretVersion optional, will fallback to "currentSecretVersion"
+   * @return {Promise<{ secret: string, version: number }>}
    */
-  getKey(keyVersion) {
-    return this._getKeys().then(ko => {
-      const version = keyVersion !== undefined ? keyVersion : ko.currentKeyVersion;
-      const item = ko.keys.find(k => k.keyVersion == version);
+  getSecret(secretVersion) {
+    return this._getSecrets().then(so => {
+      const version = secretVersion !== undefined ? secretVersion : so.currentVersion;
+      const item = so.secrets.find(s => s.version == version);
       return item !== undefined ? 
         item : 
         Promise.reject(new Error('Please provide secret key for this data'));
@@ -64,24 +64,24 @@ class SecretKeyAccessor {
   }
 
   /**
-   * @return {Promise<KeysObject>}
+   * @return {Promise<SecretsObject>}
    */
-  _getKeys() {
+  _getSecrets() {
     return Promise
-      .resolve(this._getKeySecurely())
-      .then(v => typeof v === 'string' ? this._wrapToKeysObject(v) : toPromise(KeysObjectIO.decode(v)));
+      .resolve(this._getSecretCallback())
+      .then(v => typeof v === 'string' ? this._wrapToSecretsObject(v) : toPromise(SecretsObjectIO.decode(v)));
   }
 
   /**
-   * @param {string} key
-   * @return {KeysObject}
+   * @param {string} secret
+   * @return {SecretsObject}
    */
-  _wrapToKeysObject(key) {
+  _wrapToSecretsObject(secret) {
     return {
-      currentKeyVersion: DEFAULT_VERSION,
-      keys: [{
-        key, 
-        keyVersion: DEFAULT_VERSION
+      currentVersion: DEFAULT_VERSION,
+      secrets: [{
+        secret, 
+        version: DEFAULT_VERSION
       }]
     }
   }
