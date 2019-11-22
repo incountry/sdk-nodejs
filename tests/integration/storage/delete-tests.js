@@ -28,7 +28,7 @@ describe('Delete data from Storage', function () {
     });
 
 
-    it('delete existing data', async function () {
+    it('C1885 Delete data', async function () {
 
         var deleteResponse = await storage.deleteAsync({
             country: countryCode,
@@ -40,7 +40,7 @@ describe('Delete data from Storage', function () {
     });
 
 
-    it('delete not existing data', async function () {
+    it('C1886 Delete not existing data', async function () {
 
         var notExistingKey = 'NotExistingKey11'
 

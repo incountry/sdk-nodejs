@@ -28,7 +28,7 @@ describe('Read data from Storage', function () {
     });
 
 
-    it('read existing data', async function () {
+    it('C1883 Read data', async function () {
 
         var readResponse = await storage.readAsync({
             country: countryCode,
@@ -42,7 +42,7 @@ describe('Read data from Storage', function () {
     }).timeout(20000);
 
 
-    it('read not existing data', async function () {
+    it('C1884 Read not existing data', async function () {
 
         var notExistingKey = 'NotExistingKey11'
         
