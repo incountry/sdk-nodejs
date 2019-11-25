@@ -1,21 +1,17 @@
 const { expect } = require('chai');
-const Storage = require('../../../storage');
-const SecretKeyAccessor = require('../../../secret-key-accessor');
+const storageCommon = require('./common');
 
+const createStorage = storageCommon.CreateStorage;
 let storage;
+
 let testBody;
 let countryCode;
 let keyValue;
 
 describe('Delete data from Storage', () => {
   before(async () => {
-    storage = new Storage(
-      {
-        tls: true,
-        encrypt: false,
-      },
-      new SecretKeyAccessor((() => 'supersecret')),
-    );
+    storage = createStorage(false);
+
     countryCode = 'US';
     keyValue = 'recordKey0';
 
