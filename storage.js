@@ -199,13 +199,13 @@ class Storage {
 
   /**
    * Write many records at once
+   * @param {string} countryCode 
    * @param {Array<Record>} records 
    */
-  async batchWrite(records) {    
+  async batchWrite(countryCode, records) {    
     try {
-      const firstRecord = records[0];
-      if (!firstRecord) {
-        throw new Error('You must pass not empty array')
+      if (!records.length) {
+        throw new Error('You must pass non-empty array')
       }
 
       const data = await Promise.all(records.map(r => {
@@ -213,7 +213,6 @@ class Storage {
         return this._encryptionEnabled ? this._encryptPayload(r) : r;
       }));
 
-      const countryCode = firstRecord.country.toLowerCase();
       const endpoint = await this._getEndpointAsync(countryCode, `v2/storage/records/${countryCode}/batchWrite`);
       this._logger.write('debug', `BATCH WRITE from: ${endpoint}`);
 

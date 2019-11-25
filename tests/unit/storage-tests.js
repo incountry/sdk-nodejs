@@ -136,7 +136,7 @@ describe('Storage', function () {
     const scope = nock('https://us.api.incountry.io')
       .post('/v2/storage/records/us/batchWrite')
       .reply(200);
-    storage.batchWrite(TEST_RECORDS);
+    storage.batchWrite('us', TEST_RECORDS);
     scope.on('request', function(req, interceptor, body) {
       const bodyObj = JSON.parse(body);
       bodyObj.forEach((encRecord, index) => {
