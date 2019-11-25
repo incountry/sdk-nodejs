@@ -40,7 +40,23 @@ You can turn off encryption (not recommended). Set `encrypt` property to `false`
 
 `secretKeyAccessor` is used to pass a secret used for encryption.
 
-Note: even though PBKDF2 is used internally to generate a cryptographically strong encryption key, you must make sure that you use strong enough password.
+Note: even though SDK uses PBKDF2 to generate a cryptographically strong encryption key, you must make sure you provide a secret/password which follows modern security best practices and standards.
+
+`SecretKeyAccessor` class constructor allows you to pass a function that should return either a string representing your secret or a dict (we call it `secretsData` object):
+
+```
+{
+  secrets: [{
+       secret: <string>,
+       version: <int>
+  }, ....],
+  currentVersion: <int>,
+}
+```
+
+`secretsData` allows you to specify multiple keys which SDK will use for decryption based on the version of the secret used for encryption. Meanwhile SDK will encrypt only using secret that matches `currentVersion` provided in `secretsData` object.
+
+This enables the flexibility required to support Key Rotation policies when secrets/keys need to be changed with time. SDK will encrypt data using newer secret while maintaining the ability to decrypt records encrypted with old secrets. SDK also provides a method for data migration which allows to re-encrypt data with the newest secret. For details please see `migrate` method.
 
 Here are some examples how you can use `SecretKeyAccessor`.
 ```
@@ -53,8 +69,8 @@ const secretKeyAccessor = new SecretKeyAccessor(() => {
 
 // Asynchronous accessor
 const secretKeyAccessor = new SecretKeyAccessor(async () => {
-	const password = await getPasswordFromSomewhere();
-	return password;
+	const secretsData = await getSecretsDataFromSomewhere();
+	return secretsData;
 })
 
 // Using promises
@@ -72,7 +88,7 @@ const customLogger = {
 
 ### Writing data to Storage
 
-Use `writeAsync` method in order to create a record.
+Use `writeAsync` method in order to create/replace (by `key`) a record.
 ```
 const writeResponse = await storage.writeAsync({
 	country: 'string',      // Required country code of where to store the data
@@ -91,14 +107,27 @@ InCountry uses client-side encryption for your data. Note that only body is encr
 Here is how data is transformed and stored in InCountry database:
 ```
 {
-	key, 		// hashed
-	body, 		// encrypted
-	profile_key,// hashed
-	range_key, 	// plain
-	key2, 		// hashed
-	key3 		// hashed
+	key,          // hashed
+	body,         // encrypted
+	profile_key,  // hashed
+	range_key,    // plain
+	key2,         // hashed
+	key3          // hashed
  }
 ```
+
+#### Batches
+Use `batchWrite` method to create/replace multiple records at once
+
+```
+batchResponse = await storage.batchWrite(
+	country,     // Required country code of where to store the data
+	records      // Required list of records
+)
+
+// `batchWrite` returns axios http response
+```
+
 ### Reading stored data
 
 Stored record can be read by `key` using `readAsync` method. It accepts an object with two fields: `country` and `key`
