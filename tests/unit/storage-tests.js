@@ -131,6 +131,24 @@ describe('Storage', function () {
       })
     })
   })
+
+  it('should batch write', function (done) {
+    const scope = nock('https://us.api.incountry.io')
+      .post('/v2/storage/records/us/batchWrite')
+      .reply(200);
+    storage.batchWrite(TEST_RECORDS);
+    scope.on('request', function(req, interceptor, body) {
+      const bodyObj = JSON.parse(body);
+      bodyObj.forEach((encRecord, index) => {
+        const testRecord = TEST_RECORDS[index];
+        expect(encRecord).to.include.all.keys(Object.keys(testRecord));
+        expect(encRecord).not.to.deep.equal(testRecord);
+      });
+
+      done();
+    });
+  });
+
   it('should find by random key', async function () {
     const filter = {profile_key: TEST_RECORDS[4].profile_key}
     const options = {limit: 1, offset: 1}

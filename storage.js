@@ -9,6 +9,11 @@ const SecretKeyAccessor = require('./secret-key-accessor');
 const { InCrypt } = require('./in-crypt');
 
 /**
+ * @typedef Record
+ * @property {string} key
+ */
+
+/**
  * @typedef StorageOptions
  * @property {string} apiKey
  * @property {string} environmentId
@@ -173,7 +178,6 @@ class Storage {
 
       this._logger.write('debug', `POST to: ${endpoint}`);
       if (this._encryptionEnabled) {
-        this._logger.write('debug', 'Encrypting...');
         data = await this._encryptPayload(data);
       }
 
@@ -184,6 +188,40 @@ class Storage {
         url: endpoint,
         headers: this.headers(),
         data,
+      });
+
+      return response;
+    } catch (err) {
+      this._logger.write('error', err);
+      throw (err);
+    }
+  }
+
+  /**
+   * Write many records at once
+   * @param {Array<Record>} records 
+   */
+  async batchWrite(records) {    
+    try {
+      const firstRecord = records[0];
+      if (!firstRecord) {
+        throw new Error('You must pass not empty array')
+      }
+
+      const data = await Promise.all(records.map(r => {
+        this._validate(r);
+        return this._encryptionEnabled ? this._encryptPayload(r) : r;
+      }));
+
+      const countryCode = firstRecord.country.toLowerCase();
+      const endpoint = await this._getEndpointAsync(countryCode, `v2/storage/records/${countryCode}/batchWrite`);
+      this._logger.write('debug', `BATCH WRITE from: ${endpoint}`);
+
+      const response = await axios({
+        method: 'post',
+        url: endpoint,
+        headers: this.headers(),
+        data
       });
 
       return response;
@@ -288,6 +326,8 @@ class Storage {
   }
 
   async _encryptPayload(originalRecord) {
+    this._logger.write('debug', 'Encrypting...');
+
     const record = { ...originalRecord };
     const body = {
       meta: {},
