@@ -6,23 +6,11 @@ const _ = require('lodash');
 const Storage = require('../../storage');
 const SecretKeyAccessor = require('../../secret-key-accessor');
 
-const {expect} = chai;
+const { expect } = chai;
 
-const COUNTRY = 'us'
-const SECRET_KEY = 'password'
-
-const convertKeys = (o) => {
-  const dict = {
-    profileKey: 'profile_key',
-    rangeKey: 'range_key',
-  }
-  return Object.keys(o).reduce((accum, key) => {
-    return {
-      ...accum,
-      [dict[key] || key]: o[key]
-    }
-  }, {})
-};
+const COUNTRY = 'us';
+const SECRET_KEY = 'password';
+const POPAPI_URL = `https://${COUNTRY}.api.incountry.io`;
 
 const TEST_RECORDS = [
   {"country": COUNTRY, "key": uuid(), version: 0},
@@ -67,7 +55,7 @@ describe('Storage', function () {
   TEST_RECORDS.forEach((testCase, idx) => {
     context(`with test case ${idx}`, function () {
       it('should write a record', function (done) {
-        const scope = nock('https://us.api.incountry.io')
+        const scope = nock(POPAPI_URL)
           .post('/v2/storage/records/us')
           .reply(200);
         storage.writeAsync(testCase)
@@ -84,8 +72,8 @@ describe('Storage', function () {
       });
       it('should read a record', async function () {
         const encrypted = await storage._encryptPayload(testCase);
-        nock('https://us.api.incountry.io')
-          .get(`/v2/storage/records/us/${encrypted.key}`)
+        nock(POPAPI_URL)
+          .get(`/v2/storage/records/${COUNTRY}/${encrypted.key}`)
           .reply(200, encrypted);
         const {data} = await storage.readAsync(testCase);
         const expected = _.pick(testCase, ['key', 'body']);
@@ -93,8 +81,8 @@ describe('Storage', function () {
       })
       it('should delete a record', function (done) {
         storage._encryptPayload(testCase).then((encrypted) => {
-          const scope = nock('https://us.api.incountry.io')
-            .delete(`/v2/storage/records/us/${encrypted.key}`)
+          const scope = nock(POPAPI_URL)
+            .delete(`/v2/storage/records/${COUNTRY}/${encrypted.key}`)
             .reply(200);
           storage.deleteAsync(testCase)
           scope.on('error', done);
@@ -109,7 +97,7 @@ describe('Storage', function () {
       GET: TEST_RECORDS.map((record) => record.key),
     };
     Promise.all(TEST_RECORDS.map((testCase) => storage._encryptPayload(testCase))).then((encrypted) => {
-      const scope = nock('https://us.api.incountry.io')
+      const scope = nock(POPAPI_URL)
         .post('/v2/storage/batches/us')
         .reply(200, {GET: encrypted});
       scope.on('request', async function (req, interceptor, body) {
@@ -133,8 +121,8 @@ describe('Storage', function () {
   })
 
   it('should batch write', function (done) {
-    const scope = nock('https://us.api.incountry.io')
-      .post('/v2/storage/records/us/batchWrite')
+    const scope = nock(POPAPI_URL)
+      .post('/v2/storage/records/${COUNTRY}/batchWrite')
       .reply(200);
     storage.batchWrite('us', TEST_RECORDS);
     scope.on('request', function(req, interceptor, body) {
@@ -149,12 +137,51 @@ describe('Storage', function () {
     });
   });
 
+  it('should migrate data from old secret to new', async function () {
+    this.timeout(3000);
+
+    const encryptedRecords = await Promise.all(TEST_RECORDS.map((record) => storage._encryptPayload(record)));
+
+    const oldSecret = { secret: SECRET_KEY, version: 0 };
+    const newSecret = { secret: 'newnew', version: 1 };
+    storage.setSecretKeyAccessor(new SecretKeyAccessor(() => ({
+      secrets: [oldSecret, newSecret],
+      currentVersion: newSecret.version,
+    })));
+    
+    nock(POPAPI_URL)
+      .post(`/v2/storage/records/${COUNTRY}/find`)
+      .reply(200, () => ({
+        meta: {
+          total: encryptedRecords.length, 
+          count: encryptedRecords.length, 
+        },
+        data: encryptedRecords,
+      }));
+
+    nock(POPAPI_URL)
+      .post(`/v2/storage/records/${COUNTRY}/batchWrite`)
+      .reply(200, (uri, body) => {
+        expect(body.length).to.equal(encryptedRecords.length);
+        body.forEach((rec, index) => {
+          expect(_.omit(rec, ['body', 'version'])).to.deep.equal(_.omit(encryptedRecords[index], ['body', 'version']));
+          expect(rec.body).to.not.equal(encryptedRecords[index].body);
+          expect(rec.version).to.not.equal(encryptedRecords[index].version);
+        });
+      });
+
+    const resp = await storage.migrate(COUNTRY, TEST_RECORDS.length);
+  
+    expect(resp.totalLeft).to.equal(0);
+    expect(resp.migrated).to.equal(TEST_RECORDS.length);
+  });
+
   it('should find by random key', async function () {
     const filter = {profile_key: TEST_RECORDS[4].profile_key}
     const options = {limit: 1, offset: 1}
     const encryptedRecords = await Promise.all(TEST_RECORDS.map((record) => storage._encryptPayload(record)))
-    nock('https://us.api.incountry.io')
-      .post(`/v2/storage/records/us/find`)
+    nock(POPAPI_URL)
+      .post(`/v2/storage/records/${COUNTRY}/find`)
       .reply(200, (uri, requestBody) => {
         const filterKeys = Object.keys(requestBody.filter);
         const records =  encryptedRecords.filter((rec) => {
@@ -174,8 +201,8 @@ describe('Storage', function () {
     const filter = {key3: TEST_RECORDS[4].key3}
     const options = {limit: 1, offset: 1}
     const encryptedRecords = await Promise.all(TEST_RECORDS.map((record) => storage._encryptPayload(record)))
-    nock('https://us.api.incountry.io')
-      .post(`/v2/storage/records/us/find`)
+    nock(POPAPI_URL)
+      .post(`/v2/storage/records/${COUNTRY}/find`)
       .reply(200, (uri, requestBody) => {
         const filterKeys = Object.keys(requestBody.filter);
         const records = encryptedRecords.filter((rec) => {
@@ -194,10 +221,10 @@ describe('Storage', function () {
   it('should update one by profile key', function (done) {
     const payload = {profile_key: 'updatedProfileKey'}
     storage._encryptPayload(TEST_RECORDS[4]).then((encrypted) => {
-      nock('https://us.api.incountry.io')
-        .post('/v2/storage/records/us/find')
+      nock(POPAPI_URL)
+        .post('/v2/storage/records/${COUNTRY}/find')
         .reply(200, {data: [encrypted], meta: {total: 1}});
-      const writeNock = nock('https://us.api.incountry.io')
+      const writeNock = nock(POPAPI_URL)
         .post('/v2/storage/records/us')
         .reply(200, {data: [encrypted], meta: {total: 1}});
       writeNock.on('request', (req, interceptor, body) => {
@@ -220,14 +247,14 @@ describe('Storage', function () {
   context('exceptions', function () {
     context('updateOne', function () {
       it('should reject if too many records found', function (done) {
-        nock('https://us.api.incountry.io')
-          .post('/v2/storage/records/us/find')
+        nock(POPAPI_URL)
+          .post('/v2/storage/records/${COUNTRY}/find')
           .reply(200, {data: [], meta: {total: 2}});
         storage.updateOne('us', {}, {}).then(() => done('Should reject')).catch(() => done())
       })
       it('should reject if no records found', function (done) {
-        nock('https://us.api.incountry.io')
-          .post('/v2/storage/records/us/find')
+        nock(POPAPI_URL)
+          .post('/v2/storage/records/${COUNTRY}/find')
           .reply(200, {data: [], meta: {total: 0}});
         storage.updateOne('us', {}, {}).then(() => done('Should reject')).catch(() => done())
       })
@@ -235,8 +262,8 @@ describe('Storage', function () {
     context('delete', function () {
       it('should throw when invalid url', function (done) {
         const INVALID_KEY = 'invalid';
-        nock('https://us.api.incountry.io')
-          .delete(`/v2/storage/records/us/${storage.createKeyHash(INVALID_KEY)}`)
+        nock(POPAPI_URL)
+          .delete(`/v2/storage/records/${COUNTRY}/${storage.createKeyHash(INVALID_KEY)}`)
           .reply(404);
         storage.deleteAsync({country: 'us', key: INVALID_KEY}).then(() => done('should be rejected')).catch(() => done())
       })
@@ -244,8 +271,8 @@ describe('Storage', function () {
     context('read', function () {
       it('should return error when not found', function (done) {
         const INVALID_KEY = 'invalid';
-        const scope = nock('https://us.api.incountry.io')
-          .get(`/v2/storage/records/us/${storage.createKeyHash(INVALID_KEY)}`)
+        const scope = nock(POPAPI_URL)
+          .get(`/v2/storage/records/${COUNTRY}/${storage.createKeyHash(INVALID_KEY)}`)
           .reply(404);
         scope.on('error', done);
         storage.readAsync({country: 'us', key: INVALID_KEY})
@@ -254,8 +281,8 @@ describe('Storage', function () {
       })
       it('should return error when server error', function (done) {
         const INVALID_KEY = 'invalid';
-        const scope = nock('https://us.api.incountry.io')
-          .get(`/v2/storage/records/us/${storage.createKeyHash(INVALID_KEY)}`)
+        const scope = nock(POPAPI_URL)
+          .get(`/v2/storage/records/${COUNTRY}/${storage.createKeyHash(INVALID_KEY)}`)
           .reply(500);
         scope.on('error', done);
         storage.readAsync({country: 'us', key: INVALID_KEY})
