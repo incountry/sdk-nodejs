@@ -4,48 +4,92 @@ const storageCommon = require('./common');
 const createStorage = storageCommon.CreateStorage;
 let storage;
 
-
-let testBody;
-let countryCode;
-let keyValue;
-
 describe('Read data from Storage', () => {
   before(async () => {
     storage = createStorage(false);
-
-    countryCode = 'US';
-    keyValue = 'recordKey0';
-
-    testBody = JSON.stringify({ name: 'PersonName' });
-    await storage.writeAsync({
-      country: countryCode,
-      key: keyValue,
-      body: testBody,
-    });
   });
-
 
   it('C1883 Read data', async () => {
+    const data = {
+      country: 'US',
+      key: 'recordKey101',
+      body: JSON.stringify({ name: 'PersonName' }),
+    };
+    const writeResponse = await storage.writeAsync(data);
+    expect(writeResponse.data).to.equal('OK');
+
     const readResponse = await storage.readAsync({
-      country: countryCode,
-      key: keyValue,
+      country: data.country,
+      key: data.key,
     });
 
+    console.log(readResponse);
     expect(readResponse.status).to.equal(200);
-    expect(readResponse.data.body).to.equal(testBody);
-    expect(readResponse.data.key).to.equal(keyValue);
+    expect(readResponse.data.key).to.equal(data.key);
+    expect(readResponse.data.body).to.equal(data.body);
   });
 
-
   it('C1884 Read not existing data', async () => {
-    const notExistingKey = 'NotExistingKey11';
-
-    const readResponse = await storage.readAsync({
-      country: countryCode,
-      key: notExistingKey,
-    });
+    const data = {
+      country: 'US',
+      key: 'NotExistingKey11',
+    };
+    const readResponse = await storage.readAsync(data);
 
     expect(readResponse.status).to.equal(404);
-    expect(readResponse.error).to.equal(`Could not find a record for key: ${notExistingKey}`);
+    expect(readResponse.error).to.equal(`Could not find a record for key: ${data.key}`);
+  });
+
+  it('C1922 Read data with optional keys and range', async () => {
+    const data = {
+      country: 'US',
+      key: 'recordKey102',
+      body: JSON.stringify({ name: 'PersonName' }),
+      profile_key: 'profileKey',
+      range_key: 42341,
+      key2: 'optional key value 2',
+      key3: 'optional key value 3',
+    };
+    const writeResponse = await storage.writeAsync(data);
+    expect(writeResponse.data).to.equal('OK');
+
+    const readResponse = await storage.readAsync({
+      country: data.country,
+      key: data.key,
+    });
+
+    console.log(readResponse);
+    expect(readResponse.status).to.equal(200);
+    expect(readResponse.data.body).to.equal(data.body);
+    expect(readResponse.data.key).to.equal(data.key);
+    expect(readResponse.data.key2).to.equal(data.key2);
+    expect(readResponse.data.key3).to.equal(data.key3);
+    expect(readResponse.data.profile_key).to.equal(data.profile_key);
+    expect(readResponse.data.range_key).to.equal(data.range_key);
+  });
+
+  describe('Encryption', () => {
+    before(async () => {
+      storage = createStorage(true);
+    });
+
+    it('C1919 Read encrypted data', async () => {
+      const data = {
+        country: 'US',
+        key: 'recordEncKey01',
+        body: JSON.stringify({ LastName: 'MyEncLastName' }),
+      };
+      const writeResponse = await storage.writeAsync(data);
+      expect(writeResponse.status).to.equal(201);
+
+      const readResponse = await storage.readAsync({
+        country: data.country,
+        key: data.key,
+      });
+
+      expect(readResponse.status).to.equal(200);
+      expect(readResponse.data.key).to.equal(data.key);
+      expect(readResponse.data.body).to.equal(data.body);
+    });
   });
 });
