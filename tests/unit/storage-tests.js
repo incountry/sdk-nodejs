@@ -56,9 +56,9 @@ describe('Storage', function () {
     context(`with test case ${idx}`, function () {
       it('should write a record', function (done) {
         const scope = nock(POPAPI_URL)
-          .post('/v2/storage/records/us')
+          .post(`/v2/storage/records/${COUNTRY}`)
           .reply(200);
-        storage.writeAsync(testCase)
+        storage.writeAsync(testCase);
         scope.on('request', async function(req, interceptor, body) {
           try {
             const encrypted = await storage._encryptPayload(testCase)
@@ -122,7 +122,7 @@ describe('Storage', function () {
 
   it('should batch write', function (done) {
     const scope = nock(POPAPI_URL)
-      .post('/v2/storage/records/${COUNTRY}/batchWrite')
+      .post(`/v2/storage/records/${COUNTRY}/batchWrite`)
       .reply(200);
     storage.batchWrite('us', TEST_RECORDS);
     scope.on('request', function(req, interceptor, body) {
@@ -222,10 +222,10 @@ describe('Storage', function () {
     const payload = {profile_key: 'updatedProfileKey'}
     storage._encryptPayload(TEST_RECORDS[4]).then((encrypted) => {
       nock(POPAPI_URL)
-        .post('/v2/storage/records/${COUNTRY}/find')
+        .post(`/v2/storage/records/${COUNTRY}/find`)
         .reply(200, {data: [encrypted], meta: {total: 1}});
       const writeNock = nock(POPAPI_URL)
-        .post('/v2/storage/records/us')
+        .post(`/v2/storage/records/${COUNTRY}`)
         .reply(200, {data: [encrypted], meta: {total: 1}});
       writeNock.on('request', (req, interceptor, body) => {
         const expectedPlain = {
@@ -248,13 +248,13 @@ describe('Storage', function () {
     context('updateOne', function () {
       it('should reject if too many records found', function (done) {
         nock(POPAPI_URL)
-          .post('/v2/storage/records/${COUNTRY}/find')
+          .post(`/v2/storage/records/${COUNTRY}/find`)
           .reply(200, {data: [], meta: {total: 2}});
         storage.updateOne('us', {}, {}).then(() => done('Should reject')).catch(() => done())
       })
       it('should reject if no records found', function (done) {
         nock(POPAPI_URL)
-          .post('/v2/storage/records/${COUNTRY}/find')
+          .post(`/v2/storage/records/${COUNTRY}/find`)
           .reply(200, {data: [], meta: {total: 0}});
         storage.updateOne('us', {}, {}).then(() => done('Should reject')).catch(() => done())
       })
