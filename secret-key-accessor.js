@@ -52,13 +52,13 @@ const SecretsObjectIO = t.brand(
  * - KeyObject with diffrent verions of key
  * - Promise<string> or Promise<KeyObject> for any async jobs
  *
- * @callback GetKeySecurelyCallback
+ * @callback GetSecretCallback
  * @returns {string|SecretsObject|Promise<string>|Promise<SecretsObject>|unknown}
  */
 
 class SecretKeyAccessor {
   /**
-   * @param {GetKeySecurelyCallback} getKeySecurely
+   * @param {GetSecretCallback} getSecretCallback
    */
   constructor(getSecretCallback) {
     this._getSecretCallback = getSecretCallback;
@@ -74,7 +74,7 @@ class SecretKeyAccessor {
       const item = so.secrets.find((s) => s.version === version);
       return item !== undefined
         ? item
-        : Promise.reject(new Error('Please provide secret key for this data'));
+        : Promise.reject(new Error(`Secret not found for version ${secretVersion}`));
     });
   }
 
