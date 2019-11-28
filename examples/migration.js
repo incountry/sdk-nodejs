@@ -1,7 +1,7 @@
 /* eslint no-await-in-loop: "off" */
 
-const Storage = require('../storage');
-const SecretKeyAccessor = require('../secret-key-accessor');
+const Storage = require('incountry/storage');
+const SecretKeyAccessor = require('incountry/secret-key-accessor');
 
 const COUNTRY = 'us';
 const API_KEY = 'API_KEY';
