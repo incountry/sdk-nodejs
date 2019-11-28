@@ -12,14 +12,15 @@ describe('Write data to Storage', () => {
   it('C1911 Write data', async () => {
     const data = {
       country: 'US',
-      key: 'recordKey0',
+      key: 'recordKey0111',
       body: JSON.stringify({ name: 'PersonName' }),
     };
 
     const writeResponse = await storage.writeAsync(data);
 
+    console.log(writeResponse);
     expect(writeResponse.status).to.equal(201);
-    expect(writeResponse.data).to.equal('OK');
+    expect(writeResponse.data).to.equal('OK');  
   });
 
   it('C1915 Write data with optional keys and range value', async () => {
