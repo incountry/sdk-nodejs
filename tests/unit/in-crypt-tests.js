@@ -59,4 +59,26 @@ describe('InCrypt', function () {
       });
     });
   });
+
+  it('should return current secret version', async function () {
+    const version = 12345;
+
+    const secretKeyAccessor = new SecretKeyAccessor(
+      () => new Promise(
+        (resolve) => {
+          resolve({
+            currentVersion: version,
+            secrets: [{
+              secret: 'a12344a',
+              version,
+            }],
+          });
+        },
+      ),
+    );
+
+    const incrypt = new InCrypt(secretKeyAccessor);
+    const currentVersion = await incrypt.getCurrentSecretVersion();
+    expect(currentVersion).to.equal(version);
+  });
 });
