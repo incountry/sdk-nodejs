@@ -57,7 +57,6 @@ describe('Read data from Storage', () => {
       key: data.key,
     });
 
-    console.log(readResponse);
     expect(readResponse.status).to.equal(200);
     expect(readResponse.data.body).to.equal(data.body);
     expect(readResponse.data.key).to.equal(data.key);
