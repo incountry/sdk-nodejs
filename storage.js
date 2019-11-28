@@ -7,6 +7,7 @@ const forEachAsync = require('./foreach-async');
 const CountriesCache = require('./countries-cache');
 const SecretKeyAccessor = require('./secret-key-accessor');
 const { InCrypt } = require('./in-crypt');
+const { PositiveInt } = require('./utils');
 
 /**
  * @typedef Record
@@ -263,8 +264,15 @@ class Storage {
     if (typeof country !== 'string') {
       this._logAndThrowError('Missing country');
     }
-    if (options.limit && options.limit > Storage.MAX_LIMIT) {
-      this._logAndThrowError(`Max limit is ${Storage.MAX_LIMIT}. Use offset to populate more`);
+
+    if (options.limit) {
+      if (!PositiveInt.is(options.limit)) {
+        this._logAndThrowError('Limit should be a positive integer');
+      }
+
+      if (options.limit > Storage.MAX_LIMIT) {
+        this._logAndThrowError(`Max limit is ${Storage.MAX_LIMIT}. Use offset to populate more`);
+      }
     }
 
     const countryCode = country.toLowerCase();

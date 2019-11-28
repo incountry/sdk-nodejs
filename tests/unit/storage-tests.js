@@ -1,5 +1,7 @@
 /* eslint-disable */
 const chai = require('chai');
+chai.use(require('chai-as-promised'));
+
 const nock = require('nock');
 const uuid = require('uuid/v4');
 const _ = require('lodash');
@@ -196,6 +198,12 @@ describe('Storage', function () {
       });
     const rec = await storage.find('us', filter, options)
     expect(rec.data.length).to.eql(2)
+  })
+  it('should return error when find limit option is not positive integer', async function () {
+    await expect(storage.find('us', {}, { limit: -123 })).to.be.rejectedWith(Error, 'Limit should be a positive integer');
+    await expect(storage.find('us', {}, { limit: 123.124 })).to.be.rejectedWith(Error, 'Limit should be a positive integer');
+    await expect(storage.find('us', {}, { limit: 'sdsd'})).to.be.rejectedWith(Error, 'Limit should be a positive integer');
+    await expect(storage.find( 'us', {}, { limit: 10 })).not.to.be.rejectedWith(Error, 'Limit should be a positive integer');
   })
   it('should findOne by random key', async function () {
     const filter = {key3: TEST_RECORDS[4].key3}

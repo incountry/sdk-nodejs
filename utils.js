@@ -1,3 +1,5 @@
+const t = require('io-ts');
+
 function toPromise(validation) {
   return new Promise((resolve, reject) => (
     validation._tag === 'Left'
@@ -6,6 +8,13 @@ function toPromise(validation) {
   ));
 }
 
+const PositiveInt = t.brand(
+  t.Int,
+  (n) => n >= 0,
+  'PositiveInt',
+);
+
 module.exports = {
   toPromise,
+  PositiveInt,
 };
