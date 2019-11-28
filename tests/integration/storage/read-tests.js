@@ -12,7 +12,7 @@ describe('Read data from Storage', () => {
   it('C1883 Read data', async () => {
     const data = {
       country: 'US',
-      key: 'recordKey101',
+      key: Math.random().toString(36).substr(2, 10),
       body: JSON.stringify({ name: 'PersonName' }),
     };
     const writeResponse = await storage.writeAsync(data);
@@ -23,7 +23,6 @@ describe('Read data from Storage', () => {
       key: data.key,
     });
 
-    console.log(readResponse);
     expect(readResponse.status).to.equal(200);
     expect(readResponse.data.key).to.equal(data.key);
     expect(readResponse.data.body).to.equal(data.body);
@@ -43,7 +42,7 @@ describe('Read data from Storage', () => {
   it('C1922 Read data with optional keys and range', async () => {
     const data = {
       country: 'US',
-      key: 'recordKey102',
+      key: Math.random().toString(36).substr(2, 10),
       body: JSON.stringify({ name: 'PersonName' }),
       profile_key: 'profileKey',
       range_key: 42341,
@@ -76,7 +75,7 @@ describe('Read data from Storage', () => {
     it('C1919 Read encrypted data', async () => {
       const data = {
         country: 'US',
-        key: 'recordEncKey01',
+        key: `EncKey_${Math.random().toString(36).substr(2, 5)}`,
         body: JSON.stringify({ LastName: 'MyEncLastName' }),
       };
       const writeResponse = await storage.writeAsync(data);

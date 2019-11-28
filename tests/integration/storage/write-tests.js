@@ -12,7 +12,7 @@ describe('Write data to Storage', () => {
   it('C1911 Write data', async () => {
     const data = {
       country: 'US',
-      key: 'recordKey0111',
+      key: Math.random().toString(36).substr(2, 10),
       body: JSON.stringify({ name: 'PersonName' }),
     };
 
@@ -26,7 +26,7 @@ describe('Write data to Storage', () => {
   it('C1915 Write data with optional keys and range value', async () => {
     const data = {
       country: 'US',
-      key: 'recordKey1',
+      key: Math.random().toString(36).substr(2, 10),
       body: JSON.stringify({ name: 'PersonName' }),
       profile_key: 'profileKey',
       range_key: 42341,
@@ -43,7 +43,7 @@ describe('Write data to Storage', () => {
   it('C1916 Write data with empty body', async () => {
     const data = {
       country: 'US',
-      key: 'recordKey2',
+      key: Math.random().toString(36).substr(2, 10),
       body: null,
     };
 
@@ -56,7 +56,7 @@ describe('Write data to Storage', () => {
   it('C1923 Rewrite data', async () => {
     const data = {
       country: 'US',
-      key: 'recordKey3',
+      key: Math.random().toString(36).substr(2, 10),
       body: JSON.stringify({ firstName: 'MyFirstName' }),
     };
 
@@ -80,7 +80,7 @@ describe('Write data to Storage', () => {
     it('C1918 Write encrypted data', async () => {
       const data = {
         country: 'US',
-        key: 'recordKey001',
+        key: `EncKey_${Math.random().toString(36).substr(2, 5)}`,
         body: JSON.stringify({ name: 'PersonName' }),
       };
       const writeResponse = await storage.writeAsync(data);
