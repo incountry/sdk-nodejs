@@ -6,9 +6,6 @@ language: node_js
 node_js:
   - 11
 
-install:
-  - npm install -g snyk  
-
 jobs:
   include:
     - stage: tests
@@ -22,11 +19,12 @@ jobs:
       after_script:
         - rm -f .env
 
-    - stage: build
+    - stage: install
       name: "Build"
       script:
         - npm install
+        - if [[ ($TRAVIS_BRANCH == "master") && ($TRAVIS_EVENT_TYPE == "cron") ]]; then npm install -g snyk; fi
 
 stages:
+  - name: install
   - name: tests
-  - name: build
