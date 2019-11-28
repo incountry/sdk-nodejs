@@ -115,4 +115,36 @@ describe('Update record', () => {
     expect(readResponse.data.key).to.equal(updatedData.key);
     // TODO: Add merge validation
   });
+
+  it('C19531 Update not existing record', async () => {
+    const updatedData = {
+      key: `UpdKey_${data.key}`,
+      key2: `UpdKey2_${data.key2}`,
+      key3: `UpdKey3_${data.key3}`,
+      profile_key: `UpdPrfKey_${data.profile_key}`,
+      range_key: Math.floor(Math.random() * 100) + 1,
+      body: JSON.stringify({ UpdatedName: 'UpdatedPersonName' }),
+    };
+    const updateResponse = await storage.updateOne(data.country, { key: `NotExistingKey${Math.random().toString(36).substr(2, 10)}` },
+      updatedData, { override: true });
+
+    expect(updateResponse.status).to.equal(400);
+    expect(updateResponse.data).to.equal('Error');
+  });
+
+  it('C19536 Filter return more than one records', async () => {
+    const updatedData = {
+      key: `UpdKey_${data.key}`,
+      key2: `UpdKey2_${data.key2}`,
+      key3: `UpdKey3_${data.key3}`,
+      profile_key: `UpdPrfKey_${data.profile_key}`,
+      range_key: Math.floor(Math.random() * 100) + 1,
+      body: JSON.stringify({ UpdatedName: 'UpdatedPersonName' }),
+    };
+    const updateResponse = await storage.updateOne(data.country, { key: 'recordKey0' },
+      updatedData, { override: false });
+
+    expect(updateResponse.status).to.equal(400);
+    expect(updateResponse.data).to.equal('Error');
+  });
 });
