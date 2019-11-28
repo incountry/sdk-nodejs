@@ -6,12 +6,29 @@ language: node_js
 node_js:
   - 11
 
-install:
-  - npm install
-  - if [[ ($TRAVIS_BRANCH == "master") && ($TRAVIS_EVENT_TYPE == "cron") ]]; then npm install -g snyk; fi
+jobs:
+  include:
+    - stage: tests
+      name: "Integration tests"
+      script:
+        - if [[ ($TRAVIS_BRANCH == "master") && ($TRAVIS_EVENT_TYPE == "cron") ]]; then snyk monitor --org=incountry; fi
+        - envsubst < .env.template > .env
+        - npm run test
+        - npm run integrations-storage
+        - sonar-scanner
+        
+      after_script:
+        - rm -f .env
 
-script:
-  - if [[ ($TRAVIS_BRANCH == "master") && ($TRAVIS_EVENT_TYPE == "cron") ]]; then snyk monitor --org=incountry; fi
-  - npm run test
-  - npm run integrations-storage
-  - sonar-scanner
+    - stage: build
+      name: "Build"
+      script:
+        - npm install
+        if [[ ($TRAVIS_BRANCH == "master") && ($TRAVIS_EVENT_TYPE == "cron") ]]; then npm install -g snyk; fi
+
+stages:
+  - name: tests
+  - name: build
+    if: |
+      branch IN (master, live) OR \
+      branch =~ /^RC_\d+\.\d+\.\d+$
