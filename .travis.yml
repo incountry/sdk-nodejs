@@ -20,13 +20,15 @@ jobs:
               export ENV=STG
             fi
         - echo $ENV
-        - envsubst < .env.template > .env
+        - envsubst < .env.template > .env.value
+        - envsubst < .env.value > .env
       script:
         - if [[ ($TRAVIS_BRANCH == "master") && ($TRAVIS_EVENT_TYPE == "cron") ]]; then snyk monitor --org=incountry; fi
         - npm run test
         - npm run integrations-storage
         - sonar-scanner
       after_script:
+        - rm -f .env.value
         - rm -f .env
 
     - stage: install
