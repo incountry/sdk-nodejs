@@ -18,9 +18,8 @@ describe('Write data to Storage', () => {
 
     const writeResponse = await storage.writeAsync(data);
 
-    console.log(writeResponse);
     expect(writeResponse.status).to.equal(201);
-    expect(writeResponse.data).to.equal('OK');  
+    expect(writeResponse.data).to.equal('OK');
   });
 
   it('C1915 Write data with optional keys and range value', async () => {

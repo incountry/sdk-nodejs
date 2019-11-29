@@ -66,6 +66,25 @@ describe('Read data from Storage', () => {
     expect(readResponse.data.range_key).to.equal(data.range_key);
   });
 
+  it('C1929 Read data with empty body', async () => {
+    const data = {
+      country: 'US',
+      key: Math.random().toString(36).substr(2, 10),
+      body: null,
+    };
+    const writeResponse = await storage.writeAsync(data);
+    expect(writeResponse.data).to.equal('OK');
+
+    const readResponse = await storage.readAsync({
+      country: data.country,
+      key: data.key,
+    });
+
+    expect(readResponse.status).to.equal(200);
+    expect(readResponse.data.key).to.equal(data.key);
+    expect(readResponse.data.body).to.equal(data.body);
+  });
+
   describe.skip('Encryption', () => {
     before(async () => {
       storage = createStorage(true);
