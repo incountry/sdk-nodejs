@@ -66,7 +66,7 @@ describe('Read data from Storage', () => {
     expect(readResponse.data.range_key).to.equal(data.range_key);
   });
 
-  describe('Encryption', () => {
+  describe.skip('Encryption', () => {
     before(async () => {
       storage = createStorage(true);
     });

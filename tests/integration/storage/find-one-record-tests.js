@@ -71,7 +71,7 @@ describe('Find one record', () => {
   });
 });
 
-describe('Find encrypted record', () => {
+describe.skip('Find encrypted record', () => {
   const encData = {
     country: 'us',
     key: `EncKey_${Math.random().toString(36).substr(2, 5)}`,

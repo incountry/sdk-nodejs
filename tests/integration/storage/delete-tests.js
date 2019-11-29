@@ -38,7 +38,7 @@ describe('Delete data from Storage', () => {
     expect(deleteResponse.error).to.equal(`Could not find a record for key: ${notExistingKey}`);
   });
 
-  describe('Encryption', () => {
+  describe.skip('Encryption', () => {
     before(async () => {
       storage = createStorage(true);
     });
