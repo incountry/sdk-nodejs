@@ -214,7 +214,7 @@ class Storage {
         data: decryptedData,
       };
     }
-    return response;
+    return response.data;
   }
 
   async findOne(country, filter, options = {}) {
