@@ -10,9 +10,12 @@ jobs:
   include:
     - stage: tests
       name: "Tests"
+      before_script:
+        - if [ ($TRAVIS_BRANCH == "master") ]; then echo ENV=STG; elif [ ($TRAVIS_BRANCH == "live") ] then echo ENV=PRD; else; echo ENV=QA; fi
+        - echo $ENV
+        - envsubst < .env.template > .env
       script:
         - if [[ ($TRAVIS_BRANCH == "master") && ($TRAVIS_EVENT_TYPE == "cron") ]]; then snyk monitor --org=incountry; fi
-        - envsubst < .env.template > .env
         - npm run test
         - npm run integrations-storage
         - sonar-scanner
