@@ -7,6 +7,7 @@ const forEachAsync = require('./foreach-async');
 const CountriesCache = require('./countries-cache');
 const SecretKeyAccessor = require('./secret-key-accessor');
 const { InCrypt } = require('./in-crypt');
+const { PositiveInt } = require('./utils');
 
 /**
  * @typedef Record
@@ -199,16 +200,16 @@ class Storage {
 
   /**
    * Write many records at once
-   * @param {string} countryCode 
-   * @param {Array<Record>} records 
+   * @param {string} countryCode
+   * @param {Array<Record>} records
    */
-  async batchWrite(countryCode, records) {    
+  async batchWrite(countryCode, records) {
     try {
       if (!records.length) {
-        throw new Error('You must pass non-empty array')
+        throw new Error('You must pass non-empty array');
       }
 
-      const data = await Promise.all(records.map(r => {
+      const data = await Promise.all(records.map((r) => {
         this._validate(r);
         return this._encryptionEnabled ? this._encryptPayload(r) : r;
       }));
@@ -220,7 +221,7 @@ class Storage {
         method: 'post',
         url: endpoint,
         headers: this.headers(),
-        data
+        data,
       });
 
       return response;
@@ -231,18 +232,47 @@ class Storage {
   }
 
   /**
+   * @param {string} country - Country code.
+   * @param {number} limit - Find limit
+   * @returns {Promise<{ migrated: number, totalLeft: number }>}
+   */
+  async migrate(country, limit) {
+    if (!this._encryptionEnabled) {
+      throw new Error('Migration not supported when encryption is off');
+    }
+
+    const currentSecretVersion = await this._crypto.getCurrentSecretVersion();
+    const findFilter = { version: { $not: currentSecretVersion } };
+    const findOptions = { limit };
+    const { data, meta } = await this.find(country, findFilter, findOptions);
+    await this.batchWrite(country, data);
+
+    return {
+      migrated: meta.count,
+      totalLeft: meta.total - meta.count,
+    };
+  }
+
+  /**
    * Find records matching filter.
    * @param {string} country - Country code.
    * @param {object} filter - The filter to apply.
-   * @param {object} options - The options to pass to PoP.
-   * @return {object} Matching records.
+   * @param {{ limit: number, offset: number }} options - The options to pass to PoP.
+   * @return {Promise<{ meta: { total: number, count: number }, data: Array<Record> }>} Matching records.
    */
   async find(country, filter, options = {}) {
     if (typeof country !== 'string') {
       this._logAndThrowError('Missing country');
     }
-    if (options.limit && options.limit > Storage.MAX_LIMIT) {
-      this._logAndThrowError(`Max limit is ${Storage.MAX_LIMIT}. Use offset to populate more`);
+
+    if (options.limit) {
+      if (!PositiveInt.is(options.limit)) {
+        this._logAndThrowError('Limit should be a positive integer');
+      }
+
+      if (options.limit > Storage.MAX_LIMIT) {
+        this._logAndThrowError(`Max limit is ${Storage.MAX_LIMIT}. Use offset to populate more`);
+      }
     }
 
     const countryCode = country.toLowerCase();
