@@ -11,7 +11,14 @@ jobs:
     - stage: tests
       name: "Tests"
       before_script:
-        - if [ ($TRAVIS_BRANCH == "master") ]; then echo ENV=STG; elif [ ($TRAVIS_BRANCH == "live") ] then echo ENV=PRD; else; echo ENV=QA; fi
+        - |
+            if [ ($TRAVIS_BRANCH == "master") ]; then 
+              echo ENV=STG; 
+            elif [ ($TRAVIS_BRANCH == "live") ]; then 
+              echo ENV=PRD; 
+            else; 
+              echo ENV=QA; 
+            fi
         - echo $ENV
         - envsubst < .env.template > .env
       script:
