@@ -12,10 +12,8 @@ jobs:
       name: "Tests"
       before_script:
         - |
-            if [ ($TRAVIS_BRANCH == "master") ]; then 
+            if [[ ($TRAVIS_BRANCH == "master") ]]; then 
               echo ENV=STG; 
-            elif [ ($TRAVIS_BRANCH == "live") ]; then 
-              echo ENV=PRD; 
             else; 
               echo ENV=QA; 
             fi
