@@ -27,7 +27,7 @@ describe('Delete data from Storage', () => {
   });
 
 
-  it('C1886 Delete not existing data', async () => {
+  it.skip('C1886 Delete not existing data', async () => {
     const notExistingKey = 'NotExistingKey123';
     const deleteResponse = await storage.deleteAsync({
       country: 'US',

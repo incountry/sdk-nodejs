@@ -143,13 +143,13 @@ describe('Find records', () => {
     expect(findResponse.data.meta.offset).to.equal(0);
   });
 
-  it('C19498 Records not found by key value', async () => {
+  it.skip('C19498 Records not found by key value', async () => {
     const findResponse = await storage.find('PT', { key2: 'NotExistingKey212341' }, {});
     console.log(findResponse);
     // expect(findResponse.status).to.equal(404);
   });
 
-  it('C19499 Records not found by country', async () => {
+  it.skip('C19499 Records not found by country', async () => {
     const findResponse = await storage.find('BR', {}, {});
     console.log(findResponse);
     // expect(findResponse.status).to.equal(404);
