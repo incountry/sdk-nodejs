@@ -13,11 +13,11 @@ jobs:
       before_script:
         - |
             if [[ $TRAVIS_BRANCH == "master" ]]; then 
-              echo ENV=STG
+              export ENV=QA
             elif [[ $TRAVIS_BRANCH == “live” ]]; then 
-              echo ENV=PRD; 
+              export ENV=PRD; 
             else
-              echo ENV=QA
+              export ENV=STG
             fi
         - echo $ENV
         - envsubst < .env.template > .env
