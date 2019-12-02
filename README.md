@@ -21,7 +21,9 @@ const Storage = require("incountry/storage");
 const storage = new Storage(
   {
     apiKey: "", // {string} Required to be passed in, or as environment variable INC_API_KEY
-    environmentId: "" // {string} Required to be passed in, or as environment variable INC_ENVIRONMENT_ID
+    environmentId: "", // {string} Required to be passed in, or as environment variable INC_ENVIRONMENT_ID
+    endpoint: "", // {string} Optional. Defines API URL
+    encrypt: true // {boolean} Optional. If false, encryption is not used. If omitted is set to true.
   },
   secretKeyAccessor // {SecretKeyAccessor} Used to fetch encryption secret
 );
@@ -101,7 +103,6 @@ const storage = new Storage(
   secretKeyAccessor,
   customLogger
 );
-
 ```
 
 ### Writing data to Storage
@@ -130,11 +131,11 @@ Here is how data is transformed and stored in InCountry database:
 ```javascript
 {
   key, // hashed
-  body, // encrypted
-  profile_key, // hashed
-  range_key, // plain
-  key2, // hashed
-  key3 // hashed
+    body, // encrypted
+    profile_key, // hashed
+    range_key, // plain
+    key2, // hashed
+    key3; // hashed
 }
 ```
 
