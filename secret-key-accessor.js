@@ -2,13 +2,13 @@ const t = require('io-ts');
 const { toPromise } = require('./utils');
 
 /**
- * @typedef SecretsObject
+ * @typedef SecretsData
  * @property {Array<{ secret: string, version: number }>} secrets
  * @property {number} currentVersion
  */
 
 /**
- * @param {SecretsObject} o
+ * @param {SecretsData} o
  * @return {boolean}
  */
 function hasSecretOfCurrentVersion(o) {
@@ -19,9 +19,9 @@ const DEFAULT_VERSION = 0;
 
 /**
  * @param {string} secret
- * @return {SecretsObject}
+ * @return {SecretsData}
  */
-function wrapToSecretsObject(secret) {
+function wrapToSecretsData(secret) {
   return {
     currentVersion: DEFAULT_VERSION,
     secrets: [{
@@ -31,7 +31,7 @@ function wrapToSecretsObject(secret) {
   };
 }
 
-const SecretsObjectIO = t.brand(
+const SecretsDataIO = t.brand(
   t.type({
     currentVersion: t.Int,
     secrets: t.array(
@@ -41,7 +41,7 @@ const SecretsObjectIO = t.brand(
     ),
   }),
   (so) => hasSecretOfCurrentVersion(so),
-  'SecretsObjectIO',
+  'SecretsDataIO',
 );
 
 
@@ -53,7 +53,7 @@ const SecretsObjectIO = t.brand(
  * - Promise<string> or Promise<KeyObject> for any async jobs
  *
  * @callback GetSecretCallback
- * @returns {string|SecretsObject|Promise<string>|Promise<SecretsObject>|unknown}
+ * @returns {string|SecretsData|Promise<string>|Promise<SecretsData>|unknown}
  */
 
 class SecretKeyAccessor {
@@ -79,12 +79,12 @@ class SecretKeyAccessor {
   }
 
   /**
-   * @return {Promise<SecretsObject>}
+   * @return {Promise<SecretsData>}
    */
   _getSecrets() {
     return Promise
       .resolve(this._getSecretCallback())
-      .then((v) => (typeof v === 'string' ? wrapToSecretsObject(v) : toPromise(SecretsObjectIO.decode(v))));
+      .then((v) => (typeof v === 'string' ? wrapToSecretsData(v) : toPromise(SecretsDataIO.decode(v))));
   }
 }
 
