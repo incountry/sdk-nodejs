@@ -1,7 +1,7 @@
 const { expect } = require('chai');
 const storageCommon = require('./common');
 
-const createStorage = storageCommon.CreateStorage;
+const { createStorage } = storageCommon;
 let storage;
 let data;
 
@@ -12,7 +12,6 @@ describe('Update record', () => {
     data = {
       country: 'us',
       key: Math.random().toString(36).substr(2, 10),
-      key2: Math.random().toString(36).substr(2, 10),
       key3: Math.random().toString(36).substr(2, 10),
       profile_key: Math.random().toString(36).substr(2, 10),
       range_key: Math.floor(Math.random() * 100) + 1,
@@ -50,7 +49,7 @@ describe('Update record', () => {
   it.skip('C19528 Update record with override by profile_key', async () => {
     const updatedData = {
       key: data.key,
-      key2: `UpdKey2_${data.key2}`,
+      key2: 'UpdKey2',
       key3: `UpdKey3_${data.key3}`,
       profile_key: data.profile_key,
       range_key: Math.floor(Math.random() * 100) + 1,
@@ -72,15 +71,14 @@ describe('Update record', () => {
     expect(readResponse.data.range_key).to.equal(updatedData.range_key);
   });
 
-  it('C19529 Update record with override by key2', async () => {
+  it('C19529 Update record with override by key3', async () => {
     const updatedData = {
       key: `UpdKey_${data.key}`,
-      key3: `UpdKey3_${data.key3}`,
       profile_key: `UpdPrfKey_${data.profile_key}`,
       range_key: Math.floor(Math.random() * 100) + 1,
       body: JSON.stringify({ UpdatedName: 'UpdatedPersonName' }),
     };
-    const updateResponse = await storage.updateOne(data.country, { key2: data.key2 },
+    const updateResponse = await storage.updateOne(data.country, { key3: data.key3 },
       updatedData, { override: true });
 
     expect(updateResponse.status).to.equal(201);
@@ -91,19 +89,17 @@ describe('Update record', () => {
     expect(readResponse.data.body).to.equal(updatedData.body);
     expect(readResponse.data.key).to.equal(updatedData.key);
     expect(readResponse.data.key2).to.equal(null);
-    expect(readResponse.data.key3).to.equal(updatedData.key3);
+    expect(readResponse.data.key3).to.equal(null);
     expect(readResponse.data.profile_key).to.equal(updatedData.profile_key);
     expect(readResponse.data.range_key).to.equal(updatedData.range_key);
   });
 
   it.skip('C19530 Update record without override', async () => {
     const updatedData = {
-      key2: `UpdKey2_${data.key2}`,
-      key3: `UpdKey3_${data.key3}`,
-      profile_key: `UpdPrfKey_${data.profile_key}`,
-      range_key: Math.floor(Math.random() * 100) + 1,
-      // body: JSON.stringify({ UpdatedName: 'UpdatedPersonName' }),
+      key: data.key,
+      key2: 'MergedKey2',
     };
+
     const updateResponse = await storage.updateOne(data.country, { key: data.key },
       updatedData, { override: false });
 
@@ -113,9 +109,9 @@ describe('Update record', () => {
     const readResponse = await storage.readAsync({ country: data.country, key: data.key });
 
     console.log(readResponse);
-    expect(readResponse.data.body).to.equal(updatedData.body);
-    expect(readResponse.data.key).to.equal(updatedData.key);
-    // TODO: Add merge validation
+    expect(readResponse.data.body).to.equal(data.body);
+    expect(readResponse.data.key).to.equal(data.key);
+    expect(readResponse.data.key2).to.equal(updatedData.key2);
   });
 
   it.skip('C19531 Update not existing record', async () => {

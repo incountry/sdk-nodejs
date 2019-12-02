@@ -7,7 +7,7 @@ dotenv.config();
 /**
  * @param {Boolean} encryption - Encryption value
  */
-function CreateStorage(encryption) {
+function createStorage(encryption) {
   return new Storage(
     {
       apiKey: process.env.INC_API_KEY,
@@ -20,5 +20,5 @@ function CreateStorage(encryption) {
 }
 
 module.exports = {
-  CreateStorage,
+  createStorage,
 };

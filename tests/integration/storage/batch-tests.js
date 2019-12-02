@@ -1,7 +1,7 @@
 const { expect } = require('chai');
 const storageCommon = require('./common');
 
-const createStorage = storageCommon.CreateStorage;
+const { createStorage } = storageCommon;
 let storage;
 let data;
 

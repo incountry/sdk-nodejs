@@ -1,7 +1,7 @@
 const { expect } = require('chai');
 const storageCommon = require('./common');
 
-const createStorage = storageCommon.CreateStorage;
+const { createStorage } = storageCommon;
 let storage;
 
 const dataRequest = {
@@ -23,49 +23,59 @@ describe.skip('Find one record', () => {
   it('C1914 Find one record by country', async () => {
     const findResponse = await storage.findOne(dataRequest.country, {});
 
-    expect(findResponse.status).to.equal(200);
-    expect(findResponse.data.data).to.have.lengthOf(1);
-    // expect(findResponse.data.data[0].key).to.equal(dataRequest.key);
+    expect(findResponse).to.have.all.keys('body', 'key', 'key2', 'key3', 'profile_key', 'range_key');
   });
 
   it('C1925 Find one record by key', async () => {
     const findResponse = await storage.findOne(dataRequest.country, { key: dataRequest.key });
 
-    expect(findResponse.status).to.equal(200);
-    expect(findResponse.data.data).to.have.lengthOf(1);
-    expect(findResponse.data.data[0].key).to.equal(dataRequest.key);
+    expect(findResponse.key).to.equal(dataRequest.key);
+    expect(findResponse.key2).to.equal(dataRequest.key2);
+    expect(findResponse.key3).to.equal(dataRequest.key3);
+    expect(findResponse.profile_key).to.equal(dataRequest.profile_key);
+    expect(findResponse.range_key).to.equal(dataRequest.range_key);
+    expect(findResponse.body).to.equal(dataRequest.body);
   });
 
   it('C19500 Find one record by key2', async () => {
     const findResponse = await storage.findOne(dataRequest.country, { key2: dataRequest.key2 });
 
-    expect(findResponse.status).to.equal(200);
-    expect(findResponse.data.data).to.have.lengthOf(1);
-    expect(findResponse.data.data[0].key2).to.equal(dataRequest.key2);
+    expect(findResponse.key).to.equal(dataRequest.key);
+    expect(findResponse.key2).to.equal(dataRequest.key2);
+    expect(findResponse.key3).to.equal(dataRequest.key3);
+    expect(findResponse.profile_key).to.equal(dataRequest.profile_key);
+    expect(findResponse.range_key).to.equal(dataRequest.range_key);
+    expect(findResponse.body).to.equal(dataRequest.body);
   });
 
   it('C19501 Find one record by key3', async () => {
     const findResponse = await storage.findOne(dataRequest.country, { key3: dataRequest.key3 });
 
-    expect(findResponse.status).to.equal(200);
-    expect(findResponse.data.data).to.have.lengthOf(1);
-    expect(findResponse.data.data[0].key3).to.equal(dataRequest.key3);
+    expect(findResponse.key).to.equal(dataRequest.key);
+    expect(findResponse.key2).to.equal(dataRequest.key2);
+    expect(findResponse.key3).to.equal(dataRequest.key3);
+    expect(findResponse.profile_key).to.equal(dataRequest.profile_key);
+    expect(findResponse.range_key).to.equal(dataRequest.range_key);
+    expect(findResponse.body).to.equal(dataRequest.body);
   });
 
   it('C19502 Find one record by profile_key', async () => {
     const findResponse = await storage.findOne(dataRequest.country, { profile_key: dataRequest.profile_key });
 
-    expect(findResponse.status).to.equal(200);
-    expect(findResponse.data.data).to.have.lengthOf(1);
-    expect(findResponse.data.data[0].profile_key).to.equal(dataRequest.profile_key);
+    expect(findResponse.key).to.equal(dataRequest.key);
+    expect(findResponse.key2).to.equal(dataRequest.key2);
+    expect(findResponse.key3).to.equal(dataRequest.key3);
+    expect(findResponse.profile_key).to.equal(dataRequest.profile_key);
+    expect(findResponse.range_key).to.equal(dataRequest.range_key);
+    expect(findResponse.body).to.equal(dataRequest.body);
   });
 
-  it('C19503 Record not found by key value', async () => {
+  it.skip('C19503 Record not found by key value', async () => {
     const findResponse = await storage.findOne(dataRequest.country, { key: 'NotExistingKey987' });
     expect(findResponse.status).to.equal(404);
   });
 
-  it('C19504 Record not found by country', async () => {
+  it.skip('C19504 Record not found by country', async () => {
     const findResponse = await storage.findOne('BR', {});
     expect(findResponse.status).to.equal(404);
   });
