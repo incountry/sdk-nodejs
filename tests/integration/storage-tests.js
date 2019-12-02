@@ -30,8 +30,6 @@ describe('Storage', () => {
           body: testBody,
         });
 
-        // console.log(writeResponse);
-        // expect(writeResponse).to.exist;
         expect(writeResponse.status).to.equal(201);
       });
 
@@ -41,9 +39,7 @@ describe('Storage', () => {
           key: 'record0',
         });
 
-        // expect(readResponse).to.exist;
         expect(readResponse.status).to.equal(200);
-        // expect(readResponse.data).to.exist;
         expect(readResponse.data.body).to.equal(testBody);
       });
 
@@ -53,7 +49,6 @@ describe('Storage', () => {
           key: 'record0',
         });
 
-        // expect(deleteResponse).to.exist;
         expect(deleteResponse.status).to.equal(200);
       });
 
@@ -74,9 +69,7 @@ describe('Storage', () => {
           ],
         });
 
-        // expect(batchResponse.data).to.exist;
         expect(batchResponse.status).to.equal(201);
-        // expect(batchResponse.data.GET).to.exist;
 
         const results = batchResponse.data.GET;
         expect(results).to.have.lengthOf(6);
