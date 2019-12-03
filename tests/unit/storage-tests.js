@@ -50,6 +50,7 @@ describe('Storage', function () {
     storage = new Storage({
         apiKey: 'string',
         environmentId: 'string',
+        endpoint: POPAPI_URL,
       },
       new SecretKeyAccessor(() => SECRET_KEY)
     )
