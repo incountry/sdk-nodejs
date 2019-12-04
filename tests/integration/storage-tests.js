@@ -3,8 +3,7 @@ const { expect } = require('chai');
 const Storage = require('../../storage');
 const SecretKeyAccessor = require('../../secret-key-accessor');
 
-
-describe('Storage', function () {
+describe.skip('Storage', function () {
   context('with invalid constructor options', function () {
 
   });

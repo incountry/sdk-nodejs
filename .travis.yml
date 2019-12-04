@@ -25,7 +25,7 @@ jobs:
       script:
         - if [[ ($TRAVIS_BRANCH == "master") && ($TRAVIS_EVENT_TYPE == "cron") ]]; then snyk monitor --org=incountry; fi
         - npm run test
-        - npm run integrations-storage
+        - npm run integrations-ci
         - sonar-scanner
       after_script:
         - rm -f .env.value

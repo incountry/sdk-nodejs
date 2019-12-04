@@ -1,6 +1,6 @@
 const dotenv = require('dotenv');
-const Storage = require('../../../storage');
-const SecretKeyAccessor = require('../../../secret-key-accessor');
+const Storage = require('../../storage');
+const SecretKeyAccessor = require('../../secret-key-accessor');
 
 dotenv.config();
 

@@ -144,14 +144,19 @@ describe('Find records', function () {
     expect(findResponse.data.meta.offset).to.equal(0);
   });
 
-  it.skip('C19498 Records not found by key value', async function () {
-    const findResponse = await storage.find('PT', { key2: 'NotExistingKey212341' }, {});
-    console.log(findResponse);
-    // expect(findResponse.status).to.equal(404);
+  it('C19498 Records not found by key value', async function () {
+    const findResponse = await storage.find('US', { key2: 'NotExistingKey212341' }, {});
+
+    expect(findResponse.data.data).to.have.lengthOf(0);
+    expect(findResponse.data.meta).to.have.all.keys('count', 'limit', 'offset', 'total');
+    expect(findResponse.data.meta.count).to.equal(0);
+    expect(findResponse.data.meta.total).to.equal(0);
+    expect(findResponse.data.meta.offset).to.equal(0);
+    expect(findResponse.data.meta.limit).to.equal(100);
   });
 
   it.skip('C19499 Records not found by country', async function () {
-    const findResponse = await storage.find('BR', {}, {});
+    const findResponse = await storage.find('PT', {}, {});
     console.log(findResponse);
     // expect(findResponse.status).to.equal(404);
   });
