@@ -1,15 +1,16 @@
+/* eslint-disable prefer-arrow-callback,func-names */
 const { expect } = require('chai');
 const storageCommon = require('./common');
 
 const { createStorage } = storageCommon;
 let storage;
 
-describe('Read data from Storage', () => {
-  before(async () => {
+describe('Read data from Storage', function () {
+  before(async function () {
     storage = createStorage(false);
   });
 
-  it('C1883 Read data', async () => {
+  it('C1883 Read data', async function () {
     const data = {
       country: 'US',
       key: Math.random().toString(36).substr(2, 10),
@@ -28,7 +29,7 @@ describe('Read data from Storage', () => {
     expect(readResponse.data.body).to.equal(data.body);
   });
 
-  it('C1884 Read not existing data', async () => {
+  it('C1884 Read not existing data', async function () {
     const data = {
       country: 'US',
       key: 'NotExistingKey11',
@@ -39,7 +40,7 @@ describe('Read data from Storage', () => {
     expect(readResponse.error).to.equal(`Could not find a record for key: ${data.key}`);
   });
 
-  it('C1922 Read data with optional keys and range', async () => {
+  it('C1922 Read data with optional keys and range', async function () {
     const data = {
       country: 'US',
       key: Math.random().toString(36).substr(2, 10),
@@ -66,7 +67,7 @@ describe('Read data from Storage', () => {
     expect(readResponse.data.range_key).to.equal(data.range_key);
   });
 
-  it('C1929 Read data with empty body', async () => {
+  it('C1929 Read data with empty body', async function () {
     const data = {
       country: 'US',
       key: Math.random().toString(36).substr(2, 10),
@@ -85,12 +86,12 @@ describe('Read data from Storage', () => {
     expect(readResponse.data.body).to.equal(data.body);
   });
 
-  describe.skip('Encryption', () => {
-    before(async () => {
+  describe.skip('Encryption', function () {
+    before(async function () {
       storage = createStorage(true);
     });
 
-    it('C1919 Read encrypted data', async () => {
+    it('C1919 Read encrypted data', async function () {
       const data = {
         country: 'US',
         key: `EncKey_${Math.random().toString(36).substr(2, 5)}`,

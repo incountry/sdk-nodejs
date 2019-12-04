@@ -1,15 +1,16 @@
+/* eslint-disable prefer-arrow-callback,func-names */
 const { expect } = require('chai');
 const storageCommon = require('./common');
 
 const { createStorage } = storageCommon;
 let storage;
 
-describe('Write data to Storage', () => {
-  before(async () => {
+describe('Write data to Storage', function () {
+  before(async function () {
     storage = createStorage(false);
   });
 
-  it('C1911 Write data', async () => {
+  it('C1911 Write data', async function () {
     const data = {
       country: 'US',
       key: Math.random().toString(36).substr(2, 10),
@@ -22,7 +23,7 @@ describe('Write data to Storage', () => {
     expect(writeResponse.data).to.equal('OK');
   });
 
-  it('C1915 Write data with optional keys and range value', async () => {
+  it('C1915 Write data with optional keys and range value', async function () {
     const data = {
       country: 'US',
       key: Math.random().toString(36).substr(2, 10),
@@ -39,7 +40,7 @@ describe('Write data to Storage', () => {
     expect(writeResponse.data).to.equal('OK');
   });
 
-  it('C1916 Write data with empty body', async () => {
+  it('C1916 Write data with empty body', async function () {
     const data = {
       country: 'US',
       key: Math.random().toString(36).substr(2, 10),
@@ -52,7 +53,7 @@ describe('Write data to Storage', () => {
     expect(writeResponse.data).to.equal('OK');
   });
 
-  it('C1923 Rewrite data', async () => {
+  it('C1923 Rewrite data', async function () {
     const data = {
       country: 'US',
       key: Math.random().toString(36).substr(2, 10),
@@ -71,12 +72,12 @@ describe('Write data to Storage', () => {
     expect(writeResponse2.data).to.equal('OK');
   });
 
-  describe.skip('Encryption', () => {
-    before(async () => {
+  describe.skip('Encryption', function () {
+    before(async function () {
       storage = createStorage(true);
     });
 
-    it('C1918 Write encrypted data', async () => {
+    it('C1918 Write encrypted data', async function () {
       const data = {
         country: 'US',
         key: `EncKey_${Math.random().toString(36).substr(2, 5)}`,

@@ -1,3 +1,4 @@
+/* eslint-disable prefer-arrow-callback,func-names */
 const { expect } = require('chai');
 const storageCommon = require('./common');
 
@@ -5,8 +6,8 @@ const { createStorage } = storageCommon;
 let storage;
 let data;
 
-describe('Batch', () => {
-  before(async () => {
+describe('Batch', function () {
+  before(async function () {
     storage = createStorage(false);
 
     data = {
@@ -22,7 +23,7 @@ describe('Batch', () => {
     await storage.writeAsync(data);
   });
 
-  it('C1917 Get batches of records', async () => {
+  it('C1917 Get batches of records', async function () {
     const batchResponse = await storage.batchAsync({
       country: data.country,
       GET: [

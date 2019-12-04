@@ -1,3 +1,4 @@
+/* eslint-disable prefer-arrow-callback,func-names */
 const { expect } = require('chai');
 const storageCommon = require('./common');
 
@@ -5,8 +6,8 @@ const { createStorage } = storageCommon;
 let storage;
 let data;
 
-describe('Update record', () => {
-  beforeEach(async () => {
+describe('Update record', function () {
+  beforeEach(async function () {
     storage = createStorage(false);
 
     data = {
@@ -21,7 +22,7 @@ describe('Update record', () => {
     await storage.writeAsync(data);
   });
 
-  it('C19527 Update record with override', async () => {
+  it('C19527 Update record with override', async function () {
     const updatedData = {
       key: `UpdKey_${data.key}`,
       key2: `UpdKey2_${data.key2}`,
@@ -46,7 +47,7 @@ describe('Update record', () => {
     expect(readResponse.data.range_key).to.equal(updatedData.range_key);
   });
 
-  it.skip('C19528 Update record with override by profile_key', async () => {
+  it.skip('C19528 Update record with override by profile_key', async function () {
     const updatedData = {
       key: data.key,
       key2: 'UpdKey2',
@@ -71,7 +72,7 @@ describe('Update record', () => {
     expect(readResponse.data.range_key).to.equal(updatedData.range_key);
   });
 
-  it('C19529 Update record with override by key3', async () => {
+  it('C19529 Update record with override by key3', async function () {
     const updatedData = {
       key: `UpdKey_${data.key}`,
       profile_key: `UpdPrfKey_${data.profile_key}`,
@@ -94,7 +95,7 @@ describe('Update record', () => {
     expect(readResponse.data.range_key).to.equal(updatedData.range_key);
   });
 
-  it.skip('C19530 Update record without override', async () => {
+  it.skip('C19530 Update record without override', async function () {
     const updatedData = {
       key: data.key,
       key2: 'MergedKey2',
@@ -114,7 +115,7 @@ describe('Update record', () => {
     expect(readResponse.data.key2).to.equal(updatedData.key2);
   });
 
-  it.skip('C19531 Update not existing record', async () => {
+  it.skip('C19531 Update not existing record', async function () {
     const updatedData = {
       key: `UpdKey_${data.key}`,
       key2: `UpdKey2_${data.key2}`,
@@ -130,7 +131,7 @@ describe('Update record', () => {
     expect(updateResponse.data).to.equal('Error');
   });
 
-  it.skip('C19536 Filter return more than one records', async () => {
+  it.skip('C19536 Filter return more than one records', async function () {
     const updatedData = {
       key: `UpdKey_${data.key}`,
       key2: `UpdKey2_${data.key2}`,

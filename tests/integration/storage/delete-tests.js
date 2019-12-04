@@ -1,15 +1,16 @@
+/* eslint-disable prefer-arrow-callback,func-names */
 const { expect } = require('chai');
 const storageCommon = require('./common');
 
 const { createStorage } = storageCommon;
 let storage;
 
-describe('Delete data from Storage', () => {
-  before(async () => {
+describe('Delete data from Storage', function () {
+  before(async function () {
     storage = createStorage(false);
   });
 
-  it('C1885 Delete data', async () => {
+  it('C1885 Delete data', async function () {
     const data = {
       country: 'US',
       key: 'recordKey201',
@@ -27,7 +28,7 @@ describe('Delete data from Storage', () => {
   });
 
 
-  it.skip('C1886 Delete not existing data', async () => {
+  it.skip('C1886 Delete not existing data', async function () {
     const notExistingKey = 'NotExistingKey123';
     const deleteResponse = await storage.deleteAsync({
       country: 'US',
@@ -38,12 +39,12 @@ describe('Delete data from Storage', () => {
     expect(deleteResponse.error).to.equal(`Could not find a record for key: ${notExistingKey}`);
   });
 
-  describe.skip('Encryption', () => {
-    before(async () => {
+  describe.skip('Encryption', function () {
+    before(async function () {
       storage = createStorage(true);
     });
 
-    it('C1920 Delete encrypted data', async () => {
+    it('C1920 Delete encrypted data', async function () {
       const data = {
         country: 'US',
         key: 'recordEncKey0101',
