@@ -101,34 +101,6 @@ describe('Storage', function () {
       })
     })
   });
-  it('should batch read', function (done) {
-    const request = {
-      country: 'us',
-      GET: TEST_RECORDS.map((record) => record.key),
-    };
-    Promise.all(TEST_RECORDS.map((testCase) => storage._encryptPayload(testCase))).then((encrypted) => {
-      const scope = nock('https://us.api.incountry.io')
-        .post('/v2/storage/batches/us')
-        .reply(200, {GET: encrypted});
-      scope.on('request', async function (req, interceptor, body) {
-        try {
-          const expected = {GET: request.GET.map((id) => storage.createKeyHash(id))}
-          expect(JSON.parse(body)).to.eql(expected)
-        } catch (e) {
-          done(e)
-        }
-      });
-      scope.on('error', done);
-      storage.batchAsync(request).then((response) => {
-        try {
-          expect(response.data).to.eql({GET: TEST_RECORDS})
-          done()
-        } catch (e) {
-          done(e)
-        }
-      })
-    })
-  })
   it('should find by random key', async function () {
     const filter = {profile_key: TEST_RECORDS[4].profile_key}
     const options = {limit: 1, offset: 1}
