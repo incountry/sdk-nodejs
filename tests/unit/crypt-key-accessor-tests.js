@@ -225,6 +225,18 @@ describe('SecretKeyAccessor', () => {
         }));
         expect(secretKeyAccessor3.getSecret()).to.be.rejected;
       });
+
+      it('should reject if "currentVersion" or "version" is not an integer', () => {
+        const secret = 'supersecret';
+
+        const secretKeyAccessor1 = new SecretKeyAccessor(() => ({
+          secrets: [
+            { version: 1, secret: secret },
+            { version: 2, secret: secret }],
+          currentVersion: 1
+        }));
+        expect(secretKeyAccessor1.getSecret(42)).to.be.rejected;
+      });
     });
   });
 });
