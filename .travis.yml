@@ -6,11 +6,37 @@ language: node_js
 node_js:
   - 11
 
-install:
-  - npm install
-  - if [[ ($TRAVIS_BRANCH == "master") && ($TRAVIS_EVENT_TYPE == "cron") ]]; then npm install -g snyk; fi
+jobs:
+  include:
+    - stage: tests
+      name: "Tests"
+      before_script:
+        - |
+            if [[ $TRAVIS_BRANCH == "master" ]]; then 
+              export ENV=QA
+            elif [[ $TRAVIS_BRANCH == “live” ]]; then 
+              export ENV=PRD; 
+            else
+              export ENV=STG
+            fi
+        - echo $ENV
+        - envsubst < .env.template > .env.value
+        - envsubst < .env.value > .env
+      script:
+        - if [[ ($TRAVIS_BRANCH == "master") && ($TRAVIS_EVENT_TYPE == "cron") ]]; then snyk monitor --org=incountry; fi
+        - npm run test
+        - npm run integrations-ci
+        - sonar-scanner
+      after_script:
+        - rm -f .env.value
+        - rm -f .env
 
-script:
-  - if [[ ($TRAVIS_BRANCH == "master") && ($TRAVIS_EVENT_TYPE == "cron") ]]; then snyk monitor --org=incountry; fi
-  - npm run test
-  - sonar-scanner
+    - stage: install
+      name: "Build"
+      script:
+        - npm install
+        - if [[ ($TRAVIS_BRANCH == "master") && ($TRAVIS_EVENT_TYPE == "cron") ]]; then npm install -g snyk; fi
+
+stages:
+  - name: install
+  - name: tests
