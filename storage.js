@@ -3,7 +3,6 @@ const axios = require('axios');
 const crypto = require('crypto');
 
 const defaultLogger = require('./logger');
-const forEachAsync = require('./foreach-async');
 const CountriesCache = require('./countries-cache');
 const SecretKeyAccessor = require('./secret-key-accessor');
 const { InCrypt } = require('./in-crypt');
@@ -90,67 +89,6 @@ class Storage {
   _logAndThrowError(error) {
     this._logger.write('error', error);
     throw new Error(error);
-  }
-
-  async batchAsync(batchRequest) {
-    const that = this;
-    try {
-      let encryptedRequest = null;
-      const mappings = {};
-      if (this._encryptionEnabled) {
-        const keysToSend = [];
-        await forEachAsync(batchRequest.GET, async (key, i) => {
-          const encrypted = await this.createKeyHash(key);
-          keysToSend[i] = encrypted;
-          mappings[encrypted] = key;
-        });
-
-        encryptedRequest = {
-          GET: keysToSend,
-        };
-      }
-
-      const countryCode = batchRequest.country.toLowerCase();
-      const endpoint = await this._getEndpointAsync(countryCode, `v2/storage/batches/${countryCode}`);
-      this._logger.write('debug', `POST from: ${endpoint}`);
-
-      const payloadUsed = encryptedRequest || batchRequest;
-
-      const response = await axios({
-        method: 'post',
-        url: endpoint,
-        headers: this.headers(),
-        data: payloadUsed,
-      });
-
-      this._logger.write('debug', `Raw data: ${JSON.stringify(response.data)}`);
-      if (response.data) {
-        const results = [];
-        const recordsRetrieved = response.data.GET;
-        if (recordsRetrieved) {
-          await forEachAsync(payloadUsed.GET, async (requestKey, i) => {
-            const match = recordsRetrieved.filter((record) => record.key === requestKey)[0];
-            if (match) {
-              results[i] = this._encryptionEnabled ? await that._decryptPayload(match) : match;
-            } else {
-              results[i] = {
-                body: mappings[requestKey],
-                error: 'Record not found',
-              };
-            }
-          });
-          response.data.GET = results;
-
-          if (this._encryptionEnabled) {
-            this._logger.write('debug', `Decrypted data: ${JSON.stringify(response.data)}`);
-          }
-        }
-      }
-
-      return response;
-    } catch (err) {
-      this._logger.write('error', err);
-    }
   }
 
   _validate(request) {
@@ -294,7 +232,7 @@ class Storage {
         data: decryptedData,
       };
     }
-    return response;
+    return response.data;
   }
 
   async findOne(country, filter, options = {}) {
