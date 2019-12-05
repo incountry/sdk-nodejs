@@ -201,9 +201,6 @@ describe('Storage', () => {
           expectStorageConstructorNotThrowsError(_logger);
         });
       });
-
-      // TODO: check secretKeyAccessor
-      // TODO: check countriesCache
     });
 
     describe('setLogger', () => {
@@ -934,8 +931,6 @@ describe('Storage', () => {
     describe('batchAsync', () => {
       const popAPIResponse = { success: true };
 
-      // TODO: should validate request
-
       describe('POPAPI endpoint', () => {
         describe('if the endpoint was set during storage creation', () => {
           const storage = createStorageWithCustomEndpointLoggerAndKeyAccessorNoEnc();
@@ -1100,8 +1095,6 @@ describe('Storage', () => {
       });
 
       describe('in case of network error', () => {
-        // TODO: should throw an error
-
         it('should log error and return undefined', async () => {
           const REQUEST_TIMEOUT_ERROR = { code: 'ETIMEDOUT' };
           const request = {
@@ -1124,8 +1117,6 @@ describe('Storage', () => {
 
     describe('batchWrite', () => {
       const popAPIResponse = { success: true };
-
-      // TODO: should validate countryCode
 
       describe('should validate records', () => {
         let storage;
