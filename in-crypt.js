@@ -10,13 +10,18 @@ const SALT_SIZE = 64;
 const PBKDF2_ITERATIONS_COUNT = 10000;
 const AUTH_TAG_SIZE = 16;
 const VERSION = '2';
+const PT_VERSION = 'pt';
 
 class InCrypt {
-  constructor(secretKeyAccessor) {
+  constructor(secretKeyAccessor = undefined) {
     this._secretKeyAccessor = secretKeyAccessor;
   }
 
   async encryptAsync(text) {
+    if (this._secretKeyAccessor === undefined) {
+      return `${PT_VERSION}:${Buffer.from(text).toString('base64')}`;
+    }
+
     const secret = await this._secretKeyAccessor.secureAccessor();
     const iv = crypto.randomBytes(IV_SIZE);
     const salt = crypto.randomBytes(SALT_SIZE);
@@ -33,15 +38,29 @@ class InCrypt {
   async decryptAsync(s) {
     const parts = s.split(':');
     let version;
-    let encryptedHex;
+    let encrypted;
+
     if (parts.length === 2) {
-      [version, encryptedHex] = parts;
+      [version, encrypted] = parts;
     } else {
       version = '0';
-      encryptedHex = s;
+      encrypted = s;
     }
+
+    if (!this._secretKeyAccessor && version !== PT_VERSION) {
+      return this.decryptStub(encrypted);
+    }
+
     const decrypt = this[`decryptV${version}`].bind(this);
-    return decrypt(encryptedHex);
+    return decrypt(encrypted);
+  }
+
+  decryptStub(encrypted) {
+    return encrypted;
+  }
+
+  async decryptVpt(plainTextBase64) {
+    return Buffer.from(plainTextBase64, 'base64').toString('utf-8');
   }
 
   async decryptV2(encryptedBase64) {

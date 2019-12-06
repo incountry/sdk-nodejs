@@ -28,8 +28,9 @@ class Storage {
     this._endpoint = options.endpoint;
 
     if (options.encrypt !== false) {
-      this._encryptionEnabled = true;
       this._crypto = new InCrypt(secretKeyAccessor);
+    } else {
+      this._crypto = new InCrypt();
     }
 
     this._countriesCache = countriesCache || new CountriesCache();
@@ -97,10 +98,9 @@ class Storage {
       const endpoint = await this._getEndpointAsync(countrycode, `v2/storage/records/${countrycode}`);
 
       this._logger.write('debug', `POST to: ${endpoint}`);
-      if (this._encryptionEnabled) {
-        this._logger.write('debug', 'Encrypting...');
-        data = await this._encryptPayload(data);
-      }
+      this._logger.write('debug', 'Encrypting...');
+
+      data = await this._encryptPayload(data);
 
       this._logger.write('debug', `Raw data: ${JSON.stringify(data)}`);
 
@@ -136,7 +136,7 @@ class Storage {
     const countryCode = country.toLowerCase();
     const endpoint = await this._getEndpointAsync(countryCode, `v2/storage/records/${countryCode}/find`);
     const data = {
-      filter: this._encryptionEnabled ? this._hashKeys(filter) : filter,
+      filter: this._hashKeys(filter),
       options,
     };
     const response = await axios({
@@ -145,7 +145,7 @@ class Storage {
       headers: this.headers(),
       data,
     });
-    if (response.data && this._encryptionEnabled) {
+    if (response.data) {
       const decryptedData = await Promise.all(response.data.data.map((item) => this._decryptPayload(item)));
       return {
         ...response.data,
@@ -168,9 +168,7 @@ class Storage {
       this._validate(request);
 
       const countryCode = request.country.toLowerCase();
-      const key = this._encryptionEnabled
-        ? await this.createKeyHash(request.key)
-        : request.key;
+      const key = await this.createKeyHash(request.key);
 
       const endpoint = await this._getEndpointAsync(countryCode, `v2/storage/records/${countryCode}/${key}`);
       this._logger.write('debug', `GET from: ${endpoint}`);
@@ -182,10 +180,10 @@ class Storage {
       });
 
       this._logger.write('debug', `Raw data: ${JSON.stringify(response.data)}`);
-      if (this._encryptionEnabled) {
-        this._logger.write('debug', 'Decrypting...');
-        response.data = await this._decryptPayload(response.data);
-      }
+      this._logger.write('debug', 'Decrypting...');
+
+      response.data = await this._decryptPayload(response.data);
+
       this._logger.write('debug', `Decrypted data: ${JSON.stringify(response.data)}`);
 
       return response;
@@ -308,10 +306,7 @@ class Storage {
     try {
       this._validate(request);
 
-      const key = this._encryptionEnabled
-        ? await this.createKeyHash(request.key)
-        : request.key;
-
+      const key = await this.createKeyHash(request.key);
       const countryCode = request.country.toLowerCase();
       const endpoint = (await this._getEndpointAsync(countryCode, `v2/storage/records/${countryCode}/${key}`));
       this._logger.write('debug', `DELETE from: ${endpoint}`);
