@@ -13,12 +13,12 @@ const VERSION = '2';
 const PT_VERSION = 'pt';
 
 class InCrypt {
-  constructor(secretKeyAccessor = undefined) {
+  constructor(secretKeyAccessor = null) {
     this._secretKeyAccessor = secretKeyAccessor;
   }
 
   async encryptAsync(text) {
-    if (this._secretKeyAccessor === undefined) {
+    if (this._secretKeyAccessor === null) {
       return `${PT_VERSION}:${Buffer.from(text).toString('base64')}`;
     }
 
