@@ -72,7 +72,7 @@ describe('Write data to Storage', function () {
     expect(writeResponse2.data).to.equal('OK');
   });
 
-  describe.skip('Encryption', function () {
+  describe('Encryption', function () {
     before(async function () {
       storage = createStorage(true);
     });
