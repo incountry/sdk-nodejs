@@ -50,6 +50,7 @@ class Storage {
     if (options.encrypt !== false) {
       this._encryptionEnabled = true;
       this._crypto = new InCrypt(secretKeyAccessor);
+      this._secretKeyAccessor = secretKeyAccessor;
     }
 
     this._countriesCache = countriesCache || new CountriesCache();
@@ -78,6 +79,7 @@ class Storage {
       throw new Error('You must pass an instance of SecretKeyAccessor');
     }
     this._crypto = new InCrypt(secretKeyAccessor);
+    this._secretKeyAccessor = secretKeyAccessor;
   }
 
   setCustomEncryption(customEncryption) {
@@ -402,7 +404,8 @@ class Storage {
 
   async _decryptPayload(originalRecord) {
     const record = { ...originalRecord };
-    const decrypted = await this._crypto.decryptAsync(record.body, record.version);
+    const { secret } = await this._secretKeyAccessor.getSecret(record.version);
+    const decrypted = await this._crypto.decryptAsync(record.body, secret);
     let body;
     try {
       body = JSON.parse(decrypted);
