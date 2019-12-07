@@ -225,6 +225,19 @@ describe('SecretKeyAccessor', () => {
         }));
         expect(secretKeyAccessor3.getSecret()).to.be.rejected;
       });
+
+      it('should reject if secret keys object does not contain requested version of secret key', () => {
+        const secret = 'supersecret';
+        const version = 42;
+
+        const secretKeyAccessor1 = new SecretKeyAccessor(() => ({
+          secrets: [
+            { version: 1, secret },
+            { version: 2, secret }],
+          currentVersion: 1,
+        }));
+        expect(secretKeyAccessor1.getSecret(version)).to.be.rejectedWith(Error, `Secret not found for version ${version}`);
+      });
     });
   });
 });
