@@ -80,6 +80,15 @@ class Storage {
     this._crypto = new InCrypt(secretKeyAccessor);
   }
 
+  setCustomEncryption(customEncryption) {
+    const example = [{
+      encrypt: () => {},
+      decrypt: () => {},
+      version: '123',
+    }]
+    this._customEncryption = customEncryption;
+  }
+
   setCountriesCache(countriesCache) {
     if (!(countriesCache instanceof CountriesCache)) {
       throw new Error('You must pass an instance of CountriesCache');

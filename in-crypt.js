@@ -11,6 +11,8 @@ const PBKDF2_ITERATIONS_COUNT = 10000;
 const AUTH_TAG_SIZE = 16;
 const VERSION = '2';
 
+const SUPPORTED_VERSIONS = ['0', '1', '2'];
+
 class InCrypt {
   /**
   * @param {import('./secret-key-accessor')} secretKeyAccessor
@@ -126,3 +128,4 @@ class InCrypt {
 }
 
 module.exports.InCrypt = InCrypt;
+module.exports.getSupportedVersions = () => SUPPORTED_VERSIONS;
