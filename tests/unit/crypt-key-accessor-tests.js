@@ -46,7 +46,7 @@ describe('SecretKeyAccessor', () => {
       const secretKeyAccessor10 = new SecretKeyAccessor(async () => ({
         secrets: [
           { version: 0, secret: secret0, isKey: false },
-          { version: 1, secret: secret1, isKey: false },
+          { version: 1, secret: secret1, isKey: true },
           { version: 2, secret: secret2, isKey: false },
         ],
         currentVersion: 0,
@@ -63,7 +63,7 @@ describe('SecretKeyAccessor', () => {
         secrets: [
           { version: 0, secret: secret0, isKey: false },
           { version: 1, secret: secret1, isKey: false },
-          { version: 2, secret: secret2, isKey: false },
+          { version: 2, secret: secret2, isKey: true },
         ],
         currentVersion: 1,
       }));
@@ -117,6 +117,37 @@ describe('SecretKeyAccessor', () => {
         const secretKeyAccessor3 = new SecretKeyAccessor(async () => ({
           secrets: [{ version: 11.11, secret, isKey: false }], currentVersion: 11.11,
         }));
+        expect(secretKeyAccessor3.getSecret()).to.be.rejected;
+      });
+
+      it('should reject if "isKey" is missing', () => {
+        /* eslint-disable no-unused-expressions */
+
+        const secret = 'supersecret';
+
+        const secretKeyAccessor1 = new SecretKeyAccessor(async () => ({
+          secrets: [{ version: 1, secret }],
+          currentVersion: 1,
+        }));
+        expect(secretKeyAccessor1.getSecret()).to.be.rejected;
+      });
+
+      it('should reject if "isKey" is not a boolean', () => {
+        /* eslint-disable no-unused-expressions */
+
+        const secret = 'supersecret';
+        const invalidCallbackResult = (isKey) => ({
+          secrets: [{ version: 1, secret, isKey }],
+          currentVersion: 1,
+        });
+
+        const secretKeyAccessor1 = new SecretKeyAccessor(async () => invalidCallbackResult(null));
+        expect(secretKeyAccessor1.getSecret()).to.be.rejected;
+
+        const secretKeyAccessor2 = new SecretKeyAccessor(async () => invalidCallbackResult(''));
+        expect(secretKeyAccessor2.getSecret()).to.be.rejected;
+
+        const secretKeyAccessor3 = new SecretKeyAccessor(async () => invalidCallbackResult(42));
         expect(secretKeyAccessor3.getSecret()).to.be.rejected;
       });
     });
