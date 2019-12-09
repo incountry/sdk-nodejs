@@ -25,19 +25,19 @@ const PREPARED_DATA_BY_VERSION = [
     encrypted: '2:MyAeMDU3wnlWiqooUM4aStpDvW7JKU0oKBQN4WI0Wyl2vSuSmTIu8TY7Z9ljYeaLfg8ti3mhIJhbLSBNu/AmvMPBZsl6CmSC1KcbZ4kATJQtmZolidyXUGBlXC52xvAnFFGnk2s=',
     version: '2',
     plain: 'InCountry',
-    secretKeyAccessor: new SecretKeyAccessor((() => new Promise((resolve) => { resolve('password'); }))),
+    secretKeyAccessor: new SecretKeyAccessor(() => new Promise((resolve) => { resolve('password'); })),
   },
   {
     encrypted: '1:8b02d29be1521e992b49a9408f2777084e9d8195e4a3392c68c70545eb559670b70ec928c8eeb2e34f118d32a23d77abdcde38446241efacb71922579d1dcbc23fca62c1f9ec5d97fbc3a9862c0a9e1bb630aaa3585eac160a65b24a96af5becef3cdc2b29',
     version: '1',
     plain: 'InCountry',
-    secretKeyAccessor: new SecretKeyAccessor((() => new Promise((resolve) => { resolve('password'); }))),
+    secretKeyAccessor: new SecretKeyAccessor(() => new Promise((resolve) => { resolve('password'); })),
   },
   {
     encrypted: '7765618db31daf5366a6fc3520010327',
     version: '0',
     plain: 'InCountry',
-    secretKeyAccessor: new SecretKeyAccessor((() => new Promise((resolve) => { resolve('password'); }))),
+    secretKeyAccessor: new SecretKeyAccessor(() => new Promise((resolve) => { resolve('password'); })),
   },
 ];
 
