@@ -88,7 +88,7 @@ describe('Storage', function () {
         const {data} = await storage.readAsync(testCase);
         const expected = _.pick(testCase, ['key', 'body']);
         expect(data).to.deep.include(expected);
-      })
+      });
       it('should delete a record', function (done) {
         storage._encryptPayload(testCase).then((encrypted) => {
           const scope = nock('https://us.api.incountry.io')
@@ -98,8 +98,8 @@ describe('Storage', function () {
           scope.on('error', done);
           scope.on('request', () => done())
         }).catch(done);
-      })
-    })
+      });
+    });
   });
   it('should find by random key', async function () {
     const filter = {profile_key: TEST_RECORDS[4].profile_key}
@@ -121,7 +121,7 @@ describe('Storage', function () {
       });
     const rec = await storage.find('us', filter, options)
     expect(rec.data.length).to.eql(2)
-  })
+  });
   it('should findOne by random key', async function () {
     const filter = {key3: TEST_RECORDS[4].key3}
     const options = {limit: 1, offset: 1}
@@ -142,7 +142,64 @@ describe('Storage', function () {
       });
     const rec = await storage.findOne('us', filter, options)
     expect(rec).to.eql(TEST_RECORDS[4])
-  })
+  });
+  it('should find an encrypted records', async function() {
+    const encryptedStorage = new Storage({
+        apiKey: 'string',
+        environmentId: 'string',
+        encrypt: true,
+      },
+      new SecretKeyAccessor(() => SECRET_KEY)
+    );
+
+    const storedData = await Promise.all(
+      TEST_RECORDS.map((record) => encryptedStorage._encryptPayload(record))
+    );
+
+    nock('https://us.api.incountry.io')
+    .post(`/v2/storage/records/us/find`)
+    .reply(200, (uri, requestBody) => {
+      return {meta: {total: storedData.length}, data: storedData};
+    });
+
+    const responseEncrypted = await encryptedStorage.find('us', {'key': 'key1'});
+
+    responseEncrypted.data.forEach((record, idx) => {
+      ['body', 'key', 'key2', 'key3', 'profile_key'].forEach((key) => {
+        if (record[key]) {
+          expect(record[key]).to.eql(TEST_RECORDS[idx][key]);
+        }
+      });
+    });
+  });
+  it('should find not encrypted records', async function() {
+    const notEncryptedStorage = new Storage({
+        apiKey: 'string',
+        environmentId: 'string',
+        encrypt: false,
+      },
+      null
+    );
+    const storedData = await Promise.all(
+      TEST_RECORDS.map((record) => notEncryptedStorage._encryptPayload(record))
+    );
+
+    nock('https://us.api.incountry.io')
+    .post(`/v2/storage/records/us/find`)
+    .reply(200, (uri, requestBody) => {
+      return {meta: {total: storedData.length}, data: storedData};
+    });
+
+    const responseNotEncrypted = await notEncryptedStorage.find('us', {'key': 'key1'});
+
+    responseNotEncrypted.data.forEach((record, idx) => {
+      ['body', 'key', 'key2', 'key3', 'profile_key'].forEach((key) => {
+        if (record[key]) {
+          expect(record[key]).to.eql(TEST_RECORDS[idx][key]);
+        }
+      });
+    });
+  });
   it('should update one by profile key', function (done) {
     const payload = {profile_key: 'updatedProfileKey'}
     storage._encryptPayload(TEST_RECORDS[4]).then((encrypted) => {
@@ -168,7 +225,7 @@ describe('Storage', function () {
       })
       storage.updateOne('us', {profileKey: TEST_RECORDS[4].profileKey}, payload)
     })
-  })
+  });
   context('exceptions', function () {
     context('updateOne', function () {
       it('should reject if too many records found', function (done) {
@@ -176,14 +233,14 @@ describe('Storage', function () {
           .post('/v2/storage/records/us/find')
           .reply(200, {data: [], meta: {total: 2}});
         storage.updateOne('us', {}, {}).then(() => done('Should reject')).catch(() => done())
-      })
+      });
       it('should reject if no records found', function (done) {
         nock('https://us.api.incountry.io')
           .post('/v2/storage/records/us/find')
           .reply(200, {data: [], meta: {total: 0}});
         storage.updateOne('us', {}, {}).then(() => done('Should reject')).catch(() => done())
-      })
-    })
+      });
+    });
     context('delete', function () {
       it('should throw when invalid url', function (done) {
         const INVALID_KEY = 'invalid';
@@ -191,8 +248,8 @@ describe('Storage', function () {
           .delete(`/v2/storage/records/us/${storage.createKeyHash(INVALID_KEY)}`)
           .reply(404);
         storage.deleteAsync({country: 'us', key: INVALID_KEY}).then(() => done('should be rejected')).catch(() => done())
-      })
-    })
+      });
+    });
     context('read', function () {
       it('should return error when not found', function (done) {
         const INVALID_KEY = 'invalid';
@@ -203,7 +260,7 @@ describe('Storage', function () {
         storage.readAsync({country: 'us', key: INVALID_KEY})
           .then((res) => res.error ? done() : done('Should return error'))
           .catch(done)
-      })
+      });
       it('should return error when server error', function (done) {
         const INVALID_KEY = 'invalid';
         const scope = nock('https://us.api.incountry.io')
@@ -213,7 +270,7 @@ describe('Storage', function () {
         storage.readAsync({country: 'us', key: INVALID_KEY})
           .then(() => done('Should return error'))
           .catch(() => done())
-      })
-    })
-  })
-})
+      });
+    });
+  });
+});
