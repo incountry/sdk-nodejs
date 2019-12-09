@@ -86,7 +86,7 @@ describe('Read data from Storage', function () {
     expect(readResponse.data.body).to.equal(data.body);
   });
 
-  describe.skip('Encryption', function () {
+  describe('Encryption', function () {
     before(async function () {
       storage = createStorage(true);
     });

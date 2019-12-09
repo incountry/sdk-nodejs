@@ -51,29 +51,6 @@ describe.skip('Storage', function () {
 
         expect(deleteResponse.status).to.equal(200);
       });
-
-      it(`should post to batches using these options: ${JSON.stringify(testCase)}`, async function () {
-        // Post 10 writes
-        for (let i = 1; i <= 4; i++) {
-          await storage.writeAsync({
-            country: 'US',
-            key: `record${i}000`,
-            body: `test data ${i}`,
-          });
-        }
-
-        const batchResponse = await storage.batchAsync({
-          country: 'US',
-          GET: [
-            'record1000', 'recordA', 'record2000', 'record3000', 'record10000', 'record111',
-          ],
-        });
-
-        expect(batchResponse.status).to.equal(201);
-
-        const results = batchResponse.data.GET;
-        expect(results).to.have.lengthOf(6);
-      });
-    });
-  });
-});
+    })
+  })
+})

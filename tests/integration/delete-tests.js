@@ -1,5 +1,7 @@
 /* eslint-disable prefer-arrow-callback,func-names */
 const { expect } = require('chai');
+const assert = require('assert');
+const { AssertionError } = require('assert');
 const storageCommon = require('./common');
 
 const { createStorage } = storageCommon;
@@ -28,18 +30,19 @@ describe('Delete data from Storage', function () {
   });
 
 
-  it.skip('C1886 Delete not existing data', async function () {
-    const notExistingKey = 'NotExistingKey123';
-    const deleteResponse = await storage.deleteAsync({
-      country: 'US',
-      key: notExistingKey,
-    });
-
-    expect(deleteResponse.status).to.equal(404);
-    expect(deleteResponse.error).to.equal(`Could not find a record for key: ${notExistingKey}`);
+  it('C1886 Delete not existing data', async function () {
+    try {
+      await storage.deleteAsync({ country: 'US', key: 'NotExistingKey123' });
+      assert.fail('expected exception not thrown');
+    } catch (e) {
+      if (e instanceof AssertionError) {
+        throw e;
+      }
+      assert.equal(e.message, 'Request failed with status code 404');
+    }
   });
 
-  describe.skip('Encryption', function () {
+  describe('Encryption', function () {
     before(async function () {
       storage = createStorage(true);
     });

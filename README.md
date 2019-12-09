@@ -251,20 +251,6 @@ const record = await storage.findOne(country, filter);
 
 If record not found, it will return `null`.
 
-### Batch read
-
-**Warning**. This method is deprecated. It is recommended to use `find` instead.
-
-It is possible to get a number of records by `key` at once.
-
-```javascript
-// Currently only GET batches are supported
-const batchResponse = await storage.batchAsync({
- "GET": [ // Array of strings mapping to keys ]})
-
-// Use batchResponse.status for status code, and batchResponse.data for payload received.
-```
-
 ### Delete records
 
 Use `deleteAsync` method in order to delete a record from InCountry storage. It is only possible using `key` field.
