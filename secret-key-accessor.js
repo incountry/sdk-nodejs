@@ -57,7 +57,6 @@ const SecretsDataIO = t.brand(
  */
 
 class SecretKeyAccessor {
-  static DEFAULT_VERSION = DEFAULT_VERSION;
   /**
    * @param {GetSecretCallback} getSecretCallback
    */
@@ -88,5 +87,7 @@ class SecretKeyAccessor {
       .then((v) => (typeof v === 'string' ? wrapToSecretsData(v) : toPromise(SecretsDataIO.decode(v))));
   }
 }
+
+SecretKeyAccessor.DEFAULT_VERSION = DEFAULT_VERSION;
 
 module.exports = SecretKeyAccessor;
