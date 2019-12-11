@@ -7,10 +7,11 @@ const sinon = require('sinon');
 const uuid = require('uuid/v4');
 const _ = require('lodash');
 const Storage = require('../../storage');
+const { StorageServerError } = require('../../errors');
 const CountriesCache = require('../../countries-cache');
 const SecretKeyAccessor = require('../../secret-key-accessor');
 
-const { expect } = chai;
+const { expect, assert } = chai;
 
 const COUNTRY = 'us';
 const SECRET_KEY = 'password';
@@ -204,6 +205,7 @@ describe('Storage', () => {
     });
 
     describe('setLogger', () => {
+      /** @type {import('../../storage')} */
       let storage;
 
       beforeEach(() => {
@@ -267,6 +269,7 @@ describe('Storage', () => {
     });
 
     describe('setSecretKeyAccessor', () => {
+      /** @type {import('../../storage')} */
       let storage;
 
       beforeEach(() => {
@@ -287,6 +290,7 @@ describe('Storage', () => {
     });
 
     describe('setCountriesCache', () => {
+      /** @type {import('../../storage')} */
       let storage;
 
       beforeEach(() => {
@@ -322,32 +326,14 @@ describe('Storage', () => {
         describe('when the request has no country field', () => {
           it('should throw an error and log it', async () => {
             const request = {};
-
-            try {
-              await storage.writeAsync(request);
-            } catch (e) {
-              expect(e).to.be.an.instanceof(Error);
-              expect(e.message).to.equal('Missing country');
-              expect(loggerSpy.calledWith('error')).to.equal(true);
-              return;
-            }
-            chai.assert.fail('Validation passed');
+            await expect(storage.writeAsync(request)).to.be.rejectedWith(Error, 'Missing country');
           });
         });
 
         describe('when the request has no key field', () => {
           it('should throw an error and log it', async () => {
             const request = { country: '123' };
-
-            try {
-              await storage.writeAsync(request);
-            } catch (e) {
-              expect(e).to.be.an.instanceof(Error);
-              expect(e.message).to.equal('Missing key');
-              expect(loggerSpy.calledWith('error')).to.equal(true);
-              return;
-            }
-            chai.assert.fail('Validation passed');
+            await expect(storage.writeAsync(request)).to.be.rejectedWith(Error, 'Missing key');
           });
         });
       });
@@ -360,14 +346,13 @@ describe('Storage', () => {
             endpoint: customStorageEndpoint,
           }, new SecretKeyAccessor(() => SECRET_KEY), logger);
 
-          it('should use the provided endpoint', (done) => {
+          it('should use the provided endpoint', async () => {
             const popAPI = nock(customStorageEndpoint)
               .post(`/v2/storage/records/${COUNTRY}`)
               .reply(200, popAPIResponse);
 
-            popAPI.on('request', () => done());
-
-            storage.writeAsync(TEST_RECORDS[0]);
+            await storage.writeAsync(TEST_RECORDS[0]);
+            assert.equal(popAPI.isDone(), true, 'Nock scope is done');
           });
         });
 
@@ -382,26 +367,24 @@ describe('Storage', () => {
             const popAPIUrl = `https://${country}.api.incountry.io`;
             const request = { country, key: uuid(), version: 0 };
 
-            nock(popAPIUrl)
+            const popAPI = nock(popAPIUrl)
               .post(`/v2/storage/records/${country}`)
               .reply(200, popAPIResponse);
 
-            const response = await storage.writeAsync(request);
-
-            expect(response.data).to.deep.equal(popAPIResponse);
+            await storage.writeAsync(request);
+            assert.equal(popAPI.isDone(), true, 'nock is done');
           });
 
           it('should use the default endpoint otherwise', async () => {
             const country = 'ae';
             const request = { country, key: uuid(), version: 0 };
 
-            nock(POPAPI_URL)
+            const popAPI = nock(POPAPI_URL)
               .post(`/v2/storage/records/${country}`)
               .reply(200, popAPIResponse);
 
-            const response = await storage.writeAsync(request);
-
-            expect(response.data).to.deep.equal(popAPIResponse);
+            await storage.writeAsync(request);
+            assert.equal(popAPI.isDone(), true, 'nock is done');
           });
         });
       });
@@ -438,19 +421,12 @@ describe('Storage', () => {
           const REQUEST_TIMEOUT_ERROR = { code: 'ETIMEDOUT' };
           const storage = createStorageWithPOPAPIEndpointLoggerAndKeyAccessor();
 
-          nock(POPAPI_URL)
+          const scope = nock(POPAPI_URL)
             .post(`/v2/storage/records/${COUNTRY}`)
             .replyWithError(REQUEST_TIMEOUT_ERROR);
 
-          try {
-            await storage.writeAsync(TEST_RECORDS[0]);
-          } catch (e) {
-            expect(e).to.be.an.instanceof(Object);
-            expect(e).to.deep.equal(REQUEST_TIMEOUT_ERROR);
-            expect(loggerSpy.calledWith('error')).to.equal(true);
-            return;
-          }
-          chai.assert.fail('Network error not handled');
+          await expect(storage.writeAsync(TEST_RECORDS[0])).to.be.rejectedWith(StorageServerError);
+          assert.equal(scope.isDone(), true, 'Nock scope is done');
         });
       });
     });
@@ -467,32 +443,14 @@ describe('Storage', () => {
         describe('when the request has no country field', () => {
           it('should throw an error and log it', async () => {
             const request = {};
-
-            try {
-              await storage.readAsync(request);
-            } catch (e) {
-              expect(e).to.be.an.instanceof(Error);
-              expect(e.message).to.equal('Missing country');
-              expect(loggerSpy.calledWith('error')).to.equal(true);
-              return;
-            }
-            chai.assert.fail('Validation passed');
+            await expect(storage.readAsync(request)).to.be.rejectedWith(Error, 'Missing country');
           });
         });
 
         describe('when the request has no key field', () => {
           it('should throw an error and log it', async () => {
             const request = { country: '123' };
-
-            try {
-              await storage.readAsync(request);
-            } catch (e) {
-              expect(e).to.be.an.instanceof(Error);
-              expect(e.message).to.equal('Missing key');
-              expect(loggerSpy.calledWith('error')).to.equal(true);
-              return;
-            }
-            chai.assert.fail('Validation passed');
+            await expect(storage.readAsync(request)).to.be.rejectedWith(Error, 'Missing key');
           });
         });
       });
@@ -501,16 +459,15 @@ describe('Storage', () => {
         describe('if the endpoint was set during storage creation', () => {
           const storage = createStorageWithCustomEndpointLoggerAndKeyAccessorNoEnc();
 
-          it('should use the provided endpoint', (done) => {
+          it('should use the provided endpoint', async () => {
             const key = 'test';
             const request = { country: COUNTRY, key };
             const popAPI = nock(customStorageEndpoint)
               .get(`/v2/storage/records/${COUNTRY}/${key}`)
               .reply(200, popAPIResponse);
 
-            popAPI.on('request', () => done());
-
-            storage.readAsync(request);
+            await storage.readAsync(request);
+            assert.equal(popAPI.isDone(), true, 'nock is done');
           });
         });
 
@@ -523,13 +480,12 @@ describe('Storage', () => {
             const key = 'test';
             const request = { country, key };
 
-            nock(popAPIUrl)
+            const popAPI = nock(popAPIUrl)
               .get(`/v2/storage/records/${country}/${key}`)
               .reply(200, popAPIResponse);
 
-            const response = await storage.readAsync(request);
-
-            expect(response.data).to.deep.equal(popAPIResponse);
+            await storage.readAsync(request);
+            assert.equal(popAPI.isDone(), true, 'nock is done');
           });
 
           it('should use the default endpoint otherwise', async () => {
@@ -537,13 +493,12 @@ describe('Storage', () => {
             const key = 'test';
             const request = { country, key };
 
-            nock(POPAPI_URL)
+            const popAPI = nock(POPAPI_URL)
               .get(`/v2/storage/records/${country}/${key}`)
               .reply(200, popAPIResponse);
 
-            const response = await storage.readAsync(request);
-
-            expect(response.data).to.deep.equal(popAPIResponse);
+            await storage.readAsync(request);
+            assert.equal(popAPI.isDone(), true, 'nock is done');
           });
         });
       });
@@ -553,15 +508,15 @@ describe('Storage', () => {
           const storage = createStorageWithPOPAPIEndpointLoggerAndKeyAccessor();
 
           it('should encrypt payload', async () => {
-            const record = TEST_RECORDS[TEST_RECORDS.length - 1];
-            const encryptedPayload = await storage._encryptPayload(record);
+            const recordData = TEST_RECORDS[TEST_RECORDS.length - 1];
+            const encryptedPayload = await storage._encryptPayload(recordData);
             nock(POPAPI_URL)
               .get(`/v2/storage/records/${COUNTRY}/${encryptedPayload.key}`)
               .reply(200, encryptedPayload);
 
-            const { data } = await storage.readAsync(_.pick(record, ['country', 'key']));
-            const expected = _.pick(record, ['key', 'body']);
-            expect(data).to.deep.include(expected);
+            const { record } = await storage.readAsync(_.pick(recordData, ['country', 'key']));
+            const expected = _.pick(recordData, ['key', 'body']);
+            expect(record).to.deep.include(expected);
           });
         });
 
@@ -569,14 +524,14 @@ describe('Storage', () => {
           const storage = createStorageWithPOPAPIEndpointLoggerAndKeyAccessorNoEnc();
 
           it('should not encrypt payload', async () => {
-            const record = TEST_RECORDS[TEST_RECORDS.length - 1];
+            const recordData = TEST_RECORDS[TEST_RECORDS.length - 1];
             nock(POPAPI_URL)
-              .get(`/v2/storage/records/${COUNTRY}/${record.key}`)
-              .reply(200, record);
+              .get(`/v2/storage/records/${COUNTRY}/${recordData.key}`)
+              .reply(200, recordData);
 
-            const { data } = await storage.readAsync(_.pick(record, ['country', 'key']));
-            const expected = _.pick(record, ['key', 'body']);
-            expect(data).to.deep.include(expected);
+            const { record } = await storage.readAsync(_.pick(recordData, ['country', 'key']));
+            const expected = _.pick(recordData, ['key', 'body']);
+            expect(record).to.deep.include(expected);
           });
         });
       });
@@ -594,32 +549,14 @@ describe('Storage', () => {
         describe('when the request has no country field', () => {
           it('should throw an error and log it', async () => {
             const request = {};
-
-            try {
-              await storage.deleteAsync(request);
-            } catch (e) {
-              expect(e).to.be.an.instanceof(Error);
-              expect(e.message).to.equal('Missing country');
-              expect(loggerSpy.calledWith('error')).to.equal(true);
-              return;
-            }
-            chai.assert.fail('Validation passed');
+            await expect(storage.deleteAsync(request)).to.be.rejectedWith(Error, 'Missing country');
           });
         });
 
         describe('when the request has no key field', () => {
           it('should throw an error and log it', async () => {
             const request = { country: '123' };
-
-            try {
-              await storage.deleteAsync(request);
-            } catch (e) {
-              expect(e).to.be.an.instanceof(Error);
-              expect(e.message).to.equal('Missing key');
-              expect(loggerSpy.calledWith('error')).to.equal(true);
-              return;
-            }
-            chai.assert.fail('Validation passed');
+            await expect(storage.deleteAsync(request)).to.be.rejectedWith(Error, 'Missing key');
           });
         });
       });
@@ -628,16 +565,15 @@ describe('Storage', () => {
         describe('if the endpoint was set during storage creation', () => {
           const storage = createStorageWithCustomEndpointLoggerAndKeyAccessorNoEnc();
 
-          it('should use the provided endpoint', (done) => {
+          it('should use the provided endpoint', async () => {
             const key = 'test';
             const request = { country: COUNTRY, key };
             const popAPI = nock(customStorageEndpoint)
               .delete(`/v2/storage/records/${COUNTRY}/${key}`)
               .reply(200, popAPIResponse);
 
-            popAPI.on('request', () => done());
-
-            storage.deleteAsync(request);
+            await storage.deleteAsync(request);
+            assert.equal(popAPI.isDone(), true, 'nock is done');
           });
         });
 
@@ -650,13 +586,12 @@ describe('Storage', () => {
             const key = 'test';
             const request = { country, key };
 
-            nock(popAPIUrl)
+            const popAPI = nock(popAPIUrl)
               .delete(`/v2/storage/records/${country}/${key}`)
               .reply(200, popAPIResponse);
 
-            const response = await storage.deleteAsync(request);
-
-            expect(response.data).to.deep.equal(popAPIResponse);
+            await storage.deleteAsync(request);
+            assert.equal(popAPI.isDone(), true, 'nock is done');
           });
 
           it('should use the default endpoint otherwise', async () => {
@@ -664,13 +599,12 @@ describe('Storage', () => {
             const key = 'test';
             const request = { country, key };
 
-            nock(POPAPI_URL)
+            const popAPI = nock(POPAPI_URL)
               .delete(`/v2/storage/records/${country}/${key}`)
               .reply(200, popAPIResponse);
 
-            const response = await storage.deleteAsync(request);
-
-            expect(response.data).to.deep.equal(popAPIResponse);
+            await storage.deleteAsync(request);
+            assert.equal(popAPI.isDone(), true, 'nock is done');
           });
         });
       });
@@ -762,14 +696,13 @@ describe('Storage', () => {
         describe('if the endpoint was set during storage creation', () => {
           const storage = createStorageWithCustomEndpointLoggerAndKeyAccessorNoEnc();
 
-          it('should use the provided endpoint', (done) => {
+          it('should use the provided endpoint', async () => {
             const popAPI = nock(customStorageEndpoint)
               .post(`/v2/storage/records/${COUNTRY}/find`)
               .reply(200, popAPIResponse);
 
-            popAPI.on('request', () => done());
-
-            storage.find(COUNTRY, {});
+            await storage.find(COUNTRY, {});
+            assert.equal(popAPI.isDone(), true, 'nock is done');
           });
         });
 
@@ -784,13 +717,12 @@ describe('Storage', () => {
               meta: {},
             }
 
-            nock(popAPIUrl)
+            const popAPI = nock(popAPIUrl)
               .post(`/v2/storage/records/${country}/find`)
               .reply(200, popAPIFindResponse);
 
-            const response = await storage.find(country, {});
-
-            expect(response).to.deep.equal(popAPIFindResponse);
+            await storage.find(country, {});
+            assert.equal(popAPI.isDone(), true, 'nock is done');
           });
 
           it('should use the default endpoint otherwise', async () => {
@@ -800,13 +732,12 @@ describe('Storage', () => {
               meta: {},
             }
 
-            nock(POPAPI_URL)
+            const popAPI = nock(POPAPI_URL)
               .post(`/v2/storage/records/${country}/find`)
               .reply(200, popAPIFindResponse);
 
-            const response = await storage.find(country, {});
-
-            expect(response).to.deep.equal(popAPIFindResponse);
+            await storage.find(country, {});
+            assert.equal(popAPI.isDone(), true, 'nock is done');
           });
         });
       });
@@ -864,8 +795,8 @@ describe('Storage', () => {
             .post(`/v2/storage/records/${COUNTRY}/find`)
             .reply(200);
 
-          const found = await storage.findOne(COUNTRY, {});
-          expect(found).to.equal(null);
+          const result = await storage.findOne(COUNTRY, {});
+          expect(result.record).to.equal(null);
         });
       });
     });
@@ -976,14 +907,13 @@ describe('Storage', () => {
             endpoint: customStorageEndpoint,
           }, new SecretKeyAccessor(() => SECRET_KEY), logger);
 
-          it('should use the provided endpoint', (done) => {
+          it('should use the provided endpoint', async () => {
             const popAPI = nock(customStorageEndpoint)
               .post(`/v2/storage/records/${COUNTRY}/batchWrite`)
               .reply(200, popAPIResponse);
 
-            popAPI.on('request', () => done());
-
-            storage.batchWrite(COUNTRY, TEST_RECORDS);
+            await storage.batchWrite(COUNTRY, TEST_RECORDS);
+            assert.equal(popAPI.isDone(), true, 'nock is done');
           });
         });
 
@@ -997,25 +927,23 @@ describe('Storage', () => {
             const country = 'hu';
             const popAPIUrl = `https://${country}.api.incountry.io`;
 
-            nock(popAPIUrl)
+            const popAPI = nock(popAPIUrl)
               .post(`/v2/storage/records/${country}/batchWrite`)
               .reply(200, popAPIResponse);
 
-            const response = await storage.batchWrite(country, TEST_RECORDS);
-
-            expect(response.data).to.deep.equal(popAPIResponse);
+            await storage.batchWrite(country, TEST_RECORDS);
+            assert.equal(popAPI.isDone(), true, 'nock is done');
           });
 
           it('should use the default endpoint otherwise', async () => {
             const country = 'ae';
 
-            nock(POPAPI_URL)
+            const popAPI = nock(POPAPI_URL)
               .post(`/v2/storage/records/${country}/batchWrite`)
               .reply(200, popAPIResponse);
 
-            const response = await storage.batchWrite(country, TEST_RECORDS);
-
-            expect(response.data).to.deep.equal(popAPIResponse);
+            await storage.batchWrite(country, TEST_RECORDS);
+            assert.equal(popAPI.isDone(), true, 'nock is done');
           });
         });
       });
@@ -1045,25 +973,19 @@ describe('Storage', () => {
           const REQUEST_TIMEOUT_ERROR = { code: 'ETIMEDOUT' };
           const storage = createStorageWithPOPAPIEndpointLoggerAndKeyAccessor();
 
-          nock(POPAPI_URL)
+          const scope = nock(POPAPI_URL)
             .post(`/v2/storage/records/${COUNTRY}/batchWrite`)
             .replyWithError(REQUEST_TIMEOUT_ERROR);
 
-          try {
-            await storage.batchWrite(COUNTRY, TEST_RECORDS);
-          } catch (e) {
-            expect(e).to.be.an.instanceof(Object);
-            expect(e).to.deep.equal(REQUEST_TIMEOUT_ERROR);
-            expect(loggerSpy.calledWith('error')).to.equal(true);
-            return;
-          }
-          chai.assert.fail('Network error not handled');
+          await expect(storage.batchWrite(COUNTRY, TEST_RECORDS)).to.be.rejectedWith(StorageServerError);
+          assert.equal(scope.isDone(), true, 'Nock scope is done');
         });
       });
     });
   });
 
   describe('should work correctly', function () {
+    /** @type {import('../../storage')} */
     let storage;
     beforeEach(function () {
       storage = new Storage({
@@ -1097,9 +1019,9 @@ describe('Storage', () => {
           nock(POPAPI_URL)
             .get(`/v2/storage/records/${COUNTRY}/${encrypted.key}`)
             .reply(200, encrypted);
-          const { data } = await storage.readAsync(testCase);
+          const { record } = await storage.readAsync(testCase);
           const expected = _.pick(testCase, ['key', 'body']);
-          expect(data).to.deep.include(expected);
+          expect(record).to.deep.include(expected);
         })
         it('should delete a record', function (done) {
           storage._encryptPayload(testCase).then((encrypted) => {
@@ -1164,10 +1086,9 @@ describe('Storage', () => {
           });
         });
 
-      const resp = await storage.migrate(COUNTRY, TEST_RECORDS.length);
-
-      expect(resp.totalLeft).to.equal(0);
-      expect(resp.migrated).to.equal(TEST_RECORDS.length);
+      const result = await storage.migrate(COUNTRY, TEST_RECORDS.length);
+      expect(result.meta.totalLeft).to.equal(0);
+      expect(result.meta.migrated).to.equal(TEST_RECORDS.length);
     });
 
     it('should find by random key', async function () {
@@ -1188,8 +1109,8 @@ describe('Storage', () => {
           })
           return { meta: { total: records.length }, data: records }
         });
-      const rec = await storage.find('us', filter, options)
-      expect(rec.data.length).to.eql(2)
+      const result = await storage.find('us', filter, options);
+      expect(result.records.length).to.eql(2);
     })
     it('should return error when find limit option is not positive integer', async function () {
       await expect(storage.find('us', {}, { limit: -123 })).to.be.rejectedWith(Error, 'Limit should be a positive integer');
@@ -1215,8 +1136,8 @@ describe('Storage', () => {
           })
           return { meta: { total: records.length }, data: records }
         });
-      const rec = await storage.findOne('us', filter, options)
-      expect(rec).to.eql(TEST_RECORDS[4])
+      const result = await storage.findOne('us', filter, options)
+      expect(result.record).to.eql(TEST_RECORDS[4])
     })
     it('should update one by profile key', function (done) {
       const payload = { profile_key: 'updatedProfileKey' }
@@ -1268,26 +1189,24 @@ describe('Storage', () => {
           storage.deleteAsync({ country: 'us', key: INVALID_KEY }).then(() => done('should be rejected')).catch(() => done())
         })
       })
-      context('read', function () {
-        it('should return error when not found', function (done) {
+      context('read', async function () {
+        it('should return error when not found', async function () {
           const INVALID_KEY = 'invalid';
           const scope = nock(POPAPI_URL)
             .get(`/v2/storage/records/${COUNTRY}/${storage.createKeyHash(INVALID_KEY)}`)
             .reply(404);
-          scope.on('error', done);
-          storage.readAsync({ country: 'us', key: INVALID_KEY })
-            .then((res) => res.error ? done() : done('Should return error'))
-            .catch(done)
+
+          await expect(storage.readAsync({ country: 'us', key: INVALID_KEY })).to.be.rejectedWith(StorageServerError);
+          assert.equal(scope.isDone(), true, 'Nock scope is done');
         })
-        it('should return error when server error', function (done) {
+        it('should return error when server error', async function () {
           const INVALID_KEY = 'invalid';
           const scope = nock(POPAPI_URL)
             .get(`/v2/storage/records/${COUNTRY}/${storage.createKeyHash(INVALID_KEY)}`)
             .reply(500);
-          scope.on('error', done);
-          storage.readAsync({ country: 'us', key: INVALID_KEY })
-            .then(() => done('Should return error'))
-            .catch(() => done())
+
+          await expect(storage.readAsync({ country: 'us', key: INVALID_KEY })).to.be.rejectedWith(StorageServerError);
+          assert.equal(scope.isDone(), true, 'Nock scope is done');
         })
       })
     })
