@@ -138,10 +138,9 @@ describe('Find records', function () {
   });
 
   it('C19498 Records not found by key value', async function () {
-    const { records, meta } = await storage.find('US', { key2: 'NotExistingKey212341' }, {});
+    const { records, meta } = await storage.find('US', { key2: Math.random().toString(36).substr(2, 10) }, {});
 
     expect(records).to.have.lengthOf(0);
-    expect(meta).to.have.all.keys('count', 'limit', 'offset', 'total');
     expect(meta.count).to.equal(0);
     expect(meta.total).to.equal(0);
     expect(meta.offset).to.equal(0);

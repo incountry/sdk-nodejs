@@ -77,7 +77,7 @@ describe('Find one record', function () {
   });
 
   it('C19503 Record not found by key value', async function () {
-    const { record } = await storage.findOne('US', { key: 'NotExistingKey987' });
+    const { record } = await storage.findOne('US', { key: Math.random().toString(36).substr(2, 10) });
     expect(record).to.equal(null);
   });
 

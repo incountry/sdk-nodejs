@@ -35,10 +35,10 @@ describe('Read data from Storage', function () {
   it('C1884 Read not existing data', async function () {
     const data = {
       country: 'US',
-      key: 'NotExistingKey11',
+      key: Math.random().toString(36).substr(2, 10),
     };
 
-    await expect(storage.deleteAsync(data))
+    await expect(storage.readAsync(data))
       .to.be.rejectedWith(Error, 'Request failed with status code 404');
   });
 
