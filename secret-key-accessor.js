@@ -32,14 +32,18 @@ function wrapToSecretsData(secret) {
   };
 }
 
+const SecretOrKey = t.brand(
+  t.type({
+    secret: t.string, version: t.Int, isKey: t.boolean,
+  }),
+  (v) => !v.isKey || (v.isKey && v.secret.length === 32),
+  'SecretOrKey',
+);
+
 const SecretsDataIO = t.brand(
   t.type({
     currentVersion: t.Int,
-    secrets: t.array(
-      t.type({
-        secret: t.string, version: t.Int, isKey: t.boolean,
-      }),
-    ),
+    secrets: t.array(SecretOrKey),
   }),
   (so) => hasSecretOfCurrentVersion(so),
   'SecretsDataIO',

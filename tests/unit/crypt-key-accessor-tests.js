@@ -40,8 +40,8 @@ describe('SecretKeyAccessor', () => {
 
     it('should access specific version of secret key', async () => {
       const secret0 = 'supersecret0';
-      const secret1 = 'supersecret1';
-      const secret2 = 'supersecret2';
+      const secret1 = 'supersecret1supersecret1supersec';
+      const secret2 = 'supersecret2supersecret2supersec';
 
       const secretKeyAccessor10 = new SecretKeyAccessor(async () => ({
         secrets: [
@@ -148,6 +148,27 @@ describe('SecretKeyAccessor', () => {
         expect(secretKeyAccessor2.getSecret()).to.be.rejected;
 
         const secretKeyAccessor3 = new SecretKeyAccessor(async () => invalidCallbackResult(42));
+        expect(secretKeyAccessor3.getSecret()).to.be.rejected;
+      });
+
+      it('should reject if custom encryption key has wrong format', () => {
+        /* eslint-disable no-unused-expressions */
+
+        const secret1 = 'supersecretsupersecretsupersecre';
+        const secret2 = secret1.substr(0, 31);
+        const secret3 = `${secret1}123`;
+        const invalidCallbackResult = (secret) => ({
+          secrets: [{ version: 1, secret, isKey: true }],
+          currentVersion: 1,
+        });
+
+        const secretKeyAccessor1 = new SecretKeyAccessor(async () => invalidCallbackResult(secret1));
+        expect(secretKeyAccessor1.getSecret()).not.to.be.rejected;
+
+        const secretKeyAccessor2 = new SecretKeyAccessor(async () => invalidCallbackResult(secret2));
+        expect(secretKeyAccessor2.getSecret()).to.be.rejected;
+
+        const secretKeyAccessor3 = new SecretKeyAccessor(async () => invalidCallbackResult(secret3));
         expect(secretKeyAccessor3.getSecret()).to.be.rejected;
       });
     });
