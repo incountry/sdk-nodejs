@@ -6,7 +6,7 @@ const defaultLogger = require('./logger');
 const forEachAsync = require('./foreach-async');
 const CountriesCache = require('./countries-cache');
 const SecretKeyAccessor = require('./secret-key-accessor');
-const { InCrypt } = require('./in-crypt');
+const { InCrypt, SUPPORTED_VERSIONS } = require('./in-crypt');
 const { PositiveInt } = require('./utils');
 
 /**
@@ -87,8 +87,32 @@ class Storage {
       encrypt: () => {},
       decrypt: () => {},
       version: '123',
+      isCurrent: true,
+    }, {
+      encrypt: () => {},
+      decrypt: () => {},
+      version: '456',
     }]
-    this._customEncryption = customEncryption;
+
+    const transformed = {};
+    let currentVersion = null;
+    customEncryption.forEach((encryption, idx) => {
+      if (SUPPORTED_VERSIONS.includes(encryption.version)) {
+        throw new Error(`Custom encryption version must not correspond build-in encryption: ${encryption.version}`);
+      }
+      if (encryption.isCurrent) {
+        if (currentVersion != null) {
+          throw new Error(`There must be at most one current version of custom encryption`)
+        }
+        currentVersion = encryption.version;
+      }
+      transformed[encryption.version] = customEncryption;
+    })
+
+    this._crypto.setCustomEncryption(transformed);
+    if (currentVersion) {
+      this._crypto.setCurrentEncryptionVersion(currentVersion)
+    }
   }
 
   setCountriesCache(countriesCache) {

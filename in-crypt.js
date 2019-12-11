@@ -21,6 +21,14 @@ class InCrypt {
     this._secretKeyAccessor = secretKeyAccessor;
   }
 
+  setCustomEncryption(customEncryption) {
+    this._customEncryption = customEncryption;
+  }
+
+  setCurrentEncryptionVersion(currentVersion) {
+    this._customEncryptionVersion = currentVersion;
+  }
+
   async getCurrentSecretVersion() {
     const { version } = await this._secretKeyAccessor.getSecret();
     return version;
@@ -57,8 +65,12 @@ class InCrypt {
       version = '0';
       encryptedHex = s;
     }
-    const decrypt = this[`decryptV${version}`].bind(this);
-    return decrypt(encryptedHex, secret);
+    if (this._customEncryption[version]) {
+      return this._customEncryption[version].decrypt(encryptedHex)
+    } else {
+      const decrypt = this[`decryptV${version}`].bind(this);
+      return decrypt(encryptedHex, secret);
+    }
   }
 
   /**
@@ -126,4 +138,4 @@ class InCrypt {
 }
 
 module.exports.InCrypt = InCrypt;
-module.exports.getSupportedVersions = () => SUPPORTED_VERSIONS;
+module.exports.SUPPORTED_VERSIONS = SUPPORTED_VERSIONS;
