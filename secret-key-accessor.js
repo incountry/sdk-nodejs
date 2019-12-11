@@ -57,6 +57,7 @@ const SecretsDataIO = t.brand(
  */
 
 class SecretKeyAccessor {
+  static DEFAULT_VERSION = DEFAULT_VERSION;
   /**
    * @param {GetSecretCallback} getSecretCallback
    */
