@@ -11,10 +11,10 @@ class StorageRecordError extends Error {
 }
 
 class StorageServerError extends Error {
-  constructor(code, response, ...params) {
+  constructor(code, responseData, ...params) {
     super(params);
     this.code = code;
-    this.response = response;
+    this.responseData = responseData;
     this.name = 'StorageServerError';
     if (Error.captureStackTrace) {
       Error.captureStackTrace(this, StorageServerError);

@@ -57,6 +57,9 @@ class Storage {
     if (options.encrypt !== false) {
       this._encryptionEnabled = true;
       this._crypto = new InCrypt(secretKeyAccessor);
+    } else {
+      this._encryptionEnabled = false;
+      this._crypto = new InCrypt();
     }
 
     this._countriesCache = countriesCache || new CountriesCache();
@@ -117,15 +120,13 @@ class Storage {
       key: record.key,
     };
 
-    if (record.body) data.body = record.body;
+    if (record.body !== undefined) data.body = record.body;
     if (record.profile_key) data.profile_key = record.profile_key;
     if (record.range_key) data.range_key = record.range_key;
     if (record.key2) data.key2 = record.key2;
     if (record.key3) data.key3 = record.key3;
 
-    if (this._encryptionEnabled) {
-      data = await this._encryptPayload(data);
-    }
+    data = await this._encryptPayload(data);
 
     this._logger.write('debug', `Raw data: ${JSON.stringify(data)}`);
 
@@ -155,7 +156,7 @@ class Storage {
       const data = await Promise.all(
         records.map((r) => {
           this._validateRecord(r);
-          return this._encryptionEnabled ? this._encryptPayload(r) : r;
+          return this._encryptPayload(r);
         }),
       );
 
@@ -226,7 +227,7 @@ class Storage {
     const countryCode = country.toLowerCase();
 
     const data = {
-      filter: this._encryptionEnabled ? this._hashKeys(filter) : filter,
+      filter: this._hashKeys(filter),
       options,
     };
 
@@ -246,13 +247,9 @@ class Storage {
 
     if (response.data) {
       result.meta = response.data.meta;
-      result.records = response.data.data;
-
-      if (this._encryptionEnabled) {
-        result.records = await Promise.all(
-          response.data.data.map((item) => this._decryptPayload(item)),
-        );
-      }
+      result.records = await Promise.all(
+        response.data.data.map((item) => this._decryptPayload(item)),
+      );
     }
 
     return result;
@@ -275,10 +272,7 @@ class Storage {
     this._validateRecord(record);
 
     const countryCode = record.country.toLowerCase();
-    const key = this._encryptionEnabled
-      ? await this.createKeyHash(record.key)
-      : record.key;
-
+    const key = await this.createKeyHash(record.key);
 
     const response = await this._apiClient(
       countryCode,
@@ -288,19 +282,11 @@ class Storage {
       },
     );
 
-    let recordData = response.data;
-    this._logger.write('debug', `Raw data: ${JSON.stringify(recordData)}`);
 
-
-    if (this._encryptionEnabled) {
-      this._logger.write('debug', 'Decrypting...');
-      recordData = await this._decryptPayload(recordData);
-    }
-
-    this._logger.write(
-      'debug',
-      `Decrypted data: ${JSON.stringify(recordData)}`,
-    );
+    this._logger.write('debug', `Raw data: ${JSON.stringify(response.data)}`);
+    this._logger.write('debug', 'Decrypting...');
+    const recordData = await this._decryptPayload(response.data);
+    this._logger.write('debug', `Decrypted data: ${JSON.stringify(recordData)}`);
 
     return { record: recordData };
   }
@@ -318,7 +304,7 @@ class Storage {
         record[field] = this.createKeyHash(record[field]);
       }
     });
-    if (record.body) {
+    if (record.body !== undefined) {
       body.payload = record.body;
     }
 
@@ -364,7 +350,7 @@ class Storage {
         record[key] = body.meta[key];
       });
     }
-    if (body.payload) {
+    if (body.payload !== undefined) {
       record.body = body.payload;
     } else {
       delete record.body;
@@ -409,10 +395,7 @@ class Storage {
   async deleteAsync(record) {
     try {
       this._validateRecord(record);
-
-      const key = this._encryptionEnabled
-        ? await this.createKeyHash(record.key)
-        : record.key;
+      const key = await this.createKeyHash(record.key);
 
       await this._apiClient(
         record.country,
@@ -471,7 +454,7 @@ class Storage {
       headers: this.headers(),
       ...params,
     }).catch((err) => {
-      const storageServerError = new StorageServerError(err.code, err.response, err.message);
+      const storageServerError = new StorageServerError(err.code, err.response ? err.response.data : {}, err.message);
       this._logger.write('error', storageServerError);
       throw storageServerError;
     });

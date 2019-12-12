@@ -142,7 +142,8 @@ describe('Update record', function () {
       .to.be.rejectedWith(Error, 'Record not found');
   });
 
-  it('C19536 Filter return more than one records', async function () {
+  it.skip('C19536 Filter return more than one records', async function () {
+    // FIXME please create those records first
     const updatedData = {
       key: `UpdKey_${data.key}`,
       key2: `UpdKey2_${data.key2}`,

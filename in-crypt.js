@@ -2,6 +2,8 @@ const crypto = require('crypto');
 const util = require('util');
 const utf8 = require('utf8');
 
+const SecretKeyAccessor = require('./secret-key-accessor');
+
 const pbkdf2 = util.promisify(crypto.pbkdf2);
 
 const IV_SIZE = 12;
@@ -10,12 +12,13 @@ const SALT_SIZE = 64;
 const PBKDF2_ITERATIONS_COUNT = 10000;
 const AUTH_TAG_SIZE = 16;
 const VERSION = '2';
+const PT_VERSION = 'pt';
 
 class InCrypt {
   /**
   * @param {import('./secret-key-accessor')} secretKeyAccessor
   */
-  constructor(secretKeyAccessor) {
+  constructor(secretKeyAccessor = null) {
     this._secretKeyAccessor = secretKeyAccessor;
   }
 
@@ -25,6 +28,13 @@ class InCrypt {
   }
 
   async encryptAsync(text) {
+    if (this._secretKeyAccessor === null) {
+      return {
+        message: `${PT_VERSION}:${Buffer.from(text).toString('base64')}`,
+        secretVersion: SecretKeyAccessor.DEFAULT_VERSION,
+      };
+    }
+
     const { secret, version } = await this._secretKeyAccessor.getSecret();
     const iv = crypto.randomBytes(IV_SIZE);
     const salt = crypto.randomBytes(SALT_SIZE);
@@ -46,19 +56,37 @@ class InCrypt {
    * @param {number} secretVersion
    */
   async decryptAsync(s, secretVersion) {
-    const { secret } = await this._secretKeyAccessor.getSecret(secretVersion);
-
     const parts = s.split(':');
     let version;
-    let encryptedHex;
+    let encrypted;
+
     if (parts.length === 2) {
-      [version, encryptedHex] = parts;
+      [version, encrypted] = parts;
     } else {
       version = '0';
-      encryptedHex = s;
+      encrypted = s;
     }
+
+    if (!this._secretKeyAccessor && version !== PT_VERSION) {
+      return this.decryptStub(encrypted);
+    }
+
+    let secret = null;
+    if (this._secretKeyAccessor) {
+      const secretData = await this._secretKeyAccessor.getSecret(secretVersion);
+      secret = secretData.secret;
+    }
+
     const decrypt = this[`decryptV${version}`].bind(this);
-    return decrypt(encryptedHex, secret);
+    return decrypt(encrypted, secret);
+  }
+
+  decryptStub(encrypted) {
+    return encrypted;
+  }
+
+  decryptVpt(plainTextBase64) {
+    return Buffer.from(plainTextBase64, 'base64').toString('utf-8');
   }
 
   /**
