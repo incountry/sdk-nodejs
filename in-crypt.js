@@ -35,10 +35,9 @@ class InCrypt {
       };
     }
 
-    const version = await this.getCurrentSecretVersion();
     const iv = crypto.randomBytes(IV_SIZE);
     const salt = crypto.randomBytes(SALT_SIZE);
-    const key = await this._getEncryptionKey(salt);
+    const { key, version } = await this._getEncryptionKey(salt);
 
     const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
     const encrypted = Buffer.concat([cipher.update(text, 'utf8'), cipher.final()]);
@@ -95,7 +94,7 @@ class InCrypt {
     const encrypted = bData.slice(SALT_SIZE + IV_SIZE, bData.length - AUTH_TAG_SIZE);
     const tag = bData.slice(-AUTH_TAG_SIZE);
 
-    const key = await this._getEncryptionKey(salt, secretVersion);
+    const { key } = await this._getEncryptionKey(salt, secretVersion);
 
     const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
     decipher.setAuthTag(tag);
@@ -115,7 +114,7 @@ class InCrypt {
     const encrypted = bData.slice(SALT_SIZE + IV_SIZE, bData.length - AUTH_TAG_SIZE);
     const tag = bData.slice(-AUTH_TAG_SIZE);
 
-    const key = await this._getEncryptionKey(salt, secretVersion);
+    const { key } = await this._getEncryptionKey(salt, secretVersion);
 
     const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
     decipher.setAuthTag(tag);
@@ -149,12 +148,12 @@ class InCrypt {
 
   async _getEncryptionKey(salt, secretVersion = undefined) {
     if (!this._secretKeyAccessor) {
-      return null;
+      return { key: null, version: null };
     }
-    const { secret, isKey } = await this._secretKeyAccessor.getSecret(secretVersion);
+    const { secret, isKey, version } = await this._secretKeyAccessor.getSecret(secretVersion);
 
     const key = isKey ? secret : (await pbkdf2(secret, salt, PBKDF2_ITERATIONS_COUNT, KEY_SIZE, 'sha512'));
-    return key;
+    return { key, version };
   }
 }
 
