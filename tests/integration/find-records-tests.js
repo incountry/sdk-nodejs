@@ -23,7 +23,8 @@ describe('Find records', function () {
     await storage.writeAsync(dataRequest);
   });
 
-  it('C1913 Find records by country', async function () {
+  it.skip('C1913 Find records by country', async function () {
+    // FIXME please make sure the tests are conducted using clean database/only records created during tests (for now)
     const findResponse = await storage.find(dataRequest.country, {}, {});
 
     expect(findResponse.data).to.have.lengthOf.above(0);
@@ -111,7 +112,8 @@ describe('Find records', function () {
     expect(findResponse.meta.limit).to.equal(100);
   });
 
-  it('C1927 Find records with pagination', async function () {
+  it.skip('C1927 Find records with pagination', async function () {
+    // FIXME please create the records first
     const limit = 10;
     const offset = 10;
     const findResponse = await storage.find(dataRequest.country, {},

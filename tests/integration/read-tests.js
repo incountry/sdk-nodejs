@@ -83,7 +83,7 @@ describe('Read data from Storage', function () {
 
     expect(readResponse.status).to.equal(200);
     expect(readResponse.data.key).to.equal(data.key);
-    expect(readResponse.data.body).to.equal(data.body);
+    expect(readResponse.data.body).to.be.not.ok;
   });
 
   describe('Encryption', function () {

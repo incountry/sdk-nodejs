@@ -88,4 +88,6 @@ class SecretKeyAccessor {
   }
 }
 
+SecretKeyAccessor.DEFAULT_VERSION = DEFAULT_VERSION;
+
 module.exports = SecretKeyAccessor;
