@@ -60,7 +60,7 @@ Note: even though SDK uses PBKDF2 to generate a cryptographically strong encrypt
 
 This enables the flexibility required to support Key Rotation policies when secrets/keys need to be changed with time. SDK will encrypt data using current secret/key while maintaining the ability to decrypt records encrypted with old keys/secrets. SDK also provides a method for data migration which allows to re-encrypt data with the newest key/secret. For details please see `migrate` method.
 
-SDK allows you to use custom encryption keys, instead of secrets. Please note that user-defined encryption key should be a string of length 32 as it's required by AES-256 cryptographic algorithm.
+SDK allows you to use custom encryption keys, instead of secrets. Please note that user-defined encryption key should be a 32-characters 'utf8' encoded string as it's required by AES-256 cryptographic algorithm.
 
 Here are some examples how you can use `SecretKeyAccessor`.
 
