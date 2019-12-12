@@ -34,7 +34,7 @@ function wrapToSecretsData(secret) {
 
 const SecretOrKey = t.brand(
   t.type({
-    secret: t.string, version: t.Int, isKey: t.boolean,
+    secret: t.string, version: t.Int, isKey: t.union([t.boolean, t.undefined]),
   }),
   (v) => !v.isKey || (v.isKey && v.secret.length === 32),
   'SecretOrKey',

@@ -120,19 +120,7 @@ describe('SecretKeyAccessor', () => {
         expect(secretKeyAccessor3.getSecret()).to.be.rejected;
       });
 
-      it('should reject if "isKey" is missing', () => {
-        /* eslint-disable no-unused-expressions */
-
-        const secret = 'supersecret';
-
-        const secretKeyAccessor1 = new SecretKeyAccessor(async () => ({
-          secrets: [{ version: 1, secret }],
-          currentVersion: 1,
-        }));
-        expect(secretKeyAccessor1.getSecret()).to.be.rejected;
-      });
-
-      it('should reject if "isKey" is not a boolean', () => {
+      it('should reject if "isKey" is present but is not a boolean', () => {
         /* eslint-disable no-unused-expressions */
 
         const secret = 'supersecret';
