@@ -10,8 +10,8 @@ const ENVIRONMENT_ID = 'ENVIRONMENT_ID';
 const secretKeyAccessor = new SecretKeyAccessor(() => ({
   currentVersion: 1,
   secrets: [
-    { secret: 'password0', version: 0, isKey: false },
-    { secret: 'password1', version: 1, isKey: false },
+    { secret: 'password0', version: 0 },
+    { secret: 'password1', version: 1 },
   ],
 }));
 

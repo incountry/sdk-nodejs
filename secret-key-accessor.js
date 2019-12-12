@@ -3,7 +3,7 @@ const { toPromise } = require('./utils');
 
 /**
  * @typedef SecretsData
- * @property {Array<{ secret: string, version: number, isKey: boolean }>} secrets
+ * @property {Array<{ secret: string, version: number, isKey?: boolean }>} secrets
  * @property {number} currentVersion
  */
 
@@ -27,7 +27,6 @@ function wrapToSecretsData(secret) {
     secrets: [{
       secret,
       version: DEFAULT_VERSION,
-      isKey: false,
     }],
   };
 }

@@ -125,7 +125,6 @@ describe('InCrypt', function () {
             secrets: [{
               secret: 'a12344a',
               version,
-              isKey: false,
             }],
           });
         },

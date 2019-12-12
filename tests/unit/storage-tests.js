@@ -780,8 +780,8 @@ describe('Storage', () => {
 
       const encryptedRecords = await Promise.all(TEST_RECORDS.map((record) => storage._encryptPayload(record)));
 
-      const oldSecret = { secret: SECRET_KEY, version: 0, isKey: false };
-      const newSecret = { secret: 'newnew', version: 1, isKey: false };
+      const oldSecret = { secret: SECRET_KEY, version: 0 };
+      const newSecret = { secret: 'newnew', version: 1 };
       storage.setSecretKeyAccessor(new SecretKeyAccessor(() => ({
         secrets: [oldSecret, newSecret],
         currentVersion: newSecret.version,

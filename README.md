@@ -44,8 +44,7 @@ Note: even though SDK uses PBKDF2 to generate a cryptographically strong encrypt
   secrets: [
     {
       secret: "abc", // {string}
-      version: 0, // {number} Should be a positive integer
-      isKey: false // {boolean} Should be true only for user-defined encryption key
+      version: 0 // {number} Should be a positive integer
     },
     {
       secret: "def", // {string}
