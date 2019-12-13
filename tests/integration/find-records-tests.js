@@ -76,7 +76,7 @@ describe('Find records', function () {
     expect(meta.limit).to.equal(100);
   });
 
-  it('C19495 Find records by profile_key', async function () {
+  it.skip('C19495 Find records by profile_key', async function () {
     const { records, meta } = await storage.find(dataRequest.country, { profile_key: dataRequest.profile_key }, {});
 
     expect(records).to.have.lengthOf(1);
@@ -149,7 +149,7 @@ describe('Find records', function () {
     expect(meta.limit).to.equal(100);
   });
 
-  it('C19499 Records not found by country', async function () {
+  it.skip('C19499 Records not found by country', async function () {
     try {
       await storage.find('SE', {}, {});
       assert.fail('expected exception not thrown');
