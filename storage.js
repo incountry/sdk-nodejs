@@ -454,7 +454,7 @@ class Storage {
       headers: this.headers(),
       ...params,
     }).catch((err) => {
-      const storageServerError = new StorageServerError(err.code, err.response ? err.response.data : {}, err.message);
+      const storageServerError = new StorageServerError(err.code, err.response ? err.response.data : {}, `${method} ${url} ${err.message}`);
       this._logger.write('error', storageServerError);
       throw storageServerError;
     });
