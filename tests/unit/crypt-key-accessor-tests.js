@@ -16,7 +16,7 @@ describe('SecretKeyAccessor', () => {
 
     it('should access secret key if keys object has passed', async () => {
       const secret = 'supersecret';
-      const secretKeyAccessor = new SecretKeyAccessor(async () => ({ secrets: [{ version: 0, secret: secret }], currentVersion: 0 }));
+      const secretKeyAccessor = new SecretKeyAccessor(async () => ({ secrets: [{ version: 0, secret }], currentVersion: 0 }));
       const secretObj = await secretKeyAccessor.getSecret();
       expect(secretObj.secret).to.equal(secret);
     });
@@ -25,30 +25,31 @@ describe('SecretKeyAccessor', () => {
       const secret0 = 'supersecret0';
       const secret1 = 'supersecret1';
 
-      const secretKeyAccessor00 = new SecretKeyAccessor(async () => ({ secrets: [{ version: 0, secret: secret0 }, ], currentVersion: 0 }));
+      const secretKeyAccessor00 = new SecretKeyAccessor(async () => ({ secrets: [{ version: 0, secret: secret0 }], currentVersion: 0 }));
       const secretObj00 = await secretKeyAccessor00.getSecret();
       expect(secretObj00.secret).to.equal(secret0);
 
-      const secretKeyAccessor10 = new SecretKeyAccessor(async () => ({ secrets: [{ version: 0, secret: secret0 }, { version: 1, secret: secret1 }, ], currentVersion: 0 }));
+      const secretKeyAccessor10 = new SecretKeyAccessor(async () => ({ secrets: [{ version: 0, secret: secret0 }, { version: 1, secret: secret1 }], currentVersion: 0 }));
       const secretObj10 = await secretKeyAccessor10.getSecret();
       expect(secretObj10.secret).to.equal(secret0);
 
-      const secretKeyAccessor20 = new SecretKeyAccessor(async () => ({ secrets: [{ version: 0, secret: secret0 }, { version: 1, secret: secret1 }, ], currentVersion: 1 }));
+      const secretKeyAccessor20 = new SecretKeyAccessor(async () => ({ secrets: [{ version: 0, secret: secret0 }, { version: 1, secret: secret1 }], currentVersion: 1 }));
       const secretObj20 = await secretKeyAccessor20.getSecret();
       expect(secretObj20.secret).to.equal(secret1);
     });
 
     it('should access specific version of secret key', async () => {
       const secret0 = 'supersecret0';
-      const secret1 = 'supersecret1';
-      const secret2 = 'supersecret2';
+      const secret1 = 'supersecret1supersecret1supersec';
+      const secret2 = 'supersecret2supersecret2supersec';
 
-      const secretKeyAccessor10 = new SecretKeyAccessor(async () => ({ 
+      const secretKeyAccessor10 = new SecretKeyAccessor(async () => ({
         secrets: [
-          { version: 0, secret: secret0 }, 
-          { version: 1, secret: secret1 }, 
-          { version: 2, secret: secret2 }, 
-        ], currentVersion: 0 
+          { version: 0, secret: secret0 },
+          { version: 1, secret: secret1, isKey: true },
+          { version: 2, secret: secret2 },
+        ],
+        currentVersion: 0,
       }));
 
       const secretObj10 = await secretKeyAccessor10.getSecret(0);
@@ -58,12 +59,13 @@ describe('SecretKeyAccessor', () => {
       const secretObj12 = await secretKeyAccessor10.getSecret(2);
       expect(secretObj12.secret).to.equal(secret2);
 
-      const secretKeyAccessor20 = new SecretKeyAccessor(async () => ({ 
+      const secretKeyAccessor20 = new SecretKeyAccessor(async () => ({
         secrets: [
-          { version: 0, secret: secret0 }, 
-          { version: 1, secret: secret1 }, 
-          { version: 2, secret: secret2 }, 
-        ], currentVersion: 1 
+          { version: 0, secret: secret0 },
+          { version: 1, secret: secret1 },
+          { version: 2, secret: secret2, isKey: true },
+        ],
+        currentVersion: 1,
       }));
 
       const secretObj20 = await secretKeyAccessor20.getSecret(0);
@@ -89,32 +91,72 @@ describe('SecretKeyAccessor', () => {
 
       it('should reject if there is no key of "currentVersion" in "keys"', () => {
         const secret = 'supersecret';
-        const secretKeyAccessor = new SecretKeyAccessor(async () => ({ secrets: [{ version: 0, secret: secret }], currentVersion: 1 }));
+        const secretKeyAccessor = new SecretKeyAccessor(async () => ({ secrets: [{ version: 0, secret }], currentVersion: 1 }));
         expect(secretKeyAccessor.getSecret()).to.be.rejected;
 
-        const secretKeyAccessor1 = new SecretKeyAccessor(async () => ({ secrets: [{ version: 1, secret: secret }], currentVersion: 12 }));
+        const secretKeyAccessor1 = new SecretKeyAccessor(async () => ({ secrets: [{ version: 1, secret }], currentVersion: 12 }));
         expect(secretKeyAccessor1.getSecret()).to.be.rejected;
       });
 
       it('should reject if "currentVersion" or "version" is not an integer', () => {
         const secret = 'supersecret';
 
-        const secretKeyAccessor1 = new SecretKeyAccessor(async () => ({  
+        const secretKeyAccessor1 = new SecretKeyAccessor(async () => ({
           secrets: [
-            { version: 1, secret: secret }, 
-            { version: '2', secret: secret }], 
-          currentVersion: 1 
+            { version: 1, secret },
+            { version: '2', secret }],
+          currentVersion: 1,
         }));
         expect(secretKeyAccessor1.getSecret()).to.be.rejected;
 
-        const secretKeyAccessor2 = new SecretKeyAccessor(async () => ({  
-          secrets: [{ version: '1', secret: secret }], currentVersion: '1' 
+        const secretKeyAccessor2 = new SecretKeyAccessor(async () => ({
+          secrets: [{ version: '1', secret }], currentVersion: '1',
         }));
         expect(secretKeyAccessor2.getSecret()).to.be.rejected;
 
         const secretKeyAccessor3 = new SecretKeyAccessor(async () => ({
-          secrets: [{ version: 11.11, secret: secret }], currentVersion: 11.11 
+          secrets: [{ version: 11.11, secret }], currentVersion: 11.11,
         }));
+        expect(secretKeyAccessor3.getSecret()).to.be.rejected;
+      });
+
+      it('should reject if "isKey" is present but is not a boolean', () => {
+        /* eslint-disable no-unused-expressions */
+
+        const secret = 'supersecret';
+        const invalidCallbackResult = (isKey) => ({
+          secrets: [{ version: 1, secret, isKey }],
+          currentVersion: 1,
+        });
+
+        const secretKeyAccessor1 = new SecretKeyAccessor(async () => invalidCallbackResult(null));
+        expect(secretKeyAccessor1.getSecret()).to.be.rejected;
+
+        const secretKeyAccessor2 = new SecretKeyAccessor(async () => invalidCallbackResult(''));
+        expect(secretKeyAccessor2.getSecret()).to.be.rejected;
+
+        const secretKeyAccessor3 = new SecretKeyAccessor(async () => invalidCallbackResult(42));
+        expect(secretKeyAccessor3.getSecret()).to.be.rejected;
+      });
+
+      it('should reject if custom encryption key has wrong format', () => {
+        /* eslint-disable no-unused-expressions */
+
+        const secret1 = 'supersecretsupersecretsupersecre';
+        const secret2 = secret1.substr(0, 31);
+        const secret3 = `${secret1}123`;
+        const invalidCallbackResult = (secret) => ({
+          secrets: [{ version: 1, secret, isKey: true }],
+          currentVersion: 1,
+        });
+
+        const secretKeyAccessor1 = new SecretKeyAccessor(async () => invalidCallbackResult(secret1));
+        expect(secretKeyAccessor1.getSecret()).not.to.be.rejected;
+
+        const secretKeyAccessor2 = new SecretKeyAccessor(async () => invalidCallbackResult(secret2));
+        expect(secretKeyAccessor2.getSecret()).to.be.rejected;
+
+        const secretKeyAccessor3 = new SecretKeyAccessor(async () => invalidCallbackResult(secret3));
         expect(secretKeyAccessor3.getSecret()).to.be.rejected;
       });
     });
@@ -129,7 +171,7 @@ describe('SecretKeyAccessor', () => {
 
     it('should access secret key if keys object has passed', async () => {
       const secret = 'supersecret';
-      const secretKeyAccessor = new SecretKeyAccessor(() => ({ secrets: [{ version: 0, secret: secret }], currentVersion: 0 }));
+      const secretKeyAccessor = new SecretKeyAccessor(() => ({ secrets: [{ version: 0, secret }], currentVersion: 0 }));
       const secretObj = await secretKeyAccessor.getSecret();
       expect(secretObj.secret).to.equal(secret);
     });
@@ -139,15 +181,15 @@ describe('SecretKeyAccessor', () => {
       const secret0 = 'supersecret0';
       const secret1 = 'supersecret1';
 
-      const secretKeyAccessor00 = new SecretKeyAccessor(() => ({ secrets: [{ version: 0, secret: secret0 }, ], currentVersion: 0 }));
+      const secretKeyAccessor00 = new SecretKeyAccessor(() => ({ secrets: [{ version: 0, secret: secret0 }], currentVersion: 0 }));
       const secretObj00 = await secretKeyAccessor00.getSecret();
       expect(secretObj00.secret).to.equal(secret0);
 
-      const secretKeyAccessor10 = new SecretKeyAccessor(() => ({ secrets: [{ version: 0, secret: secret0 }, { version: 1, secret: secret1 }, ], currentVersion: 0 }));
+      const secretKeyAccessor10 = new SecretKeyAccessor(() => ({ secrets: [{ version: 0, secret: secret0 }, { version: 1, secret: secret1 }], currentVersion: 0 }));
       const secretObj10 = await secretKeyAccessor10.getSecret();
       expect(secretObj10.secret).to.equal(secret0);
 
-      const secretKeyAccessor20 = new SecretKeyAccessor(() => ({ secrets: [{ version: 0, secret: secret0 }, { version: 1, secret: secret1 }, ], currentVersion: 1 }));
+      const secretKeyAccessor20 = new SecretKeyAccessor(() => ({ secrets: [{ version: 0, secret: secret0 }, { version: 1, secret: secret1 }], currentVersion: 1 }));
       const secretObj20 = await secretKeyAccessor20.getSecret();
       expect(secretObj20.secret).to.equal(secret1);
     });
@@ -157,12 +199,13 @@ describe('SecretKeyAccessor', () => {
       const secret1 = 'supersecret1';
       const secret2 = 'supersecret2';
 
-      const secretKeyAccessor10 = new SecretKeyAccessor(() => ({ 
+      const secretKeyAccessor10 = new SecretKeyAccessor(() => ({
         secrets: [
-          { version: 0, secret: secret0 }, 
-          { version: 1, secret: secret1 }, 
-          { version: 2, secret: secret2 }, 
-        ], currentVersion: 0 
+          { version: 0, secret: secret0 },
+          { version: 1, secret: secret1 },
+          { version: 2, secret: secret2 },
+        ],
+        currentVersion: 0,
       }));
 
       const secretObj10 = await secretKeyAccessor10.getSecret(0);
@@ -172,12 +215,13 @@ describe('SecretKeyAccessor', () => {
       const secretObj12 = await secretKeyAccessor10.getSecret(2);
       expect(secretObj12.secret).to.equal(secret2);
 
-      const secretKeyAccessor20 = new SecretKeyAccessor(() => ({ 
+      const secretKeyAccessor20 = new SecretKeyAccessor(() => ({
         secrets: [
-          { version: 0, secret: secret0 }, 
-          { version: 1, secret: secret1 }, 
-          { version: 2, secret: secret2 }, 
-        ], currentVersion: 1 
+          { version: 0, secret: secret0 },
+          { version: 1, secret: secret1 },
+          { version: 2, secret: secret2 },
+        ],
+        currentVersion: 1,
       }));
 
       const secretObj20 = await secretKeyAccessor20.getSecret(0);
@@ -197,31 +241,31 @@ describe('SecretKeyAccessor', () => {
 
       it('should reject if there is no key of "currentVersion"', () => {
         const secret = 'supersecret';
-        const secretKeyAccessor = new SecretKeyAccessor(() => ({ secrets: [{ version: 0, secret: secret }], currentVersion: 1 }));
+        const secretKeyAccessor = new SecretKeyAccessor(() => ({ secrets: [{ version: 0, secret }], currentVersion: 1 }));
         expect(secretKeyAccessor.getSecret()).to.be.rejected;
 
-        const secretKeyAccessor1 = new SecretKeyAccessor(() => ({ secrets: [{ version: 1, secret: secret }], currentVersion: 12 }));
+        const secretKeyAccessor1 = new SecretKeyAccessor(() => ({ secrets: [{ version: 1, secret }], currentVersion: 12 }));
         expect(secretKeyAccessor1.getSecret()).to.be.rejected;
       });
 
       it('should reject if "currentVersion" or "version" is not an integer', () => {
         const secret = 'supersecret';
 
-        const secretKeyAccessor1 = new SecretKeyAccessor(() => ({  
+        const secretKeyAccessor1 = new SecretKeyAccessor(() => ({
           secrets: [
-            { version: 1, secret: secret }, 
-            { version: '2', secret: secret }], 
-          currentVersion: 1 
+            { version: 1, secret },
+            { version: '2', secret }],
+          currentVersion: 1,
         }));
         expect(secretKeyAccessor1.getSecret()).to.be.rejected;
 
         const secretKeyAccessor2 = new SecretKeyAccessor(() => ({  
-          secrets: [{ version: '1', secret: secret }], currentVersion: '1' 
+          secrets: [{ version: '1', secret }], currentVersion: '1',
         }));
         expect(secretKeyAccessor2.getSecret()).to.be.rejected;
 
         const secretKeyAccessor3 = new SecretKeyAccessor(() => ({
-          secrets: [{ version: 11.11, secret: secret }], currentVersion: 11.11 
+          secrets: [{ version: 11.11, secret }], currentVersion: 11.11,
         }));
         expect(secretKeyAccessor3.getSecret()).to.be.rejected;
       });
