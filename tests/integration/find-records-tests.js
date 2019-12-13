@@ -157,7 +157,7 @@ describe('Find records', function () {
       if (e instanceof AssertionError) {
         throw e;
       }
-      assert.equal(e.message, 'Request failed with status code 409');
+      assert.equal(e.message, 'POST https://us.qa.incountry.io/v2/storage/records/se/find Request failed with status code 409');
     }
   });
 });
