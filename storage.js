@@ -8,7 +8,7 @@ const SecretKeyAccessor = require('./secret-key-accessor');
 const { InCrypt } = require('./in-crypt');
 const { PositiveInt } = require('./utils');
 const {
-  StorageRecordError,
+  StorageClientError,
   StorageServerError,
 } = require('./errors');
 
@@ -106,8 +106,8 @@ class Storage {
   }
 
   _validateRecord(record) {
-    if (!record.country) throw new StorageRecordError('Missing country');
-    if (!record.key) throw new StorageRecordError('Missing key');
+    if (!record.country) throw new StorageClientError('Missing country');
+    if (!record.key) throw new StorageClientError('Missing key');
   }
 
   async writeAsync(record) {

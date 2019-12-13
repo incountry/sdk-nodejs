@@ -1,11 +1,11 @@
 /* eslint max-classes-per-file: "off" */
 
-class StorageRecordError extends Error {
+class StorageClientError extends Error {
   constructor(...params) {
     super(params);
-    this.name = 'StorageRecordError';
+    this.name = 'StorageClientError';
     if (Error.captureStackTrace) {
-      Error.captureStackTrace(this, StorageRecordError);
+      Error.captureStackTrace(this, StorageClientError);
     }
   }
 }
@@ -23,6 +23,6 @@ class StorageServerError extends Error {
 }
 
 module.exports = {
-  StorageRecordError,
+  StorageClientError,
   StorageServerError,
 };
