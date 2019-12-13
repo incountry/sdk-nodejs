@@ -24,33 +24,30 @@ describe.skip('Storage', function () {
       const testBody = JSON.stringify({ name: 'last' });
 
       it(`should write using these options: ${JSON.stringify(testCase)}`, async function () {
-        const writeResponse = await storage.writeAsync({
+        await storage.writeAsync({
           country: 'US',
           key: 'record0',
           body: testBody,
         });
-
-        expect(writeResponse.status).to.equal(201);
       });
 
       it(`should read using these options: ${JSON.stringify(testCase)}`, async function () {
-        const readResponse = await storage.readAsync({
+        const { record } = await storage.readAsync({
           country: 'US',
           key: 'record0',
         });
 
-        expect(readResponse.status).to.equal(200);
-        expect(readResponse.data.body).to.equal(testBody);
+        expect(record.body).to.equal(testBody);
       });
 
       it(`should delete using these options: ${JSON.stringify(testCase)}`, async function () {
-        const deleteResponse = await storage.deleteAsync({
+        const deleteResult = await storage.deleteAsync({
           country: 'US',
           key: 'record0',
         });
 
-        expect(deleteResponse.status).to.equal(200);
+        expect(deleteResult.success).to.equal(true);
       });
-    })
-  })
-})
+    });
+  });
+});

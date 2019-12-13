@@ -31,7 +31,7 @@ class InCrypt {
     if (this._secretKeyAccessor === null) {
       return {
         message: `${PT_VERSION}:${Buffer.from(text).toString('base64')}`,
-        secretVersion: SecretKeyAccessor.DEFAULT_VERSION
+        secretVersion: SecretKeyAccessor.DEFAULT_VERSION,
       };
     }
 

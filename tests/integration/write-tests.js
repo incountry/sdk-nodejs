@@ -1,8 +1,13 @@
 /* eslint-disable prefer-arrow-callback,func-names */
-const { expect } = require('chai');
+const chai = require('chai');
+const chaiAsPromised = require('chai-as-promised');
 const storageCommon = require('./common');
 
+chai.use(chaiAsPromised);
+const { expect } = chai;
+
 const { createStorage } = storageCommon;
+/** @type {import('../../storage')} */
 let storage;
 
 describe('Write data to Storage', function () {
@@ -17,10 +22,20 @@ describe('Write data to Storage', function () {
       body: JSON.stringify({ name: 'PersonName' }),
     };
 
-    const writeResponse = await storage.writeAsync(data);
+    await expect(storage.readAsync({
+      country: data.country,
+      key: data.key,
+    })).to.be.rejected;
 
-    expect(writeResponse.status).to.equal(201);
-    expect(writeResponse.data).to.equal('OK');
+    await storage.writeAsync(data);
+
+    const { record } = await storage.readAsync({
+      country: data.country,
+      key: data.key,
+    });
+
+    expect(record.key).to.equal(data.key);
+    expect(record.body).to.equal(data.body);
   });
 
   it('C1915 Write data with optional keys and range value', async function () {
@@ -34,10 +49,20 @@ describe('Write data to Storage', function () {
       key3: 'optional key value 3',
     };
 
-    const writeResponse = await storage.writeAsync(data);
+    await expect(storage.readAsync({
+      country: data.country,
+      key: data.key,
+    })).to.be.rejected;
 
-    expect(writeResponse.status).to.equal(201);
-    expect(writeResponse.data).to.equal('OK');
+    await storage.writeAsync(data);
+
+    const { record } = await storage.readAsync({
+      country: data.country,
+      key: data.key,
+    });
+
+    expect(record.key).to.equal(data.key);
+    expect(record.body).to.equal(data.body);
   });
 
   it('C1916 Write data with empty body', async function () {
@@ -47,10 +72,20 @@ describe('Write data to Storage', function () {
       body: null,
     };
 
-    const writeResponse = await storage.writeAsync(data);
+    await expect(storage.readAsync({
+      country: data.country,
+      key: data.key,
+    })).to.be.rejected;
 
-    expect(writeResponse.status).to.equal(201);
-    expect(writeResponse.data).to.equal('OK');
+    await storage.writeAsync(data);
+
+    const { record } = await storage.readAsync({
+      country: data.country,
+      key: data.key,
+    });
+
+    expect(record.key).to.equal(data.key);
+    expect(record.body).to.equal(data.body);
   });
 
   it('C1923 Rewrite data', async function () {
@@ -60,16 +95,27 @@ describe('Write data to Storage', function () {
       body: JSON.stringify({ firstName: 'MyFirstName' }),
     };
 
-    const writeResponse1 = await storage.writeAsync(data);
+    await storage.writeAsync(data);
 
-    expect(writeResponse1.status).to.equal(201);
-    expect(writeResponse1.data).to.equal('OK');
+    const result1 = await storage.readAsync({
+      country: data.country,
+      key: data.key,
+    });
+
+    expect(result1.record.key).to.equal(data.key);
+    expect(result1.record.body).to.equal(data.body);
 
     data.body = JSON.stringify({ lastName: 'MyLastName' });
-    const writeResponse2 = await storage.writeAsync(data);
 
-    expect(writeResponse2.status).to.equal(201);
-    expect(writeResponse2.data).to.equal('OK');
+    await storage.writeAsync(data);
+
+    const result2 = await storage.readAsync({
+      country: data.country,
+      key: data.key,
+    });
+
+    expect(result2.record.key).to.equal(data.key);
+    expect(result2.record.body).to.equal(data.body);
   });
 
   describe('Encryption', function () {
@@ -83,10 +129,16 @@ describe('Write data to Storage', function () {
         key: `EncKey_${Math.random().toString(36).substr(2, 5)}`,
         body: JSON.stringify({ name: 'PersonName' }),
       };
-      const writeResponse = await storage.writeAsync(data);
 
-      expect(writeResponse.status).to.equal(201);
-      expect(writeResponse.data).to.equal('OK');
+      await storage.writeAsync(data);
+
+      const { record } = await storage.readAsync({
+        country: data.country,
+        key: data.key,
+      });
+
+      expect(record.key).to.equal(data.key);
+      expect(record.body).to.equal(data.body);
     });
   });
 });
