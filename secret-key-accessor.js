@@ -3,7 +3,7 @@ const { toPromise } = require('./utils');
 
 /**
  * @typedef SecretsData
- * @property {Array<{ secret: string, version: number }>} secrets
+ * @property {Array<{ secret: string, version: number, isKey?: boolean }>} secrets
  * @property {number} currentVersion
  */
 
@@ -31,14 +31,18 @@ function wrapToSecretsData(secret) {
   };
 }
 
+const SecretOrKey = t.brand(
+  t.type({
+    secret: t.string, version: t.Int, isKey: t.union([t.boolean, t.undefined]),
+  }),
+  (v) => !v.isKey || (v.isKey && v.secret.length === 32),
+  'SecretOrKey',
+);
+
 const SecretsDataIO = t.brand(
   t.type({
     currentVersion: t.Int,
-    secrets: t.array(
-      t.type({
-        secret: t.string, version: t.Int,
-      }),
-    ),
+    secrets: t.array(SecretOrKey),
   }),
   (so) => hasSecretOfCurrentVersion(so),
   'SecretsDataIO',
@@ -46,10 +50,10 @@ const SecretsDataIO = t.brand(
 
 
 /**
- * Callback handles fetching keys and is provided by SDK user
+ * Callback handles fetching keys/secrets and is provided by SDK user
  * Can return:
- * - single key string
- * - KeyObject with diffrent verions of key
+ * - single secret string
+ * - KeyObject with different versions of key/secret
  * - Promise<string> or Promise<KeyObject> for any async jobs
  *
  * @callback GetSecretCallback
