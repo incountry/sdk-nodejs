@@ -3,7 +3,6 @@ const chai = require('chai');
 chai.use(require('chai-as-promised'));
 
 const nock = require('nock');
-const sinon = require('sinon');
 const uuid = require('uuid/v4');
 const _ = require('lodash');
 const Storage = require('../../storage');
@@ -75,7 +74,6 @@ const nockPOPAPIEndpoint = (host, method, country = undefined, key = undefined) 
 describe('Storage', () => {
   describe('interface methods', () => {
     const logger = { write: (a, b) => [a, b] };
-    const loggerSpy = sinon.spy(logger, 'write');
     const customStorageEndpoint = 'https://test.example';
     const countriesCache = {
       getCountriesAsync: async () => [
@@ -347,14 +345,14 @@ describe('Storage', () => {
         });
 
         describe('when the request has no country field', () => {
-          it('should throw an error and log it', async () => {
+          it('should throw an error', async () => {
             const request = {};
             await expect(storage.writeAsync(request)).to.be.rejectedWith(Error, 'Missing country');
           });
         });
 
         describe('when the request has no key field', () => {
-          it('should throw an error and log it', async () => {
+          it('should throw an error', async () => {
             const request = { country: '123' };
             await expect(storage.writeAsync(request)).to.be.rejectedWith(Error, 'Missing key');
           });
@@ -435,7 +433,7 @@ describe('Storage', () => {
       });
 
       describe('in case of network error', () => {
-        it('should throw an error and log it', async () => {
+        it('should throw an error', async () => {
           const REQUEST_TIMEOUT_ERROR = { code: 'ETIMEDOUT' };
           const storage = createStorageWithPOPAPIEndpointLoggerAndKeyAccessor();
 
@@ -458,14 +456,14 @@ describe('Storage', () => {
         });
 
         describe('when the request has no country field', () => {
-          it('should throw an error and log it', async () => {
+          it('should throw an error', async () => {
             const request = {};
             await expect(storage.readAsync(request)).to.be.rejectedWith(Error, 'Missing country');
           });
         });
 
         describe('when the request has no key field', () => {
-          it('should throw an error and log it', async () => {
+          it('should throw an error', async () => {
             const request = { country: '123' };
             await expect(storage.readAsync(request)).to.be.rejectedWith(Error, 'Missing key');
           });
@@ -562,14 +560,14 @@ describe('Storage', () => {
         });
 
         describe('when the request has no country field', () => {
-          it('should throw an error and log it', async () => {
+          it('should throw an error', async () => {
             const request = {};
             await expect(storage.deleteAsync(request)).to.be.rejectedWith(Error, 'Missing country');
           });
         });
 
         describe('when the request has no key field', () => {
-          it('should throw an error and log it', async () => {
+          it('should throw an error', async () => {
             const request = { country: '123' };
             await expect(storage.deleteAsync(request)).to.be.rejectedWith(Error, 'Missing key');
           });
@@ -647,17 +645,7 @@ describe('Storage', () => {
           storage = createDefaultStorageWithLogger();
         });
 
-        describe('when country is not a string', () => {
-          it('should log error', async () => {
-            try {
-              await storage.find();
-            } catch (e) {
-              expect(loggerSpy.calledWith('error')).to.equal(true);
-              return;
-            }
-            chai.assert.fail('Validation passed');
-          });
-
+        describe('when country is not a string', () => { 
           it('should throw an error', async () => {
             await expect(storage.find()).to.be.rejectedWith(Error, 'Missing country');
             await expect(storage.find(null)).to.be.rejectedWith(Error, 'Missing country');
@@ -668,16 +656,6 @@ describe('Storage', () => {
         });
 
         describe('when options.limit is not positive integer or greater than MAX_LIMIT', () => {
-          it('should log error', async () => {
-            try {
-              await storage.find('test', undefined, { limit: -1 });
-            } catch (e) {
-              expect(loggerSpy.calledWith('error')).to.equal(true);
-              return;
-            }
-            chai.assert.fail('Validation passed');
-          });
-
           it('should throw an error', async () => {
             await expect(storage.find('test', undefined, { limit: -1 }))
               .to.be.rejectedWith(Error, 'Limit should be a positive integer');
@@ -778,16 +756,6 @@ describe('Storage', () => {
         });
 
         describe('when country is not a string', () => {
-          it('should log error', async () => {
-            try {
-              await storage.updateOne();
-            } catch (e) {
-              expect(loggerSpy.calledWith('error')).to.equal(true);
-              return;
-            }
-            chai.assert.fail('Validation passed');
-          });
-
           it('should throw an error', async () => {
             await expect(storage.updateOne()).to.be.rejectedWith(Error, 'Missing country');
             await expect(storage.updateOne(null)).to.be.rejectedWith(Error, 'Missing country');
@@ -910,7 +878,7 @@ describe('Storage', () => {
       });
 
       describe('in case of network error', () => {
-        it('should throw an error and log it', async () => {
+        it('should throw an error', async () => {
           const REQUEST_TIMEOUT_ERROR = { code: 'ETIMEDOUT' };
           const storage = createStorageWithPOPAPIEndpointLoggerAndKeyAccessor();
 
