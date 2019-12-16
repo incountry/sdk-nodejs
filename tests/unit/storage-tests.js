@@ -43,10 +43,6 @@ const TEST_RECORDS = [
   },
 ]
 
-const fakeCountriesCache = {
-  getCountriesAsync: async () => ["ru", "us"]
-}
-
 const nockedEndpoints = {
   write: {
     verb: 'post',
@@ -977,7 +973,7 @@ describe('Storage', () => {
 
     it('should batch write', function (done) {
       const scope = nockPOPAPIEndpoint(POPAPI_URL, 'batchWrite', COUNTRY).reply(200);
-      storage.batchWrite('us', TEST_RECORDS);
+      storage.batchWrite(COUNTRY, TEST_RECORDS);
       scope.on('request', function (req, interceptor, body) {
         const bodyObj = JSON.parse(body);
         bodyObj.records.forEach((encRecord, index) => {
@@ -1043,14 +1039,15 @@ describe('Storage', () => {
           })
           return { meta: { total: records.length }, data: records }
         });
-      const result = await storage.find('us', filter, options);
+      const result = await storage.find(COUNTRY, filter, options);
       expect(result.records.length).to.eql(2);
     })
     it('should return error when find limit option is not positive integer', async function () {
-      await expect(storage.find('us', {}, { limit: -123 })).to.be.rejectedWith(Error, 'Limit should be a positive integer');
-      await expect(storage.find('us', {}, { limit: 123.124 })).to.be.rejectedWith(Error, 'Limit should be a positive integer');
-      await expect(storage.find('us', {}, { limit: 'sdsd' })).to.be.rejectedWith(Error, 'Limit should be a positive integer');
-      await expect(storage.find('us', {}, { limit: 10 })).not.to.be.rejectedWith(Error, 'Limit should be a positive integer');
+      nockPOPAPIEndpoint(POPAPI_URL, 'find', COUNTRY).reply(200);
+      await expect(storage.find(COUNTRY, {}, { limit: -123 })).to.be.rejectedWith(Error, 'Limit should be a positive integer');
+      await expect(storage.find(COUNTRY, {}, { limit: 123.124 })).to.be.rejectedWith(Error, 'Limit should be a positive integer');
+      await expect(storage.find(COUNTRY, {}, { limit: 'sdsd' })).to.be.rejectedWith(Error, 'Limit should be a positive integer');
+      await expect(storage.find(COUNTRY, {}, { limit: 10 })).not.to.be.rejected;
     })
     it('should findOne by random key', async function () {
       const filter = { key3: TEST_RECORDS[4].key3 }
@@ -1069,7 +1066,7 @@ describe('Storage', () => {
           })
           return { meta: { total: records.length }, data: records }
         });
-      const result = await storage.findOne('us', filter, options)
+      const result = await storage.findOne(COUNTRY, filter, options)
       expect(result.record).to.eql(TEST_RECORDS[4])
     })
     it('should find encrypted records', async function () {
@@ -1090,7 +1087,7 @@ describe('Storage', () => {
           return { meta: { total: storedData.length }, data: storedData };
         });
 
-      const { records } = await encryptedStorage.find('us', { 'key': 'key1' });
+      const { records } = await encryptedStorage.find(COUNTRY, { 'key': 'key1' });
 
       records.forEach((record, idx) => {
         ['body', 'key', 'key2', 'key3', 'profile_key'].forEach((key) => {
@@ -1117,7 +1114,7 @@ describe('Storage', () => {
           return { meta: { total: storedData.length }, data: storedData };
         });
 
-      const { records } = await notEncryptedStorage.find('us', { 'key': 'key1' });
+      const { records } = await notEncryptedStorage.find(COUNTRY, { 'key': 'key1' });
 
       return records.forEach((record, idx) => {
         ['body', 'key', 'key2', 'key3', 'profile_key'].forEach((key) => {
@@ -1148,7 +1145,7 @@ describe('Storage', () => {
             }
           })
         })
-        storage.updateOne('us', { profileKey: TEST_RECORDS[4].profileKey }, payload)
+        storage.updateOne(COUNTRY, { profileKey: TEST_RECORDS[4].profileKey }, payload)
       })
     })
     context('exceptions', function () {
@@ -1156,12 +1153,12 @@ describe('Storage', () => {
         it('should reject if too many records found', function (done) {
           nockPOPAPIEndpoint(POPAPI_URL, 'find', COUNTRY)
             .reply(200, { data: [], meta: { total: 2 } });
-          storage.updateOne('us', {}, {}).then(() => done('Should reject')).catch(() => done())
+          storage.updateOne(COUNTRY, {}, {}).then(() => done('Should reject')).catch(() => done())
         })
         it('should reject if no records found', function (done) {
           nockPOPAPIEndpoint(POPAPI_URL, 'find', COUNTRY)
             .reply(200, { data: [], meta: { total: 0 } });
-          storage.updateOne('us', {}, {}).then(() => done('Should reject')).catch(() => done())
+          storage.updateOne(COUNTRY, {}, {}).then(() => done('Should reject')).catch(() => done())
         })
       })
       context('delete', function () {
@@ -1169,7 +1166,7 @@ describe('Storage', () => {
           const INVALID_KEY = 'invalid';
           nockPOPAPIEndpoint(POPAPI_URL, 'delete', COUNTRY, storage.createKeyHash(INVALID_KEY))
             .reply(404);
-          storage.deleteAsync({ country: 'us', key: INVALID_KEY }).then(() => done('should be rejected')).catch(() => done())
+          storage.deleteAsync({ country: COUNTRY, key: INVALID_KEY }).then(() => done('should be rejected')).catch(() => done())
         })
       })
       context('read', async function () {
@@ -1178,7 +1175,7 @@ describe('Storage', () => {
           const scope = nockPOPAPIEndpoint(POPAPI_URL, 'read', COUNTRY, storage.createKeyHash(INVALID_KEY))
             .reply(404);
 
-          await expect(storage.readAsync({ country: 'us', key: INVALID_KEY })).to.be.rejectedWith(StorageServerError);
+          await expect(storage.readAsync({ country: COUNTRY, key: INVALID_KEY })).to.be.rejectedWith(StorageServerError);
           assert.equal(scope.isDone(), true, 'Nock scope is done');
         })
         it('should return error when server error', async function () {
@@ -1186,7 +1183,7 @@ describe('Storage', () => {
           const scope = nockPOPAPIEndpoint(POPAPI_URL, 'read', COUNTRY, storage.createKeyHash(INVALID_KEY))
             .reply(500);
 
-          await expect(storage.readAsync({ country: 'us', key: INVALID_KEY })).to.be.rejectedWith(StorageServerError);
+          await expect(storage.readAsync({ country: COUNTRY, key: INVALID_KEY })).to.be.rejectedWith(StorageServerError);
           assert.equal(scope.isDone(), true, 'Nock scope is done');
         })
       })
