@@ -65,6 +65,13 @@ const nockedEndpoints = {
   },
 };
 
+const getNockedRequestBodyObject = (nocked) => new Promise((resolve) => {
+  nocked.on('request', (req, interceptor, reqBody) => {
+    const bodyObj = JSON.parse(reqBody);
+    resolve(bodyObj);
+  });
+});
+
 const nockPOPAPIEndpoint = (host, method, country = undefined, key = undefined) => {
   const endpoint = nockedEndpoints[method];
 
@@ -341,7 +348,7 @@ describe('Storage', () => {
         beforeEach(() => {
           storage = createDefaultStorageWithLogger();
 
-          const popAPI = nockPOPAPIEndpoint(POPAPI_URL, 'write', COUNTRY).reply(200);
+          nockPOPAPIEndpoint(POPAPI_URL, 'write', COUNTRY).reply(200);
         });
 
         describe('when the request has no country field', () => {
@@ -408,26 +415,40 @@ describe('Storage', () => {
       });
 
       describe('encryption', () => {
+        let popAPI;
+
+        beforeEach(() => {
+          popAPI = nockPOPAPIEndpoint(POPAPI_URL, 'write', COUNTRY).reply(200);
+        });
+
         describe('when disabled', () => {
-          const request = {
-            country: COUNTRY,
-            key: uuid(),
-            version: 0,
-            body: 'test',
-          };
+          it('should hash keys and send body as plain text', async () => {
+            const storage = createStorageWithPOPAPIEndpointLoggerAndKeyAccessorNoEnc();
+            const record = { country: COUNTRY, key: uuid(), body: 'test' };
+            const hashedKey = await storage.createKeyHash(record.key);
 
-          const storage = createStorageWithPOPAPIEndpointLoggerAndKeyAccessorNoEnc();
+            const [bodyObj] = await Promise.all([getNockedRequestBodyObject(popAPI), storage.writeAsync(record)]);
+            expect(bodyObj.key).to.equal(hashedKey);
+            expect(bodyObj.body).to.match(/^pt:.+/);
+          });
+        });
 
-          it.skip('should encrypt payload', (done) => {
-            const popAPI = nockPOPAPIEndpoint(POPAPI_URL, 'write', COUNTRY).reply(200, popAPIResponse);
+        describe('when enabled', () => {
+          let storage;
 
-            popAPI.on('request', async (req, interceptor, reqBody) => {
-              const bodyObj = JSON.parse(reqBody);
-              expect(bodyObj.body).to.not.equal(request.body);
-              done();
+          beforeEach(() => {
+            storage = createStorageWithPOPAPIEndpointLoggerAndKeyAccessor();
+          });
+
+          TEST_RECORDS.forEach((testCase, idx) => {
+            context(`with test case ${idx}`, () => {
+              it('should encrypt a record', async () => {
+                const encrypted = await storage._encryptPayload(testCase);
+                const [bodyObj] = await Promise.all([getNockedRequestBodyObject(popAPI), storage.writeAsync(testCase)]);
+                expect(_.omit(bodyObj, ['body'])).to.deep.equal(_.omit(encrypted, ['body']));
+                expect(bodyObj.body).to.match(/^2:.+/);
+              });
             });
-
-            storage.writeAsync(request);
           });
         });
       });
@@ -906,20 +927,6 @@ describe('Storage', () => {
     });
     TEST_RECORDS.forEach((testCase, idx) => {
       context(`with test case ${idx}`, function () {
-        it('should write a record', function (done) {
-          const scope = nockPOPAPIEndpoint(POPAPI_URL, 'write', COUNTRY).reply(200);
-          storage.writeAsync(testCase);
-          scope.on('request', async function (req, interceptor, body) {
-            try {
-              const encrypted = await storage._encryptPayload(testCase)
-              const bodyObj = JSON.parse(body);
-              expect(_.omit(bodyObj, ['body'])).to.deep.equal(_.omit(encrypted, ['body']));
-              done();
-            } catch (e) {
-              done(e)
-            }
-          });
-        });
         it('should read a record', async function () {
           const encrypted = await storage._encryptPayload(testCase);
           nockPOPAPIEndpoint(POPAPI_URL, 'read', COUNTRY, encrypted.key)
