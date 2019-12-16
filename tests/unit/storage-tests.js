@@ -47,6 +47,35 @@ const fakeCountriesCache = {
   getCountriesAsync: async () => ["ru", "us"]
 }
 
+const nockedEndpoints = {
+  write: {
+    verb: 'post',
+    path: (...args) => `/v2/storage/records/${args[0]}`,
+  },
+  read: {
+    verb: 'get',
+    path: (...args) => `/v2/storage/records/${args[0]}/${args[1]}`,
+  },
+  delete: {
+    verb: 'delete',
+    path: (...args) => `/v2/storage/records/${args[0]}/${args[1]}`,
+  },
+  find: {
+    verb: 'post',
+    path: (...args) => `/v2/storage/records/${args[0]}/find`,
+  },
+  batchWrite: {
+    verb: 'post',
+    path: (...args) => `/v2/storage/records/${args[0]}/batchWrite`,
+  },
+};
+
+const nockPOPAPIEndpoint = (host, method, country = undefined, key = undefined) => {
+  const endpoint = nockedEndpoints[method];
+
+  return nock(host)[endpoint.verb](endpoint.path(country, key));
+};
+
 describe('Storage', () => {
   describe('interface methods', () => {
     const logger = { write: (a, b) => [a, b] };
@@ -318,9 +347,7 @@ describe('Storage', () => {
         beforeEach(() => {
           storage = createDefaultStorageWithLogger();
 
-          nock(POPAPI_URL)
-            .post(`/v2/storage/records/${COUNTRY}`)
-            .reply(200);
+          const popAPI = nockPOPAPIEndpoint(POPAPI_URL, 'write', COUNTRY).reply(200);
         });
 
         describe('when the request has no country field', () => {
@@ -347,8 +374,7 @@ describe('Storage', () => {
           }, new SecretKeyAccessor(() => SECRET_KEY), logger);
 
           it('should use the provided endpoint', async () => {
-            const popAPI = nock(customStorageEndpoint)
-              .post(`/v2/storage/records/${COUNTRY}`)
+            const popAPI = nockPOPAPIEndpoint(customStorageEndpoint, 'write', COUNTRY)
               .reply(200, popAPIResponse);
 
             await storage.writeAsync(TEST_RECORDS[0]);
@@ -367,8 +393,7 @@ describe('Storage', () => {
             const popAPIUrl = `https://${country}.api.incountry.io`;
             const request = { country, key: uuid(), version: 0 };
 
-            const popAPI = nock(popAPIUrl)
-              .post(`/v2/storage/records/${country}`)
+            const popAPI = nockPOPAPIEndpoint(popAPIUrl, 'write', country)
               .reply(200, popAPIResponse);
 
             await storage.writeAsync(request);
@@ -379,8 +404,7 @@ describe('Storage', () => {
             const country = 'ae';
             const request = { country, key: uuid(), version: 0 };
 
-            const popAPI = nock(POPAPI_URL)
-              .post(`/v2/storage/records/${country}`)
+            const popAPI = nockPOPAPIEndpoint(POPAPI_URL, 'write', country)
               .reply(200, popAPIResponse);
 
             await storage.writeAsync(request);
@@ -401,9 +425,7 @@ describe('Storage', () => {
           const storage = createStorageWithPOPAPIEndpointLoggerAndKeyAccessorNoEnc();
 
           it.skip('should encrypt payload', (done) => {
-            const popAPI = nock(POPAPI_URL)
-              .post(`/v2/storage/records/${COUNTRY}`)
-              .reply(200, popAPIResponse);
+            const popAPI = nockPOPAPIEndpoint(POPAPI_URL, 'write', COUNTRY).reply(200, popAPIResponse);
 
             popAPI.on('request', async (req, interceptor, reqBody) => {
               const bodyObj = JSON.parse(reqBody);
@@ -421,8 +443,7 @@ describe('Storage', () => {
           const REQUEST_TIMEOUT_ERROR = { code: 'ETIMEDOUT' };
           const storage = createStorageWithPOPAPIEndpointLoggerAndKeyAccessor();
 
-          const scope = nock(POPAPI_URL)
-            .post(`/v2/storage/records/${COUNTRY}`)
+          const scope = nockPOPAPIEndpoint(POPAPI_URL, 'write', COUNTRY)
             .replyWithError(REQUEST_TIMEOUT_ERROR);
 
           await expect(storage.writeAsync(TEST_RECORDS[0])).to.be.rejectedWith(StorageServerError);
@@ -464,8 +485,7 @@ describe('Storage', () => {
             const request = { country: COUNTRY, key };
             const encryptedPayload = await storage._encryptPayload(request);
 
-            const popAPI = nock(customStorageEndpoint)
-              .get(`/v2/storage/records/${COUNTRY}/${encryptedPayload.key}`)
+            const popAPI = nockPOPAPIEndpoint(customStorageEndpoint, 'read', COUNTRY, encryptedPayload.key)
               .reply(200, popAPIResponse);
 
             await storage.readAsync(request);
@@ -482,8 +502,7 @@ describe('Storage', () => {
             const key = 'test';
             const request = { country, key };
 
-            const popAPI = nock(popAPIUrl)
-              .get(`/v2/storage/records/${country}/${key}`)
+            const popAPI = nockPOPAPIEndpoint(popAPIUrl, 'read', country, key)
               .reply(200, popAPIResponse);
 
             await storage.readAsync(request);
@@ -495,8 +514,7 @@ describe('Storage', () => {
             const key = 'test';
             const request = { country, key };
 
-            const popAPI = nock(POPAPI_URL)
-              .get(`/v2/storage/records/${country}/${key}`)
+            const popAPI = nockPOPAPIEndpoint(POPAPI_URL, 'read', country, key)
               .reply(200, popAPIResponse);
 
             await storage.readAsync(request);
@@ -512,8 +530,7 @@ describe('Storage', () => {
           it('should encrypt payload', async () => {
             const recordData = TEST_RECORDS[TEST_RECORDS.length - 1];
             const encryptedPayload = await storage._encryptPayload(recordData);
-            nock(POPAPI_URL)
-              .get(`/v2/storage/records/${COUNTRY}/${encryptedPayload.key}`)
+            nockPOPAPIEndpoint(POPAPI_URL, 'read', COUNTRY, encryptedPayload.key)
               .reply(200, encryptedPayload);
 
             const { record } = await storage.readAsync(_.pick(recordData, ['country', 'key']));
@@ -528,8 +545,7 @@ describe('Storage', () => {
           it.skip('should encrypt payload', async () => {
             const recordData = TEST_RECORDS[TEST_RECORDS.length - 1];
             const encryptedPayload = await storage._encryptPayload(recordData);
-            nock(POPAPI_URL)
-              .get(`/v2/storage/records/${COUNTRY}/${encryptedPayload.key}`)
+            nockPOPAPIEndpoint(POPAPI_URL, 'read', COUNTRY, encryptedPayload.key)
               .reply(200, encryptedPayload);
 
             const { record } = await storage.readAsync(_.pick(recordData, ['country', 'key']));
@@ -573,8 +589,7 @@ describe('Storage', () => {
             const request = { country: COUNTRY, key };
             const encryptedPayload = await storage._encryptPayload(request);
 
-            const popAPI = nock(customStorageEndpoint)
-              .delete(`/v2/storage/records/${COUNTRY}/${encryptedPayload.key}`)
+            const popAPI = nockPOPAPIEndpoint(customStorageEndpoint, 'delete', COUNTRY, encryptedPayload.key)
               .reply(200, popAPIResponse);
 
             await storage.deleteAsync(request);
@@ -591,8 +606,7 @@ describe('Storage', () => {
             const key = 'test';
             const request = { country, key };
 
-            const popAPI = nock(popAPIUrl)
-              .delete(`/v2/storage/records/${country}/${key}`)
+            const popAPI = nockPOPAPIEndpoint(popAPIUrl, 'delete', country, key)
               .reply(200, popAPIResponse);
 
             await storage.deleteAsync(request);
@@ -604,8 +618,7 @@ describe('Storage', () => {
             const key = 'test';
             const request = { country, key };
 
-            const popAPI = nock(POPAPI_URL)
-              .delete(`/v2/storage/records/${country}/${key}`)
+            const popAPI = nockPOPAPIEndpoint(POPAPI_URL, 'delete', country, key)
               .reply(200, popAPIResponse);
 
             await storage.deleteAsync(request);
@@ -620,8 +633,7 @@ describe('Storage', () => {
         it('should hash key', async () => {
           const record = { country: COUNTRY, key: 'test' };
           const encryptedKey = storage.createKeyHash(record.key);
-          const popAPI = nock(POPAPI_URL)
-            .delete(`/v2/storage/records/${COUNTRY}/${encryptedKey}`)
+          const popAPI = nockPOPAPIEndpoint(POPAPI_URL, 'delete', COUNTRY, encryptedKey)
             .reply(200, popAPIResponse);
 
           await storage.deleteAsync(record);
@@ -684,8 +696,7 @@ describe('Storage', () => {
           const storage = createStorageWithCustomEndpointLoggerAndKeyAccessorNoEnc();
 
           it('should use the provided endpoint', async () => {
-            const popAPI = nock(customStorageEndpoint)
-              .post(`/v2/storage/records/${COUNTRY}/find`)
+            const popAPI = nockPOPAPIEndpoint(customStorageEndpoint, 'find', COUNTRY)
               .reply(200, popAPIResponse);
 
             await storage.find(COUNTRY, {});
@@ -704,8 +715,7 @@ describe('Storage', () => {
               meta: {},
             }
 
-            const popAPI = nock(popAPIUrl)
-              .post(`/v2/storage/records/${country}/find`)
+            const popAPI = nockPOPAPIEndpoint(popAPIUrl, 'find', country)
               .reply(200, popAPIFindResponse);
 
             await storage.find(country, {});
@@ -719,8 +729,7 @@ describe('Storage', () => {
               meta: {},
             }
 
-            const popAPI = nock(POPAPI_URL)
-              .post(`/v2/storage/records/${country}/find`)
+            const popAPI = nockPOPAPIEndpoint(POPAPI_URL, 'find', country)
               .reply(200, popAPIFindResponse);
 
             await storage.find(country, {});
@@ -737,9 +746,7 @@ describe('Storage', () => {
           const filter = { key: [uuid(), uuid()] };
           const hashedFilter = { key: filter.key.map((el) => storage.createKeyHash(el)) };
 
-          const popAPI = nock(POPAPI_URL)
-            .post(`/v2/storage/records/${COUNTRY}/find`)
-            .reply(200);
+          const popAPI = nockPOPAPIEndpoint(POPAPI_URL, 'find', COUNTRY).reply(200);
 
           popAPI.on('request', (req, interceptor, body) => {
             const bodyObj = JSON.parse(body);
@@ -757,9 +764,7 @@ describe('Storage', () => {
         const storage = createStorageWithPOPAPIEndpointLoggerAndKeyAccessorNoEnc();
 
         it('should return null', async () => {
-          nock(POPAPI_URL)
-            .post(`/v2/storage/records/${COUNTRY}/find`)
-            .reply(200);
+          nockPOPAPIEndpoint(POPAPI_URL, 'find', COUNTRY).reply(200);
 
           const result = await storage.findOne(COUNTRY, {});
           expect(result.record).to.equal(null);
@@ -808,8 +813,7 @@ describe('Storage', () => {
             body: 'test',
           };
 
-          const popAPI = nock(POPAPI_URL)
-            .post(`/v2/storage/records/${COUNTRY}`)
+          const popAPI = nockPOPAPIEndpoint(POPAPI_URL, 'update', COUNTRY)
             .reply(200, popAPIResponse);
 
           popAPI.on('request', async (req, interceptor, reqBody) => {
@@ -841,9 +845,7 @@ describe('Storage', () => {
         beforeEach(() => {
           storage = createDefaultStorageWithLogger();
 
-          nock(POPAPI_URL)
-            .post(`/v2/storage/records/${COUNTRY}/batchWrite`)
-            .reply(200);
+          nockPOPAPIEndpoint(POPAPI_URL, 'batchWrite', COUNTRY).reply(200);
         });
 
         describe('when the records is empty array', () => {
@@ -874,8 +876,7 @@ describe('Storage', () => {
           }, new SecretKeyAccessor(() => SECRET_KEY), logger);
 
           it('should use the provided endpoint', async () => {
-            const popAPI = nock(customStorageEndpoint)
-              .post(`/v2/storage/records/${COUNTRY}/batchWrite`)
+            const popAPI = nockPOPAPIEndpoint(customStorageEndpoint, 'batchWrite', COUNTRY)
               .reply(200, popAPIResponse);
 
             await storage.batchWrite(COUNTRY, TEST_RECORDS);
@@ -893,8 +894,7 @@ describe('Storage', () => {
             const country = 'hu';
             const popAPIUrl = `https://${country}.api.incountry.io`;
 
-            const popAPI = nock(popAPIUrl)
-              .post(`/v2/storage/records/${country}/batchWrite`)
+            const popAPI = nockPOPAPIEndpoint(popAPIUrl, 'batchWrite', country)
               .reply(200, popAPIResponse);
 
             await storage.batchWrite(country, TEST_RECORDS);
@@ -904,8 +904,7 @@ describe('Storage', () => {
           it('should use the default endpoint otherwise', async () => {
             const country = 'ae';
 
-            const popAPI = nock(POPAPI_URL)
-              .post(`/v2/storage/records/${country}/batchWrite`)
+            const popAPI = nockPOPAPIEndpoint(POPAPI_URL, 'batchWrite', country)
               .reply(200, popAPIResponse);
 
             await storage.batchWrite(country, TEST_RECORDS);
@@ -919,8 +918,7 @@ describe('Storage', () => {
           const REQUEST_TIMEOUT_ERROR = { code: 'ETIMEDOUT' };
           const storage = createStorageWithPOPAPIEndpointLoggerAndKeyAccessor();
 
-          const scope = nock(POPAPI_URL)
-            .post(`/v2/storage/records/${COUNTRY}/batchWrite`)
+          const scope = nockPOPAPIEndpoint(POPAPI_URL, 'batchWrite', COUNTRY)
             .replyWithError(REQUEST_TIMEOUT_ERROR);
 
           await expect(storage.batchWrite(COUNTRY, TEST_RECORDS)).to.be.rejectedWith(StorageServerError);
@@ -945,9 +943,7 @@ describe('Storage', () => {
     TEST_RECORDS.forEach((testCase, idx) => {
       context(`with test case ${idx}`, function () {
         it('should write a record', function (done) {
-          const scope = nock(POPAPI_URL)
-            .post(`/v2/storage/records/${COUNTRY}`)
-            .reply(200);
+          const scope = nockPOPAPIEndpoint(POPAPI_URL, 'write', COUNTRY).reply(200);
           storage.writeAsync(testCase);
           scope.on('request', async function (req, interceptor, body) {
             try {
@@ -962,8 +958,7 @@ describe('Storage', () => {
         });
         it('should read a record', async function () {
           const encrypted = await storage._encryptPayload(testCase);
-          nock(POPAPI_URL)
-            .get(`/v2/storage/records/${COUNTRY}/${encrypted.key}`)
+          nockPOPAPIEndpoint(POPAPI_URL, 'read', COUNTRY, encrypted.key)
             .reply(200, encrypted);
           const { record } = await storage.readAsync(testCase);
           const expected = _.pick(testCase, ['key', 'body']);
@@ -971,9 +966,7 @@ describe('Storage', () => {
         })
         it('should delete a record', function (done) {
           storage._encryptPayload(testCase).then((encrypted) => {
-            const scope = nock(POPAPI_URL)
-              .delete(`/v2/storage/records/${COUNTRY}/${encrypted.key}`)
-              .reply(200);
+            const scope = nockPOPAPIEndpoint(POPAPI_URL, 'delete', COUNTRY, encrypted.key).reply(200);
             storage.deleteAsync(testCase)
             scope.on('error', done);
             scope.on('request', () => done())
@@ -983,9 +976,7 @@ describe('Storage', () => {
     });
 
     it('should batch write', function (done) {
-      const scope = nock(POPAPI_URL)
-        .post(`/v2/storage/records/${COUNTRY}/batchWrite`)
-        .reply(200);
+      const scope = nockPOPAPIEndpoint(POPAPI_URL, 'batchWrite', COUNTRY).reply(200);
       storage.batchWrite('us', TEST_RECORDS);
       scope.on('request', function (req, interceptor, body) {
         const bodyObj = JSON.parse(body);
@@ -1011,8 +1002,7 @@ describe('Storage', () => {
         currentVersion: newSecret.version,
       })));
 
-      nock(POPAPI_URL)
-        .post(`/v2/storage/records/${COUNTRY}/find`)
+      nockPOPAPIEndpoint(POPAPI_URL, 'find', COUNTRY)
         .reply(200, () => ({
           meta: {
             total: encryptedRecords.length,
@@ -1021,8 +1011,7 @@ describe('Storage', () => {
           data: encryptedRecords,
         }));
 
-      nock(POPAPI_URL)
-        .post(`/v2/storage/records/${COUNTRY}/batchWrite`)
+      nockPOPAPIEndpoint(POPAPI_URL, 'batchWrite', COUNTRY)
         .reply(200, (uri, body) => {
           expect(body.records.length).to.equal(encryptedRecords.length);
           body.records.forEach((rec, index) => {
@@ -1041,8 +1030,7 @@ describe('Storage', () => {
       const filter = { profile_key: TEST_RECORDS[4].profile_key }
       const options = { limit: 1, offset: 1 }
       const encryptedRecords = await Promise.all(TEST_RECORDS.map((record) => storage._encryptPayload(record)))
-      nock(POPAPI_URL)
-        .post(`/v2/storage/records/${COUNTRY}/find`)
+      nockPOPAPIEndpoint(POPAPI_URL, 'find', COUNTRY)
         .reply(200, (uri, requestBody) => {
           const filterKeys = Object.keys(requestBody.filter);
           const records = encryptedRecords.filter((rec) => {
@@ -1068,8 +1056,7 @@ describe('Storage', () => {
       const filter = { key3: TEST_RECORDS[4].key3 }
       const options = { limit: 1, offset: 1 }
       const encryptedRecords = await Promise.all(TEST_RECORDS.map((record) => storage._encryptPayload(record)))
-      nock(POPAPI_URL)
-        .post(`/v2/storage/records/${COUNTRY}/find`)
+      nockPOPAPIEndpoint(POPAPI_URL, 'find', COUNTRY)
         .reply(200, (uri, requestBody) => {
           const filterKeys = Object.keys(requestBody.filter);
           const records = encryptedRecords.filter((rec) => {
@@ -1098,8 +1085,7 @@ describe('Storage', () => {
         TEST_RECORDS.map((record) => encryptedStorage._encryptPayload(record))
       );
 
-      nock('https://us.api.incountry.io')
-        .post(`/v2/storage/records/us/find`)
+      nockPOPAPIEndpoint(POPAPI_URL, 'find', COUNTRY)
         .reply(200, (uri, requestBody) => {
           return { meta: { total: storedData.length }, data: storedData };
         });
@@ -1126,8 +1112,7 @@ describe('Storage', () => {
         TEST_RECORDS.map((record) => notEncryptedStorage._encryptPayload(record))
       );
 
-      nock('https://us.api.incountry.io')
-        .post(`/v2/storage/records/us/find`)
+      nockPOPAPIEndpoint(POPAPI_URL, 'find', COUNTRY)
         .reply(200, (uri, requestBody) => {
           return { meta: { total: storedData.length }, data: storedData };
         });
@@ -1145,11 +1130,9 @@ describe('Storage', () => {
     it('should update one by profile key', function (done) {
       const payload = { profile_key: 'updatedProfileKey' }
       storage._encryptPayload(TEST_RECORDS[4]).then((encrypted) => {
-        nock(POPAPI_URL)
-          .post(`/v2/storage/records/${COUNTRY}/find`)
+        nockPOPAPIEndpoint(POPAPI_URL, 'find', COUNTRY)
           .reply(200, { data: [encrypted], meta: { total: 1 } });
-        const writeNock = nock(POPAPI_URL)
-          .post(`/v2/storage/records/${COUNTRY}`)
+        const writeNock = nockPOPAPIEndpoint(POPAPI_URL, 'write', COUNTRY)
           .reply(200, { data: [encrypted], meta: { total: 1 } });
         writeNock.on('request', (req, interceptor, body) => {
           const expectedPlain = {
@@ -1171,14 +1154,12 @@ describe('Storage', () => {
     context('exceptions', function () {
       context('updateOne', function () {
         it('should reject if too many records found', function (done) {
-          nock(POPAPI_URL)
-            .post(`/v2/storage/records/${COUNTRY}/find`)
+          nockPOPAPIEndpoint(POPAPI_URL, 'find', COUNTRY)
             .reply(200, { data: [], meta: { total: 2 } });
           storage.updateOne('us', {}, {}).then(() => done('Should reject')).catch(() => done())
         })
         it('should reject if no records found', function (done) {
-          nock(POPAPI_URL)
-            .post(`/v2/storage/records/${COUNTRY}/find`)
+          nockPOPAPIEndpoint(POPAPI_URL, 'find', COUNTRY)
             .reply(200, { data: [], meta: { total: 0 } });
           storage.updateOne('us', {}, {}).then(() => done('Should reject')).catch(() => done())
         })
@@ -1186,8 +1167,7 @@ describe('Storage', () => {
       context('delete', function () {
         it('should throw when invalid url', function (done) {
           const INVALID_KEY = 'invalid';
-          nock(POPAPI_URL)
-            .delete(`/v2/storage/records/${COUNTRY}/${storage.createKeyHash(INVALID_KEY)}`)
+          nockPOPAPIEndpoint(POPAPI_URL, 'delete', COUNTRY, storage.createKeyHash(INVALID_KEY))
             .reply(404);
           storage.deleteAsync({ country: 'us', key: INVALID_KEY }).then(() => done('should be rejected')).catch(() => done())
         })
@@ -1195,8 +1175,7 @@ describe('Storage', () => {
       context('read', async function () {
         it('should return error when not found', async function () {
           const INVALID_KEY = 'invalid';
-          const scope = nock(POPAPI_URL)
-            .get(`/v2/storage/records/${COUNTRY}/${storage.createKeyHash(INVALID_KEY)}`)
+          const scope = nockPOPAPIEndpoint(POPAPI_URL, 'read', COUNTRY, storage.createKeyHash(INVALID_KEY))
             .reply(404);
 
           await expect(storage.readAsync({ country: 'us', key: INVALID_KEY })).to.be.rejectedWith(StorageServerError);
@@ -1204,8 +1183,7 @@ describe('Storage', () => {
         })
         it('should return error when server error', async function () {
           const INVALID_KEY = 'invalid';
-          const scope = nock(POPAPI_URL)
-            .get(`/v2/storage/records/${COUNTRY}/${storage.createKeyHash(INVALID_KEY)}`)
+          const scope = nockPOPAPIEndpoint(POPAPI_URL, 'read', COUNTRY, storage.createKeyHash(INVALID_KEY))
             .reply(500);
 
           await expect(storage.readAsync({ country: 'us', key: INVALID_KEY })).to.be.rejectedWith(StorageServerError);
