@@ -26,7 +26,7 @@
   "scripts": {
     "integrations": "nyc --reporter=lcov --reporter=text --report-dir=it-coverage mocha tests/integration/*.js --timeout 20000",
     "test": "nyc --reporter=lcov --reporter=text --report-dir=ut-coverage mocha tests/unit/*.js",
-    "validate-eslint": "eslint in-crypt.js logger.js secret-key-accessor.js storage.js"
+    "validate-eslint": "eslint countries-cache.js in-crypt.js logger.js secret-key-accessor.js storage.js"
   },
   "version": "1.0.0",
   "devDependencies": {
