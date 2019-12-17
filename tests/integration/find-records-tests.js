@@ -132,17 +132,17 @@ describe('Find records', function () {
       it('Find records with pagination', async function () {
         const limit = 10;
         const offset = 10;
-        const { records, meta } = await storage.find(dataRequest.country, {},
+        const { records, meta } = await storage.find(dataRequest.country, { version: 0 },
           {
             limit,
             offset,
           });
 
-        expect(records.length).to.be.lengthOf.above(2);
-        expect(records.length).to.be.lengthOf.below(limit);
+        expect(records).to.be.lengthOf.above(2);
+        expect(records).to.be.lengthOf.not.above(limit);
 
         expect(meta).to.have.all.keys('count', 'limit', 'offset', 'total');
-        expect(meta.count).to.be.below(limit);
+        expect(meta.count).to.be.not.above(limit);
         expect(meta.offset).to.equal(offset);
         expect(meta.limit).to.equal(limit);
       });
@@ -150,7 +150,7 @@ describe('Find records', function () {
       // C1928
       it('Find records by filter with range_key', async function () {
         const { records, meta } = await storage.find(dataRequest.country,
-          { range_key: { $lt: 100 } }, {});
+          { range_key: { $gt: 100 }, version: 0 }, {});
 
         expect(records).to.have.lengthOf.above(0);
         expect(meta).to.have.all.keys('count', 'limit', 'offset', 'total');
