@@ -25,7 +25,8 @@
   },
   "scripts": {
     "integrations": "nyc --reporter=lcov --reporter=text --report-dir=it-coverage mocha tests/integration/*.js --timeout 20000",
-    "test": "nyc --reporter=lcov --reporter=text --report-dir=ut-coverage mocha tests/unit/*.js"
+    "test": "nyc --reporter=lcov --reporter=text --report-dir=ut-coverage mocha tests/unit/*.js",
+    "validate-eslint": "eslint ./*.js tests/"
   },
   "version": "1.0.0",
   "devDependencies": {

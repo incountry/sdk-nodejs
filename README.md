@@ -72,7 +72,7 @@ const customLogger = {
 
 ### Writing data to Storage
 
-Use `writeAsync` method in order to create a record.
+Use `writeAsync` method in order to create/overwrite a record for a given `key`.
 ```
 const writeResponse = await storage.writeAsync({
 	country: 'string',      // Required country code of where to store the data

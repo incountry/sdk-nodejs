@@ -1,4 +1,5 @@
 const axios = require('axios');
+const defaultLogger = require('./logger').withBaseLogLevel('error');
 
 class CountriesCache {
   constructor(portalHost, slidingWindowMilliseconds, expiresOn, logger) {
@@ -10,7 +11,7 @@ class CountriesCache {
 
     this._countries = null; // Lazy load this on demand
 
-    this._logger = logger || require('./logger').withBaseLogLevel('error');
+    this._logger = logger || defaultLogger;
   }
 
   async getCountriesAsync(timeStamp) {
