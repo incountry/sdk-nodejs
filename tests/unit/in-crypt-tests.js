@@ -45,7 +45,6 @@ const PREPARED_DATA_BY_VERSION = [
 describe('InCrypt', function () {
   context('with different plain texts', function () {
     PLAINTEXTS.forEach((plain) => {
-
       it(`should encrypt and decrypt text: ${plain}`, async function () {
         const secretKeyAccessor = new SecretKeyAccessor((() => new Promise((resolve) => { resolve('supersecret'); })));
         const incrypt = new InCrypt(secretKeyAccessor);
@@ -55,17 +54,15 @@ describe('InCrypt', function () {
         expect(decrypted).to.eql(plain);
       });
 
-      it('should encrypt without SecretKeyAccessor', async function() {
+      it('should encrypt without SecretKeyAccessor', async function () {
         const incrypt = new InCrypt();
         const encrypted = await incrypt.encryptAsync(plain);
         expect(encrypted.includes('pt:')).equal(true);
       });
-
     });
   });
   context('with different encrypted text versions', function () {
     PREPARED_DATA_BY_VERSION.forEach((item) => {
-
       it(`should decrypt v${item.version} data`, async function () {
         const incrypt = new InCrypt(item.secretKeyAccessor);
         const decrypted = await incrypt.decryptAsync(item.encrypted);
@@ -73,7 +70,7 @@ describe('InCrypt', function () {
       });
 
       if (item.version !== 'pt') {
-        it('should not decrypt non pt without secretKeyAccessor', async function() {
+        it('should not decrypt non pt without secretKeyAccessor', async function () {
           const incrypt = new InCrypt();
           const decrypted = await incrypt.decryptAsync(item.encrypted);
 
@@ -86,13 +83,12 @@ describe('InCrypt', function () {
       }
 
       if (item.version === 'pt') {
-        it('should not decrypt pt not base64', async function() {
+        it('should not decrypt pt not base64', async function () {
           const incrypt = new InCrypt();
-          const decrypted = await incrypt.decryptAsync(item.encrypted + 'stuff');
+          const decrypted = await incrypt.decryptAsync(`${item.encrypted}stuff`);
           expect(decrypted).not.to.eql(item.plain);
         });
       }
-
     });
   });
 });
