@@ -288,8 +288,6 @@ describe('Storage', () => {
         let storage;
         beforeEach(() => {
           storage = createDefaultStorageWithLogger();
-
-          nockPOPAPIEndpoint(POPAPI_URL, 'write', COUNTRY).reply(200);
         });
 
         describe('when the request has no country field', () => {
@@ -448,8 +446,6 @@ describe('Storage', () => {
     });
 
     describe('deleteAsync', () => {
-      const popAPIResponse = { success: true };
-
       describe('should validate request', () => {
         let storage;
         beforeEach(() => {
@@ -472,16 +468,48 @@ describe('Storage', () => {
       });
 
       describe('encryption', () => {
-        const storage = createStorageWithPOPAPIEndpointLoggerAndKeyAccessor();
+        const record = { country: COUNTRY, key: 'test' };
 
-        it('should hash key', async () => {
-          const record = { country: COUNTRY, key: 'test' };
-          const encryptedKey = storage.createKeyHash(record.key);
+        it('should hash key regardless of enabled/disabled encryption', async () => {
+          const storageEnc = createStorageWithPOPAPIEndpointLoggerAndKeyAccessor();
+          const storageNonEnc = createStorageWithPOPAPIEndpointLoggerAndKeyAccessorNoEnc();
+          const encryptedKey = storageEnc.createKeyHash(record.key);
           const popAPI = nockPOPAPIEndpoint(POPAPI_URL, 'delete', COUNTRY, encryptedKey)
-            .reply(200, popAPIResponse);
+            .times(2)
+            .reply(200);
 
-          await storage.deleteAsync(record);
+          await storageEnc.deleteAsync(record);
+          await storageNonEnc.deleteAsync(record);
           assert.equal(popAPI.isDone(), true, 'nock is done');
+        });
+      });
+
+      describe('errors handling', () => {
+        let storage;
+        const record = { country: COUNTRY, key: 'invalid' };
+        const REQUEST_TIMEOUT_ERROR = { code: 'ETIMEDOUT' };
+        const errorCases = [{
+          name: 'when record not found',
+          respond: (popAPI) => popAPI.reply(404),
+        }, {
+          name: 'in case of server error',
+          respond: (popAPI) => popAPI.reply(500),
+        }, {
+          name: 'in case of network error',
+          respond: (popAPI) => popAPI.replyWithError(REQUEST_TIMEOUT_ERROR),
+        }];
+
+        beforeEach(() => {
+          storage = createStorageWithPOPAPIEndpointLoggerAndKeyAccessor();
+        });
+
+        errorCases.forEach((errCase) => {
+          it(`should throw an error ${errCase.name}`, async () => {
+            const scope = errCase.respond(nockPOPAPIEndpoint(POPAPI_URL, 'delete', COUNTRY, storage.createKeyHash(record.key)));
+
+            await expect(storage.deleteAsync(record)).to.be.rejectedWith(StorageServerError);
+            assert.equal(scope.isDone(), true, 'Nock scope is done');
+          });
         });
       });
     });
