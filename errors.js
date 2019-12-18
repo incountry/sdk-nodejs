@@ -6,8 +6,6 @@ class StorageValidationError extends Error {
     super(params);
     this.validation = validation;
     this.name = 'StorageValidationError';
-    console.log('StorageValidationError', params[0]);
-
     if (Error.captureStackTrace) {
       Error.captureStackTrace(this, StorageValidationError);
     }
