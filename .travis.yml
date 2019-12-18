@@ -12,5 +12,6 @@ install:
 
 script:
   - if [[ ($TRAVIS_BRANCH == "master") && ($TRAVIS_EVENT_TYPE == "cron") ]]; then snyk monitor --org=incountry; fi
+  - npm run validate-eslint
   - npm run test
   - sonar-scanner

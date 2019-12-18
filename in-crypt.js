@@ -1,87 +1,121 @@
-var aesjs = require('aes-js'),
-    crypto = require('crypto'),
-    utf8 = require('utf8');
+const crypto = require('crypto');
+const util = require('util');
+const utf8 = require('utf8');
 
-const CryptKeyAccessor = require('./crypt-key-accessor');
+const pbkdf2 = util.promisify(crypto.pbkdf2);
 
-const BLOCK_SIZE = 16; // Bytes
-const pad = function(s) {
-    let slotsToPad = BLOCK_SIZE - (s.length % BLOCK_SIZE);
-    let repeatedChar = String.fromCharCode(slotsToPad);
-    let result = s + repeatedChar.repeat(slotsToPad);
-
-    return result;
-};
-
-const unpad = function(s) {
-    let end = s.length;
-
-    let repeatedChar = s[end - 1];
-    let slotsToPad = repeatedChar.charCodeAt(0);
-    let result = s.substring(0, end - slotsToPad);
-    
-    return result;
-}
+const IV_SIZE = 12;
+const KEY_SIZE = 32;
+const SALT_SIZE = 64;
+const PBKDF2_ITERATIONS_COUNT = 10000;
+const AUTH_TAG_SIZE = 16;
+const VERSION = '2';
+const PT_VERSION = 'pt';
 
 class InCrypt {
-    constructor(cryptKeyAccessor) {
-        this._cryptKeyAccessor = cryptKeyAccessor;
+  constructor(secretKeyAccessor = null) {
+    this._secretKeyAccessor = secretKeyAccessor;
+  }
+
+  async encryptAsync(text) {
+    if (this._secretKeyAccessor === null) {
+      return `${PT_VERSION}:${Buffer.from(text).toString('base64')}`;
     }
 
-    async encryptAsync(raw) {
-        return new Promise((resolve, reject) => {
-            this._cryptKeyAccessor.secureAccessor().then((secret => {
-                let key = Buffer.allocUnsafe(16);
-                let iv = Buffer.allocUnsafe(16);
-                let hash = crypto.createHash('sha256');
+    const secret = await this._secretKeyAccessor.secureAccessor();
+    const iv = crypto.randomBytes(IV_SIZE);
+    const salt = crypto.randomBytes(SALT_SIZE);
+    const key = await pbkdf2(secret, salt, PBKDF2_ITERATIONS_COUNT, KEY_SIZE, 'sha512');
 
-                let encodedKey = utf8.encode(secret);
-                let ba = hash.update(encodedKey).digest('hex');
-                let salt = Buffer.from(ba, 'hex');
-                salt.copy(key, 0, 0, 16);
-                salt.copy(iv, 0, 16, 32);
+    const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
+    const encrypted = Buffer.concat([cipher.update(text, 'utf8'), cipher.final()]);
+    const tag = cipher.getAuthTag();
 
-                let aesCbc = new aesjs.ModeOfOperation.cbc(key, iv);
-                let padded = pad(raw);
-                let paddedBytes = aesjs.utils.utf8.toBytes(padded);
-                let encryptedBytes = aesCbc.encrypt(paddedBytes);
-                let encryptedHex = aesjs.utils.hex.fromBytes(encryptedBytes);
-                resolve(encryptedHex);
-            })).catch(reject)
-        });
+    const ciphertext = Buffer.concat([salt, iv, encrypted, tag]).toString('base64');
+    return `${VERSION}:${ciphertext}`;
+  }
+
+  async decryptAsync(s) {
+    const parts = s.split(':');
+    let version;
+    let encrypted;
+
+    if (parts.length === 2) {
+      [version, encrypted] = parts;
+    } else {
+      version = '0';
+      encrypted = s;
     }
 
-    async decryptAsync(encryptedHex) {
-        return new Promise((resolve, reject) => {
-            this._cryptKeyAccessor.secureAccessor().then((secret => {
-                let key = Buffer.allocUnsafe(16);
-                let iv = Buffer.allocUnsafe(16);
-                let hash = crypto.createHash('sha256');
-
-                let encodedKey = utf8.encode(secret);
-                let ba = hash.update(encodedKey).digest('hex');
-                let salt = Buffer.from(ba, 'hex');
-                salt.copy(key, 0, 0, 16);
-                salt.copy(iv, 0, 16, 32);
-
-                let aesCbc = new aesjs.ModeOfOperation.cbc(key, iv);
-
-                let encryptedBytes = aesjs.utils.hex.toBytes(encryptedHex)
-                let paddedBytes = aesCbc.decrypt(encryptedBytes);
-                let padded = aesjs.utils.utf8.fromBytes(paddedBytes);
-                let raw = unpad(padded);
-                resolve(raw);
-            })).catch(reject)
-        })
+    if (!this._secretKeyAccessor && version !== PT_VERSION) {
+      return this.decryptStub(encrypted);
     }
-    
-    hash(data) {
-// Not yet imnplemented
-//     hash = hmac.new(self.salt, data.encode('utf-8'), digestmod=hashlib.sha256).digest().hex()
-//     return hash
-    }
+
+    const decrypt = this[`decryptV${version}`].bind(this);
+    return decrypt(encrypted);
+  }
+
+  decryptStub(encrypted) {
+    return encrypted;
+  }
+
+  async decryptVpt(plainTextBase64) {
+    return Buffer.from(plainTextBase64, 'base64').toString('utf-8');
+  }
+
+  async decryptV2(encryptedBase64) {
+    const secret = await this._secretKeyAccessor.secureAccessor();
+    const bData = Buffer.from(encryptedBase64, 'base64');
+
+    const salt = bData.slice(0, SALT_SIZE);
+    const iv = bData.slice(SALT_SIZE, SALT_SIZE + IV_SIZE);
+    const encrypted = bData.slice(SALT_SIZE + IV_SIZE, bData.length - AUTH_TAG_SIZE);
+    const tag = bData.slice(-AUTH_TAG_SIZE);
+
+    const key = await pbkdf2(secret, salt, PBKDF2_ITERATIONS_COUNT, KEY_SIZE, 'sha512');
+
+    const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
+    decipher.setAuthTag(tag);
+
+    return decipher.update(encrypted, 'binary', 'utf8') + decipher.final('utf8');
+  }
+
+  async decryptV1(encryptedHex) {
+    const secret = await this._secretKeyAccessor.secureAccessor();
+    const bData = Buffer.from(encryptedHex, 'hex');
+
+    const salt = bData.slice(0, SALT_SIZE);
+    const iv = bData.slice(SALT_SIZE, SALT_SIZE + IV_SIZE);
+    const encrypted = bData.slice(SALT_SIZE + IV_SIZE, bData.length - AUTH_TAG_SIZE);
+    const tag = bData.slice(-AUTH_TAG_SIZE);
+
+    const key = await pbkdf2(secret, salt, PBKDF2_ITERATIONS_COUNT, KEY_SIZE, 'sha512');
+
+    const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
+    decipher.setAuthTag(tag);
+
+    return decipher.update(encrypted, 'binary', 'utf8') + decipher.final('utf8');
+  }
+
+  async decryptV0(encryptedHex) {
+    const secret = await this._secretKeyAccessor.secureAccessor();
+    const key = Buffer.allocUnsafe(16);
+    const iv = Buffer.allocUnsafe(16);
+    const hash = crypto.createHash('sha256');
+
+    const encodedKey = utf8.encode(secret);
+    const ba = hash.update(encodedKey).digest('hex');
+    const salt = Buffer.from(ba, 'hex');
+    salt.copy(key, 0, 0, 16);
+    salt.copy(iv, 0, 16, 32);
+
+    const encryptedBytes = Buffer.from(encryptedHex, 'hex');
+    const decipher = crypto.createDecipheriv('aes-128-cbc', key, iv);
+
+    let decrypted = decipher.update(encryptedBytes);
+    decrypted = Buffer.concat([decrypted, decipher.final()]);
+    return decrypted.toString();
+  }
 }
 
 module.exports.InCrypt = InCrypt;
-module.exports.pad = pad;
-module.exports.unpad = unpad;
