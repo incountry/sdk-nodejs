@@ -164,51 +164,33 @@ describe('Storage', () => {
 
       describe('logger', () => {
         it('should throw an error if provided logger is not object or has no "write" method or is not a function', () => {
-          const expectStorageConstructorThrowsError = (logger) => {
-            expect(() => new Storage(undefined, undefined, logger, undefined))
+          const expectStorageConstructorThrowsError = (wrongLogger) => {
+            expect(() => new Storage(undefined, undefined, wrongLogger, undefined))
               .to.throw(Error, 'Logger must implement write function');
           };
 
-          let wrongLogger = 42;
-          expectStorageConstructorThrowsError(wrongLogger);
-
-          wrongLogger = () => null;
-          expectStorageConstructorThrowsError(wrongLogger);
-
-          wrongLogger = {};
-          expectStorageConstructorThrowsError(wrongLogger);
-
-          wrongLogger = { write: 'write' };
-          expectStorageConstructorThrowsError(wrongLogger);
-
-          wrongLogger = { write: {} };
-          expectStorageConstructorThrowsError(wrongLogger);
+          const wrongLoggers = [42, () => null, {}, { write: 'write' }, { write: {} }];
+          wrongLoggers.map((item) => expectStorageConstructorThrowsError(item));
         });
 
         it('should throw an error if provided logger.write is a function with less than 2 arguments', () => {
-          const expectStorageConstructorThrowsError = (logger) => {
-            expect(() => new Storage(undefined, undefined, logger, undefined))
+          const expectStorageConstructorThrowsError = (wrongLogger) => {
+            expect(() => new Storage(undefined, undefined, wrongLogger, undefined))
               .to.throw(Error, 'Logger.write must have at least 2 parameters');
           };
 
-          const expectStorageConstructorNotThrowsError = (logger) => {
+          const expectStorageConstructorNotThrowsError = (correctLogger) => {
             expect(() => new Storage({
               apiKey: 'string',
               environmentId: 'string',
-            }, undefined, logger, undefined)).not.to.throw();
+            }, undefined, correctLogger, undefined)).not.to.throw();
           };
 
-          let _logger = { write: () => null };
-          expectStorageConstructorThrowsError(_logger);
+          const wrongLoggers = [{ write: () => null }, { write: (a) => a }];
+          wrongLoggers.map((item) => expectStorageConstructorThrowsError(item));
 
-          _logger = { write: (a) => a };
-          expectStorageConstructorThrowsError(_logger);
-
-          _logger = { write: (a, b) => [a, b] };
-          expectStorageConstructorNotThrowsError(_logger);
-
-          _logger = { write: (a, b, c) => [a, b, c] };
-          expectStorageConstructorNotThrowsError(_logger);
+          const correctLoggers = [{ write: (a, b) => [a, b] }, { write: (a, b, c) => [a, b, c] }];
+          correctLoggers.map((item) => expectStorageConstructorNotThrowsError(item));
         });
       });
     });
@@ -232,48 +214,30 @@ describe('Storage', () => {
       });
 
       it('should throw an error if provided logger is not object or has no "write" method or is not a function', () => {
-        const expectSetLoggerThrowsError = (logger) => {
-          expect(() => storage.setLogger(logger))
+        const expectSetLoggerThrowsError = (wrongLogger) => {
+          expect(() => storage.setLogger(wrongLogger))
             .to.throw(Error, 'Logger must implement write function');
         };
 
-        let wrongLogger = 42;
-        expectSetLoggerThrowsError(wrongLogger);
-
-        wrongLogger = () => null;
-        expectSetLoggerThrowsError(wrongLogger);
-
-        wrongLogger = {};
-        expectSetLoggerThrowsError(wrongLogger);
-
-        wrongLogger = { write: 'write' };
-        expectSetLoggerThrowsError(wrongLogger);
-
-        wrongLogger = { write: {} };
-        expectSetLoggerThrowsError(wrongLogger);
+        const wrongLoggers = [42, () => null, {}, { write: 'write' }, { write: {} }];
+        wrongLoggers.map((item) => expectSetLoggerThrowsError(item));
       });
 
       it('should throw an error if provided logger.write is a function with less than 2 arguments', () => {
-        const expectSetLoggerThrowsError = (logger) => {
-          expect(() => storage.setLogger(logger))
+        const expectSetLoggerThrowsError = (wrongLogger) => {
+          expect(() => storage.setLogger(wrongLogger))
             .to.throw(Error, 'Logger.write must have at least 2 parameters');
         };
 
-        const expectSetLoggerNotThrowsError = (logger) => {
-          expect(() => storage.setLogger(logger)).not.to.throw();
+        const expectSetLoggerNotThrowsError = (correctLogger) => {
+          expect(() => storage.setLogger(correctLogger)).not.to.throw();
         };
 
-        let _logger = { write: () => null };
-        expectSetLoggerThrowsError(_logger);
+        const wrongLoggers = [{ write: () => null }, { write: (a) => a }];
+        wrongLoggers.map((item) => expectSetLoggerThrowsError(item));
 
-        _logger = { write: (a) => a };
-        expectSetLoggerThrowsError(_logger);
-
-        _logger = { write: (a, b) => [a, b] };
-        expectSetLoggerNotThrowsError(_logger);
-
-        _logger = { write: (a, b, c) => [a, b, c] };
-        expectSetLoggerNotThrowsError(_logger);
+        const correctLoggers = [{ write: (a, b) => [a, b] }, { write: (a, b, c) => [a, b, c] }];
+        correctLoggers.map((item) => expectSetLoggerNotThrowsError(item));
       });
     });
 
