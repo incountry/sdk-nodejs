@@ -6,7 +6,7 @@ InCountry Storage SDK
 
 Important notes
 ---------------
-We've changed the encryption algorithm since version `0.5.0` so it is not compatible with earlier versions.
+We've changed the encryption algorithm since version `1.0.0` so it is not compatible with earlier versions.
 
 Installation
 -----
@@ -49,25 +49,25 @@ const SecretKeyAccessor = require('incountry/secret-key-accessor');
 // Synchronous accessor
 const secretKeyAccessor = new SecretKeyAccessor(() => {
 	return 'longAndStrongPassword'
-})
+});
 
 // Asynchronous accessor
 const secretKeyAccessor = new SecretKeyAccessor(async () => {
 	const password = await getPasswordFromSomewhere();
 	return password;
-})
+});
 
 // Using promises
 const secretKeyAccessor = new SecretKeyAccessor(() => new Promise((resolve) => {
 	getPasswordFromSomewhere().then(resolve);
-}))
+}));
 ```
 #### Logging
 By default SDK outputs logs into `console` in JSON format. You can override this behavior passing logger object. Logger object must look like the following:
 ```
 const customLogger = {
 	write: (logLevel, message) => {}
-}
+};
 ```
 
 ### Writing data to Storage
@@ -91,13 +91,13 @@ InCountry uses client-side encryption for your data. Note that only body is encr
 Here is how data is transformed and stored in InCountry database:
 ```
 {
-	key, 		// hashed
-	body, 		// encrypted
-	profile_key,// hashed
-	range_key, 	// plain
-	key2, 		// hashed
-	key3 		// hashed
- }
+	key, 		 // hashed
+	body, 		 // encrypted
+	profile_key, // hashed
+	range_key, 	 // plain
+	key2, 		 // hashed
+	key3 		 // hashed
+}
 ```
 ### Reading stored data
 
@@ -116,7 +116,7 @@ Note that `readAsync` returns a `Promise` which is always fulfilled. Use `status
 
 It is possible to search by random keys using `find` method.
 ```
-const records = await storage.find(country, filter, options)
+const records = await storage.find(country, filter, options);
 ```
 Parameters:
 `country` - country code,
@@ -131,7 +131,7 @@ const records = await storage.find('us', {
 }, {
 	limit: 10,
 	offset: 10
-}
+});
 ```
 This call returns all records with `key2` equals `kitty` AND `key3` equals `mew` OR `purr`. The `options` parameter defines the number of records to return and the starting index. It can be used to implement pagination. Note: SDK returns 100 records at most.
 
@@ -172,7 +172,7 @@ You can search by any keys: `key`, `key2`, `key3`, `profile_key`, `range_key`.
 
 If you need to find the first record matching filter, you can use the `findOne` method.
 ```
-const record = await storage.findOne(country, filter)
+const record = await storage.findOne(country, filter);
 ```
 If record not found, it will return `null`.
 
@@ -205,5 +205,5 @@ write(level, message)
 Testing Locally
 -----
 
-1. In terminal run `npm test` for unit tests
+1. In terminal run `npm run test` for unit tests
 2. In terminal run `npm run integrations` to run integration tests
