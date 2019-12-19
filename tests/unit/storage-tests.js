@@ -619,15 +619,28 @@ describe('Storage', () => {
     // TODO: request -> record
 
     describe('findOne', () => {
-      describe('when no results found', () => {
-        const storage = createStorageWithPOPAPIEndpointLoggerAndKeyAccessorNoEnc();
+      let storage;
 
-        it('should return null', async () => {
-          nockPOPAPIEndpoint(POPAPI_URL, 'find', COUNTRY).reply(200);
+      beforeEach(() => {
+        storage = createStorageWithPOPAPIEndpointLoggerAndKeyAccessor();
+      });
 
-          const result = await storage.findOne(COUNTRY, {});
-          expect(result.record).to.equal(null);
-        });
+      it('should return null when no results found', async () => {
+        nockPOPAPIEndpoint(POPAPI_URL, 'find', COUNTRY).reply(200);
+
+        const result = await storage.findOne(COUNTRY, {});
+        expect(result.record).to.equal(null);
+      });
+
+      it('should findOne by key3', async () => {
+        const filter = { key3: TEST_RECORDS[4].key3 };
+        const resultRecords = TEST_RECORDS.filter((rec) => rec.key3 === filter.key3);
+        const encryptedRecords = await Promise.all(resultRecords.map((record) => storage._encryptPayload(record)));
+
+        nockPOPAPIEndpoint(POPAPI_URL, 'find', COUNTRY)
+          .reply(200, { meta: { total: encryptedRecords.length }, data: encryptedRecords });
+        const result = await storage.findOne(COUNTRY, filter);
+        expect(result.record).to.deep.eql(TEST_RECORDS[4]);
       });
     });
 
@@ -876,27 +889,6 @@ describe('Storage', () => {
       expect(result.meta.totalLeft).to.equal(0);
       expect(result.meta.migrated).to.equal(TEST_RECORDS.length);
     });
-
-    it('should findOne by random key', async function () {
-      const filter = { key3: TEST_RECORDS[4].key3 }
-      const options = { limit: 1, offset: 1 }
-      const encryptedRecords = await Promise.all(TEST_RECORDS.map((record) => storage._encryptPayload(record)))
-      nockPOPAPIEndpoint(POPAPI_URL, 'find', COUNTRY)
-        .reply(200, (uri, requestBody) => {
-          const filterKeys = Object.keys(requestBody.filter);
-          const records = encryptedRecords.filter((rec) => {
-            for (let i = 0; i < filterKeys.length; i += 1) {
-              if (rec[filterKeys[i]] !== requestBody.filter[filterKeys[i]]) {
-                return false
-              }
-            }
-            return true
-          })
-          return { meta: { total: records.length }, data: records }
-        });
-      const result = await storage.findOne(COUNTRY, filter, options)
-      expect(result.record).to.eql(TEST_RECORDS[4])
-    })
 
     it('should update one by profile key', function (done) {
       const payload = { profile_key: 'updatedProfileKey' }
