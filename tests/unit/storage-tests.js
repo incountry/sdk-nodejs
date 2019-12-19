@@ -645,46 +645,86 @@ describe('Storage', () => {
     });
 
     describe('updateOne', () => {
-      const popAPIResponse = { success: true };
+      let storage;
+      beforeEach(() => {
+        storage = createStorageWithPOPAPIEndpointLoggerAndKeyAccessor();
+      });
+
+      const preparePOPAPI = async (record) => {
+        const encryptedRecord = await storage._encryptPayload(record);
+        const popAPIFind = nockPOPAPIEndpoint(POPAPI_URL, 'find', COUNTRY)
+          .reply(200, { meta: { total: 1 }, data: [encryptedRecord] });
+        const popAPIWrite = nockPOPAPIEndpoint(POPAPI_URL, 'write', COUNTRY).reply(200);
+        return [popAPIFind, popAPIWrite];
+      };
 
       describe('should validate arguments', () => {
-        let storage;
-        beforeEach(() => {
-          storage = createDefaultStorageWithLogger();
-        });
-
         describe('when country is not a string', () => {
           it('should throw an error', async () => {
-            await expect(storage.updateOne()).to.be.rejectedWith(Error, 'Missing country');
-            await expect(storage.updateOne(null)).to.be.rejectedWith(Error, 'Missing country');
-            await expect(storage.updateOne(1)).to.be.rejectedWith(Error, 'Missing country');
-            await expect(storage.updateOne({})).to.be.rejectedWith(Error, 'Missing country');
-            await expect(storage.updateOne([])).to.be.rejectedWith(Error, 'Missing country');
+            const wrongCountries = [undefined, null, 1, {}, []];
+            await Promise.all(wrongCountries.map((country) => expect(storage.updateOne(country))
+              .to.be.rejectedWith(Error, 'Missing country')));
           });
         });
       });
 
       describe('when override enabled', () => {
-        const storage = createStorageWithPOPAPIEndpointLoggerAndKeyAccessorNoEnc();
+        it('should simply write record when the key is specified', async () => {
+          const record = TEST_RECORDS[1];
+          const [popAPIFind, popAPIWrite] = await preparePOPAPI(record);
 
-        it.skip('should simply write record', (done) => {
-          const request = {
-            country: COUNTRY,
-            key: uuid(),
-            version: 0,
-            body: 'test',
-          };
+          await storage.updateOne(COUNTRY, {}, record, { override: true });
+          assert.equal(popAPIWrite.isDone(), true, 'write() called');
+          assert.equal(popAPIFind.isDone(), false, 'find() not called');
+        });
 
-          const popAPI = nockPOPAPIEndpoint(POPAPI_URL, 'update', COUNTRY)
-            .reply(200, popAPIResponse);
+        it('should find record and then write it when the key is not specified', async () => {
+          const record = TEST_RECORDS[2];
+          const payload = _.omit(record, 'key');
+          const [popAPIFind, popAPIWrite] = await preparePOPAPI(record);
 
-          popAPI.on('request', async (req, interceptor, reqBody) => {
-            const bodyObj = JSON.parse(reqBody);
-            expect(bodyObj.body).to.equal(request.body);
-            done();
-          });
+          await storage.updateOne(COUNTRY, payload, payload, { override: true });
+          assert.equal(popAPIWrite.isDone(), true, 'write() called');
+          assert.equal(popAPIFind.isDone(), true, 'find() called');
+        });
+      });
 
-          storage.updateOne(COUNTRY, {}, request, { override: true });
+      describe('when override disabled', () => {
+        it('should find record and then write it', async () => {
+          const record = TEST_RECORDS[1];
+          const [popAPIFind, popAPIWrite] = await preparePOPAPI(record);
+
+          await storage.updateOne(COUNTRY, record, record);
+          assert.equal(popAPIWrite.isDone(), true, 'write() called');
+          assert.equal(popAPIFind.isDone(), true, 'find() called');
+        });
+
+        it('should update one by profile key', async () => {
+          const record = TEST_RECORDS[4];
+          const filter = { profile_key: record.profile_key };
+          const hashedFilter = { profile_key: storage.createKeyHash(filter.profile_key) };
+          const [popAPIFind, popAPIWrite] = await preparePOPAPI(record);
+
+          const [bodyObj] = await Promise.all([getNockedRequestBodyObject(popAPIFind), storage.updateOne(COUNTRY, filter, record)]);
+          expect(bodyObj.filter).to.deep.equal(hashedFilter);
+          assert.equal(popAPIWrite.isDone(), true, 'write() called');
+          assert.equal(popAPIFind.isDone(), true, 'find() called');
+        });
+      });
+
+      describe('errors handling', () => {
+        it('should reject if too many records found', async () => {
+          const popAPIFind = nockPOPAPIEndpoint(POPAPI_URL, 'find', COUNTRY)
+            .reply(200, { meta: { total: 2 }, data: [] });
+          await expect(storage.updateOne(COUNTRY, {}, {})).to.be.rejectedWith(Error, 'Multiple records found');
+          assert.equal(popAPIFind.isDone(), true, 'find() called');
+        });
+
+        it('should reject if no records found', async () => {
+          const popAPIFind = nockPOPAPIEndpoint(POPAPI_URL, 'find', COUNTRY)
+            .reply(200, { meta: { total: 0 }, data: [] });
+          await expect(storage.updateOne(COUNTRY, {}, {})).to.be.rejectedWith(Error, 'Record not found');
+          assert.equal(popAPIFind.isDone(), true, 'find() called');
         });
       });
     });
@@ -889,45 +929,6 @@ describe('Storage', () => {
       expect(result.meta.totalLeft).to.equal(0);
       expect(result.meta.migrated).to.equal(TEST_RECORDS.length);
     });
-
-    it('should update one by profile key', function (done) {
-      const payload = { profile_key: 'updatedProfileKey' }
-      storage._encryptPayload(TEST_RECORDS[4]).then((encrypted) => {
-        nockPOPAPIEndpoint(POPAPI_URL, 'find', COUNTRY)
-          .reply(200, { data: [encrypted], meta: { total: 1 } });
-        const writeNock = nockPOPAPIEndpoint(POPAPI_URL, 'write', COUNTRY)
-          .reply(200, { data: [encrypted], meta: { total: 1 } });
-        writeNock.on('request', (req, interceptor, body) => {
-          const expectedPlain = {
-            ...TEST_RECORDS[4],
-            ...payload,
-          }
-          storage._decryptPayload(JSON.parse(body)).then((decrypted) => {
-            try {
-              expect(decrypted).to.eql(expectedPlain)
-              done()
-            } catch (e) {
-              done(e)
-            }
-          })
-        })
-        storage.updateOne(COUNTRY, { profileKey: TEST_RECORDS[4].profileKey }, payload)
-      })
-    })
-    context('exceptions', function () {
-      context('updateOne', function () {
-        it('should reject if too many records found', function (done) {
-          nockPOPAPIEndpoint(POPAPI_URL, 'find', COUNTRY)
-            .reply(200, { data: [], meta: { total: 2 } });
-          storage.updateOne(COUNTRY, {}, {}).then(() => done('Should reject')).catch(() => done())
-        })
-        it('should reject if no records found', function (done) {
-          nockPOPAPIEndpoint(POPAPI_URL, 'find', COUNTRY)
-            .reply(200, { data: [], meta: { total: 0 } });
-          storage.updateOne(COUNTRY, {}, {}).then(() => done('Should reject')).catch(() => done())
-        })
-      })
-    })
   });
 
   describe('should set correct headers for requests', function () {
