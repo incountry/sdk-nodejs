@@ -271,9 +271,10 @@ describe('Storage', () => {
             const record = { country: COUNTRY, key: uuid(), body: 'test' };
             const hashedKey = await noEncStorage.createKeyHash(record.key);
 
-            const [bodyObj] = await Promise.all([getNockedRequestBodyObject(popAPI), noEncStorage.writeAsync(record)]);
+            const [bodyObj, result] = await Promise.all([getNockedRequestBodyObject(popAPI), noEncStorage.writeAsync(record)]);
             expect(bodyObj.key).to.equal(hashedKey);
             expect(bodyObj.body).to.match(/^pt:.+/);
+            expect(result.record).to.deep.equal(record);
           });
         });
 
@@ -282,25 +283,13 @@ describe('Storage', () => {
             context(`with test case ${idx}`, () => {
               it('should encrypt a record', async () => {
                 const encrypted = await encStorage._encryptPayload(testCase);
-                const [bodyObj] = await Promise.all([getNockedRequestBodyObject(popAPI), encStorage.writeAsync(testCase)]);
+                const [bodyObj, result] = await Promise.all([getNockedRequestBodyObject(popAPI), encStorage.writeAsync(testCase)]);
                 expect(_.omit(bodyObj, ['body'])).to.deep.equal(_.omit(encrypted, ['body']));
                 expect(bodyObj.body).to.match(/^2:.+/);
+                expect(result.record).to.deep.equal(testCase);
               });
             });
           });
-        });
-      });
-
-      // TODO: check return value
-
-      describe('in case of network error', () => {
-        it('should throw an error', async () => {
-          nock.cleanAll();
-          const scope = nockEndpoint(POPAPI_URL, 'write', COUNTRY)
-            .replyWithError(REQUEST_TIMEOUT_ERROR);
-
-          await expect(encStorage.writeAsync(TEST_RECORDS[0])).to.be.rejectedWith(StorageServerError);
-          assert.equal(scope.isDone(), true, 'Nock scope is done');
         });
       });
     });
@@ -337,31 +326,6 @@ describe('Storage', () => {
           });
         });
       });
-
-      // TODO: check return value
-
-      describe('errors handling', () => {
-        const record = { country: COUNTRY, key: 'invalid' };
-        const errorCases = [{
-          name: 'when record not found',
-          respond: (popAPI) => popAPI.reply(404),
-        }, {
-          name: 'in case of server error',
-          respond: (popAPI) => popAPI.reply(500),
-        }, {
-          name: 'in case of network error',
-          respond: (popAPI) => popAPI.replyWithError(REQUEST_TIMEOUT_ERROR),
-        }];
-
-        errorCases.forEach((errCase) => {
-          it(`should throw an error ${errCase.name}`, async () => {
-            const scope = errCase.respond(nockEndpoint(POPAPI_URL, 'read', COUNTRY, encStorage.createKeyHash(record.key)));
-
-            await expect(encStorage.readAsync(record)).to.be.rejectedWith(StorageServerError);
-            assert.equal(scope.isDone(), true, 'Nock scope is done');
-          });
-        });
-      });
     });
 
     describe('deleteAsync', () => {
@@ -387,15 +351,14 @@ describe('Storage', () => {
               const encryptedPayload = await encStorage._encryptPayload(testCase);
               const popAPI = nockEndpoint(POPAPI_URL, 'delete', COUNTRY, encryptedPayload.key).reply(200);
 
-              await encStorage.deleteAsync(testCase);
+              const result = await encStorage.deleteAsync(testCase);
+              expect(result).to.deep.equal({ success: true });
               assert.equal(popAPI.isDone(), true, 'nock is done');
             });
           });
         });
       });
 
-      // TODO: check return value
-      // TODO: replace with _apiClient test
       describe('errors handling', () => {
         const record = { country: COUNTRY, key: 'invalid' };
         const errorCases = [{
@@ -493,8 +456,6 @@ describe('Storage', () => {
         });
       });
     });
-
-    // TODO: request -> record
 
     describe('findOne', () => {
       it('should return null when no results found', async () => {
