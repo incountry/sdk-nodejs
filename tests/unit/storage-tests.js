@@ -737,6 +737,30 @@ describe('Storage', () => {
           await expect(storage.migrate(COUNTRY, 10)).to.be.rejectedWith(Error, 'Migration not supported when encryption is off');
         });
       });
+
+      describe('when encryption enabled', () => {
+        it('should migrate data from old secret to new', async () => {
+          const storage = createStorageWithPOPAPIEndpointLoggerAndKeyAccessor();
+          const encryptedRecords = await Promise.all(TEST_RECORDS.map((record) => storage._encryptPayload(record)));
+          const findResponse = { meta: { total: encryptedRecords.length, count: encryptedRecords.length }, data: encryptedRecords };
+          const migrateResult = { meta: { migrated: encryptedRecords.length, totalLeft: 0 } };
+
+          const oldSecret = { secret: SECRET_KEY, version: 0 };
+          const newSecret = { secret: 'newnew', version: 1 };
+          storage.setSecretKeyAccessor(new SecretKeyAccessor(() => ({
+            secrets: [oldSecret, newSecret],
+            currentVersion: newSecret.version,
+          })));
+
+          const popAPIFind = nockPOPAPIEndpoint(POPAPI_URL, 'find', COUNTRY).reply(200, findResponse);
+          const popAPIBatchWrite = nockPOPAPIEndpoint(POPAPI_URL, 'batchWrite', COUNTRY).reply(200);
+
+          const result = await storage.migrate(COUNTRY, TEST_RECORDS.length);
+          expect(result).to.deep.equal(migrateResult);
+          assert.equal(popAPIFind.isDone(), true, 'find() called');
+          assert.equal(popAPIBatchWrite.isDone(), true, 'batchWrite() called');
+        });
+      });
     });
 
     describe('batchWrite', () => {
@@ -892,42 +916,6 @@ describe('Storage', () => {
 
         done();
       });
-    });
-
-    it('should migrate data from old secret to new', async function () {
-      this.timeout(3000);
-
-      const encryptedRecords = await Promise.all(TEST_RECORDS.map((record) => storage._encryptPayload(record)));
-
-      const oldSecret = { secret: SECRET_KEY, version: 0 };
-      const newSecret = { secret: 'newnew', version: 1 };
-      storage.setSecretKeyAccessor(new SecretKeyAccessor(() => ({
-        secrets: [oldSecret, newSecret],
-        currentVersion: newSecret.version,
-      })));
-
-      nockPOPAPIEndpoint(POPAPI_URL, 'find', COUNTRY)
-        .reply(200, () => ({
-          meta: {
-            total: encryptedRecords.length,
-            count: encryptedRecords.length,
-          },
-          data: encryptedRecords,
-        }));
-
-      nockPOPAPIEndpoint(POPAPI_URL, 'batchWrite', COUNTRY)
-        .reply(200, (uri, body) => {
-          expect(body.records.length).to.equal(encryptedRecords.length);
-          body.records.forEach((rec, index) => {
-            expect(_.omit(rec, ['body', 'version'])).to.deep.equal(_.omit(encryptedRecords[index], ['body', 'version']));
-            expect(rec.body).to.not.equal(encryptedRecords[index].body);
-            expect(rec.version).to.not.equal(encryptedRecords[index].version);
-          });
-        });
-
-      const result = await storage.migrate(COUNTRY, TEST_RECORDS.length);
-      expect(result.meta.totalLeft).to.equal(0);
-      expect(result.meta.migrated).to.equal(TEST_RECORDS.length);
     });
   });
 
