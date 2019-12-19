@@ -550,6 +550,7 @@ describe('Storage', () => {
 
         describe('when options.limit is not positive integer or greater than MAX_LIMIT', () => {
           it('should throw an error', async () => {
+            // TODO: nock portal-backend
             nockPOPAPIEndpoint(POPAPI_URL, 'find', COUNTRY, 'test').reply(200);
 
             const nonPositiveLimits = [-123, 123.124, 'sdsd'];
@@ -573,11 +574,11 @@ describe('Storage', () => {
             .times(2)
             .reply(200);
 
-          let bodyObj = await Promise.all([getNockedRequestBodyObject(popAPI), storageEnc.find(COUNTRY, filter)]);
-          expect(bodyObj[0].filter).to.deep.equal(hashedFilter);
+          let [bodyObj] = await Promise.all([getNockedRequestBodyObject(popAPI), storageEnc.find(COUNTRY, filter)]);
+          expect(bodyObj.filter).to.deep.equal(hashedFilter);
 
-          bodyObj = await Promise.all([getNockedRequestBodyObject(popAPI), storageNonEnc.find(COUNTRY, filter)]);
-          expect(bodyObj[0].filter).to.deep.equal(hashedFilter);
+          [bodyObj] = await Promise.all([getNockedRequestBodyObject(popAPI), storageNonEnc.find(COUNTRY, filter)]);
+          expect(bodyObj.filter).to.deep.equal(hashedFilter);
 
           assert.equal(popAPI.isDone(), true, 'nock is done');
         });
@@ -766,27 +767,52 @@ describe('Storage', () => {
     describe('batchWrite', () => {
       describe('should validate records', () => {
         let storage;
-        beforeEach(() => {
-          storage = createDefaultStorageWithLogger();
+        const errorCases = [{
+          name: 'when the records is empty array',
+          arg: [],
+          error: 'You must pass non-empty array',
+        }, {
+          name: 'when the record has no country field',
+          arg: [{}],
+          error: 'Missing country',
+        }, {
+          name: 'when the record has no key field',
+          arg: [{ country: COUNTRY }],
+          error: 'Missing key',
+        }];
 
+        beforeEach(() => {
+          storage = createStorageWithPOPAPIEndpointLoggerAndKeyAccessor();
           nockPOPAPIEndpoint(POPAPI_URL, 'batchWrite', COUNTRY).reply(200);
         });
 
-        describe('when the records is empty array', () => {
-          it('should throw an error', async () => {
-            await expect(storage.batchWrite(COUNTRY, [])).to.be.rejectedWith(Error, 'You must pass non-empty array');
+        errorCases.forEach((errCase) => {
+          it(`should throw an error ${errCase.name}`, async () => {
+            await expect(storage.batchWrite(COUNTRY, errCase.arg)).to.be.rejectedWith(Error, errCase.error);
+          });
+        });
+      });
+
+      describe('encryption', () => {
+        describe('when enabled', () => {
+          it('should batch write encrypted records', async () => {
+            const storage = createStorageWithPOPAPIEndpointLoggerAndKeyAccessor();
+            const popAPI = nockPOPAPIEndpoint(POPAPI_URL, 'batchWrite', COUNTRY).reply(200);
+
+            const [bodyObj] = await Promise.all([getNockedRequestBodyObject(popAPI), storage.batchWrite(COUNTRY, TEST_RECORDS)]);
+            const decryptedRecords = await Promise.all(bodyObj.records.map((encRecord) => storage._decryptPayload(encRecord)));
+            expect(decryptedRecords).to.deep.equal(TEST_RECORDS);
           });
         });
 
-        describe('when the record has no country field', () => {
-          it('should throw an error', async () => {
-            await expect(storage.batchWrite(COUNTRY, [{}])).to.be.rejectedWith(Error, 'Missing country');
-          });
-        });
+        describe('when disabled', () => {
+          it('should batch write encoded records', async () => {
+            const storage = createStorageWithPOPAPIEndpointLoggerAndKeyAccessorNoEnc();
+            const popAPI = nockPOPAPIEndpoint(POPAPI_URL, 'batchWrite', COUNTRY).reply(200);
 
-        describe('when the record has no key field', () => {
-          it('should throw an error', async () => {
-            await expect(storage.batchWrite(COUNTRY, [{ country: COUNTRY }])).to.be.rejectedWith(Error, 'Missing key');
+            const [bodyObj] = await Promise.all([getNockedRequestBodyObject(popAPI), storage.batchWrite(COUNTRY, TEST_RECORDS)]);
+            const decryptedRecords = await Promise.all(bodyObj.records.map((encRecord) => storage._decryptPayload(encRecord)));
+            expect(decryptedRecords).to.deep.equal(TEST_RECORDS);
           });
         });
       });
@@ -886,35 +912,6 @@ describe('Storage', () => {
           const country = 'ae';
           await expectCorrectURLReturned(storage, country, POPAPI_URL);
         });
-      });
-    });
-  });
-
-  describe('should work correctly', function () {
-    /** @type {import('../../storage')} */
-    let storage;
-    beforeEach(function () {
-      storage = new Storage({
-        apiKey: 'string',
-        environmentId: 'string',
-        endpoint: POPAPI_URL,
-      },
-        new SecretKeyAccessor(() => SECRET_KEY)
-      )
-    });
-
-    it('should batch write', function (done) {
-      const scope = nockPOPAPIEndpoint(POPAPI_URL, 'batchWrite', COUNTRY).reply(200);
-      storage.batchWrite(COUNTRY, TEST_RECORDS);
-      scope.on('request', function (req, interceptor, body) {
-        const bodyObj = JSON.parse(body);
-        bodyObj.records.forEach((encRecord, index) => {
-          const testRecord = TEST_RECORDS[index];
-          expect(encRecord).to.include.all.keys(Object.keys(testRecord));
-          expect(encRecord).not.to.deep.equal(testRecord);
-        });
-
-        done();
       });
     });
   });
