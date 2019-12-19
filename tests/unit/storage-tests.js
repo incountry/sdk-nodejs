@@ -116,6 +116,29 @@ describe('Storage', () => {
       endpoint: POPAPI_URL,
     }, new SecretKeyAccessor(() => SECRET_KEY), LOGGER_STUB);
 
+    const shouldValidateRecord = (method) => {
+      describe('should validate record', () => {
+        let storage;
+        beforeEach(() => {
+          storage = createStorageWithPOPAPIEndpointLoggerAndKeyAccessor();
+        });
+
+        describe('when the record has no country field', () => {
+          it('should throw an error', async () => {
+            const record = {};
+            await expect(storage[method](record)).to.be.rejectedWith(Error, 'Missing country');
+          });
+        });
+
+        describe('when the record has no key field', () => {
+          it('should throw an error', async () => {
+            const record = { country: '123' };
+            await expect(storage[method](record)).to.be.rejectedWith(Error, 'Missing key');
+          });
+        });
+      });
+    };
+
     beforeEach(() => {
       nock.disableNetConnect();
     });
@@ -274,26 +297,7 @@ describe('Storage', () => {
     });
 
     describe('writeAsync', () => {
-      describe('should validate request', () => {
-        let storage;
-        beforeEach(() => {
-          storage = createStorageWithPOPAPIEndpointLoggerAndKeyAccessor();
-        });
-
-        describe('when the request has no country field', () => {
-          it('should throw an error', async () => {
-            const request = {};
-            await expect(storage.writeAsync(request)).to.be.rejectedWith(Error, 'Missing country');
-          });
-        });
-
-        describe('when the request has no key field', () => {
-          it('should throw an error', async () => {
-            const request = { country: '123' };
-            await expect(storage.writeAsync(request)).to.be.rejectedWith(Error, 'Missing key');
-          });
-        });
-      });
+      shouldValidateRecord('writeAsync');
 
       describe('encryption', () => {
         let popAPI;
@@ -351,27 +355,7 @@ describe('Storage', () => {
     });
 
     describe('readAsync', () => {
-      describe('should validate request', () => {
-        let storage;
-        beforeEach(() => {
-          storage = createStorageWithPOPAPIEndpointLoggerAndKeyAccessor();
-          nockPOPAPIEndpoint(POPAPI_URL, 'read', COUNTRY).reply(200);
-        });
-
-        describe('when the request has no country field', () => {
-          it('should throw an error', async () => {
-            const request = {};
-            await expect(storage.readAsync(request)).to.be.rejectedWith(Error, 'Missing country');
-          });
-        });
-
-        describe('when the request has no key field', () => {
-          it('should throw an error', async () => {
-            const request = { country: '123' };
-            await expect(storage.readAsync(request)).to.be.rejectedWith(Error, 'Missing key');
-          });
-        });
-      });
+      shouldValidateRecord('readAsync');
 
       describe('encryption', () => {
         describe('when enabled', () => {
@@ -440,26 +424,7 @@ describe('Storage', () => {
     });
 
     describe('deleteAsync', () => {
-      describe('should validate request', () => {
-        let storage;
-        beforeEach(() => {
-          storage = createStorageWithPOPAPIEndpointLoggerAndKeyAccessor();
-        });
-
-        describe('when the request has no country field', () => {
-          it('should throw an error', async () => {
-            const request = {};
-            await expect(storage.deleteAsync(request)).to.be.rejectedWith(Error, 'Missing country');
-          });
-        });
-
-        describe('when the request has no key field', () => {
-          it('should throw an error', async () => {
-            const request = { country: '123' };
-            await expect(storage.deleteAsync(request)).to.be.rejectedWith(Error, 'Missing key');
-          });
-        });
-      });
+      shouldValidateRecord('deleteAsync');
 
       describe('encryption', () => {
         const record = { country: COUNTRY, key: 'test' };
