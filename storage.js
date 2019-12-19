@@ -6,7 +6,8 @@ const defaultLogger = require('./logger');
 const CountriesCache = require('./countries-cache');
 const SecretKeyAccessor = require('./secret-key-accessor');
 const { InCrypt } = require('./in-crypt');
-const { PositiveInt } = require('./utils');
+const { PositiveInt, parsePoPError } = require('./utils');
+const { ERROR_NAMES } = require('./constants');
 
 /**
  * @typedef Record
@@ -95,11 +96,21 @@ class Storage {
   }
 
   _validate(request) {
-    if (!request.country) throw new Error('Missing country');
-    if (!request.key) throw new Error('Missing key');
+    if (!request.country) {
+      const e = new Error('Missing country');
+      e.name = ERROR_NAMES.VALIDATION_ERROR;
+      throw e
+    }
+
+    if (!request.key) {
+      const e = new Error('Missing country');
+      e.name = ERROR_NAMES.VALIDATION_ERROR;
+      throw e
+    };
   }
 
   async writeAsync(request) {
+    let endpoint;
     try {
       this._validate(request);
 
@@ -116,9 +127,15 @@ class Storage {
       if (request.key2) data.key2 = request.key2;
       if (request.key3) data.key3 = request.key3;
 
-      const endpoint = await this._getEndpointAsync(countrycode, `v2/storage/records/${countrycode}`);
+      endpoint = await this._getEndpointAsync(countrycode, `v2/storage/records/${countrycode}`);
 
-      this._logger.write('debug', `POST to: ${endpoint}`);
+      this._logger.write('debug', `Sending POST to: ${endpoint}`, {
+        endpoint,
+        country: countrycode,
+        op_result: 'in_progress',
+        key: request.key,
+        operation: 'Write to PoP',
+      });
 
       data = await this._encryptPayload(data);
 
@@ -129,11 +146,35 @@ class Storage {
         url: endpoint,
         headers: this.headers(),
         data,
+      }).catch((e) => {
+        e.name = ERROR_NAMES.POP_ERROR;
+        return Promise.reject(e);
+      });
+
+      this._logger.write('debug', `Finished POST to: ${endpoint}`, {
+        endpoint,
+        country: countrycode,
+        op_result: 'success',
+        responseHeaders: response.headers,
+        requestHeaders: response.config.headers,
+        key: request.key,
+        operation: 'Write to PoP',
       });
 
       return response;
     } catch (err) {
-      this._logger.write('error', err);
+      const popError = parsePoPError(err);
+      this._logger.write('error', err, {
+        endpoint,
+        country: request.country,
+        op_result: 'error',
+        key: request.key,
+        requestHeaders: err.config.headers,
+        responseHeaders: err.response.headers,
+        operation: 'Write to PoP',
+        message: popError || err.message,
+      });
+
       throw (err);
     }
   }
