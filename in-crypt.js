@@ -31,14 +31,13 @@ class InCrypt {
     if (this._secretKeyAccessor === null) {
       return {
         message: `${PT_VERSION}:${Buffer.from(text).toString('base64')}`,
-        secretVersion: SecretKeyAccessor.DEFAULT_VERSION
+        secretVersion: SecretKeyAccessor.DEFAULT_VERSION,
       };
     }
 
-    const { secret, version } = await this._secretKeyAccessor.getSecret();
     const iv = crypto.randomBytes(IV_SIZE);
     const salt = crypto.randomBytes(SALT_SIZE);
-    const key = await pbkdf2(secret, salt, PBKDF2_ITERATIONS_COUNT, KEY_SIZE, 'sha512');
+    const { key, version } = await this._getEncryptionKey(salt);
 
     const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
     const encrypted = Buffer.concat([cipher.update(text, 'utf8'), cipher.final()]);
@@ -71,14 +70,8 @@ class InCrypt {
       return this.decryptStub(encrypted);
     }
 
-    let secret = null;
-    if (this._secretKeyAccessor) {
-      const secretData = await this._secretKeyAccessor.getSecret(secretVersion);
-      secret = secretData.secret;
-    }
-
     const decrypt = this[`decryptV${version}`].bind(this);
-    return decrypt(encrypted, secret);
+    return decrypt(encrypted, secretVersion);
   }
 
   decryptStub(encrypted) {
@@ -91,9 +84,9 @@ class InCrypt {
 
   /**
    * @param {string} encryptedBase64
-   * @param {string} secret
+   * @param {number} secretVersion
    */
-  async decryptV2(encryptedBase64, secret) {
+  async decryptV2(encryptedBase64, secretVersion) {
     const bData = Buffer.from(encryptedBase64, 'base64');
 
     const salt = bData.slice(0, SALT_SIZE);
@@ -101,7 +94,7 @@ class InCrypt {
     const encrypted = bData.slice(SALT_SIZE + IV_SIZE, bData.length - AUTH_TAG_SIZE);
     const tag = bData.slice(-AUTH_TAG_SIZE);
 
-    const key = await pbkdf2(secret, salt, PBKDF2_ITERATIONS_COUNT, KEY_SIZE, 'sha512');
+    const { key } = await this._getEncryptionKey(salt, secretVersion);
 
     const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
     decipher.setAuthTag(tag);
@@ -111,9 +104,9 @@ class InCrypt {
 
   /**
    * @param {string} encryptedHex
-   * @param {string} secret
+   * @param {number} secretVersion
    */
-  async decryptV1(encryptedHex, secret) {
+  async decryptV1(encryptedHex, secretVersion) {
     const bData = Buffer.from(encryptedHex, 'hex');
 
     const salt = bData.slice(0, SALT_SIZE);
@@ -121,7 +114,7 @@ class InCrypt {
     const encrypted = bData.slice(SALT_SIZE + IV_SIZE, bData.length - AUTH_TAG_SIZE);
     const tag = bData.slice(-AUTH_TAG_SIZE);
 
-    const key = await pbkdf2(secret, salt, PBKDF2_ITERATIONS_COUNT, KEY_SIZE, 'sha512');
+    const { key } = await this._getEncryptionKey(salt, secretVersion);
 
     const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
     decipher.setAuthTag(tag);
@@ -131,9 +124,10 @@ class InCrypt {
 
   /**
    * @param {string} encryptedHex
-   * @param {string} secret
+   * @param {number} secretVersion
    */
-  async decryptV0(encryptedHex, secret) {
+  async decryptV0(encryptedHex, secretVersion) {
+    const { secret } = await this._secretKeyAccessor.getSecret(secretVersion);
     const key = Buffer.allocUnsafe(16);
     const iv = Buffer.allocUnsafe(16);
     const hash = crypto.createHash('sha256');
@@ -150,6 +144,16 @@ class InCrypt {
     let decrypted = decipher.update(encryptedBytes);
     decrypted = Buffer.concat([decrypted, decipher.final()]);
     return decrypted.toString();
+  }
+
+  async _getEncryptionKey(salt, secretVersion = undefined) {
+    if (!this._secretKeyAccessor) {
+      return { key: null, version: null };
+    }
+    const { secret, isKey, version } = await this._secretKeyAccessor.getSecret(secretVersion);
+
+    const key = isKey ? secret : (await pbkdf2(secret, salt, PBKDF2_ITERATIONS_COUNT, KEY_SIZE, 'sha512'));
+    return { key, version };
   }
 }
 

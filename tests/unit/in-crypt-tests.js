@@ -96,6 +96,24 @@ describe('InCrypt', function () {
     });
   });
 
+  context('when custom encryption key used', () => {
+    const encryptionKeyHex = '2630104a4acfc5f8dca906be79acde7b5db9d95cfe4d9f794c8e62252854b374';
+    const encryptionKey = Buffer.from(encryptionKeyHex, 'hex').toString('ascii');
+    const secretKeyAccessor = new SecretKeyAccessor(() => ({
+      secrets: [{ version: 0, secret: encryptionKey, isKey: true }], currentVersion: 0,
+    }));
+
+    PLAINTEXTS.forEach((plain) => {
+      it(`should encrypt and decrypt text: ${plain}`, async function () {
+        const incrypt = new InCrypt(secretKeyAccessor);
+        const { message: encrypted, keyVersion } = await incrypt.encryptAsync(plain);
+        const decrypted = await incrypt.decryptAsync(encrypted, keyVersion);
+        expect(encrypted).not.to.eql(plain);
+        expect(decrypted).to.eql(plain);
+      });
+    });
+  });
+
   it('should return current secret version', async function () {
     const version = 12345;
 

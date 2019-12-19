@@ -25,68 +25,68 @@ describe('Find records', function () {
 
   it.skip('C1913 Find records by country', async function () {
     // FIXME please make sure the tests are conducted using clean database/only records created during tests (for now)
-    const findResponse = await storage.find(dataRequest.country, {}, {});
+    const { records, meta } = await storage.find(dataRequest.country, {}, {});
 
-    expect(findResponse.data).to.have.lengthOf.above(0);
+    expect(records).to.have.lengthOf.above(0);
 
-    expect(findResponse.meta).to.have.all.keys('count', 'limit', 'offset', 'total');
-    expect(findResponse.meta.offset).to.equal(0);
-    expect(findResponse.meta.limit).to.equal(100);
+    expect(meta).to.have.all.keys('count', 'limit', 'offset', 'total');
+    expect(meta.offset).to.equal(0);
+    expect(meta.limit).to.equal(100);
   });
 
   it('C1926 Find records by key', async function () {
-    const findResponse = await storage.find(dataRequest.country, { key: dataRequest.key }, {});
+    const { records, meta } = await storage.find(dataRequest.country, { key: dataRequest.key }, {});
 
-    expect(findResponse.data).to.have.lengthOf(1);
-    expect(findResponse.data[0].key).to.equal(dataRequest.key);
-    expect(findResponse.data[0].body).to.equal(dataRequest.body);
+    expect(records).to.have.lengthOf(1);
+    expect(records[0].key).to.equal(dataRequest.key);
+    expect(records[0].body).to.equal(dataRequest.body);
 
-    expect(findResponse.meta).to.have.all.keys('count', 'limit', 'offset', 'total');
-    expect(findResponse.meta.count).to.equal(1);
-    expect(findResponse.meta.total).to.equal(1);
-    expect(findResponse.meta.offset).to.equal(0);
-    expect(findResponse.meta.limit).to.equal(100);
+    expect(meta).to.have.all.keys('count', 'limit', 'offset', 'total');
+    expect(meta.count).to.equal(1);
+    expect(meta.total).to.equal(1);
+    expect(meta.offset).to.equal(0);
+    expect(meta.limit).to.equal(100);
   });
 
   it('C19493 Find records by key2', async function () {
-    const findResponse = await storage.find(dataRequest.country, { key2: dataRequest.key2 }, {});
+    const { records, meta } = await storage.find(dataRequest.country, { key2: dataRequest.key2 }, {});
 
-    expect(findResponse.data).to.have.lengthOf(1);
-    expect(findResponse.data[0].key).to.equal(dataRequest.key);
-    expect(findResponse.data[0].key2).to.equal(dataRequest.key2);
-    expect(findResponse.data[0].body).to.equal(dataRequest.body);
+    expect(records).to.have.lengthOf(1);
+    expect(records[0].key).to.equal(dataRequest.key);
+    expect(records[0].key2).to.equal(dataRequest.key2);
+    expect(records[0].body).to.equal(dataRequest.body);
 
-    expect(findResponse.meta).to.have.all.keys('count', 'limit', 'offset', 'total');
-    expect(findResponse.meta.count).to.equal(1);
-    expect(findResponse.meta.total).to.equal(1);
-    expect(findResponse.meta.offset).to.equal(0);
-    expect(findResponse.meta.limit).to.equal(100);
+    expect(meta).to.have.all.keys('count', 'limit', 'offset', 'total');
+    expect(meta.count).to.equal(1);
+    expect(meta.total).to.equal(1);
+    expect(meta.offset).to.equal(0);
+    expect(meta.limit).to.equal(100);
   });
 
   it('C19494 Find records by key3', async function () {
-    const findResponse = await storage.find(dataRequest.country, { key3: dataRequest.key3 }, {});
+    const { records, meta } = await storage.find(dataRequest.country, { key3: dataRequest.key3 }, {});
 
-    expect(findResponse.data).to.have.lengthOf(1);
-    expect(findResponse.data[0].key3).to.equal(dataRequest.key3);
+    expect(records).to.have.lengthOf(1);
+    expect(records[0].key3).to.equal(dataRequest.key3);
 
-    expect(findResponse.meta).to.have.all.keys('count', 'limit', 'offset', 'total');
-    expect(findResponse.meta.count).to.equal(1);
-    expect(findResponse.meta.total).to.equal(1);
-    expect(findResponse.meta.offset).to.equal(0);
-    expect(findResponse.meta.limit).to.equal(100);
+    expect(meta).to.have.all.keys('count', 'limit', 'offset', 'total');
+    expect(meta.count).to.equal(1);
+    expect(meta.total).to.equal(1);
+    expect(meta.offset).to.equal(0);
+    expect(meta.limit).to.equal(100);
   });
 
-  it('C19495 Find records by profile_key', async function () {
-    const findResponse = await storage.find(dataRequest.country, { profile_key: dataRequest.profile_key }, {});
+  it.skip('C19495 Find records by profile_key', async function () {
+    const { records, meta } = await storage.find(dataRequest.country, { profile_key: dataRequest.profile_key }, {});
 
-    expect(findResponse.data).to.have.lengthOf(1);
-    expect(findResponse.data[0].profile_key).to.equal(dataRequest.profile_key);
+    expect(records).to.have.lengthOf(1);
+    expect(records[0].profile_key).to.equal(dataRequest.profile_key);
 
-    expect(findResponse.meta).to.have.all.keys('count', 'limit', 'offset', 'total');
-    expect(findResponse.meta.count).to.equal(1);
-    expect(findResponse.meta.total).to.equal(1);
-    expect(findResponse.meta.offset).to.equal(0);
-    expect(findResponse.meta.limit).to.equal(100);
+    expect(meta).to.have.all.keys('count', 'limit', 'offset', 'total');
+    expect(meta.count).to.equal(1);
+    expect(meta.total).to.equal(1);
+    expect(meta.offset).to.equal(0);
+    expect(meta.limit).to.equal(100);
   });
 
   it('C19496 Find record list of keys', async function () {
@@ -101,56 +101,55 @@ describe('Find records', function () {
     };
     await storage.writeAsync(dataRequest2);
 
-    const findResponse = await storage.find(dataRequest.country, { key2: [dataRequest.key2, dataRequest2.key2] }, {});
+    const { records, meta } = await storage.find(dataRequest.country, { key2: [dataRequest.key2, dataRequest2.key2] }, {});
 
-    expect(findResponse.data).to.have.lengthOf(2);
+    expect(records).to.have.lengthOf(2);
 
-    expect(findResponse.meta).to.have.all.keys('count', 'limit', 'offset', 'total');
-    expect(findResponse.meta.count).to.equal(2);
-    expect(findResponse.meta.total).to.equal(2);
-    expect(findResponse.meta.offset).to.equal(0);
-    expect(findResponse.meta.limit).to.equal(100);
+    expect(meta).to.have.all.keys('count', 'limit', 'offset', 'total');
+    expect(meta.count).to.equal(2);
+    expect(meta.total).to.equal(2);
+    expect(meta.offset).to.equal(0);
+    expect(meta.limit).to.equal(100);
   });
 
   it.skip('C1927 Find records with pagination', async function () {
     // FIXME please create the records first
     const limit = 10;
     const offset = 10;
-    const findResponse = await storage.find(dataRequest.country, {},
+    const { records, meta } = await storage.find(dataRequest.country, {},
       {
         limit,
         offset,
       });
 
-    expect(findResponse.data).to.have.lengthOf(limit);
+    expect(records).to.have.lengthOf(limit);
 
-    expect(findResponse.meta).to.have.all.keys('count', 'limit', 'offset', 'total');
-    expect(findResponse.meta.count).to.equal(limit);
-    expect(findResponse.meta.offset).to.equal(offset);
-    expect(findResponse.meta.limit).to.equal(limit);
+    expect(meta).to.have.all.keys('count', 'limit', 'offset', 'total');
+    expect(meta.count).to.equal(limit);
+    expect(meta.offset).to.equal(offset);
+    expect(meta.limit).to.equal(limit);
   });
 
   it('C1928 Find records by filter with range_key', async function () {
-    const findResponse = await storage.find(dataRequest.country,
+    const { records, meta } = await storage.find(dataRequest.country,
       { range_key: { $lt: 1000 } }, {});
 
-    expect(findResponse.data).to.have.lengthOf.above(0);
-    expect(findResponse.meta).to.have.all.keys('count', 'limit', 'offset', 'total');
-    expect(findResponse.meta.offset).to.equal(0);
+    expect(records).to.have.lengthOf.above(0);
+    expect(meta).to.have.all.keys('count', 'limit', 'offset', 'total');
+    expect(meta.offset).to.equal(0);
   });
 
   it('C19498 Records not found by key value', async function () {
-    const findResponse = await storage.find('US', { key2: 'NotExistingKey212341' }, {});
+    const { records, meta } = await storage.find('US', { key2: Math.random().toString(36).substr(2, 10) }, {});
 
-    expect(findResponse.data).to.have.lengthOf(0);
-    expect(findResponse.meta).to.have.all.keys('count', 'limit', 'offset', 'total');
-    expect(findResponse.meta.count).to.equal(0);
-    expect(findResponse.meta.total).to.equal(0);
-    expect(findResponse.meta.offset).to.equal(0);
-    expect(findResponse.meta.limit).to.equal(100);
+    expect(records).to.have.lengthOf(0);
+    expect(meta.count).to.equal(0);
+    expect(meta.total).to.equal(0);
+    expect(meta.offset).to.equal(0);
+    expect(meta.limit).to.equal(100);
   });
 
-  it('C19499 Records not found by country', async function () {
+  it.skip('C19499 Records not found by country', async function () {
     try {
       await storage.find('SE', {}, {});
       assert.fail('expected exception not thrown');
@@ -158,7 +157,7 @@ describe('Find records', function () {
       if (e instanceof AssertionError) {
         throw e;
       }
-      assert.equal(e.message, 'Request failed with status code 409');
+      assert.equal(e.message, 'POST https://us.qa.incountry.io/v2/storage/records/se/find Request failed with status code 409');
     }
   });
 });
@@ -180,19 +179,19 @@ describe('Find encrypted records', () => {
   });
 
   it('C1945 Find encrypted records by key', async () => {
-    const findResponse = await storage.find(encData.country, { key: encData.key });
+    const { records, meta } = await storage.find(encData.country, { key: encData.key });
 
-    expect(findResponse.data).to.have.lengthOf(1);
+    expect(records).to.have.lengthOf(1);
 
-    expect(findResponse.meta).to.have.all.keys('count', 'limit', 'offset', 'total');
-    expect(findResponse.data[0].key).to.equal(encData.key);
+    expect(meta).to.have.all.keys('count', 'limit', 'offset', 'total');
+    expect(records[0].key).to.equal(encData.key);
   });
 
   it.skip('C21798 Find encrypted records by country', async () => {
-    const findResponse = await storage.find(encData.country, {}, {});
+    const { records, meta } = await storage.find(encData.country, {}, {});
 
-    expect(findResponse.data).to.have.lengthOf.above(0);
+    expect(records).to.have.lengthOf.above(0);
 
-    expect(findResponse.meta).to.have.all.keys('count', 'limit', 'offset', 'total');
+    expect(meta).to.have.all.keys('count', 'limit', 'offset', 'total');
   });
 });
