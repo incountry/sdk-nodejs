@@ -14,6 +14,7 @@ const { expect, assert } = chai;
 const COUNTRY = 'us';
 const SECRET_KEY = 'password';
 const POPAPI_URL = `https://${COUNTRY}.api.incountry.io`;
+const REQUEST_TIMEOUT_ERROR = { code: 'ETIMEDOUT' };
 
 const TEST_RECORDS = [
   {
@@ -291,15 +292,15 @@ describe('Storage', () => {
     });
 
     describe('writeAsync', () => {
+      let popAPI;
+
+      beforeEach(() => {
+        popAPI = nockPOPAPIEndpoint(POPAPI_URL, 'write', COUNTRY).reply(200);
+      });
+
       shouldValidateRecord('writeAsync');
 
       describe('encryption', () => {
-        let popAPI;
-
-        beforeEach(() => {
-          popAPI = nockPOPAPIEndpoint(POPAPI_URL, 'write', COUNTRY).reply(200);
-        });
-
         describe('when disabled', () => {
           it('should hash keys and send body as plain text', async () => {
             const record = { country: COUNTRY, key: uuid(), body: 'test' };
@@ -329,8 +330,7 @@ describe('Storage', () => {
 
       describe('in case of network error', () => {
         it('should throw an error', async () => {
-          const REQUEST_TIMEOUT_ERROR = { code: 'ETIMEDOUT' };
-
+          nock.cleanAll();
           const scope = nockPOPAPIEndpoint(POPAPI_URL, 'write', COUNTRY)
             .replyWithError(REQUEST_TIMEOUT_ERROR);
 
@@ -377,7 +377,6 @@ describe('Storage', () => {
 
       describe('errors handling', () => {
         const record = { country: COUNTRY, key: 'invalid' };
-        const REQUEST_TIMEOUT_ERROR = { code: 'ETIMEDOUT' };
         const errorCases = [{
           name: 'when record not found',
           respond: (popAPI) => popAPI.reply(404),
@@ -434,7 +433,6 @@ describe('Storage', () => {
       // TODO: replace with _apiClient test
       describe('errors handling', () => {
         const record = { country: COUNTRY, key: 'invalid' };
-        const REQUEST_TIMEOUT_ERROR = { code: 'ETIMEDOUT' };
         const errorCases = [{
           name: 'when record not found',
           respond: (popAPI) => popAPI.reply(404),
@@ -665,6 +663,12 @@ describe('Storage', () => {
     });
 
     describe('batchWrite', () => {
+      let popAPI;
+
+      beforeEach(() => {
+        popAPI = nockPOPAPIEndpoint(POPAPI_URL, 'batchWrite', COUNTRY).reply(200);
+      });
+
       describe('should validate records', () => {
         const errorCases = [{
           name: 'when the records is empty array',
@@ -680,10 +684,6 @@ describe('Storage', () => {
           error: 'Missing key',
         }];
 
-        beforeEach(() => {
-          nockPOPAPIEndpoint(POPAPI_URL, 'batchWrite', COUNTRY).reply(200);
-        });
-
         errorCases.forEach((errCase) => {
           it(`should throw an error ${errCase.name}`, async () => {
             await expect(encStorage.batchWrite(COUNTRY, errCase.arg)).to.be.rejectedWith(Error, errCase.error);
@@ -694,8 +694,6 @@ describe('Storage', () => {
       describe('encryption', () => {
         describe('when enabled', () => {
           it('should batch write encrypted records', async () => {
-            const popAPI = nockPOPAPIEndpoint(POPAPI_URL, 'batchWrite', COUNTRY).reply(200);
-
             const [bodyObj] = await Promise.all([getNockedRequestBodyObject(popAPI), encStorage.batchWrite(COUNTRY, TEST_RECORDS)]);
             const decryptedRecords = await Promise.all(bodyObj.records.map((encRecord) => encStorage._decryptPayload(encRecord)));
             expect(decryptedRecords).to.deep.equal(TEST_RECORDS);
@@ -704,8 +702,6 @@ describe('Storage', () => {
 
         describe('when disabled', () => {
           it('should batch write encoded records', async () => {
-            const popAPI = nockPOPAPIEndpoint(POPAPI_URL, 'batchWrite', COUNTRY).reply(200);
-
             const [bodyObj] = await Promise.all([getNockedRequestBodyObject(popAPI), noEncStorage.batchWrite(COUNTRY, TEST_RECORDS)]);
             const decryptedRecords = await Promise.all(bodyObj.records.map((encRecord) => noEncStorage._decryptPayload(encRecord)));
             expect(decryptedRecords).to.deep.equal(TEST_RECORDS);
@@ -715,7 +711,7 @@ describe('Storage', () => {
 
       describe('in case of network error', () => {
         it('should throw an error', async () => {
-          const REQUEST_TIMEOUT_ERROR = { code: 'ETIMEDOUT' };
+          nock.cleanAll();
           const scope = nockPOPAPIEndpoint(POPAPI_URL, 'batchWrite', COUNTRY)
             .replyWithError(REQUEST_TIMEOUT_ERROR);
 
