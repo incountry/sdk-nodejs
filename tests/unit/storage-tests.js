@@ -1,4 +1,3 @@
-/* eslint-disable */
 const chai = require('chai');
 chai.use(require('chai-as-promised'));
 
@@ -17,30 +16,54 @@ const SECRET_KEY = 'password';
 const POPAPI_URL = `https://${COUNTRY}.api.incountry.io`;
 
 const TEST_RECORDS = [
-  { "country": COUNTRY, "key": uuid(), version: 0 },
-  { "country": COUNTRY, "key": uuid(), "body": "test", version: 0 },
-  { "country": COUNTRY, "key": uuid(), "body": "test", "key2": "key2", version: 0 },
-  { "country": COUNTRY, "key": uuid(), "body": "test", "key2": "key2", "key3": "key3", version: 0 },
   {
-    "country": COUNTRY,
-    "key": uuid(),
-    "body": "test",
-    "key2": "key2",
-    "key3": "uniqueKey3",
-    "profile_key": "profile_key",
-    version: 0
+    country: COUNTRY,
+    key: uuid(),
+    version: 0,
   },
   {
-    "country": COUNTRY,
-    "key": uuid(),
-    "body": "test",
-    "key2": "key2",
-    "key3": "key3",
-    "profile_key": "profile_key",
-    "range_key": 1,
-    version: 0
+    country: COUNTRY,
+    key: uuid(),
+    body: 'test',
+    version: 0,
   },
-]
+  {
+    country: COUNTRY,
+    key: uuid(),
+    body: 'test',
+    key2: 'key2',
+    version: 0,
+  },
+  {
+    country: COUNTRY,
+    key: uuid(),
+    body: 'test',
+    key2: 'key2',
+    key3: 'key3',
+    version: 0,
+  },
+  {
+    country: COUNTRY,
+    key: uuid(),
+    body: 'test',
+    key2: 'key2',
+    key3: 'uniqueKey3',
+    profile_key: 'profile_key',
+    version: 0,
+  },
+  {
+    country: COUNTRY,
+    key: uuid(),
+    body: 'test',
+    key2: 'key2',
+    key3: 'key3',
+    profile_key: 'profile_key',
+    range_key: 1,
+    version: 0,
+  },
+];
+
+const LOGGER_STUB = { write: (a, b) => [a, b] };
 
 const nockedEndpoints = {
   write: {
@@ -80,21 +103,18 @@ const nockPOPAPIEndpoint = (host, method, country = undefined, key = undefined) 
 
 describe('Storage', () => {
   describe('interface methods', () => {
-    const logger = { write: (a, b) => [a, b] };
-    const createDefaultStorageWithLogger = () => new Storage({ apiKey: 'string', environmentId: 'string' }, undefined, logger);
-
     const createStorageWithPOPAPIEndpointLoggerAndKeyAccessorNoEnc = () => new Storage({
       apiKey: 'string',
       environmentId: 'string',
       endpoint: POPAPI_URL,
       encrypt: false,
-    }, new SecretKeyAccessor(() => SECRET_KEY), logger);
+    }, new SecretKeyAccessor(() => SECRET_KEY), LOGGER_STUB);
 
     const createStorageWithPOPAPIEndpointLoggerAndKeyAccessor = () => new Storage({
       apiKey: 'string',
       environmentId: 'string',
       endpoint: POPAPI_URL,
-    }, new SecretKeyAccessor(() => SECRET_KEY), logger);
+    }, new SecretKeyAccessor(() => SECRET_KEY), LOGGER_STUB);
 
     beforeEach(() => {
       nock.disableNetConnect();
@@ -120,11 +140,10 @@ describe('Storage', () => {
           });
 
           it('should be provided via either options or environment variable', () => {
-            expect(() => new Storage({}))
-              .to.throw(Error, 'Please pass apiKey in options or set INC_API_KEY env var');
-
-            expect(() => new Storage({ apiKey: undefined }))
-              .to.throw(Error, 'Please pass apiKey in options or set INC_API_KEY env var');
+            [{}, { apiKey: undefined }].forEach((options) => {
+              expect(() => new Storage(options))
+                .to.throw(Error, 'Please pass apiKey in options or set INC_API_KEY env var');
+            });
 
             expect(() => new Storage({ apiKey: 'apiKey', environmentId: 'envId' })).not.to.throw();
 
@@ -147,11 +166,10 @@ describe('Storage', () => {
           });
 
           it('should be provided via either options or environment variable', () => {
-            expect(() => new Storage({ apiKey: 'apiKey' }))
-              .to.throw(Error, 'Please pass environmentId in options or set INC_ENVIRONMENT_ID env var');
-
-            expect(() => new Storage({ apiKey: 'apiKey', environmentId: undefined }))
-              .to.throw(Error, 'Please pass environmentId in options or set INC_ENVIRONMENT_ID env var');
+            [{ apiKey: 'apiKey' }, { apiKey: 'apiKey', environmentId: undefined }].forEach((options) => {
+              expect(() => new Storage(options))
+                .to.throw(Error, 'Please pass environmentId in options or set INC_ENVIRONMENT_ID env var');
+            });
 
             expect(() => new Storage({ apiKey: 'apiKey', environmentId: 'envId' })).not.to.throw();
 
@@ -203,82 +221,54 @@ describe('Storage', () => {
         storage = new Storage({ apiKey: 'apiKey', environmentId: 'envId' });
       });
 
-      it('should throw an error if called without arguments', () => {
-        expect(() => storage.setLogger()).to.throw(Error, 'Please specify a logger');
-      });
-
       it('should throw an error if called with falsy argument', () => {
-        expect(() => storage.setLogger(null)).to.throw(Error, 'Please specify a logger');
-        expect(() => storage.setLogger(undefined)).to.throw(Error, 'Please specify a logger');
-        expect(() => storage.setLogger(false)).to.throw(Error, 'Please specify a logger');
+        [null, undefined, false].forEach((logger) => {
+          expect(() => storage.setLogger(logger)).to.throw(Error, 'Please specify a logger');
+        });
       });
 
       it('should throw an error if provided logger is not object or has no "write" method or is not a function', () => {
-        const expectSetLoggerThrowsError = (wrongLogger) => {
-          expect(() => storage.setLogger(wrongLogger))
-            .to.throw(Error, 'Logger must implement write function');
-        };
-
         const wrongLoggers = [42, () => null, {}, { write: 'write' }, { write: {} }];
-        wrongLoggers.map((item) => expectSetLoggerThrowsError(item));
+        wrongLoggers.forEach((logger) => {
+          expect(() => storage.setLogger(logger))
+            .to.throw(Error, 'Logger must implement write function');
+        });
       });
 
       it('should throw an error if provided logger.write is a function with less than 2 arguments', () => {
-        const expectSetLoggerThrowsError = (wrongLogger) => {
-          expect(() => storage.setLogger(wrongLogger))
-            .to.throw(Error, 'Logger.write must have at least 2 parameters');
-        };
-
-        const expectSetLoggerNotThrowsError = (correctLogger) => {
-          expect(() => storage.setLogger(correctLogger)).not.to.throw();
-        };
-
         const wrongLoggers = [{ write: () => null }, { write: (a) => a }];
-        wrongLoggers.map((item) => expectSetLoggerThrowsError(item));
+        wrongLoggers.forEach((logger) => {
+          expect(() => storage.setLogger(logger))
+            .to.throw(Error, 'Logger.write must have at least 2 parameters');
+        });
 
         const correctLoggers = [{ write: (a, b) => [a, b] }, { write: (a, b, c) => [a, b, c] }];
-        correctLoggers.map((item) => expectSetLoggerNotThrowsError(item));
+        correctLoggers.forEach((logger) => {
+          expect(() => storage.setLogger(logger)).not.to.throw();
+        });
       });
     });
 
     describe('setSecretKeyAccessor', () => {
-      /** @type {import('../../storage')} */
-      let storage;
-
-      beforeEach(() => {
-        storage = new Storage({ apiKey: 'apiKey', environmentId: 'envId' });
-      });
-
       it('should throw an error if not instance of SecretKeyAccessor was passed as argument', () => {
-        const expectSetSecretKeyAccessorThrowsError = (arg) => {
-          expect(() => storage.setSecretKeyAccessor(arg)).to.throw(Error, 'You must pass an instance of SecretKeyAccessor');
-        };
-        expectSetSecretKeyAccessorThrowsError();
-        expectSetSecretKeyAccessorThrowsError(null);
-        expectSetSecretKeyAccessorThrowsError(undefined);
-        expectSetSecretKeyAccessorThrowsError(false);
-        expectSetSecretKeyAccessorThrowsError({});
+        /** @type {import('../../storage')} */
+        const storage = new Storage({ apiKey: 'apiKey', environmentId: 'envId' });
+        const wrongSecretKeyAccessors = [null, undefined, false, '', {}, [], console];
+        wrongSecretKeyAccessors.forEach((item) => {
+          expect(() => storage.setSecretKeyAccessor(item)).to.throw(Error, 'You must pass an instance of SecretKeyAccessor');
+        });
         expect(() => storage.setSecretKeyAccessor(new SecretKeyAccessor(() => null))).not.to.throw();
       });
     });
 
     describe('setCountriesCache', () => {
-      /** @type {import('../../storage')} */
-      let storage;
-
-      beforeEach(() => {
-        storage = new Storage({ apiKey: 'apiKey', environmentId: 'envId' });
-      });
-
       it('should throw an error if not instance of CountriesCache was passed as argument', () => {
-        const expectSetCountriesCacheThrowsError = (arg) => {
-          expect(() => storage.setCountriesCache(arg)).to.throw(Error, 'You must pass an instance of CountriesCache');
-        };
-        expectSetCountriesCacheThrowsError();
-        expectSetCountriesCacheThrowsError(null);
-        expectSetCountriesCacheThrowsError(undefined);
-        expectSetCountriesCacheThrowsError(false);
-        expectSetCountriesCacheThrowsError({});
+        /** @type {import('../../storage')} */
+        const storage = new Storage({ apiKey: 'apiKey', environmentId: 'envId' });
+        const wrongCountriesCaches = [null, undefined, false, {}];
+        wrongCountriesCaches.forEach((item) => {
+          expect(() => storage.setCountriesCache(item)).to.throw(Error, 'You must pass an instance of CountriesCache');
+        });
         expect(() => storage.setCountriesCache(new CountriesCache())).not.to.throw();
       });
     });
@@ -287,7 +277,7 @@ describe('Storage', () => {
       describe('should validate request', () => {
         let storage;
         beforeEach(() => {
-          storage = createDefaultStorageWithLogger();
+          storage = createStorageWithPOPAPIEndpointLoggerAndKeyAccessor();
         });
 
         describe('when the request has no country field', () => {
@@ -364,7 +354,7 @@ describe('Storage', () => {
       describe('should validate request', () => {
         let storage;
         beforeEach(() => {
-          storage = createDefaultStorageWithLogger();
+          storage = createStorageWithPOPAPIEndpointLoggerAndKeyAccessor();
           nockPOPAPIEndpoint(POPAPI_URL, 'read', COUNTRY).reply(200);
         });
 
@@ -453,7 +443,7 @@ describe('Storage', () => {
       describe('should validate request', () => {
         let storage;
         beforeEach(() => {
-          storage = createDefaultStorageWithLogger();
+          storage = createStorageWithPOPAPIEndpointLoggerAndKeyAccessor();
         });
 
         describe('when the request has no country field', () => {
@@ -537,7 +527,7 @@ describe('Storage', () => {
       describe('should validate arguments', () => {
         let storage;
         beforeEach(() => {
-          storage = createDefaultStorageWithLogger();
+          storage = createStorageWithPOPAPIEndpointLoggerAndKeyAccessor();
         });
 
         describe('when country is not a string', () => {
@@ -833,7 +823,6 @@ describe('Storage', () => {
   });
 
   describe('helper methods', () => {
-    const logger = { write: (a, b) => [a, b] };
     const customStorageEndpoint = 'https://test.example';
     const portalBackendHost = 'portal-backend.incountry.com';
     const portalBackendPath = '/countries';
@@ -861,7 +850,7 @@ describe('Storage', () => {
           environmentId: 'string',
           endpoint,
         };
-        return new Storage(options, new SecretKeyAccessor(() => SECRET_KEY), logger, cache);
+        return new Storage(options, new SecretKeyAccessor(() => SECRET_KEY), LOGGER_STUB, cache);
       };
 
       const expectCorrectURLReturned = async (storage, country, host) => {
