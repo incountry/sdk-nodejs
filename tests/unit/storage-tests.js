@@ -729,6 +729,54 @@ describe('Storage', () => {
         });
       });
     });
+
+    describe('_apiClient', () => {
+      let encStorage;
+
+      beforeEach(() => {
+        encStorage = getDefaultStorage(true);
+      });
+
+      describe('errors handling', () => {
+        const writePath = popAPIEndpoints.write.path(COUNTRY).replace(/^\//, '');
+        const params = { method: 'post', data: {} };
+        const errorCases = [{
+          name: 'on 404',
+          respond: (popAPI) => popAPI.reply(404),
+        }, {
+          name: 'on 500',
+          respond: (popAPI) => popAPI.reply(500),
+        }, {
+          name: 'in case of network error',
+          respond: (popAPI) => popAPI.replyWithError(REQUEST_TIMEOUT_ERROR),
+        }];
+
+        errorCases.forEach((errCase) => {
+          it(`should throw StorageServerError ${errCase.name}`, async () => {
+            const scope = errCase.respond(nockEndpoint(POPAPI_HOST, 'write', COUNTRY));
+            await expect(encStorage._apiClient(COUNTRY, writePath, params)).to.be.rejectedWith(StorageServerError);
+            assert.equal(scope.isDone(), true, 'Nock scope is done');
+          });
+        });
+      });
+
+      describe('should make GET request by default', () => {
+        const runApiClientWithParams = async (params) => {
+          const readPath = popAPIEndpoints.read.path(COUNTRY, 'key').replace(/^\//, '');
+          const scope = nockEndpoint(POPAPI_HOST, 'read', COUNTRY, 'key').reply(200);
+          await encStorage._apiClient(COUNTRY, readPath, params);
+          expect(scope.isDone()).to.eq(true);
+        };
+
+        it('when called without parameters', async () => {
+          await runApiClientWithParams();
+        });
+
+        it('when method not specified in parameters', async () => {
+          await runApiClientWithParams({ data: 'test' });
+        });
+      });
+    });
   });
 
   describe('should set correct headers for requests', function () {
