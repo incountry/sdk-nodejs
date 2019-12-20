@@ -363,25 +363,12 @@ describe('Storage', () => {
       });
 
       describe('errors handling', () => {
-        const record = { country: COUNTRY, key: 'invalid' };
-        const errorCases = [{
-          name: 'when record not found',
-          respond: (popAPI) => popAPI.reply(404),
-        }, {
-          name: 'in case of server error',
-          respond: (popAPI) => popAPI.reply(500),
-        }, {
-          name: 'in case of network error',
-          respond: (popAPI) => popAPI.replyWithError(REQUEST_TIMEOUT_ERROR),
-        }];
+        it('should throw an error when record not found', async () => {
+          const record = { country: COUNTRY, key: 'invalid' };
+          const scope = nockEndpoint(POPAPI_HOST, 'delete', COUNTRY, encStorage.createKeyHash(record.key)).reply(404);
 
-        errorCases.forEach((errCase) => {
-          it(`should throw an error ${errCase.name}`, async () => {
-            const scope = errCase.respond(nockEndpoint(POPAPI_HOST, 'delete', COUNTRY, encStorage.createKeyHash(record.key)));
-
-            await expect(encStorage.deleteAsync(record)).to.be.rejectedWith(StorageServerError);
-            assert.equal(scope.isDone(), true, 'Nock scope is done');
-          });
+          await expect(encStorage.deleteAsync(record)).to.be.rejectedWith(StorageServerError);
+          assert.equal(scope.isDone(), true, 'Nock scope is done');
         });
       });
     });
