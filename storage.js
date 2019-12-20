@@ -11,6 +11,7 @@ const { ERROR_NAMES } = require('./constants');
 const {
   StorageClientError,
   StorageServerError,
+  ValidationError,
 } = require('./errors');
 
 /**
@@ -101,82 +102,75 @@ class Storage {
     this._countriesCache = countriesCache;
   }
 
-  _logAndThrowError(errorMessage) {
-    this._logger.write('error', errorMessage);
+  _logAndThrowError(errorMessage, meta) {
+    this._logger.write('error', errorMessage, meta);
     throw new Error(errorMessage);
   }
 
   _validateRecord(record) {
-    if (!record.country) throw new StorageClientError('Missing country');
-    if (!record.key) throw new StorageClientError('Missing key');
+    if (!record.country) throw new ValidationError('Missing country');
+    if (!record.key) throw new ValidationError('Missing key');
   }
 
-  async writeAsync(request) {
+  async writeAsync(record) {
     let endpoint;
     try {
-      this._validate(request);
+      this._validateRecord(record);
 
-      const countrycode = request.country.toLowerCase();
+      const countrycode = record.country.toLowerCase();
 
       let data = {
         country: countrycode,
-        key: request.key,
+        key: record.key,
       };
 
-      if (request.body) data.body = request.body;
-      if (request.profile_key) data.profile_key = request.profile_key;
-      if (request.range_key) data.range_key = request.range_key;
-      if (request.key2) data.key2 = request.key2;
-      if (request.key3) data.key3 = request.key3;
+      if (record.body) data.body = record.body;
+      if (record.profile_key) data.profile_key = record.profile_key;
+      if (record.range_key) data.range_key = record.range_key;
+      if (record.key2) data.key2 = record.key2;
+      if (record.key3) data.key3 = record.key3;
 
       endpoint = await this._getEndpointAsync(countrycode, `v2/storage/records/${countrycode}`);
 
-      this._logger.write('debug', `Sending POST to: ${endpoint}`, {
+      data = await this._encryptPayload(data);
+
+      this._logger.write('debug', `Sending POST ${endpoint}`, {
         endpoint,
         country: countrycode,
         op_result: 'in_progress',
-        key: request.key,
+        key: record.key,
         operation: 'Write to PoP',
       });
 
-      data = await this._encryptPayload(data);
-
-      this._logger.write('debug', `Raw data: ${JSON.stringify(data)}`);
-
-      const response = await axios({
+      const response = await this._apiClient(countrycode, `v2/storage/records/${countrycode}`, {
         method: 'post',
-        url: endpoint,
-        headers: this.headers(),
         data,
-      }).catch((e) => {
-        e.name = ERROR_NAMES.POP_ERROR;
-        return Promise.reject(e);
-      });
+        endpoint,
+      })
 
-      this._logger.write('debug', `Finished POST to: ${endpoint}`, {
+      this._logger.write('debug', `Finished POST ${endpoint}`, {
         endpoint,
         country: countrycode,
         op_result: 'success',
         responseHeaders: response.headers,
         requestHeaders: response.config.headers,
-        key: request.key,
+        key: record.key,
         operation: 'Write to PoP',
       });
 
-      return response;
+      return { record };
     } catch (err) {
       const popError = parsePoPError(err);
       this._logger.write('error', err, {
         endpoint,
-        country: request.country,
+        country: record.country,
         op_result: 'error',
-        key: request.key,
+        key: record.key,
         requestHeaders: err.config.headers,
         responseHeaders: err.response.headers,
         operation: 'Write to PoP',
         message: popError || err.message,
       });
-
       throw (err);
     }
   }
@@ -482,20 +476,16 @@ class Storage {
   /**
    * @param {string} country
    * @param {string} path
-   * @param {{ method: string, url: string, headers: object }} params - axious params
+   * @param {{ method: string, url: string, headers: object, data: object }} params - axios params
    */
   async _apiClient(country, path, params = {}) {
-    const url = await this._getEndpointAsync(country.toLowerCase(), path);
-    const method = typeof params.method === 'string' ? params.method.toUpperCase() : '';
-    this._logger.write('debug', `${method} ${url}`);
+    const url = params.endpoint || await this._getEndpointAsync(country.toLowerCase(), path);
     return axios({
       url,
       headers: this.headers(),
       ...params,
     }).catch((err) => {
-      const storageServerError = new StorageServerError(err.code, err.response ? err.response.data : {}, `${method} ${url} ${err.message}`);
-      this._logger.write('error', storageServerError);
-      throw storageServerError;
+      throw new StorageServerError(err)
     });
   }
 }

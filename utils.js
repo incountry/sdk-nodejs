@@ -1,6 +1,7 @@
 const t = require('io-ts');
 const get = require('lodash.get');
 const { ERROR_NAMES } = require('./constants');
+const { StorageServerError } = require('./errors');
 
 function toPromise(validation) {
   return new Promise((resolve, reject) => (
@@ -17,9 +18,10 @@ const PositiveInt = t.brand(
 );
 
 const parsePoPError = (e) => {
-  if (e.name !== ERROR_NAMES.POP_ERROR) {
+  if (!e instanceof StorageServerError) {
     return null;
   }
+  console.log(e);
   try {
     const errors = get(e, 'response.data.errors');
     const stringifiedErrors = errors.map(({title, source}) => `${title}: ${source}`);

@@ -10,12 +10,23 @@ class StorageClientError extends Error {
   }
 }
 
-class StorageServerError extends Error {
-  constructor(code, responseData, ...params) {
+class ValidationError extends Error {
+  constructor(...params) {
     super(params);
-    this.code = code;
-    this.responseData = responseData;
+    this.name = 'ValidationError';
+    if (Error.captureStackTrace) {
+      Error.captureStackTrace(this, StorageClientError);
+    }
+  }
+}
+
+class StorageServerError extends Error {
+  constructor(e, message) {
+    super(e);
     this.name = 'StorageServerError';
+    if (message) {
+      this.message = message;
+    }
     if (Error.captureStackTrace) {
       Error.captureStackTrace(this, StorageServerError);
     }
@@ -25,4 +36,5 @@ class StorageServerError extends Error {
 module.exports = {
   StorageClientError,
   StorageServerError,
+  ValidationError,
 };
