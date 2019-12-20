@@ -181,9 +181,11 @@ class Storage {
    * @param {Array<Record>} records
    */
   async batchWrite(countryCode, records) {
+    let endpoint;
+    let keys;
     try {
       if (!records.length) {
-        throw new Error('You must pass non-empty array');
+        throw new StorageClientError('You must pass non-empty array');
       }
 
       const data = await Promise.all(
@@ -193,18 +195,51 @@ class Storage {
         }),
       );
 
-      await this._apiClient(
+      endpoint = await this._getEndpointAsync(countryCode, `v2/storage/records/${countryCode}`);
+
+      keys = records.map(({key}) => key);
+
+      this._logger.write('debug', `Sending POST ${endpoint}`, {
+        endpoint,
+        country: countryCode,
+        op_result: 'in_progress',
+        keys,
+        operation: 'Batch write',
+      });
+
+      const response = await this._apiClient(
         countryCode,
         `v2/storage/records/${countryCode}/batchWrite`,
         {
           method: 'post',
           data,
+          endpoint,
         },
       );
 
+      this._logger.write('debug', `Finished POST ${endpoint}`, {
+        endpoint,
+        country: countryCode,
+        op_result: 'success',
+        responseHeaders: response.headers,
+        requestHeaders: response.config.headers,
+        keys,
+        operation: 'Batch write',
+      });
+
       return { records };
     } catch (err) {
-      this._logger.write('error', err);
+      const popError = parsePoPError(err);
+      this._logger.write('error', err, {
+        endpoint,
+        country: countryCode,
+        op_result: 'error',
+        keys,
+        requestHeaders: err.config.headers,
+        responseHeaders: err.response.headers,
+        operation: 'Batch write',
+        message: popError || err.message,
+      });
       throw err;
     }
   }
@@ -476,7 +511,7 @@ class Storage {
   /**
    * @param {string} country
    * @param {string} path
-   * @param {{ method: string, url: string, headers: object, data: object }} params - axios params
+   * @param {{method: string, data: *}} params - axios params
    */
   async _apiClient(country, path, params = {}) {
     const url = params.endpoint || await this._getEndpointAsync(country.toLowerCase(), path);
