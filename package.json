@@ -27,7 +27,7 @@
   },
   "scripts": {
     "integrations": "nyc --reporter=lcov --reporter=text --report-dir=it-coverage mocha tests/integration/*.js --timeout 40000",
-    "test": "nyc --reporter=lcov --reporter=text --report-dir=ut-coverage --exclude=tests/unit/*.js mocha tests/unit/*.js"
+    "test": "nyc --reporter=lcov --reporter=text --report-dir=ut-coverage --exclude=tests/**/*.js mocha tests/unit/*.js"
   },
   "version": "0.5.3",
   "devDependencies": {
