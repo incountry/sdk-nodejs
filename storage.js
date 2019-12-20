@@ -40,7 +40,7 @@ class Storage {
     if (logger) {
       this.setLogger(logger);
     } else {
-      this._logger = defaultLogger.withBaseLogLevel('debug');
+      this._logger = defaultLogger.withBaseLogLevel('info');
     }
 
     this._apiKey = options.apiKey || process.env.INC_API_KEY;
@@ -133,7 +133,7 @@ class Storage {
 
       data = await this._encryptPayload(data);
 
-      this._logger.write('debug', `Sending POST ${endpoint}`, {
+      this._logger.write('info', `Sending POST ${endpoint}`, {
         endpoint,
         country: countrycode,
         op_result: 'in_progress',
@@ -147,7 +147,7 @@ class Storage {
         endpoint,
       });
 
-      this._logger.write('debug', `Finished POST ${endpoint}`, {
+      this._logger.write('info', `Finished POST ${endpoint}`, {
         endpoint,
         country: countrycode,
         op_result: 'success',
@@ -198,7 +198,7 @@ class Storage {
 
       keys = records.map(({ key }) => key);
 
-      this._logger.write('debug', `Sending POST ${endpoint}`, {
+      this._logger.write('info', `Sending POST ${endpoint}`, {
         endpoint,
         country: countryCode,
         op_result: 'in_progress',
@@ -216,7 +216,7 @@ class Storage {
         },
       );
 
-      this._logger.write('debug', `Finished POST ${endpoint}`, {
+      this._logger.write('info', `Finished POST ${endpoint}`, {
         endpoint,
         country: countryCode,
         op_result: 'success',
@@ -300,7 +300,7 @@ class Storage {
 
       endpoint = await this._getEndpointAsync(countryCode, `v2/storage/records/${countryCode}`);
 
-      this._logger.write('debug', `Sending POST ${endpoint}`, {
+      this._logger.write('info', `Sending POST ${endpoint}`, {
         endpoint,
         country: countryCode,
         op_result: 'in_progress',
@@ -316,7 +316,7 @@ class Storage {
         },
       );
 
-      this._logger.write('debug', `Finished POST ${endpoint}`, {
+      this._logger.write('info', `Finished POST ${endpoint}`, {
         endpoint,
         country: countryCode,
         op_result: 'success',
