@@ -133,4 +133,11 @@ describe('InCrypt', function () {
     const currentVersion = await incrypt.getCurrentSecretVersion();
     expect(currentVersion).to.equal(version);
   });
+
+  it('_getEncryptionKey should return nulls if _secretKeyAccessor is not defined', async () => {
+    const incrypt = new InCrypt();
+    const { key, version } = await incrypt._getEncryptionKey('test');
+    expect(key).to.equal(null);
+    expect(version).to.equal(null);
+  });
 });
