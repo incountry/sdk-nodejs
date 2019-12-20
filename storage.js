@@ -7,7 +7,6 @@ const CountriesCache = require('./countries-cache');
 const SecretKeyAccessor = require('./secret-key-accessor');
 const { InCrypt } = require('./in-crypt');
 const { PositiveInt, parsePoPError } = require('./utils');
-const { ERROR_NAMES } = require('./constants');
 const {
   StorageClientError,
   StorageServerError,
@@ -146,7 +145,7 @@ class Storage {
         method: 'post',
         data,
         endpoint,
-      })
+      });
 
       this._logger.write('debug', `Finished POST ${endpoint}`, {
         endpoint,
@@ -197,7 +196,7 @@ class Storage {
 
       endpoint = await this._getEndpointAsync(countryCode, `v2/storage/records/${countryCode}`);
 
-      keys = records.map(({key}) => key);
+      keys = records.map(({ key }) => key);
 
       this._logger.write('debug', `Sending POST ${endpoint}`, {
         endpoint,
@@ -276,51 +275,82 @@ class Storage {
    * @return {Promise<{ meta: { total: number, count: number }, records: Array<Record> }>} Matching records.
    */
   async find(country, filter, options = {}) {
-    if (typeof country !== 'string') {
-      this._logAndThrowError('Missing country');
-    }
-
-    if (options.limit) {
-      if (!PositiveInt.is(options.limit)) {
-        this._logAndThrowError('Limit should be a positive integer');
+    let endpoint;
+    try {
+      if (typeof country !== 'string') {
+        throw new StorageClientError('Missing country');
       }
 
-      if (options.limit > Storage.MAX_LIMIT) {
-        this._logAndThrowError(
-          `Max limit is ${Storage.MAX_LIMIT}. Use offset to populate more`,
+      if (options.limit) {
+        if (!PositiveInt.is(options.limit)) {
+          throw new StorageClientError('Limit should be a positive integer');
+        }
+
+        if (options.limit > Storage.MAX_LIMIT) {
+          this._logAndThrowError(`Max limit is ${Storage.MAX_LIMIT}. Use offset to populate more`);
+        }
+      }
+
+      const countryCode = country.toLowerCase();
+
+      const data = {
+        filter: this._hashKeys(filter),
+        options,
+      };
+
+      endpoint = await this._getEndpointAsync(countryCode, `v2/storage/records/${countryCode}`);
+
+      this._logger.write('debug', `Sending POST ${endpoint}`, {
+        endpoint,
+        country: countryCode,
+        op_result: 'in_progress',
+        operation: 'Find',
+      });
+
+      const response = await this._apiClient(
+        countryCode,
+        `v2/storage/records/${countryCode}/find`,
+        {
+          method: 'post',
+          data,
+        },
+      );
+
+      this._logger.write('debug', `Finished POST ${endpoint}`, {
+        endpoint,
+        country: countryCode,
+        op_result: 'success',
+        responseHeaders: response.headers,
+        requestHeaders: response.config.headers,
+        operation: 'Find',
+      });
+
+      const result = {
+        records: [],
+        meta: {},
+      };
+
+      if (response.data) {
+        result.meta = response.data.meta;
+        result.records = await Promise.all(
+          response.data.data.map((item) => this._decryptPayload(item)),
         );
       }
+
+      return result;
+    } catch (err) {
+      const popError = parsePoPError(err);
+      this._logger.write('error', err, {
+        endpoint,
+        country,
+        op_result: 'error',
+        requestHeaders: err.config.headers,
+        responseHeaders: err.response.headers,
+        operation: 'Find',
+        message: popError || err.message,
+      });
+      throw err;
     }
-
-    const countryCode = country.toLowerCase();
-
-    const data = {
-      filter: this._hashKeys(filter),
-      options,
-    };
-
-    const response = await this._apiClient(
-      countryCode,
-      `v2/storage/records/${countryCode}/find`,
-      {
-        method: 'post',
-        data,
-      },
-    );
-
-    const result = {
-      records: [],
-      meta: {},
-    };
-
-    if (response.data) {
-      result.meta = response.data.meta;
-      result.records = await Promise.all(
-        response.data.data.map((item) => this._decryptPayload(item)),
-      );
-    }
-
-    return result;
   }
 
   /**
@@ -520,7 +550,7 @@ class Storage {
       headers: this.headers(),
       ...params,
     }).catch((err) => {
-      throw new StorageServerError(err)
+      throw new StorageServerError(err);
     });
   }
 }
