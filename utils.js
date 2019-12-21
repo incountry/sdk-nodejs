@@ -18,18 +18,15 @@ const PositiveInt = t.brand(
 );
 
 const parsePoPError = (e) => {
-  if (!e instanceof StorageServerError) {
-    return null;
+  if (!(e instanceof StorageServerError)) {
+    return {};
   }
-  console.log(e);
-  try {
-    const errors = get(e, 'response.data.errors');
-    const stringifiedErrors = errors.map(({title, source}) => `${title}: ${source}`);
-    return stringifiedErrors.join(';\n');
-  } catch (e) {
-    return null
-  }
-}
+  const errors = get(e, 'response.data.errors', []);
+  const errorMessage = errors.map(({ title, source }) => `${title}: ${source}`).join(';\n');
+  const requestHeaders = get(e, 'config.headers');
+  const responseHeaders = get(e, 'response.headers');
+  return { errorMessage, requestHeaders, responseHeaders };
+};
 
 module.exports = {
   toPromise,

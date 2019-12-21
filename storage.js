@@ -113,12 +113,13 @@ class Storage {
 
   async writeAsync(record) {
     let endpoint;
+    let data;
     try {
       this._validateRecord(record);
 
       const countrycode = record.country.toLowerCase();
 
-      let data = {
+      data = {
         country: countrycode,
         key: record.key,
       };
@@ -137,8 +138,8 @@ class Storage {
         endpoint,
         country: countrycode,
         op_result: 'in_progress',
-        key: record.key,
-        operation: 'Write to PoP',
+        key: data.key,
+        operation: 'Write',
       });
 
       const response = await this._apiClient(countrycode, `v2/storage/records/${countrycode}`, {
@@ -153,8 +154,8 @@ class Storage {
         op_result: 'success',
         responseHeaders: response.headers,
         requestHeaders: response.config.headers,
-        key: record.key,
-        operation: 'Write to PoP',
+        key: data.key,
+        operation: 'Write',
       });
 
       return { record };
@@ -164,11 +165,11 @@ class Storage {
         endpoint,
         country: record.country,
         op_result: 'error',
-        key: record.key,
-        requestHeaders: err.config.headers,
-        responseHeaders: err.response.headers,
-        operation: 'Write to PoP',
-        message: popError || err.message,
+        key: data.key,
+        requestHeaders: popError.requestHeaders,
+        responseHeaders: popError.responseHeaders,
+        operation: 'Write',
+        message: popError.errorMessage || err.message,
       });
       throw (err);
     }
@@ -194,9 +195,9 @@ class Storage {
         }),
       );
 
-      endpoint = await this._getEndpointAsync(countryCode, `v2/storage/records/${countryCode}`);
+      endpoint = await this._getEndpointAsync(countryCode, `v2/storage/records/${countryCode}/batchWrite`);
 
-      keys = records.map(({ key }) => key);
+      keys = data.map(({ key }) => key);
 
       this._logger.write('info', `Sending POST ${endpoint}`, {
         endpoint,
@@ -233,11 +234,11 @@ class Storage {
         endpoint,
         country: countryCode,
         op_result: 'error',
-        keys,
-        requestHeaders: err.config.headers,
-        responseHeaders: err.response.headers,
+        requestHeaders: popError.requestHeaders,
+        responseHeaders: popError.responseHeaders,
         operation: 'Batch write',
-        message: popError || err.message,
+        keys,
+        message: popError.errorMessage || err.message,
       });
       throw err;
     }
@@ -298,7 +299,7 @@ class Storage {
         options,
       };
 
-      endpoint = await this._getEndpointAsync(countryCode, `v2/storage/records/${countryCode}`);
+      endpoint = await this._getEndpointAsync(countryCode, `v2/storage/records/${countryCode}/find`);
 
       this._logger.write('info', `Sending POST ${endpoint}`, {
         endpoint,
@@ -344,10 +345,10 @@ class Storage {
         endpoint,
         country,
         op_result: 'error',
-        requestHeaders: err.config.headers,
-        responseHeaders: err.response.headers,
+        requestHeaders: popError.requestHeaders,
+        responseHeaders: popError.responseHeaders,
         operation: 'Find',
-        message: popError || err.message,
+        message: popError.errorMessage || err.message,
       });
       throw err;
     }
@@ -367,30 +368,67 @@ class Storage {
   }
 
   async readAsync(record) {
-    this._validateRecord(record);
+    let endpoint;
+    let key;
+    try {
+      this._validateRecord(record);
 
-    const countryCode = record.country.toLowerCase();
-    const key = await this.createKeyHash(record.key);
+      const countryCode = record.country.toLowerCase();
+      key = await this.createKeyHash(record.key);
 
-    const response = await this._apiClient(
-      countryCode,
-      `v2/storage/records/${countryCode}/${key}`,
-      {
-        method: 'get',
-      },
-    );
+      endpoint = await this._getEndpointAsync(countryCode, `v2/storage/records/${countryCode}/${key}`);
 
+      this._logger.write('info', `Sending GET ${endpoint}`, {
+        endpoint,
+        country: countryCode,
+        op_result: 'in_progress',
+        key,
+        operation: 'Read',
+      });
 
-    this._logger.write('debug', `Raw data: ${JSON.stringify(response.data)}`);
-    this._logger.write('debug', 'Decrypting...');
-    const recordData = await this._decryptPayload(response.data);
-    this._logger.write('debug', `Decrypted data: ${JSON.stringify(recordData)}`);
+      const response = await this._apiClient(
+        countryCode,
+        `v2/storage/records/${countryCode}/${key}`,
+        {
+          method: 'get',
+        },
+      );
 
-    return { record: recordData };
+      this._logger.write('info', `Finished GET ${endpoint}`, {
+        endpoint,
+        country: countryCode,
+        key,
+        op_result: 'success',
+        responseHeaders: response.headers,
+        requestHeaders: response.config.headers,
+        operation: 'Read',
+      });
+
+      this._logger.write('debug', `Raw data: ${JSON.stringify(response.data)}`);
+      this._logger.write('debug', 'Decrypting...');
+      const recordData = await this._decryptPayload(response.data);
+      this._logger.write('debug', `Decrypted data: ${JSON.stringify(recordData)}`);
+
+      return { record: recordData };
+    } catch (err) {
+      const popError = parsePoPError(err);
+      this._logger.write('error', err, {
+        endpoint,
+        country: record.country,
+        key,
+        op_result: 'error',
+        requestHeaders: popError.requestHeaders,
+        responseHeaders: popError.responseHeaders,
+        operation: 'Read',
+        message: popError.errorMessage || err.message,
+      });
+      throw err;
+    }
   }
 
   async _encryptPayload(originalRecord) {
     this._logger.write('debug', 'Encrypting...');
+    this._logger.write('debug', JSON.stringify(originalRecord, null, 2));
 
     const record = { ...originalRecord };
     const body = {
@@ -411,6 +449,8 @@ class Storage {
     );
     record.body = message;
     record.version = secretVersion;
+    this._logger.write('debug', 'Finished encryption');
+    this._logger.write('debug', JSON.stringify(record, null, 2));
     return record;
   }
 
@@ -429,6 +469,8 @@ class Storage {
   }
 
   async _decryptPayload(originalRecord) {
+    this._logger.write('debug', 'Start decrypting...');
+    this._logger.write('debug', JSON.stringify(originalRecord, null, 2));
     const record = { ...originalRecord };
     const decrypted = await this._crypto.decryptAsync(
       record.body,
@@ -453,6 +495,8 @@ class Storage {
     } else {
       delete record.body;
     }
+    this._logger.write('debug', 'Finished decryption');
+    this._logger.write('debug', JSON.stringify(record, null, 2));
     return record;
   }
 
@@ -491,17 +535,40 @@ class Storage {
   }
 
   async deleteAsync(record) {
+    let endpoint;
+    let key;
     try {
       this._validateRecord(record);
-      const key = await this.createKeyHash(record.key);
+      key = await this.createKeyHash(record.key);
 
-      await this._apiClient(
+      endpoint = await this._getEndpointAsync(record.country, `v2/storage/records/${record.country}/${key}`);
+
+      this._logger.write('info', `Sending DELETE ${endpoint}`, {
+        endpoint,
+        country: record.country,
+        op_result: 'in_progress',
+        key,
+        operation: 'Delete',
+        method: 'DELETE',
+      });
+
+      const response = await this._apiClient(
         record.country,
         `v2/storage/records/${record.country}/${key}`,
         {
           method: 'delete',
         },
       );
+
+      this._logger.write('info', `Finished DELETE ${endpoint}`, {
+        endpoint,
+        country: record.country,
+        op_result: 'success',
+        responseHeaders: response.headers,
+        requestHeaders: response.config.headers,
+        operation: 'Delete',
+        method: 'DELETE',
+      });
 
       return { success: true };
     } catch (err) {
