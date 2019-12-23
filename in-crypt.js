@@ -72,7 +72,7 @@ class InCrypt {
     }
     const decrypt = this[`decryptV${version}`];
     if (decrypt === undefined) {
-      throw new InCryptoError(`Cannot find algo version ${version}`);
+      throw new InCryptoError('Unknown decryptor version requested');
     }
     return decrypt.bind(this)(encrypted, secretVersion);
   }
