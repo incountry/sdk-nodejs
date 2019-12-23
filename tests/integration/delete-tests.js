@@ -14,8 +14,7 @@ describe('Delete data from Storage', function () {
     storage = createStorage(encryption);
 
     context(`${encryption ? 'with' : 'without'} encryption`, function () {
-      // C1885 C1920
-      it('Delete data', async function () {
+      it(`${encryption ? 'C1920' : 'C1885'} Delete ${encryption ? 'encrypted' : ''} data`, async function () {
         const data = {
           country: 'US',
           key: Math.random().toString(36).substr(2, 10),

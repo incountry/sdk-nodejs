@@ -35,8 +35,7 @@ describe('Update record', function () {
     storage = createStorage(encryption);
 
     context(`${encryption ? 'with' : 'without'} encryption`, function () {
-      // C19527 C21800
-      it('Update record with override', async function () {
+      it(`${encryption ? 'C21800' : 'C19527'} Update ${encryption ? 'C21800' : 'encrypted'} record with override`, async function () {
         const updatedData = {
           key: `UpdKey_${data.key}`,
           key2: `UpdKey2_${data.key2}`,
@@ -58,8 +57,7 @@ describe('Update record', function () {
         expect(record.range_key).to.equal(updatedData.range_key);
       });
 
-      // C19528
-      it('Update record with override by profile_key', async function () {
+      it(`${encryption ? '' : 'C19528'} Update record with override by profile_key`, async function () {
         const updatedData = {
           key: data.key,
           key2: 'UpdKey2',
@@ -81,8 +79,7 @@ describe('Update record', function () {
         expect(record.range_key).to.equal(updatedData.range_key);
       });
 
-      // C19529
-      it('Update record with override by key2', async function () {
+      it(`${encryption ? '' : 'C19529'} Update record with override by key2`, async function () {
         const updatedData = {
           key: `UpdKey_${data.key}`,
           key3: `UpdKey3_${data.key3}`,
@@ -104,8 +101,7 @@ describe('Update record', function () {
         expect(record.range_key).to.equal(updatedData.range_key);
       });
 
-      // C19530 C21801
-      it('Update record without override', async function () {
+      it(`${encryption ? 'C21801' : 'C19530'} Update ${encryption ? 'encrypted' : ''} record without override`, async function () {
         const updatedData = {
           key: data.key,
           key2: 'MergedKey2',
@@ -122,8 +118,7 @@ describe('Update record', function () {
         expect(record.key3).to.equal(data.key3);
       });
 
-      // C21799
-      it('Update record without override with body', async function () {
+      it(`${encryption ? '' : 'C21799'} Update record without override with body`, async function () {
         const updatedData = {
           key: data.key,
           key2: 'MergedKey2',
@@ -141,8 +136,7 @@ describe('Update record', function () {
         expect(record.key3).to.equal(data.key3);
       });
 
-      // C19531
-      it('Update not existing record', async function () {
+      it(`${encryption ? '' : 'C19531'} Update not existing record`, async function () {
         const updatedData = {
           key2: 'UpdKey2',
           key3: `UpdKey3_${data.key3}`,
@@ -155,8 +149,7 @@ describe('Update record', function () {
           .to.be.rejectedWith(Error, 'Record not found');
       });
 
-      // C19536
-      it.skip('Filter return more than one records', async function () {
+      it.skip(`${encryption ? '' : 'C19536'} Filter return more than one records`, async function () {
         const updatedData = {
           key: `UpdKey_${data.key}`,
           key2: `UpdKey2_${data.key2}`,

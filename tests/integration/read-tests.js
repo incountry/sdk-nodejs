@@ -23,8 +23,7 @@ describe('Read data from Storage', function () {
     storage = createStorage(encryption);
 
     context(`${encryption ? 'with' : 'without'} encryption`, function () {
-      // C1883 C1919
-      it('Read data', async function () {
+      it(`${encryption ? 'C1919' : 'C1883'} Read ${encryption ? 'encrypted' : ''} data`, async function () {
         data = {
           country: 'US',
           key: Math.random().toString(36).substr(2, 10),
@@ -42,8 +41,7 @@ describe('Read data from Storage', function () {
         expect(record.body).to.equal(data.body);
       });
 
-      // C1884
-      it('Read not existing data', async function () {
+      it(`${encryption ? '' : 'C1884'} Read not existing data`, async function () {
         data = {
           country: 'US',
           key: Math.random().toString(36).substr(2, 10),
@@ -53,8 +51,7 @@ describe('Read data from Storage', function () {
           .to.be.rejectedWith(Error, 'Request failed with status code 404');
       });
 
-      // C1922
-      it('Read data with optional keys and range', async function () {
+      it(`${encryption ? '' : 'C1922'} Read data with optional keys and range`, async function () {
         data = {
           country: 'US',
           key: Math.random().toString(36).substr(2, 10),
@@ -80,8 +77,7 @@ describe('Read data from Storage', function () {
         expect(record.range_key).to.equal(data.range_key);
       });
 
-      // C1929
-      it(' Read data with empty body', async function () {
+      it(`${encryption ? '' : 'C1929'} Read data with empty body`, async function () {
         data = {
           country: 'US',
           key: Math.random().toString(36).substr(2, 10),
