@@ -4,7 +4,7 @@ const nock = require('nock');
 const sinon = require('sinon');
 const CountriesCache = require('../../countries-cache');
 
-const { expect } = chai;
+const { expect, assert } = chai;
 
 const PORTAL_BACKEND_HOST = 'portal-backend.incountry.com';
 const PORTAL_BACKEND_BASE_URL = `https://${PORTAL_BACKEND_HOST}`;
@@ -37,21 +37,23 @@ describe('Countries cache', () => {
   });
 
   describe('host usage check', () => {
-    it('should use correct portalHost by default', (done) => {
+    it('should use correct portalHost by default', async () => {
       const pbCountriesAPI = nockPBCountriesAPI(PORTAL_BACKEND_HOST, DIRECT_COUNTRIES_PB_RESPONSE);
 
       const cache = new CountriesCache();
-      cache.getCountriesAsync();
-      pbCountriesAPI.on('request', () => done());
+      await cache.getCountriesAsync();
+
+      assert.equal(pbCountriesAPI.isDone(), true, 'CountriesAPI scope is done');
     });
 
-    it('should use correct portalHost if custom host is provided', (done) => {
+    it('should use correct portalHost if custom host is provided', async () => {
       const customHost = 'portal.backend.host.example';
       const pbCountriesAPI = nockPBCountriesAPI(customHost, DIRECT_COUNTRIES_PB_RESPONSE);
 
       const cache = new CountriesCache(customHost);
-      cache.getCountriesAsync();
-      pbCountriesAPI.on('request', () => done());
+      await cache.getCountriesAsync();
+
+      assert.equal(pbCountriesAPI.isDone(), true, 'CountriesAPI scope is done');
     });
   });
 
@@ -97,7 +99,7 @@ describe('Countries cache', () => {
       };
 
       describe('if no timestamp was provided', () => {
-        it('should fetch countries every time', async () => {
+        it('should fetch countries only first time', async () => {
           nockPBCountriesAPIMultiple();
 
           const cache = new CountriesCache();
@@ -105,7 +107,7 @@ describe('Countries cache', () => {
           for (let i = 0; i < apiMaxCalls; i += 1) {
             /* eslint-disable no-await-in-loop */
             const countries = await cache.getCountriesAsync();
-            expect(countries).to.deep.equal(countriesResponses[i].countries);
+            expect(countries).to.deep.equal(countriesResponses[0].countries);
           }
         });
       });
