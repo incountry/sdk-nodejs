@@ -51,7 +51,7 @@ describe('Find records', function () {
     storage = createStorage(encryption);
 
     context(`${encryption ? 'with' : 'without'} encryption`, function () {
-      it.skip(`${encryption ? '' : 'C1913'} Find records by country`, async function () {
+      it.skip(`${encryption ? 'C68879 ENC' : 'C1914'} Find records by country`, async function () {
         const { records, meta } = await storage.find(dataRequest.country, {}, {});
 
         expect(records).to.have.lengthOf.above(0);
@@ -60,7 +60,7 @@ describe('Find records', function () {
         expect(meta.limit).to.equal(100);
       });
 
-      it(`${encryption ? '' : 'C1926'} Find records by key`, async function () {
+      it(`${encryption ? 'C68880 ENC' : 'C1926'} Find records by key`, async function () {
         const { records, meta } = await storage.find(dataRequest.country, { key: dataRequest.key }, {});
 
         expect(records).to.have.lengthOf(1);
@@ -73,7 +73,7 @@ describe('Find records', function () {
         expect(meta.limit).to.equal(100);
       });
 
-      it(`${encryption ? '' : 'C19493'} Find records by key2`, async function () {
+      it(`${encryption ? 'C68881 ENC' : 'C19493'} Find records by key2`, async function () {
         const { records, meta } = await storage.find(dataRequest.country, { key2: dataRequest.key2 }, {});
 
         expect(records).to.have.lengthOf(1);
@@ -87,7 +87,7 @@ describe('Find records', function () {
         expect(meta.limit).to.equal(100);
       });
 
-      it(`${encryption ? '' : 'C19494'} Find records by key3`, async function () {
+      it(`${encryption ? 'C68882 ENC' : 'C19494'} Find records by key3`, async function () {
         const { records, meta } = await storage.find(dataRequest.country, { key3: dataRequest.key3 }, {});
 
         expect(records).to.have.lengthOf(1);
@@ -99,7 +99,7 @@ describe('Find records', function () {
         expect(meta.limit).to.equal(100);
       });
 
-      it.skip(`${encryption ? '' : 'C19495'} Find records by profile_key`, async function () {
+      it.skip(`${encryption ? 'C68883 ENC' : 'C19495'} Find records by profile_key`, async function () {
         const { records, meta } = await storage.find(dataRequest.country, { profile_key: dataRequest.profile_key }, {});
 
         expect(records).to.have.lengthOf(1);
@@ -111,7 +111,7 @@ describe('Find records', function () {
         expect(meta.limit).to.equal(100);
       });
 
-      it(`${encryption ? '' : 'C19496'} Find record list of keys`, async function () {
+      it(`${encryption ? 'C68884 ENC' : 'C19496'} Find record list of keys`, async function () {
         const { records, meta } = await storage.find(dataRequest.country, { key2: [dataRequest.key2, dataRequest2.key2] }, {});
 
         expect(records).to.have.lengthOf(2);
@@ -122,7 +122,7 @@ describe('Find records', function () {
         expect(meta.limit).to.equal(100);
       });
 
-      it(`${encryption ? '' : 'C1927'} Find records with pagination`, async function () {
+      it(`${encryption ? 'C68885 ENC' : 'C1927'} Find records with pagination`, async function () {
         const limit = 10;
         const offset = 10;
         const { records, meta } = await storage.find(dataRequest.country, { version: 0 },
@@ -140,7 +140,7 @@ describe('Find records', function () {
         expect(meta.limit).to.equal(limit);
       });
 
-      it(`${encryption ? '' : 'C1928'} Find records by filter with range_key`, async function () {
+      it(`${encryption ? 'C68886 ENC' : 'C1928'} Find records by filter with range_key`, async function () {
         const { records, meta } = await storage.find(dataRequest.country,
           { range_key: { $gt: 100 }, version: 0 }, {});
 
@@ -149,7 +149,7 @@ describe('Find records', function () {
         expect(meta.offset).to.equal(0);
       });
 
-      it(`${encryption ? '' : 'C19498'} Records not found by key value`, async function () {
+      it(`${encryption ? 'C68887 ENC' : 'C19498'} Records not found by key value`, async function () {
         const { records, meta } = await storage.find('US', { key2: Math.random().toString(36).substr(2, 10) }, {});
 
         expect(records).to.have.lengthOf(0);
@@ -159,7 +159,7 @@ describe('Find records', function () {
         expect(meta.limit).to.equal(100);
       });
 
-      it(`${encryption ? '' : 'C19499'} Records not found by country`, async function () {
+      it(`${encryption ? 'C68888 ENC' : 'C19499'} Records not found by country`, async function () {
         await expect(storage.findOne('SE', {}))
           .to.be.rejectedWith(Error, 'POST https://us.qa.incountry.io/v2/storage/records/se/find Request failed with status code 409');
       });
