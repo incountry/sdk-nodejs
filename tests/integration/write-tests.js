@@ -21,7 +21,7 @@ describe('Write data to Storage', function () {
   [false, true].forEach((encryption) => {
     storage = createStorage(encryption);
     context(`${encryption ? 'with' : 'without'} encryption`, function () {
-      it(`${encryption ? 'C1918' : 'C1911'} Write ${encryption ? 'encrypted' : ''} data`, async function () {
+      it(`${encryption ? 'C1918 ENC' : 'C1911'} Write data`, async function () {
         data = {
           country: 'US',
           key: Math.random().toString(36).substr(2, 10),
@@ -44,7 +44,7 @@ describe('Write data to Storage', function () {
         expect(record.body).to.equal(data.body);
       });
 
-      it(`${encryption ? '' : 'C1915'} Write data with optional keys and range value`, async function () {
+      it(`${encryption ? 'C68377 ENC' : 'C1915'} Write data with optional keys and range value`, async function () {
         data = {
           country: 'US',
           key: Math.random().toString(36).substr(2, 10),
@@ -71,7 +71,7 @@ describe('Write data to Storage', function () {
         expect(record.body).to.equal(data.body);
       });
 
-      it(`${encryption ? '' : 'C1916'} Write data with empty body`, async function () {
+      it(`${encryption ? 'C68378 ENC' : 'C1916'} Write data with empty body`, async function () {
         data = {
           country: 'US',
           key: Math.random().toString(36).substr(2, 10),
@@ -94,7 +94,7 @@ describe('Write data to Storage', function () {
         expect(record.body).to.equal(data.body);
       });
 
-      it(`${encryption ? '' : 'C1923'} Rewrite data`, async function () {
+      it(`${encryption ? 'C68379 ENC' : 'C1923'} Rewrite data`, async function () {
         data = {
           country: 'US',
           key: Math.random().toString(36).substr(2, 10),
