@@ -1,7 +1,16 @@
 const axios = require('axios');
 const defaultLogger = require('./logger');
 
+/**
+ * @typedef Country
+ * @property {string} id
+ * @property {string} name
+ * @property {boolean} direct
+ */
+
+
 const COUNTRIES_CACHE_TIMEOUT = 60 * 1000;
+const PORTAL_HOST = 'portal-backend.incountry.com';
 
 class CountriesCache {
   /**
@@ -11,15 +20,22 @@ class CountriesCache {
    * @param {import('./logger')} logger Logger instance [optional]
    */
   constructor(portalHost, timeout, expiresOn, logger) {
-    this._host = portalHost !== undefined ? portalHost : 'portal-backend.incountry.com';
+    this._host = portalHost !== undefined ? portalHost : PORTAL_HOST;
     this._getUrl = `https://${this._host}/countries`;
     this._timeout = typeof expiresOn === 'number' ? timeout : COUNTRIES_CACHE_TIMEOUT;
     this._expiresOn = typeof expiresOn === 'number' ? expiresOn : Date.now() + this._timeout;
     this._logger = logger !== undefined ? logger : defaultLogger.withBaseLogLevel('error');
+
+    /** @type {Array<Country>|null} */
+    this._countries = null;
   }
 
+  /**
+   * @param {number} timeStamp Custom
+   * @returns {Array<Country>}
+   */
   async getCountriesAsync(timeStamp) {
-    if (!this._countries || (timeStamp !== undefined && timeStamp >= this._expiresOn)) {
+    if (!this._countries || (typeof timeStamp === 'number' && timeStamp >= this._expiresOn)) {
       await this._updateCountries();
     }
 
