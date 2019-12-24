@@ -269,27 +269,30 @@ describe('Storage', () => {
       shouldValidateRecord('writeAsync');
 
       describe('encryption', () => {
-        describe('when disabled', () => {
-          it('should hash keys and send body as plain text', async () => {
-            const record = { country: COUNTRY, key: uuid(), body: 'test' };
-            const hashedKey = await noEncStorage.createKeyHash(record.key);
+        const encryptionOptions = [{
+          status: 'disabled',
+          encrypted: false,
+          bodyRegExp: /^pt:.+/,
+          bodyDescr: 'body as base64',
+        }, {
+          status: 'enabled',
+          encrypted: true,
+          bodyRegExp: /^2:.+/,
+          bodyDescr: 'encrypted body',
+        }];
 
-            const [bodyObj, result] = await Promise.all([getNockedRequestBodyObject(popAPI), noEncStorage.writeAsync(record)]);
-            expect(bodyObj.key).to.equal(hashedKey);
-            expect(bodyObj.body).to.match(/^pt:.+/);
-            expect(result.record).to.deep.equal(record);
-          });
-        });
-
-        describe('when enabled', () => {
-          TEST_RECORDS.forEach((testCase, idx) => {
-            context(`with test case ${idx}`, () => {
-              it('should encrypt a record', async () => {
-                const encrypted = await encStorage._encryptPayload(testCase);
-                const [bodyObj, result] = await Promise.all([getNockedRequestBodyObject(popAPI), encStorage.writeAsync(testCase)]);
-                expect(_.omit(bodyObj, ['body'])).to.deep.equal(_.omit(encrypted, ['body']));
-                expect(bodyObj.body).to.match(/^2:.+/);
-                expect(result.record).to.deep.equal(testCase);
+        encryptionOptions.forEach((opt) => {
+          describe(`when ${opt.status}`, () => {
+            TEST_RECORDS.forEach((testCase, idx) => {
+              context(`with test case ${idx}`, () => {
+                it(`should hash keys and send ${opt.bodyDescr}`, async () => {
+                  const storage = opt.encrypted ? encStorage : noEncStorage;
+                  const encrypted = await storage._encryptPayload(testCase);
+                  const [bodyObj, result] = await Promise.all([getNockedRequestBodyObject(popAPI), storage.writeAsync(testCase)]);
+                  expect(_.omit(bodyObj, ['body'])).to.deep.equal(_.omit(encrypted, ['body']));
+                  expect(bodyObj.body).to.match(opt.bodyRegExp);
+                  expect(result.record).to.deep.equal(testCase);
+                });
               });
             });
           });
@@ -374,6 +377,8 @@ describe('Storage', () => {
     });
 
     describe('find', () => {
+      const keys = ['key', 'key2', 'key3', 'profile_key'];
+
       describe('should validate arguments', () => {
         describe('when country is not a string', () => {
           it('should throw an error', async () => {
@@ -416,23 +421,25 @@ describe('Storage', () => {
           assert.equal(popAPI.isDone(), true, 'nock is done');
         });
 
-        it('should hash profile_key in filters request and decrypt returned data correctly', async () => {
-          const filter = { profile_key: TEST_RECORDS[4].profile_key };
-          const hashedFilter = { profile_key: encStorage.createKeyHash(filter.profile_key) };
-          let requestedFilter;
+        keys.forEach((key) => {
+          it(`should hash ${key} in filters request and decrypt returned data correctly`, async () => {
+            const filter = { [key]: TEST_RECORDS[4][key] };
+            const hashedFilter = { [key]: encStorage.createKeyHash(filter[key]) };
+            let requestedFilter;
 
-          const resultRecords = TEST_RECORDS.filter((rec) => rec.profile_key === filter.profile_key);
-          const encryptedRecords = await Promise.all(resultRecords.map((record) => encStorage._encryptPayload(record)));
+            const resultRecords = TEST_RECORDS.filter((rec) => rec[key] === filter[key]);
+            const encryptedRecords = await Promise.all(resultRecords.map((record) => encStorage._encryptPayload(record)));
 
-          nockEndpoint(POPAPI_HOST, 'find', COUNTRY)
-            .reply(200, (uri, requestBody) => {
-              requestedFilter = requestBody.filter;
-              return { meta: { total: encryptedRecords.length }, data: encryptedRecords };
-            });
+            nockEndpoint(POPAPI_HOST, 'find', COUNTRY)
+              .reply(200, (uri, requestBody) => {
+                requestedFilter = requestBody.filter;
+                return { meta: { total: encryptedRecords.length }, data: encryptedRecords };
+              });
 
-          const result = await encStorage.find(COUNTRY, filter, {});
-          expect(result.records).to.deep.equal(resultRecords);
-          expect(requestedFilter).to.deep.equal(hashedFilter);
+            const result = await encStorage.find(COUNTRY, filter, {});
+            expect(result.records).to.deep.equal(resultRecords);
+            expect(requestedFilter).to.deep.equal(hashedFilter);
+          });
         });
 
         it('should decode not encrypted records correctly', async () => {
@@ -608,19 +615,24 @@ describe('Storage', () => {
       });
 
       describe('encryption', () => {
-        describe('when enabled', () => {
-          it('should batch write encrypted records', async () => {
-            const [bodyObj] = await Promise.all([getNockedRequestBodyObject(popAPI), encStorage.batchWrite(COUNTRY, TEST_RECORDS)]);
-            const decryptedRecords = await Promise.all(bodyObj.records.map((encRecord) => encStorage._decryptPayload(encRecord)));
-            expect(decryptedRecords).to.deep.equal(TEST_RECORDS);
-          });
-        });
+        const encryptionOptions = [{
+          status: 'disabled',
+          encrypted: false,
+          testCaseName: 'encoded records',
+        }, {
+          status: 'enabled',
+          encrypted: true,
+          testCaseName: 'encrypted records',
+        }];
 
-        describe('when disabled', () => {
-          it('should batch write encoded records', async () => {
-            const [bodyObj] = await Promise.all([getNockedRequestBodyObject(popAPI), noEncStorage.batchWrite(COUNTRY, TEST_RECORDS)]);
-            const decryptedRecords = await Promise.all(bodyObj.records.map((encRecord) => noEncStorage._decryptPayload(encRecord)));
-            expect(decryptedRecords).to.deep.equal(TEST_RECORDS);
+        encryptionOptions.forEach((opt) => {
+          describe(`when ${opt.status}`, () => {
+            it(`should batch write ${opt.testCaseName}`, async () => {
+              const storage = opt.encrypted ? encStorage : noEncStorage;
+              const [bodyObj] = await Promise.all([getNockedRequestBodyObject(popAPI), storage.batchWrite(COUNTRY, TEST_RECORDS)]);
+              const decryptedRecords = await Promise.all(bodyObj.records.map((encRecord) => storage._decryptPayload(encRecord)));
+              expect(decryptedRecords).to.deep.equal(TEST_RECORDS);
+            });
           });
         });
       });
