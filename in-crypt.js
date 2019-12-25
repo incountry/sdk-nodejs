@@ -125,30 +125,6 @@ class InCrypt {
     return decipher.update(encrypted, 'binary', 'utf8') + decipher.final('utf8');
   }
 
-  /**
-   * @param {string} encryptedHex
-   * @param {number} secretVersion
-   */
-  async decryptV0(encryptedHex, secretVersion) {
-    const { secret } = await this._secretKeyAccessor.getSecret(secretVersion);
-    const key = Buffer.allocUnsafe(16);
-    const iv = Buffer.allocUnsafe(16);
-    const hash = crypto.createHash('sha256');
-
-    const encodedKey = utf8.encode(secret);
-    const ba = hash.update(encodedKey).digest('hex');
-    const salt = Buffer.from(ba, 'hex');
-    salt.copy(key, 0, 0, 16);
-    salt.copy(iv, 0, 16, 32);
-
-    const encryptedBytes = Buffer.from(encryptedHex, 'hex');
-    const decipher = crypto.createDecipheriv('aes-128-cbc', key, iv);
-
-    let decrypted = decipher.update(encryptedBytes);
-    decrypted = Buffer.concat([decrypted, decipher.final()]);
-    return decrypted.toString();
-  }
-
   async _getEncryptionKey(salt, secretVersion = undefined) {
     if (!this._secretKeyAccessor) {
       return { key: null, version: null };
