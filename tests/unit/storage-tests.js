@@ -989,7 +989,7 @@ describe('Storage', () => {
       storage.batchWrite('us', TEST_RECORDS);
       scope.on('request', function (req, interceptor, body) {
         const bodyObj = JSON.parse(body);
-        bodyObj.forEach((encRecord, index) => {
+        bodyObj.records.forEach((encRecord, index) => {
           const testRecord = TEST_RECORDS[index];
           expect(encRecord).to.include.all.keys(Object.keys(testRecord));
           expect(encRecord).not.to.deep.equal(testRecord);
@@ -1024,8 +1024,8 @@ describe('Storage', () => {
       nock(POPAPI_URL)
         .post(`/v2/storage/records/${COUNTRY}/batchWrite`)
         .reply(200, (uri, body) => {
-          expect(body.length).to.equal(encryptedRecords.length);
-          body.forEach((rec, index) => {
+          expect(body.records.length).to.equal(encryptedRecords.length);
+          body.records.forEach((rec, index) => {
             expect(_.omit(rec, ['body', 'version'])).to.deep.equal(_.omit(encryptedRecords[index], ['body', 'version']));
             expect(rec.body).to.not.equal(encryptedRecords[index].body);
             expect(rec.version).to.not.equal(encryptedRecords[index].version);
