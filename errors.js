@@ -1,5 +1,17 @@
 /* eslint max-classes-per-file: "off" */
 
+
+class StorageValidationError extends Error {
+  constructor(validation, ...params) {
+    super(params);
+    this.validation = validation;
+    this.name = 'StorageValidationError';
+    if (Error.captureStackTrace) {
+      Error.captureStackTrace(this, StorageValidationError);
+    }
+  }
+}
+
 class StorageClientError extends Error {
   constructor(...params) {
     super(params);
@@ -36,4 +48,5 @@ module.exports = {
   StorageClientError,
   StorageServerError,
   InCryptoError,
+  StorageValidationError,
 };
