@@ -57,15 +57,12 @@ class InCrypt {
    */
   async decryptAsync(s, secretVersion) {
     const parts = s.split(':');
-    let version;
-    let encrypted;
 
-    if (parts.length === 2) {
-      [version, encrypted] = parts;
-    } else {
-      version = '0';
-      encrypted = s;
+    if (parts.length !== 2) {
+      // TODO: use InCryptoError
+      throw new Error("Invalid ciphertext");
     }
+    const [version, encrypted] = parts;
 
     if (!this._secretKeyAccessor && version !== PT_VERSION) {
       return this.decryptStub(encrypted);

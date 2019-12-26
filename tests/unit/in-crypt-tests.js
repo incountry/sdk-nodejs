@@ -33,19 +33,12 @@ const PREPARED_DATA_BY_VERSION = [
     plain: 'InCountry',
     secretKeyAccessor: new SecretKeyAccessor(() => 'password'),
   },
-  {
-    encrypted: '7765618db31daf5366a6fc3520010327',
-    version: '0',
-    plain: 'InCountry',
-    secretKeyAccessor: new SecretKeyAccessor(() => 'password'),
-  },
 ];
 
 
 describe('InCrypt', function () {
   context('with different plain texts', function () {
     PLAINTEXTS.forEach((plain) => {
-
       it(`should encrypt and decrypt text: ${plain}`, async function () {
         const secretKeyAccessor = new SecretKeyAccessor((() => new Promise((resolve) => { resolve('supersecret'); })));
         const incrypt = new InCrypt(secretKeyAccessor);
@@ -60,12 +53,10 @@ describe('InCrypt', function () {
         const encrypted = await incrypt.encryptAsync(plain);
         expect(encrypted.message.includes('pt:')).equal(true);
       });
-
     });
   });
   context('with different encrypted text versions', function () {
     PREPARED_DATA_BY_VERSION.forEach((item) => {
-
       it(`should decrypt version:${item.version} data`, async function () {
         const incrypt = new InCrypt(item.secretKeyAccessor);
         const decrypted = await incrypt.decryptAsync(item.encrypted);
@@ -77,22 +68,29 @@ describe('InCrypt', function () {
           const incrypt = new InCrypt();
           const decrypted = await incrypt.decryptAsync(item.encrypted);
 
-          if (item.encrypted.includes(':')) {
-            expect(decrypted).to.eql(item.encrypted.split(':')[1]);
-          } else {
-            expect(decrypted).to.eql(item.encrypted);
-          }
+          expect(decrypted).to.eql(item.encrypted.split(':')[1]);
         });
       }
 
       if (item.version === 'pt') {
         it('should not decrypt pt not base64', async function () {
           const incrypt = new InCrypt();
-          const decrypted = await incrypt.decryptAsync(item.encrypted + 'stuff');
+          const decrypted = await incrypt.decryptAsync(`${item.encrypted}stuff`);
           expect(decrypted).not.to.eql(item.plain);
         });
       }
+    });
+  });
 
+  context('when trying to decrypt wrong ciphertext', () => {
+    const wrongCiphertexts = ['unsupported_version:abc', 'some:unsupported:data', '7765618db31daf5366a6fc3520010327'];
+
+    wrongCiphertexts.forEach((ciphertext) => {
+      it(`should throw an error for '${ciphertext}'`, async () => {
+        const secretKeyAccessor = new SecretKeyAccessor('supersecret');
+        const incrypt = new InCrypt(secretKeyAccessor);
+        await expect(incrypt.decryptAsync(ciphertext)).to.be.rejected;
+      });
     });
   });
 
