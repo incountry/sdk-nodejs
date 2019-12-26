@@ -14,7 +14,7 @@ describe('Delete data from Storage', function () {
     storage = createStorage(encryption);
 
     context(`${encryption ? 'with' : 'without'} encryption`, function () {
-      it(`${encryption ? 'C1920 ENC' : 'C1885'} Delete data`, async function () {
+      it('Delete data', async function () {
         const data = {
           country: 'US',
           key: Math.random().toString(36).substr(2, 10),
@@ -41,7 +41,7 @@ describe('Delete data from Storage', function () {
         })).to.be.rejected;
       });
 
-      it(`${encryption ? 'C68211 ENC' : 'C1886'} Delete not existing data`, async function () {
+      it('Delete not existing data', async function () {
         await expect(storage.deleteAsync({ country: 'US', key: Math.random().toString(36).substr(2, 10) }))
           .to.be.rejectedWith(Error, 'Request failed with status code 404');
       });
