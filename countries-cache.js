@@ -31,12 +31,14 @@ class CountriesCache {
   }
 
   /**
-   * @param {number} timeStamp Custom
+   * @param {number} timeStamp Custom timeStamp to check expiration
    * @returns {Array<Country>}
    */
   async getCountriesAsync(timeStamp) {
-    if (!this._countries || (typeof timeStamp === 'number' && timeStamp >= this._expiresOn)) {
+    const now = typeof timeStamp === 'number' ? timeStamp : Date.now();
+    if (!this._countries || now >= this._expiresOn) {
       await this._updateCountries();
+      this._expiresOn = now + this._timeout;
     }
 
     return this._countries;
@@ -50,8 +52,6 @@ class CountriesCache {
       } else {
         this._countries = [];
       }
-
-      this._expiresOn = Date.now() + this._timeout;
     } catch (exc) {
       this._logger.write('error', exc);
       throw (exc);

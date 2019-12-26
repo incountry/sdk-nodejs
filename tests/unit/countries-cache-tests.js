@@ -110,6 +110,24 @@ describe('Countries cache', () => {
             expect(countries).to.deep.equal(countriesResponses[0].countries);
           }
         });
+
+        it('should fetch countries if timeout passed', async () => {
+          nockPBCountriesAPIMultiple();
+
+          const clock = sinon.useFakeTimers();
+
+          const cache = new CountriesCache();
+
+          const countries0 = await cache.getCountriesAsync();
+          expect(countries0).to.deep.equal(countriesResponses[0].countries);
+
+          clock.tick(60 * 1000);
+
+          const countries1 = await cache.getCountriesAsync();
+          expect(countries1).to.deep.equal(countriesResponses[1].countries);
+
+          clock.restore();
+        });
       });
 
       describe('if timestamp was provided', () => {
