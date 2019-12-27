@@ -1,6 +1,6 @@
 const chai = require('chai');
 chai.use(require('chai-as-promised'));
-const { StorageClientError, StorageServerError } = require('../../errors');
+const { StorageClientError, StorageServerError, StorageValidationError } = require('../../errors');
 
 const { expect } = chai;
 
@@ -12,6 +12,24 @@ describe('errors', () => {
 
   afterEach(() => {
     Error.captureStackTrace = captureStackTrace;
+  });
+
+  describe('StorageValidationError', () => {
+    const checkError = () => {
+      const err = new StorageValidationError('test validation');
+      expect(err.name).to.eq('StorageValidationError');
+      expect(err.validation).to.eq('test validation');
+      expect(err.stack).to.have.length.greaterThan(0);
+    };
+
+    it('should store message end stack trace', () => {
+      checkError();
+    });
+
+    it('should not call Error.captureStackTrace if it is missing', () => {
+      Error.captureStackTrace = undefined;
+      checkError();
+    });
   });
 
   describe('StorageClientError', () => {
