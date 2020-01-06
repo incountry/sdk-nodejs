@@ -205,6 +205,7 @@ class Storage {
         op_result: 'in_progress',
         keys,
         operation: 'Batch write',
+        method: 'POST',
       });
 
       const response = await this._apiClient(
@@ -225,6 +226,7 @@ class Storage {
         requestHeaders: response.config.headers,
         keys,
         operation: 'Batch write',
+        method: 'POST',
       });
 
       return { records };
@@ -288,7 +290,7 @@ class Storage {
         }
 
         if (options.limit > Storage.MAX_LIMIT) {
-          this._logAndThrowError(`Max limit is ${Storage.MAX_LIMIT}. Use offset to populate more`);
+          throw new StorageClientError(`Max limit is ${Storage.MAX_LIMIT}. Use offset to populate more`);
         }
       }
 
@@ -404,10 +406,7 @@ class Storage {
         operation: 'Read',
       });
 
-      this._logger.write('debug', `Raw data: ${JSON.stringify(response.data)}`);
-      this._logger.write('debug', 'Decrypting...');
       const recordData = await this._decryptPayload(response.data);
-      this._logger.write('debug', `Decrypted data: ${JSON.stringify(recordData)}`);
 
       return { record: recordData };
     } catch (err) {
