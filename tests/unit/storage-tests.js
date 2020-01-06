@@ -495,7 +495,7 @@ describe('Storage', () => {
                 requestedFilter = requestBody.filter;
                 return {
                   meta: {
-                    total: encryptedRecords.length, count: encryptedRecords.length, limit: 1000, offset: 0,
+                    total: encryptedRecords.length, count: encryptedRecords.length, limit: 100, offset: 0,
                   },
                   data: encryptedRecords,
                 };
@@ -513,7 +513,7 @@ describe('Storage', () => {
           nockEndpoint(POPAPI_HOST, 'find', COUNTRY)
             .reply(200, {
               meta: {
-                total: storedData.length, count: storedData.length, limit: 1000, offset: 0,
+                total: storedData.length, count: storedData.length, limit: 100, offset: 0,
               },
               data: storedData,
             });
@@ -528,7 +528,7 @@ describe('Storage', () => {
       it('should return null when no results found', async () => {
         nockEndpoint(POPAPI_HOST, 'find', COUNTRY).reply(200, {
           meta: {
-            total: 0, count: 0, limit: 1000, offset: 0,
+            total: 0, count: 0, limit: 100, offset: 0,
           },
           data: [],
         });
@@ -545,7 +545,7 @@ describe('Storage', () => {
         nockEndpoint(POPAPI_HOST, 'find', COUNTRY)
           .reply(200, {
             meta: {
-              total: encryptedRecords.length, count: encryptedRecords.length, limit: 1000, offset: 0,
+              total: encryptedRecords.length, count: encryptedRecords.length, limit: 100, offset: 0,
             },
             data: encryptedRecords,
           });
@@ -560,7 +560,7 @@ describe('Storage', () => {
         const popAPIFind = nockEndpoint(POPAPI_HOST, 'find', COUNTRY)
           .reply(200, {
             meta: {
-              total: 1, count: 1, limit: 1000, offset: 0,
+              total: 1, count: 1, limit: 100, offset: 0,
             },
             data: [encryptedRecord],
           });
@@ -627,7 +627,7 @@ describe('Storage', () => {
           const popAPIFind = nockEndpoint(POPAPI_HOST, 'find', COUNTRY)
             .reply(200, {
               meta: {
-                total: 2, count: 2, limit: 1000, offset: 0,
+                total: 2, count: 2, limit: 100, offset: 0,
               },
               data: [],
             });
@@ -639,7 +639,7 @@ describe('Storage', () => {
           const popAPIFind = nockEndpoint(POPAPI_HOST, 'find', COUNTRY)
             .reply(200, {
               meta: {
-                total: 0, count: 0, limit: 1000, offset: 0,
+                total: 0, count: 0, limit: 100, offset: 0,
               },
               data: [],
             });
@@ -661,7 +661,7 @@ describe('Storage', () => {
           const encryptedRecords = await Promise.all(TEST_RECORDS.map((record) => encStorage.encryptPayload(record)));
           const findResponse = {
             meta: {
-              total: encryptedRecords.length, count: encryptedRecords.length, limit: 1000, offset: 0,
+              total: encryptedRecords.length, count: encryptedRecords.length, limit: 100, offset: 0,
             },
             data: encryptedRecords,
           };
