@@ -1,5 +1,5 @@
 const t = require('io-ts');
-const { toPromise } = require('./utils');
+const { validationToPromise } = require('./utils');
 
 /**
  * @typedef SecretsData
@@ -88,7 +88,7 @@ class SecretKeyAccessor {
   _getSecrets() {
     return Promise
       .resolve(this._getSecretCallback())
-      .then((v) => (typeof v === 'string' ? wrapToSecretsData(v) : toPromise(SecretsDataIO.decode(v))));
+      .then((v) => (typeof v === 'string' ? wrapToSecretsData(v) : validationToPromise(SecretsDataIO.decode(v))));
   }
 }
 

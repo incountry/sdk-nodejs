@@ -188,7 +188,7 @@ class Storage {
         throw new StorageClientError('You must pass non-empty array');
       }
 
-      const data = await Promise.all(
+      const encryptedRecords = await Promise.all(
         records.map((r) => {
           this._validateRecord(r);
           return this._encryptPayload(r);
@@ -213,8 +213,9 @@ class Storage {
         `v2/storage/records/${countryCode}/batchWrite`,
         {
           method: 'post',
-          data,
-          endpoint,
+          data: {
+            records: encryptedRecords,
+          },
         },
       );
 
