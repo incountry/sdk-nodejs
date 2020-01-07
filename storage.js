@@ -106,6 +106,7 @@ class Storage {
     throw new Error(errorMessage);
   }
 
+
   _validateRecord(record) {
     if (!record.country) throw new ValidationError('Missing country');
     if (!record.key) throw new ValidationError('Missing key');
@@ -165,7 +166,7 @@ class Storage {
         endpoint,
         country: record.country,
         op_result: 'error',
-        key: data.key,
+        key: record.key,
         requestHeaders: popError.requestHeaders,
         responseHeaders: popError.responseHeaders,
         operation: 'Write',
@@ -197,7 +198,7 @@ class Storage {
 
       endpoint = await this._getEndpointAsync(countryCode, `v2/storage/records/${countryCode}/batchWrite`);
 
-      keys = data.map(({ key }) => key);
+      keys = encryptedRecords.map(({ key }) => key);
 
       this._logger.write('info', `Sending POST ${endpoint}`, {
         endpoint,
