@@ -3,6 +3,7 @@ const util = require('util');
 const utf8 = require('utf8');
 
 const SecretKeyAccessor = require('./secret-key-accessor');
+const { InCryptoError } = require('./errors');
 
 const pbkdf2 = util.promisify(crypto.pbkdf2);
 
@@ -69,9 +70,11 @@ class InCrypt {
     if (!this._secretKeyAccessor && version !== PT_VERSION) {
       return this.decryptStub(encrypted);
     }
-
-    const decrypt = this[`decryptV${version}`].bind(this);
-    return decrypt(encrypted, secretVersion);
+    const decrypt = this[`decryptV${version}`];
+    if (decrypt === undefined) {
+      throw new InCryptoError('Unknown decryptor version requested');
+    }
+    return decrypt.bind(this)(encrypted, secretVersion);
   }
 
   decryptStub(encrypted) {

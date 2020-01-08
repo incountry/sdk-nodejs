@@ -9,7 +9,13 @@ node_js:
 jobs:
   include:
     - stage: tests
-      name: "Tests"
+      name: "Unit tests"
+      script:
+        - if [[ ($TRAVIS_BRANCH == "master") && ($TRAVIS_EVENT_TYPE == "cron") ]]; then snyk monitor --org=incountry; fi
+        - npm run test
+        - sonar-scanner
+    - stage: tests
+      name: "Integration test"
       before_script:
         - |
             if [[ $TRAVIS_BRANCH == "master" ]]; then 
@@ -26,8 +32,7 @@ jobs:
         - envsubst < .env.value > .env
       script:
         - if [[ ($TRAVIS_BRANCH == "master") && ($TRAVIS_EVENT_TYPE == "cron") ]]; then snyk monitor --org=incountry; fi
-        - npm run test
-        - npm run integrations-ci
+        - npm run integrations
         - sonar-scanner
       after_script:
         - rm -f .env.value

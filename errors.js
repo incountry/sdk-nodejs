@@ -34,8 +34,19 @@ class StorageServerError extends Error {
   }
 }
 
+class InCryptoError extends Error {
+  constructor(...params) {
+    super(params);
+    this.name = 'InCryptoError';
+    if (Error.captureStackTrace) {
+      Error.captureStackTrace(this, InCryptoError);
+    }
+  }
+}
+
 module.exports = {
   StorageClientError,
   StorageServerError,
+  InCryptoError,
   StorageValidationError,
 };
