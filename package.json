@@ -28,7 +28,6 @@
   },
   "scripts": {
     "integrations": "nyc --reporter=lcov --reporter=text --report-dir=it-coverage mocha tests/integration/*.js --timeout 40000",
-    "integrations-ci": "nyc --reporter=lcov --reporter=text --report-dir=it-coverage mocha tests/integration/*.js --timeout 40000 --reporter=mocha-testrail-reporter --reporter-options domain=incountry.testrail.io,username=${TR_EMAIL},password=${TR_PASS},projectId=8,suiteId=1",
     "test": "nyc --reporter=lcov --reporter=text --report-dir=ut-coverage --exclude=tests/unit/*.js mocha tests/unit/*.js"
   },
   "version": "0.5.3",
