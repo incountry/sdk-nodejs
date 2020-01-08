@@ -112,7 +112,7 @@ class Storage {
     if (!record.key) throw new ValidationError('Missing key');
   }
 
-  async writeAsync(record) {
+  async writeAsync(record, requestOptions) {
     let endpoint;
     let data;
     try {
@@ -147,7 +147,7 @@ class Storage {
         method: 'post',
         data,
         endpoint,
-      });
+      }, requestOptions);
 
       this._logger.write('info', `Finished POST ${endpoint}`, {
         endpoint,
@@ -181,7 +181,7 @@ class Storage {
    * @param {string} countryCode
    * @param {Array<Record>} records
    */
-  async batchWrite(countryCode, records) {
+  async batchWrite(countryCode, records, requestOptions) {
     let endpoint;
     let keys;
     try {
@@ -218,6 +218,7 @@ class Storage {
             records: encryptedRecords,
           },
         },
+        requestOptions,
       );
 
       this._logger.write('info', `Finished POST ${endpoint}`, {
@@ -279,7 +280,7 @@ class Storage {
    * @param {{ limit: number, offset: number }} options - The options to pass to PoP.
    * @return {Promise<{ meta: { total: number, count: number }, records: Array<Record> }>} Matching records.
    */
-  async find(country, filter, options = {}) {
+  async find(country, filter, options = {}, requestOptions) {
     let endpoint;
     try {
       if (typeof country !== 'string') {
@@ -319,6 +320,7 @@ class Storage {
           method: 'post',
           data,
         },
+        requestOptions,
       );
 
       this._logger.write('info', `Finished POST ${endpoint}`, {
@@ -365,13 +367,13 @@ class Storage {
    * @param {{ limit: number, offset: number }} options - The options to pass to PoP.
    * @return {Promise<{ record: Record|null }>} Matching record.
    */
-  async findOne(country, filter, options = {}) {
-    const result = await this.find(country, filter, options);
+  async findOne(country, filter, options = {}, requestOptions) {
+    const result = await this.find(country, filter, options, requestOptions);
     const record = result.records.length ? result.records[0] : null;
     return { record };
   }
 
-  async readAsync(record) {
+  async readAsync(record, requestOptions) {
     let endpoint;
     let key;
     try {
@@ -396,6 +398,7 @@ class Storage {
         {
           method: 'get',
         },
+        requestOptions,
       );
 
       this._logger.write('info', `Finished GET ${endpoint}`, {
@@ -509,16 +512,16 @@ class Storage {
    * @param {object} options - Options object.
    * @return {Promise<{ record: Record }>} Operation result.
    */
-  async updateOne(country, filter, doc, options = { override: false }) {
+  async updateOne(country, filter, doc, options = { override: false }, requestOptions) {
     if (typeof country !== 'string') {
       this._logAndThrowError('Missing country');
     }
 
     if (options.override && doc.key) {
-      return this.writeAsync({ country, ...doc });
+      return this.writeAsync({ country, ...doc }, requestOptions);
     }
 
-    const result = await this.find(country, filter, { limit: 1 });
+    const result = await this.find(country, filter, { limit: 1 }, requestOptions);
     if (result.meta.total >= 2) {
       this._logAndThrowError('Multiple records found');
     }
@@ -611,11 +614,18 @@ class Storage {
    * @param {string} path
    * @param {{method: string, data: *}} params - axios params
    */
-  async _apiClient(country, path, params = {}) {
+  async _apiClient(country, path, params = {}, requestOptions = {}) {
     const url = params.endpoint || await this._getEndpointAsync(country.toLowerCase(), path);
+    let headers = this.headers();
+    if (requestOptions.headers) {
+      headers = {
+        ...headers,
+        ...requestOptions.headers,
+      };
+    }
     return axios({
       url,
-      headers: this.headers(),
+      headers,
       ...params,
     }).catch((err) => {
       throw new StorageServerError(err);
