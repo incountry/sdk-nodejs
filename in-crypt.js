@@ -59,8 +59,7 @@ class InCrypt {
     const parts = s.split(':');
 
     if (parts.length !== 2) {
-      // TODO: use InCryptoError
-      throw new Error("Invalid ciphertext");
+      throw new InCryptoError('Invalid ciphertext');
     }
     const [version, encrypted] = parts;
 
