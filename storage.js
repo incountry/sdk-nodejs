@@ -25,6 +25,11 @@ const {
  * @property {boolean} encrypt
  */
 
+/**
+* @typedef Logger
+* @property {(logLevel: string, message: string, id?: string, timestamp?: string) => boolean} write
+*/
+
 class Storage {
   static get MAX_LIMIT() {
     return 100;
@@ -33,7 +38,8 @@ class Storage {
   /**
    * @param {StorageOptions} options
    * @param {import('./secret-key-accessor')} secretKeyAccessor
-   * @param {import('./logger')} logger
+   * @param {Logger} logger
+   * @param {import('./countries-cache')} countriesCache
    */
   constructor(options, secretKeyAccessor, logger, countriesCache) {
     if (logger) {
@@ -56,13 +62,13 @@ class Storage {
 
     if (options.encrypt !== false) {
       this._encryptionEnabled = true;
-      this._crypto = new InCrypt(secretKeyAccessor);
+      this.setSecretKeyAccessor(secretKeyAccessor);
     } else {
       this._encryptionEnabled = false;
-      this._crypto = new InCrypt();
+      this.setSecretKeyAccessor();
     }
 
-    this._countriesCache = countriesCache || new CountriesCache();
+    this.setCountriesCache(countriesCache || new CountriesCache());
   }
 
   createKeyHash(s) {
@@ -73,6 +79,9 @@ class Storage {
       .digest('hex');
   }
 
+  /**
+   * @param {Logger | unknown} logger
+   */
   setLogger(logger) {
     if (!logger) {
       throw new Error('Please specify a logger');
@@ -86,13 +95,19 @@ class Storage {
     this._logger = logger;
   }
 
+  /**
+   * @param {import('./secret-key-accessor') | unknown} secretKeyAccessor
+   */
   setSecretKeyAccessor(secretKeyAccessor) {
-    if (!(secretKeyAccessor instanceof SecretKeyAccessor)) {
-      throw new Error('You must pass an instance of SecretKeyAccessor');
+    if (secretKeyAccessor !== undefined && !(secretKeyAccessor instanceof SecretKeyAccessor)) {
+      throw new Error('Argument must be an instance of SecretKeyAccessor');
     }
     this._crypto = new InCrypt(secretKeyAccessor);
   }
 
+  /**
+   * @param {import('./countries-cache') | unknown} countriesCache
+   */
   setCountriesCache(countriesCache) {
     if (!(countriesCache instanceof CountriesCache)) {
       throw new Error('You must pass an instance of CountriesCache');
