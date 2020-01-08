@@ -1,6 +1,5 @@
 const crypto = require('crypto');
 const util = require('util');
-const utf8 = require('utf8');
 
 const SecretKeyAccessor = require('./secret-key-accessor');
 const { InCryptoError } = require('./errors');
