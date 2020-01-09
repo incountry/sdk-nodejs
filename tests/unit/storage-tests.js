@@ -1214,4 +1214,66 @@ describe('Storage', () => {
       })
     })
   });
+
+  describe('should set correct headers for requests', function () {
+    /** @type {import('../../storage')} */
+    let storage;
+
+    const testCase = { "country": COUNTRY, "key": uuid(), version: 0 };
+    const sdkVersionRegExp = /^SDK-Node\.js\/\d+\.\d+\.\d+/
+
+    beforeEach(function () {
+      storage = new Storage({
+        apiKey: 'string',
+        environmentId: 'string',
+        endpoint: POPAPI_URL,
+      },
+        new SecretKeyAccessor(() => SECRET_KEY)
+      )
+    });
+
+    context('write', function () {
+      it('should set User-Agent', function (done) {
+        const scope = nock(POPAPI_URL)
+          .post(`/v2/storage/records/${COUNTRY}`)
+          .reply(200);
+        storage.writeAsync(testCase);
+        scope.on('request', async function (req, interceptor, body) {
+          const userAgent = req.headers['user-agent'];
+          expect(userAgent).to.match(sdkVersionRegExp);
+          done();
+        });
+      });
+    })
+    context('read', function () {
+      it('should set User-Agent', async function () {
+        const encrypted = await storage._encryptPayload(testCase);
+        const scope = nock(POPAPI_URL)
+          .get(`/v2/storage/records/${COUNTRY}/${encrypted.key}`)
+          .reply(200, encrypted);
+        const { record } = await storage.readAsync(testCase);
+        scope.on('request', async function (req, interceptor, body) {
+          const userAgent = req.headers['user-agent'];
+          expect(userAgent).to.match(sdkVersionRegExp);
+          done();
+        });
+      })
+    })
+    context('delete', function () {
+      it('should set User-Agent', function (done) {
+        storage._encryptPayload(testCase).then((encrypted) => {
+          const scope = nock(POPAPI_URL)
+            .delete(`/v2/storage/records/${COUNTRY}/${encrypted.key}`)
+            .reply(200);
+          storage.deleteAsync(testCase)
+          scope.on('request', async function (req, interceptor, body) {
+            const userAgent = req.headers['user-agent'];
+            expect(userAgent).to.match(sdkVersionRegExp);
+            done();
+          });
+        }).catch(done);
+      })
+    })
+   
+  });
 });

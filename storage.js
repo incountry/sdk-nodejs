@@ -1,6 +1,7 @@
 require('dotenv').config();
 const axios = require('axios');
 const crypto = require('crypto');
+const pjson = require('./package.json');
 
 const defaultLogger = require('./logger');
 const CountriesCache = require('./countries-cache');
@@ -11,6 +12,8 @@ const {
   StorageClientError,
   StorageServerError,
 } = require('./errors');
+
+const SDK_VERSION = pjson.version;
 
 /**
  * @typedef Record
@@ -439,6 +442,7 @@ class Storage {
       Authorization: `Bearer ${this._apiKey}`,
       'x-env-id': this._envId,
       'Content-Type': 'application/json',
+      'User-Agent': `SDK-Node.js/${SDK_VERSION}`,
     };
   }
 
