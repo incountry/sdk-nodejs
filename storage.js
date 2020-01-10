@@ -538,7 +538,7 @@ class Storage {
     this._logAndThrowError('Record not found');
   }
 
-  async deleteAsync(record) {
+  async deleteAsync(record, requestOptions) {
     let endpoint;
     let key;
     try {
@@ -562,6 +562,7 @@ class Storage {
         {
           method: 'delete',
         },
+        requestOptions,
       );
 
       this._logger.write('info', `Finished DELETE ${endpoint}`, {
