@@ -89,16 +89,21 @@ class ApiClient {
     const url = await this.getEndpoint(country.toLowerCase(), path);
     const method = chosenAction.verb;
     this.loggerFn('debug', `${method.toUpperCase()} ${url}`);
-    return axios({
-      url,
-      headers: this.headers(),
-      method,
-      data,
-    }).catch((err) => {
+    let response;
+    try {
+      response = await axios({
+        url,
+        headers: this.headers(),
+        method,
+        data,
+      });
+    } catch (err) {
       const storageServerError = new StorageServerError(err.code, err.response ? err.response.data : {}, `${method} ${url} ${err.message}`);
       this.loggerFn('error', storageServerError);
       throw storageServerError;
-    });
+    }
+
+    return response;
   }
 
   read(country, key) {
