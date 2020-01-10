@@ -80,10 +80,14 @@ class ApiClient {
    * @param {object} data - request body
    */
   async apiClient(country, key, action, data = undefined) {
-    // TODO: validate action
-    const path = ACTIONS[action].path(country, key);
+    const chosenAction = ACTIONS[action];
+    if (!chosenAction) {
+      throw new Error('Invalid action passed to ApiClient.');
+    }
+
+    const path = chosenAction.path(country, key);
     const url = await this.getEndpoint(country.toLowerCase(), path);
-    const method = ACTIONS[action].verb;
+    const method = chosenAction.verb;
     this.loggerFn('debug', `${method.toUpperCase()} ${url}`);
     return axios({
       url,
