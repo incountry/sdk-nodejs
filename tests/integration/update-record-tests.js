@@ -6,6 +6,8 @@ const { createStorage, noop } = require('./common');
 chai.use(chaiAsPromised);
 const { expect } = chai;
 
+const COUNTRY = process.env.INT_INC_COUNTRY;
+
 /** @type {import('../../storage')} */
 let storage;
 let data;
@@ -13,7 +15,7 @@ let data;
 describe('Update record', function () {
   beforeEach(async function () {
     data = {
-      country: 'us',
+      country: COUNTRY,
       key: Math.random().toString(36).substr(2, 10),
       key3: Math.random().toString(36).substr(2, 10),
       profile_key: Math.random().toString(36).substr(2, 10),

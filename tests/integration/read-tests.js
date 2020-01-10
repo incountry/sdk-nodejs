@@ -6,6 +6,7 @@ const { createStorage, noop } = require('./common');
 chai.use(chaiAsPromised);
 const { expect } = chai;
 
+const COUNTRY = process.env.INT_INC_COUNTRY;
 
 /** @type {import('../../storage')} */
 let storage;
@@ -25,7 +26,7 @@ describe('Read data from Storage', function () {
     context(`${encryption ? 'with' : 'without'} encryption`, function () {
       it('Read data', async function () {
         data = {
-          country: 'US',
+          country: COUNTRY,
           key: Math.random().toString(36).substr(2, 10),
           body: JSON.stringify({ name: 'PersonName' }),
         };
@@ -43,7 +44,7 @@ describe('Read data from Storage', function () {
 
       it('Read not existing data', async function () {
         data = {
-          country: 'US',
+          country: COUNTRY,
           key: Math.random().toString(36).substr(2, 10),
         };
 
@@ -53,7 +54,7 @@ describe('Read data from Storage', function () {
 
       it('Read data with optional keys and range', async function () {
         data = {
-          country: 'US',
+          country: COUNTRY,
           key: Math.random().toString(36).substr(2, 10),
           body: JSON.stringify({ name: 'PersonName' }),
           profile_key: 'profileKey',
@@ -79,7 +80,7 @@ describe('Read data from Storage', function () {
 
       it('Read data with empty body', async function () {
         data = {
-          country: 'US',
+          country: COUNTRY,
           key: Math.random().toString(36).substr(2, 10),
           body: null,
         };
