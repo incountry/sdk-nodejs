@@ -31,7 +31,6 @@ const ACTIONS = {
   delete: {
     verb: 'delete',
     path: (...args) => `v2/storage/records/${args[0]}/${args[1]}`,
-    validateResponse: (responseData) => validateDeleteResponse(responseData),
   },
   find: {
     verb: 'post',
@@ -123,7 +122,7 @@ class ApiClient {
         data,
       });
     } catch (err) {
-      const storageServerError = new StorageServerError(err.code, err.response ? err.response.data : {}, `${method} ${url} ${err.message}`);
+      const storageServerError = new StorageServerError(err.code, err.response ? err.response.data : {}, `${method.toUpperCase()} ${url} ${err.message}`);
       this.loggerFn('error', storageServerError);
       throw storageServerError;
     }
