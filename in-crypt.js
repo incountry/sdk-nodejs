@@ -18,7 +18,7 @@ class InCrypt {
   /**
   * @param {import('./secret-key-accessor')} secretKeyAccessor
   */
-  constructor(secretKeyAccessor = null) {
+  constructor(secretKeyAccessor) {
     this._secretKeyAccessor = secretKeyAccessor;
   }
 
@@ -28,7 +28,7 @@ class InCrypt {
   }
 
   async encryptAsync(text) {
-    if (this._secretKeyAccessor === null) {
+    if (this._secretKeyAccessor === undefined) {
       return {
         message: `${PT_VERSION}:${Buffer.from(text).toString('base64')}`,
         secretVersion: SecretKeyAccessor.DEFAULT_VERSION,

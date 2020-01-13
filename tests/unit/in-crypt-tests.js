@@ -19,7 +19,6 @@ const PREPARED_DATA_BY_VERSION = [
     encrypted: 'pt:SW5Db3VudHJ5',
     version: 'pt',
     plain: 'InCountry',
-    secretKeyAccessor: null,
   },
   {
     encrypted: '2:MyAeMDU3wnlWiqooUM4aStpDvW7JKU0oKBQN4WI0Wyl2vSuSmTIu8TY7Z9ljYeaLfg8ti3mhIJhbLSBNu/AmvMPBZsl6CmSC1KcbZ4kATJQtmZolidyXUGBlXC52xvAnFFGnk2s=',

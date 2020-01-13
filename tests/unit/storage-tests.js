@@ -1118,9 +1118,7 @@ describe('Storage', () => {
         apiKey: 'string',
         environmentId: 'string',
         encrypt: false,
-      },
-        null
-      );
+      });
       const storedData = await Promise.all(
         TEST_RECORDS.map((record) => notEncryptedStorage._encryptPayload(record))
       );
