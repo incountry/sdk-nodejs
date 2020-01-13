@@ -789,7 +789,7 @@ describe('Storage', () => {
       storage = new Storage({
         apiKey: 'string',
         environmentId: 'string',
-        endpoint: POPAPI_URL,
+        endpoint: POPAPI_HOST,
       },
         new SecretKeyAccessor(() => SECRET_KEY)
       )
@@ -797,7 +797,7 @@ describe('Storage', () => {
 
     context('write', function () {
       it('should set User-Agent', function (done) {
-        const scope = nock(POPAPI_URL)
+        const scope = nock(POPAPI_HOST)
           .post(`/v2/storage/records/${COUNTRY}`)
           .reply(200);
         storage.writeAsync(testCase);
@@ -811,7 +811,7 @@ describe('Storage', () => {
     context('read', function () {
       it('should set User-Agent', async function () {
         const encrypted = await storage._encryptPayload(testCase);
-        const scope = nock(POPAPI_URL)
+        const scope = nock(POPAPI_HOST)
           .get(`/v2/storage/records/${COUNTRY}/${encrypted.key}`)
           .reply(200, encrypted);
         const { record } = await storage.readAsync(testCase);
@@ -825,7 +825,7 @@ describe('Storage', () => {
     context('delete', function () {
       it('should set User-Agent', function (done) {
         storage._encryptPayload(testCase).then((encrypted) => {
-          const scope = nock(POPAPI_URL)
+          const scope = nock(POPAPI_HOST)
             .delete(`/v2/storage/records/${COUNTRY}/${encrypted.key}`)
             .reply(200);
           storage.deleteAsync(testCase)
