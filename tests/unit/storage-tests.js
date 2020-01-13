@@ -279,7 +279,7 @@ describe('Storage', () => {
 
       it('should throw an error if not instance of SecretKeyAccessor was passed as argument', () => {
         const expectSetSecretKeyAccessorThrowsError = (arg) => {
-          expect(() => storage.setSecretKeyAccessor(arg)).to.throw(Error, 'Argument must be an instance of SecretKeyAccessor');
+          expect(() => storage.setSecretKeyAccessor(arg)).to.throw(Error, 'secretKeyAccessor must be an instance of SecretKeyAccessor');
         };
         expectSetSecretKeyAccessorThrowsError(null);
         expectSetSecretKeyAccessorThrowsError(false);
