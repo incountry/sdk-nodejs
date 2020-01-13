@@ -181,7 +181,7 @@ class Storage {
    * @param {string} countryCode
    * @param {Array<Record>} records
    */
-  async batchWrite(countryCode, records, requestOptions) {
+  async batchWrite(countryCode, records, requestOptions = {}) {
     let endpoint;
     let keys;
     try {
@@ -207,6 +207,7 @@ class Storage {
         keys,
         operation: 'Batch write',
         method: 'POST',
+        requestHeaders: requestOptions.headers,
       });
 
       const response = await this._apiClient(
@@ -280,7 +281,7 @@ class Storage {
    * @param {{ limit: number, offset: number }} options - The options to pass to PoP.
    * @return {Promise<{ meta: { total: number, count: number }, records: Array<Record> }>} Matching records.
    */
-  async find(country, filter, options = {}, requestOptions) {
+  async find(country, filter, options = {}, requestOptions = {}) {
     let endpoint;
     try {
       if (typeof country !== 'string') {
@@ -311,6 +312,7 @@ class Storage {
         country: countryCode,
         op_result: 'in_progress',
         operation: 'Find',
+        requestHeaders: requestOptions.headers,
       });
 
       const response = await this._apiClient(
@@ -367,7 +369,7 @@ class Storage {
    * @param {{ limit: number, offset: number }} options - The options to pass to PoP.
    * @return {Promise<{ record: Record|null }>} Matching record.
    */
-  async findOne(country, filter, options = {}, requestOptions) {
+  async findOne(country, filter, options = {}, requestOptions = {}) {
     const result = await this.find(country, filter, options, requestOptions);
     const record = result.records.length ? result.records[0] : null;
     return { record };
@@ -390,6 +392,7 @@ class Storage {
         op_result: 'in_progress',
         key,
         operation: 'Read',
+        requestHeaders: requestOptions.headers,
       });
 
       const response = await this._apiClient(
@@ -512,7 +515,7 @@ class Storage {
    * @param {object} options - Options object.
    * @return {Promise<{ record: Record }>} Operation result.
    */
-  async updateOne(country, filter, doc, options = { override: false }, requestOptions) {
+  async updateOne(country, filter, doc, options = { override: false }, requestOptions = {}) {
     if (typeof country !== 'string') {
       this._logAndThrowError('Missing country');
     }
@@ -536,9 +539,10 @@ class Storage {
       });
     }
     this._logAndThrowError('Record not found');
+    return true;
   }
 
-  async deleteAsync(record, requestOptions) {
+  async deleteAsync(record, requestOptions = {}) {
     let endpoint;
     let key;
     try {
@@ -554,6 +558,7 @@ class Storage {
         key,
         operation: 'Delete',
         method: 'DELETE',
+        requestHeaders: requestOptions.headers,
       });
 
       const response = await this._apiClient(
