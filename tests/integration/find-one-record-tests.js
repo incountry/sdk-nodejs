@@ -8,6 +8,7 @@ chai.use(chaiAsPromised);
 const { expect } = chai;
 
 const COUNTRY = process.env.INT_INC_COUNTRY;
+const ANOTHER_COUNTRY = COUNTRY === 'us' ? 'se' : 'us';
 
 /** @type {import('../../storage')} */
 let storage;
@@ -94,7 +95,7 @@ describe('Find one record', function () {
       });
 
       it('Record not found by country', async function () {
-        await expect(storage.findOne('SE', {})).to.be.rejectedWith(StorageServerError, 'Request failed with status code 409');
+        await expect(storage.findOne(ANOTHER_COUNTRY, {})).to.be.rejectedWith(StorageServerError, 'Request failed with status code 409');
       });
     });
   });
