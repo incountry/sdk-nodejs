@@ -100,7 +100,7 @@ class Storage {
    */
   setSecretKeyAccessor(secretKeyAccessor) {
     if (secretKeyAccessor !== undefined && !(secretKeyAccessor instanceof SecretKeyAccessor)) {
-      throw new Error('Argument must be an instance of SecretKeyAccessor');
+      throw new Error('secretKeyAccessor must be an instance of SecretKeyAccessor');
     }
     this._crypto = new InCrypt(secretKeyAccessor);
   }
