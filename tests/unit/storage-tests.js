@@ -83,6 +83,12 @@ const getDefaultStorage = (encrypt) => new Storage({
   encrypt,
 }, new SecretKeyAccessor(() => SECRET_KEY), LOGGER_STUB);
 
+function createFakeCountriesCache(countries) {
+  const countriesCache = new CountriesCache();
+  countriesCache.getCountriesAsync = async () => countries;
+  return countriesCache;
+}
+
 describe('Storage', () => {
   describe('interface methods', () => {
     let encStorage;
@@ -245,9 +251,9 @@ describe('Storage', () => {
       it('should throw an error if not instance of SecretKeyAccessor was passed as argument', () => {
         /** @type {import('../../storage')} */
         const storage = new Storage({ apiKey: 'apiKey', environmentId: 'envId' });
-        const wrongSecretKeyAccessors = [null, undefined, false, '', {}, [], console];
+        const wrongSecretKeyAccessors = [null, false, '', {}, [], console];
         wrongSecretKeyAccessors.forEach((item) => {
-          expect(() => storage.setSecretKeyAccessor(item)).to.throw(Error, 'You must pass an instance of SecretKeyAccessor');
+          expect(() => storage.setSecretKeyAccessor(item)).to.throw(Error, 'secretKeyAccessor must be an instance of SecretKeyAccessor');
         });
         expect(() => storage.setSecretKeyAccessor(new SecretKeyAccessor(() => null))).not.to.throw();
       });
@@ -688,12 +694,10 @@ describe('Storage', () => {
   });
 
   describe('helper methods', () => {
-    const countriesCache = {
-      getCountriesAsync: async () => [
-        { id: 'BE', name: 'Belgium', direct: true },
-        { id: 'HU', name: 'Hungary', direct: true },
-      ],
-    };
+    const countriesCache = createFakeCountriesCache([
+      { id: 'BE', name: 'Belgium', direct: true },
+      { id: 'HU', name: 'Hungary', direct: true },
+    ]);
 
     beforeEach(() => {
       nock.disableNetConnect();
@@ -753,10 +757,9 @@ describe('Storage', () => {
 
       describe('when CountriesCache threw an error', () => {
         it('should use the default host', async () => {
-          const failingCache = {
-            getCountriesAsync: () => {
-              throw new Error('test');
-            },
+          const failingCache = new CountriesCache();
+          failingCache.getCountriesAsync = () => {
+            throw new Error('test');
           };
           const storage = getCustomStorage(undefined, failingCache);
 

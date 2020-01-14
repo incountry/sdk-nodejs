@@ -6,6 +6,8 @@ const { createStorage } = require('./common');
 chai.use(chaiAsPromised);
 const { expect } = chai;
 
+const COUNTRY = process.env.INT_INC_COUNTRY;
+
 /** @type {import('../../storage')} */
 let storage;
 
@@ -16,7 +18,7 @@ describe('Delete data from Storage', function () {
     context(`${encryption ? 'with' : 'without'} encryption`, function () {
       it('Delete data', async function () {
         const data = {
-          country: 'US',
+          country: COUNTRY,
           key: Math.random().toString(36).substr(2, 10),
           body: JSON.stringify({ name: 'PersonName' }),
         };
@@ -42,7 +44,7 @@ describe('Delete data from Storage', function () {
       });
 
       it('Delete not existing data', async function () {
-        await expect(storage.deleteAsync({ country: 'US', key: Math.random().toString(36).substr(2, 10) }))
+        await expect(storage.deleteAsync({ country: COUNTRY, key: Math.random().toString(36).substr(2, 10) }))
           .to.be.rejectedWith(Error, 'Request failed with status code 404');
       });
     });

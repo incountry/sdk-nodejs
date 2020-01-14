@@ -6,11 +6,14 @@ const { createStorage, noop } = require('./common');
 chai.use(chaiAsPromised);
 const { expect } = chai;
 
+const COUNTRY = process.env.INT_INC_COUNTRY;
+const ANOTHER_COUNTRY = COUNTRY === 'us' ? 'se' : 'us';
+
 /** @type {import('../../storage')} */
 let storage;
 
 const dataRequest = {
-  country: 'us',
+  country: COUNTRY,
   key: Math.random().toString(36).substr(2, 10),
   key2: Math.random().toString(36).substr(2, 10),
   key3: Math.random().toString(36).substr(2, 10),
@@ -20,7 +23,7 @@ const dataRequest = {
 };
 
 const dataRequest2 = {
-  country: 'us',
+  country: COUNTRY,
   key: Math.random().toString(36).substr(2, 10),
   key2: Math.random().toString(36).substr(2, 10),
   key3: Math.random().toString(36).substr(2, 10),
@@ -150,7 +153,7 @@ describe('Find records', function () {
       });
 
       it('Records not found by key value', async function () {
-        const { records, meta } = await storage.find('US', { key2: Math.random().toString(36).substr(2, 10) }, {});
+        const { records, meta } = await storage.find(COUNTRY, { key2: Math.random().toString(36).substr(2, 10) }, {});
 
         expect(records).to.have.lengthOf(0);
         expect(meta.count).to.equal(0);
@@ -160,8 +163,8 @@ describe('Find records', function () {
       });
 
       it('Records not found by country', async function () {
-        await expect(storage.findOne('SE', {}))
-          .to.be.rejectedWith(Error, 'POST https://us.qa.incountry.io/v2/storage/records/se/find Request failed with status code 409');
+        await expect(storage.findOne(ANOTHER_COUNTRY, {}))
+          .to.be.rejectedWith(Error, 'Request failed with status code 409');
       });
     });
   });
