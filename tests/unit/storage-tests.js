@@ -43,8 +43,10 @@ const TEST_RECORDS = [
   },
 ]
 
-const fakeCountriesCache = {
-  getCountriesAsync: async () => ["ru", "us"]
+function createFakeCountriesCache(countries) {
+  const countriesCache = new CountriesCache();
+  countriesCache.getCountriesAsync = async () => countries;
+  return countriesCache;
 }
 
 describe('Storage', () => {
@@ -52,12 +54,11 @@ describe('Storage', () => {
     const logger = { write: (a, b) => [a, b] };
     const loggerSpy = sinon.spy(logger, 'write');
     const customStorageEndpoint = 'https://test.example';
-    const countriesCache = {
-      getCountriesAsync: async () => [
-        { id: 'BE', name: 'Belgium', direct: true },
-        { id: 'HU', name: 'Hungary', direct: true },
-      ],
-    };
+
+    const countriesCache = createFakeCountriesCache([
+      { id: 'BE', name: 'Belgium', direct: true },
+      { id: 'HU', name: 'Hungary', direct: true },
+    ]);
 
     const createDefaultStorageWithLogger = () => new Storage({ apiKey: 'string', environmentId: 'string' }, undefined, logger);
 
@@ -278,11 +279,9 @@ describe('Storage', () => {
 
       it('should throw an error if not instance of SecretKeyAccessor was passed as argument', () => {
         const expectSetSecretKeyAccessorThrowsError = (arg) => {
-          expect(() => storage.setSecretKeyAccessor(arg)).to.throw(Error, 'You must pass an instance of SecretKeyAccessor');
+          expect(() => storage.setSecretKeyAccessor(arg)).to.throw(Error, 'secretKeyAccessor must be an instance of SecretKeyAccessor');
         };
-        expectSetSecretKeyAccessorThrowsError();
         expectSetSecretKeyAccessorThrowsError(null);
-        expectSetSecretKeyAccessorThrowsError(undefined);
         expectSetSecretKeyAccessorThrowsError(false);
         expectSetSecretKeyAccessorThrowsError({});
         expect(() => storage.setSecretKeyAccessor(new SecretKeyAccessor(() => null))).not.to.throw();
@@ -1119,9 +1118,7 @@ describe('Storage', () => {
         apiKey: 'string',
         environmentId: 'string',
         encrypt: false,
-      },
-        null
-      );
+      });
       const storedData = await Promise.all(
         TEST_RECORDS.map((record) => notEncryptedStorage._encryptPayload(record))
       );

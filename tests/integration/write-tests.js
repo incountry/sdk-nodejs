@@ -6,6 +6,8 @@ const { createStorage, noop } = require('./common');
 chai.use(chaiAsPromised);
 const { expect } = chai;
 
+const COUNTRY = process.env.INT_INC_COUNTRY;
+
 /** @type {import('../../storage')} */
 let storage;
 let data;
@@ -23,7 +25,7 @@ describe('Write data to Storage', function () {
     context(`${encryption ? 'with' : 'without'} encryption`, function () {
       it('Write data', async function () {
         data = {
-          country: 'US',
+          country: COUNTRY,
           key: Math.random().toString(36).substr(2, 10),
           body: JSON.stringify({ name: 'PersonName' }),
         };
@@ -46,7 +48,7 @@ describe('Write data to Storage', function () {
 
       it('Write data with optional keys and range value', async function () {
         data = {
-          country: 'US',
+          country: COUNTRY,
           key: Math.random().toString(36).substr(2, 10),
           body: JSON.stringify({ name: 'PersonName' }),
           profile_key: 'profileKey',
@@ -73,7 +75,7 @@ describe('Write data to Storage', function () {
 
       it('Write data with empty body', async function () {
         data = {
-          country: 'US',
+          country: COUNTRY,
           key: Math.random().toString(36).substr(2, 10),
           body: null,
         };
@@ -96,7 +98,7 @@ describe('Write data to Storage', function () {
 
       it('Rewrite data', async function () {
         data = {
-          country: 'US',
+          country: COUNTRY,
           key: Math.random().toString(36).substr(2, 10),
           body: JSON.stringify({ firstName: 'MyFirstName' }),
         };

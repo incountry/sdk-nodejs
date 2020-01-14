@@ -7,11 +7,14 @@ const { StorageServerError } = require('../../errors');
 chai.use(chaiAsPromised);
 const { expect } = chai;
 
+const COUNTRY = process.env.INT_INC_COUNTRY;
+const ANOTHER_COUNTRY = COUNTRY === 'us' ? 'se' : 'us';
+
 /** @type {import('../../storage')} */
 let storage;
 
 const dataRequest = {
-  country: 'us',
+  country: COUNTRY,
   key: Math.random().toString(36).substr(2, 10),
   key2: Math.random().toString(36).substr(2, 10),
   key3: Math.random().toString(36).substr(2, 10),
@@ -87,12 +90,12 @@ describe('Find one record', function () {
       });
 
       it('Record not found by key value', async function () {
-        const { record } = await storage.findOne('US', { key: Math.random().toString(36).substr(2, 10) });
+        const { record } = await storage.findOne(COUNTRY, { key: Math.random().toString(36).substr(2, 10) });
         expect(record).to.equal(null);
       });
 
       it('Record not found by country', async function () {
-        await expect(storage.findOne('SE', {})).to.be.rejectedWith(StorageServerError, 'Request failed with status code 409');
+        await expect(storage.findOne(ANOTHER_COUNTRY, {})).to.be.rejectedWith(StorageServerError, 'Request failed with status code 409');
       });
     });
   });
