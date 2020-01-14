@@ -3,23 +3,23 @@ const nock = require('nock');
 const popAPIEndpoints = {
   write: {
     verb: 'post',
-    path: (...args) => `/v2/storage/records/${args[0]}`,
+    path: (key) => `/v2/storage/records/${key}`,
   },
   read: {
     verb: 'get',
-    path: (...args) => `/v2/storage/records/${args[0]}/${args[1]}`,
+    path: (key, country) => `/v2/storage/records/${key}/${country}`,
   },
   delete: {
     verb: 'delete',
-    path: (...args) => `/v2/storage/records/${args[0]}/${args[1]}`,
+    path: (key, country) => `/v2/storage/records/${key}/${country}`,
   },
   find: {
     verb: 'post',
-    path: (...args) => `/v2/storage/records/${args[0]}/find`,
+    path: (key) => `/v2/storage/records/${key}/find`,
   },
   batchWrite: {
     verb: 'post',
-    path: (...args) => `/v2/storage/records/${args[0]}/batchWrite`,
+    path: (key) => `/v2/storage/records/${key}/batchWrite`,
   },
 };
 
