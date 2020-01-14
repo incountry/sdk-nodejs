@@ -8,7 +8,12 @@ const Storage = require('../../storage');
 const { StorageServerError } = require('../../errors');
 const CountriesCache = require('../../countries-cache');
 const SecretKeyAccessor = require('../../secret-key-accessor');
-const { getNockedRequestBodyObject, nockEndpoint, popAPIEndpoints } = require('../test-helpers/popapi-nock');
+const {
+  getNockedRequestBodyObject,
+  getNockedRequestHeaders,
+  nockEndpoint,
+  popAPIEndpoints,
+} = require('../test-helpers/popapi-nock');
 
 const { expect, assert } = chai;
 
@@ -19,6 +24,7 @@ const CUSTOM_STORAGE_ENDPOINT = 'https://test.example';
 const PORTAL_BACKEND_HOST = 'portal-backend.incountry.com';
 const PORTAL_BACKEND_COUNTRIES_LIST_PATH = '/countries';
 const REQUEST_TIMEOUT_ERROR = { code: 'ETIMEDOUT' };
+const sdkVersionRegExp = /^SDK-Node\.js\/\d+\.\d+\.\d+/;
 
 const TEST_RECORDS = [
   {
@@ -298,6 +304,14 @@ describe('Storage', () => {
           });
         });
       });
+
+      describe('request headers', () => {
+        it('should set User-Agent', async () => {
+          const [headers] = await Promise.all([getNockedRequestHeaders(popAPI), encStorage.writeAsync(TEST_RECORDS[0])]);
+          const userAgent = headers['user-agent'];
+          expect(userAgent).to.match(sdkVersionRegExp);
+        });
+      });
     });
 
     describe('readAsync', () => {
@@ -330,6 +344,18 @@ describe('Storage', () => {
             const { record } = await noEncStorage.readAsync(_.pick(recordData, ['country', 'key']));
             expect(record).to.deep.include(recordData);
           });
+        });
+      });
+
+      describe('request headers', () => {
+        it('should set User-Agent', async () => {
+          const encryptedPayload = await encStorage._encryptPayload(TEST_RECORDS[0]);
+          const popAPI = nockEndpoint(POPAPI_HOST, 'read', COUNTRY, encryptedPayload.key)
+            .reply(200, encryptedPayload);
+
+          const [headers] = await Promise.all([getNockedRequestHeaders(popAPI), encStorage.readAsync(TEST_RECORDS[0])]);
+          const userAgent = headers['user-agent'];
+          expect(userAgent).to.match(sdkVersionRegExp);
         });
       });
     });
@@ -372,6 +398,17 @@ describe('Storage', () => {
 
           await expect(encStorage.deleteAsync(record)).to.be.rejectedWith(StorageServerError);
           assert.equal(scope.isDone(), true, 'Nock scope is done');
+        });
+      });
+
+      describe('request headers', () => {
+        it('should set User-Agent', async () => {
+          const encryptedPayload = await encStorage._encryptPayload(TEST_RECORDS[0]);
+          const popAPI = nockEndpoint(POPAPI_HOST, 'delete', COUNTRY, encryptedPayload.key).reply(200);
+
+          const [headers] = await Promise.all([getNockedRequestHeaders(popAPI), encStorage.deleteAsync(TEST_RECORDS[0])]);
+          const userAgent = headers['user-agent'];
+          expect(userAgent).to.match(sdkVersionRegExp);
         });
       });
     });
@@ -774,66 +811,6 @@ describe('Storage', () => {
         it('when method not specified in parameters', async () => {
           await runApiClientWithParams({ data: 'test' });
         });
-      });
-    });
-  });
-
-  describe('should set correct headers for requests', () => {
-    /** @type {import('../../storage')} */
-    let storage;
-
-    const testCase = { country: COUNTRY, key: uuid(), version: 0 };
-    const sdkVersionRegExp = /^SDK-Node\.js\/\d+\.\d+\.\d+/;
-
-    beforeEach(() => {
-      storage = new Storage({
-        apiKey: 'string',
-        environmentId: 'string',
-        endpoint: POPAPI_HOST,
-      }, new SecretKeyAccessor(() => SECRET_KEY));
-    });
-
-    context('write', () => {
-      it('should set User-Agent', (done) => {
-        const scope = nock(POPAPI_HOST)
-          .post(`/v2/storage/records/${COUNTRY}`)
-          .reply(200);
-        storage.writeAsync(testCase);
-        scope.on('request', async (req, interceptor, body) => {
-          const userAgent = req.headers['user-agent'];
-          expect(userAgent).to.match(sdkVersionRegExp);
-          done();
-        });
-      });
-    });
-
-    context('read', () => {
-      it('should set User-Agent', async () => {
-        const encrypted = await storage._encryptPayload(testCase);
-        const scope = nock(POPAPI_HOST)
-          .get(`/v2/storage/records/${COUNTRY}/${encrypted.key}`)
-          .reply(200, encrypted);
-        await storage.readAsync(testCase);
-        scope.on('request', async (req, interceptor, body) => {
-          const userAgent = req.headers['user-agent'];
-          expect(userAgent).to.match(sdkVersionRegExp);
-        });
-      });
-    });
-
-    context('delete', () => {
-      it('should set User-Agent', (done) => {
-        storage._encryptPayload(testCase).then((encrypted) => {
-          const scope = nock(POPAPI_HOST)
-            .delete(`/v2/storage/records/${COUNTRY}/${encrypted.key}`)
-            .reply(200);
-          storage.deleteAsync(testCase);
-          scope.on('request', async (req, interceptor, body) => {
-            const userAgent = req.headers['user-agent'];
-            expect(userAgent).to.match(sdkVersionRegExp);
-            done();
-          });
-        }).catch(done);
       });
     });
   });

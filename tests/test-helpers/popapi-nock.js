@@ -23,6 +23,12 @@ const popAPIEndpoints = {
   },
 };
 
+const getNockedRequestHeaders = (nocked) => new Promise((resolve) => {
+  nocked.on('request', (req) => {
+    resolve(req.headers);
+  });
+});
+
 const getNockedRequestBodyObject = (nocked) => new Promise((resolve) => {
   nocked.on('request', (req, interceptor, reqBody) => {
     const bodyObj = JSON.parse(reqBody);
@@ -40,4 +46,5 @@ module.exports = {
   nockEndpoint,
   popAPIEndpoints,
   getNockedRequestBodyObject,
+  getNockedRequestHeaders,
 };
