@@ -146,10 +146,25 @@ class Storage {
       data,
     });
     if (response.data) {
-      const decryptedData = await Promise.all(response.data.data.map((item) => this._decryptPayload(item)));
+      const result = {};
+      result.data = [];
+      const decrypted = await Promise.all(
+        response.data.data.map((item) => this._decryptPayload(item).catch((e) => ({
+          error: e.message,
+          rawData: item,
+        }))),
+      );
+      decrypted.forEach((item) => {
+        if (item.error) {
+          result.errors = result.errors ? [...result.errors, item] : [item];
+        } else {
+          result.data.push(item);
+        }
+      });
+
       return {
         ...response.data,
-        data: decryptedData,
+        ...result,
       };
     }
     return response.data;
