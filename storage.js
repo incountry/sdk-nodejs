@@ -154,13 +154,19 @@ class Storage {
           rawData: item,
         }))),
       );
+
+      const errors = [];
       decrypted.forEach((item) => {
         if (item.error) {
-          result.errors = result.errors ? [...result.errors, item] : [item];
+          errors.push(item);
         } else {
           result.data.push(item);
         }
       });
+
+      if (errors.length) {
+        result.errors = errors;
+      }
 
       return {
         ...response.data,
