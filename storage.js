@@ -7,11 +7,12 @@ const defaultLogger = require('./logger');
 const CountriesCache = require('./countries-cache');
 const SecretKeyAccessor = require('./secret-key-accessor');
 const { InCrypt } = require('./in-crypt');
-const { PositiveInt } = require('./utils');
+const { PositiveInt, tryValidate } = require('./utils');
 const {
-  StorageClientError,
   StorageServerError,
 } = require('./errors');
+
+const RecordIO = require('./dto/record');
 
 const SDK_VERSION = pjson.version;
 
@@ -123,34 +124,25 @@ class Storage {
     throw new Error(errorMessage);
   }
 
-  _validateRecord(record) {
-    if (!record.country) throw new StorageClientError('Missing country');
-    if (!record.key) throw new StorageClientError('Missing key');
-  }
+  /**
+ * @param {string} countryCode - Country code.
+ * @param {Record} record
+ * @return {Promise<{ record: Record }>} Matching record.
+ */
+  async writeAsync(countryCode, record) {
+    if (typeof countryCode !== 'string') {
+      this._logAndThrowError('Missing country');
+    }
 
-  async writeAsync(record) {
-    this._validateRecord(record);
+    tryValidate(RecordIO.decode(record));
 
-    const countrycode = record.country.toLowerCase();
-
-    let data = {
-      country: countrycode,
-      key: record.key,
-    };
-
-    if (record.body !== undefined) data.body = record.body;
-    if (record.profile_key) data.profile_key = record.profile_key;
-    if (record.range_key) data.range_key = record.range_key;
-    if (record.key2) data.key2 = record.key2;
-    if (record.key3) data.key3 = record.key3;
-
-    data = await this._encryptPayload(data);
+    const data = await this._encryptPayload(record);
 
     this._logger.write('debug', `Raw data: ${JSON.stringify(data)}`);
 
     await this._apiClient(
-      countrycode,
-      `v2/storage/records/${countrycode}`,
+      countryCode,
+      `v2/storage/records/${countryCode}`,
       {
         method: 'post',
         data,
@@ -166,6 +158,10 @@ class Storage {
    * @param {Array<Record>} records
    */
   async batchWrite(countryCode, records) {
+    if (typeof countryCode !== 'string') {
+      this._logAndThrowError('Missing country');
+    }
+
     try {
       if (!records.length) {
         throw new Error('You must pass non-empty array');
@@ -173,7 +169,7 @@ class Storage {
 
       const encryptedRecords = await Promise.all(
         records.map((r) => {
-          this._validateRecord(r);
+          tryValidate(RecordIO.decode(r));
           return this._encryptPayload(r);
         }),
       );
@@ -196,12 +192,30 @@ class Storage {
     }
   }
 
+  _validateLimit(limit) {
+    if (!PositiveInt.is(limit)) {
+      this._logAndThrowError('Limit should be a positive integer');
+    }
+
+    if (limit > Storage.MAX_LIMIT) {
+      this._logAndThrowError(
+        `Max limit is ${Storage.MAX_LIMIT}. Use offset to populate more`,
+      );
+    }
+  }
+
   /**
-   * @param {string} country - Country code.
+   * @param {string} countryCode - Country code.
    * @param {number} limit - Find limit
    * @returns {Promise<{ meta: { migrated: number, totalLeft: number } }>}
    */
-  async migrate(country, limit) {
+  async migrate(countryCode, limit) {
+    if (typeof countryCode !== 'string') {
+      this._logAndThrowError('Missing country');
+    }
+
+    this._validateLimit(limit);
+
     if (!this._encryptionEnabled) {
       throw new Error('Migration not supported when encryption is off');
     }
@@ -209,8 +223,8 @@ class Storage {
     const currentSecretVersion = await this._crypto.getCurrentSecretVersion();
     const findFilter = { version: { $not: currentSecretVersion } };
     const findOptions = { limit };
-    const { records, meta } = await this.find(country, findFilter, findOptions);
-    await this.batchWrite(country, records);
+    const { records, meta } = await this.find(countryCode, findFilter, findOptions);
+    await this.batchWrite(countryCode, records);
 
     return {
       meta: {
@@ -222,29 +236,19 @@ class Storage {
 
   /**
    * Find records matching filter.
-   * @param {string} country - Country code.
+   * @param {string} countryCode - Country code.
    * @param {object} filter - The filter to apply.
    * @param {{ limit: number, offset: number }} options - The options to pass to PoP.
    * @return {Promise<{ meta: { total: number, count: number }, records: Array<Record> }>} Matching records.
    */
-  async find(country, filter, options = {}) {
-    if (typeof country !== 'string') {
+  async find(countryCode, filter, options = {}) {
+    if (typeof countryCode !== 'string') {
       this._logAndThrowError('Missing country');
     }
 
     if (options.limit) {
-      if (!PositiveInt.is(options.limit)) {
-        this._logAndThrowError('Limit should be a positive integer');
-      }
-
-      if (options.limit > Storage.MAX_LIMIT) {
-        this._logAndThrowError(
-          `Max limit is ${Storage.MAX_LIMIT}. Use offset to populate more`,
-        );
-      }
+      this._validateLimit(options.limit);
     }
-
-    const countryCode = country.toLowerCase();
 
     const data = {
       filter: this._hashKeys(filter),
@@ -277,22 +281,32 @@ class Storage {
 
   /**
    * Find first record matching filter.
-   * @param {string} country - Country code.
+   * @param {string} countryCode - Country code.
    * @param {object} filter - The filter to apply.
    * @param {{ limit: number, offset: number }} options - The options to pass to PoP.
    * @return {Promise<{ record: Record|null }>} Matching record.
    */
-  async findOne(country, filter, options = {}) {
-    const result = await this.find(country, filter, options);
+  async findOne(countryCode, filter, options = {}) {
+    const result = await this.find(countryCode, filter, options);
     const record = result.records.length ? result.records[0] : null;
     return { record };
   }
 
-  async readAsync(record) {
-    this._validateRecord(record);
+  /**
+   * @param {string} countryCode - Country code.
+   * @param {string} recordKey
+   * @return {Promise<{ record: Record|null }>} Matching record.
+   */
+  async readAsync(countryCode, recordKey) {
+    if (typeof countryCode !== 'string') {
+      this._logAndThrowError('Missing country');
+    }
 
-    const countryCode = record.country.toLowerCase();
-    const key = await this.createKeyHash(record.key);
+    if (typeof recordKey !== 'string') {
+      this._logAndThrowError('Missing key');
+    }
+
+    const key = await this.createKeyHash(recordKey);
 
     const response = await this._apiClient(
       countryCode,
@@ -380,46 +394,51 @@ class Storage {
 
   /**
    * Update a record matching filter.
-   * @param {string} country - Country code.
+   * @param {string} countryCode - Country code.
    * @param {object} filter - The filter to apply.
    * @param {object} doc - New values to be set in matching records.
    * @param {object} options - Options object.
    * @return {Promise<{ record: Record }>} Operation result.
    */
-  async updateOne(country, filter, doc, options = { override: false }) {
-    if (typeof country !== 'string') {
+  async updateOne(countryCode, filter, doc, options = { override: false }) {
+    if (typeof countryCode !== 'string') {
       this._logAndThrowError('Missing country');
     }
 
     if (options.override && doc.key) {
-      return this.writeAsync({ country, ...doc });
+      return this.writeAsync(countryCode, { ...doc });
     }
 
-    const result = await this.find(country, filter, { limit: 1 });
-    if (result.meta.total >= 2) {
+    const result = await this.find(countryCode, filter, { limit: 1 });
+    if (result.meta.total > 1) {
       this._logAndThrowError('Multiple records found');
+    } else if (result.meta.total === 0) {
+      this._logAndThrowError('Record not found');
     }
-    if (result.meta.total === 1) {
-      const newData = {
-        ...result.records[0],
-        ...doc,
-      };
-      return this.writeAsync({
-        country,
-        ...newData,
-      });
-    }
-    this._logAndThrowError('Record not found');
+
+    const newData = {
+      ...result.records[0],
+      ...doc,
+    };
+
+    return this.writeAsync(countryCode, { ...newData });
   }
 
-  async deleteAsync(record) {
+  async deleteAsync(countryCode, recordKey) {
     try {
-      this._validateRecord(record);
-      const key = await this.createKeyHash(record.key);
+      if (typeof countryCode !== 'string') {
+        this._logAndThrowError('Missing country');
+      }
+
+      if (typeof recordKey !== 'string') {
+        this._logAndThrowError('Missing key');
+      }
+
+      const key = await this.createKeyHash(recordKey);
 
       await this._apiClient(
-        record.country,
-        `v2/storage/records/${record.country}/${key}`,
+        countryCode,
+        `v2/storage/records/${countryCode}/${key}`,
         {
           method: 'delete',
         },
@@ -462,12 +481,12 @@ class Storage {
   }
 
   /**
-   * @param {string} country
+   * @param {string} countryCode
    * @param {string} path
    * @param {{ method: string, url: string, headers: object }} params - axious params
    */
-  async _apiClient(country, path, params = {}) {
-    const url = await this._getEndpointAsync(country.toLowerCase(), path);
+  async _apiClient(countryCode, path, params = {}) {
+    const url = await this._getEndpointAsync(countryCode.toLowerCase(), path);
     const method = typeof params.method === 'string' ? params.method.toUpperCase() : '';
     this._logger.write('debug', `${method} ${url}`);
     return axios({

@@ -14,7 +14,6 @@ const ANOTHER_COUNTRY = COUNTRY === 'us' ? 'se' : 'us';
 let storage;
 
 const dataRequest = {
-  country: COUNTRY,
   key: Math.random().toString(36).substr(2, 10),
   key2: Math.random().toString(36).substr(2, 10),
   key3: Math.random().toString(36).substr(2, 10),
@@ -26,14 +25,11 @@ const dataRequest = {
 describe('Find one record', function () {
   before(async function () {
     storage = createStorage(false);
-    await storage.writeAsync(dataRequest);
+    await storage.writeAsync(COUNTRY, dataRequest);
   });
 
   after(async function () {
-    await storage.deleteAsync({
-      country: dataRequest.country,
-      key: dataRequest.key,
-    }).catch(noop);
+    await storage.deleteAsync(COUNTRY, dataRequest.key).catch(noop);
   });
 
   [false, true].forEach((encryption) => {
@@ -41,12 +37,12 @@ describe('Find one record', function () {
 
     context(`${encryption ? 'with' : 'without'} encryption`, function () {
       it.skip('Find one record by country', async function () {
-        const { record } = await storage.findOne(dataRequest.country, {});
+        const { record } = await storage.findOne(COUNTRY, {});
         expect(record).to.have.all.keys('body', 'key', 'key2', 'key3', 'profile_key', 'range_key', 'version');
       });
 
       it('Find one record by key', async function () {
-        const { record } = await storage.findOne(dataRequest.country, { key: dataRequest.key });
+        const { record } = await storage.findOne(COUNTRY, { key: dataRequest.key });
 
         expect(record.key).to.equal(dataRequest.key);
         expect(record.key2).to.equal(dataRequest.key2);
@@ -57,7 +53,7 @@ describe('Find one record', function () {
       });
 
       it('Find one record by key2', async function () {
-        const { record } = await storage.findOne(dataRequest.country, { key2: dataRequest.key2 });
+        const { record } = await storage.findOne(COUNTRY, { key2: dataRequest.key2 });
 
         expect(record.key).to.equal(dataRequest.key);
         expect(record.key2).to.equal(dataRequest.key2);
@@ -68,7 +64,7 @@ describe('Find one record', function () {
       });
 
       it('Find one record by key3', async function () {
-        const { record } = await storage.findOne(dataRequest.country, { key3: dataRequest.key3 });
+        const { record } = await storage.findOne(COUNTRY, { key3: dataRequest.key3 });
 
         expect(record.key).to.equal(dataRequest.key);
         expect(record.key2).to.equal(dataRequest.key2);
@@ -79,7 +75,7 @@ describe('Find one record', function () {
       });
 
       it('Find one record by profile_key', async function () {
-        const { record } = await storage.findOne(dataRequest.country, { profile_key: dataRequest.profile_key });
+        const { record } = await storage.findOne(COUNTRY, { profile_key: dataRequest.profile_key });
 
         expect(record.key).to.equal(dataRequest.key);
         expect(record.key2).to.equal(dataRequest.key2);

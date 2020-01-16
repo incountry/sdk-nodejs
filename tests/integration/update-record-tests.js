@@ -15,7 +15,6 @@ let data;
 describe('Update record', function () {
   beforeEach(async function () {
     data = {
-      country: COUNTRY,
       key: Math.random().toString(36).substr(2, 10),
       key3: Math.random().toString(36).substr(2, 10),
       profile_key: Math.random().toString(36).substr(2, 10),
@@ -23,14 +22,11 @@ describe('Update record', function () {
       body: JSON.stringify({ name: 'PersonName' }),
     };
 
-    await storage.writeAsync(data);
+    await storage.writeAsync(COUNTRY, data);
   });
 
   afterEach(async function () {
-    await storage.deleteAsync({
-      country: data.country,
-      key: data.key,
-    }).catch(noop);
+    await storage.deleteAsync(COUNTRY, data.key).catch(noop);
   });
 
   [false, true].forEach((encryption) => {
@@ -46,10 +42,11 @@ describe('Update record', function () {
           range_key: Math.floor(Math.random() * 100) + 1,
           body: JSON.stringify({ UpdatedName: 'UpdatedPersonName' }),
         };
-        await storage.updateOne(data.country, { key: data.key },
+
+        await storage.updateOne(COUNTRY, { key: data.key },
           updatedData, { override: true });
 
-        const { record } = await storage.readAsync({ country: data.country, key: updatedData.key });
+        const { record } = await storage.readAsync(COUNTRY, updatedData.key);
 
         expect(record.body).to.equal(updatedData.body);
         expect(record.key).to.equal(updatedData.key);
@@ -68,10 +65,10 @@ describe('Update record', function () {
           range_key: Math.floor(Math.random() * 100) + 1,
           body: JSON.stringify({ UpdatedName: 'UpdatedPersonName' }),
         };
-        await storage.updateOne(data.country, { profile_key: data.profile_key },
+        await storage.updateOne(COUNTRY, { profile_key: data.profile_key },
           updatedData, { override: true });
 
-        const { record } = await storage.readAsync({ country: data.country, key: updatedData.key });
+        const { record } = await storage.readAsync(COUNTRY, updatedData.key);
 
         expect(record.body).to.equal(updatedData.body);
         expect(record.key).to.equal(updatedData.key);
@@ -90,10 +87,10 @@ describe('Update record', function () {
           body: JSON.stringify({ UpdatedName: 'UpdatedPersonName' }),
         };
 
-        await storage.updateOne(data.country, { key2: data.key2 },
+        await storage.updateOne(COUNTRY, { key2: data.key2 },
           updatedData, { override: true });
 
-        const { record } = await storage.readAsync({ country: data.country, key: updatedData.key });
+        const { record } = await storage.readAsync(COUNTRY, updatedData.key);
 
         expect(record.body).to.equal(updatedData.body);
         expect(record.key).to.equal(updatedData.key);
@@ -109,10 +106,10 @@ describe('Update record', function () {
           key2: 'MergedKey2',
         };
 
-        await storage.updateOne(data.country, { key: data.key },
+        await storage.updateOne(COUNTRY, { key: data.key },
           updatedData, { override: false });
 
-        const { record } = await storage.readAsync({ country: data.country, key: data.key });
+        const { record } = await storage.readAsync(COUNTRY, data.key);
 
         expect(record.body).to.equal(data.body);
         expect(record.key).to.equal(data.key);
@@ -127,10 +124,10 @@ describe('Update record', function () {
           body: JSON.stringify({ UpdatedName: 'OverrideName' }),
         };
 
-        await storage.updateOne(data.country, { key: data.key },
+        await storage.updateOne(COUNTRY, { key: data.key },
           updatedData, { override: false });
 
-        const { record } = await storage.readAsync({ country: data.country, key: data.key });
+        const { record } = await storage.readAsync(COUNTRY, data.key);
 
         expect(record.body).to.equal(updatedData.body);
         expect(record.key).to.equal(data.key);
@@ -147,7 +144,7 @@ describe('Update record', function () {
           body: JSON.stringify({ UpdatedName: 'UpdatedPersonName' }),
         };
 
-        await expect(storage.updateOne(data.country, { key: `NotExistingKey${Math.random().toString(36).substr(2, 10)}` }, updatedData, { override: true }))
+        await expect(storage.updateOne(COUNTRY, { key: `NotExistingKey${Math.random().toString(36).substr(2, 10)}` }, updatedData, { override: true }))
           .to.be.rejectedWith(Error, 'Record not found');
       });
 
@@ -161,7 +158,7 @@ describe('Update record', function () {
           body: JSON.stringify({ UpdatedName: 'UpdatedPersonName' }),
         };
 
-        await expect(storage.updateOne(data.country, { key2: 'recordKey13' }, updatedData, { override: false }))
+        await expect(storage.updateOne(COUNTRY, { key2: 'recordKey13' }, updatedData, { override: false }))
           .to.be.rejectedWith(Error, 'Multiple records found');
       });
     });

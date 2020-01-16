@@ -14,10 +14,7 @@ let data;
 
 describe('Write data to Storage', function () {
   afterEach(async function () {
-    await storage.deleteAsync({
-      country: data.country,
-      key: data.key,
-    }).catch(noop);
+    await storage.deleteAsync(COUNTRY, data.key).catch(noop);
   });
 
   [false, true].forEach((encryption) => {
@@ -25,22 +22,13 @@ describe('Write data to Storage', function () {
     context(`${encryption ? 'with' : 'without'} encryption`, function () {
       it('Write data', async function () {
         data = {
-          country: COUNTRY,
           key: Math.random().toString(36).substr(2, 10),
           body: JSON.stringify({ name: 'PersonName' }),
         };
 
-        await expect(storage.readAsync({
-          country: data.country,
-          key: data.key,
-        })).to.be.rejected;
-
-        await storage.writeAsync(data);
-
-        const { record } = await storage.readAsync({
-          country: data.country,
-          key: data.key,
-        });
+        await expect(storage.readAsync(COUNTRY, data.key)).to.be.rejected;
+        await storage.writeAsync(COUNTRY, data);
+        const { record } = await storage.readAsync(COUNTRY, data.key);
 
         expect(record.key).to.equal(data.key);
         expect(record.body).to.equal(data.body);
@@ -48,7 +36,6 @@ describe('Write data to Storage', function () {
 
       it('Write data with optional keys and range value', async function () {
         data = {
-          country: COUNTRY,
           key: Math.random().toString(36).substr(2, 10),
           body: JSON.stringify({ name: 'PersonName' }),
           profile_key: 'profileKey',
@@ -57,17 +44,9 @@ describe('Write data to Storage', function () {
           key3: 'optional key value 3',
         };
 
-        await expect(storage.readAsync({
-          country: data.country,
-          key: data.key,
-        })).to.be.rejected;
-
-        await storage.writeAsync(data);
-
-        const { record } = await storage.readAsync({
-          country: data.country,
-          key: data.key,
-        });
+        await expect(storage.readAsync(COUNTRY, data.key)).to.be.rejected;
+        await storage.writeAsync(COUNTRY, data);
+        const { record } = await storage.readAsync(COUNTRY, data.key);
 
         expect(record.key).to.equal(data.key);
         expect(record.body).to.equal(data.body);
@@ -75,22 +54,13 @@ describe('Write data to Storage', function () {
 
       it('Write data with empty body', async function () {
         data = {
-          country: COUNTRY,
           key: Math.random().toString(36).substr(2, 10),
           body: null,
         };
 
-        await expect(storage.readAsync({
-          country: data.country,
-          key: data.key,
-        })).to.be.rejected;
-
-        await storage.writeAsync(data);
-
-        const { record } = await storage.readAsync({
-          country: data.country,
-          key: data.key,
-        });
+        await expect(storage.readAsync(COUNTRY, data.key)).to.be.rejected;
+        await storage.writeAsync(COUNTRY, data);
+        const { record } = await storage.readAsync(COUNTRY, data.key);
 
         expect(record.key).to.equal(data.key);
         expect(record.body).to.equal(data.body);
@@ -98,29 +68,20 @@ describe('Write data to Storage', function () {
 
       it('Rewrite data', async function () {
         data = {
-          country: COUNTRY,
           key: Math.random().toString(36).substr(2, 10),
           body: JSON.stringify({ firstName: 'MyFirstName' }),
         };
 
-        await storage.writeAsync(data);
-
-        const result1 = await storage.readAsync({
-          country: data.country,
-          key: data.key,
-        });
+        await storage.writeAsync(COUNTRY, data);
+        const result1 = await storage.readAsync(COUNTRY, data.key);
 
         expect(result1.record.key).to.equal(data.key);
         expect(result1.record.body).to.equal(data.body);
 
         data.body = JSON.stringify({ lastName: 'MyLastName' });
 
-        await storage.writeAsync(data);
-
-        const result2 = await storage.readAsync({
-          country: data.country,
-          key: data.key,
-        });
+        await storage.writeAsync(COUNTRY, data);
+        const result2 = await storage.readAsync(COUNTRY, data.key);
 
         expect(result2.record.key).to.equal(data.key);
         expect(result2.record.body).to.equal(data.body);
