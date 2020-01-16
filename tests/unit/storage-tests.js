@@ -200,6 +200,46 @@ describe('Storage', function () {
       });
     });
   });
+  it('should not throw if some records cannot be decrypted', async function () {
+    const encryptedStorage = new Storage({
+        apiKey: 'string',
+        environmentId: 'string',
+        encrypt: true,
+      },
+      new SecretKeyAccessor(() => SECRET_KEY)
+    );
+
+    const encryptedData = await Promise.all(
+      TEST_RECORDS.map((record) => encryptedStorage._encryptPayload(record))
+    );
+
+    const unsupportedData = {
+      country: 'us',
+      key: 'somekey',
+      body: 'unsupported data'
+    };
+
+    const data = [...encryptedData, unsupportedData]
+    nock('https://us.api.incountry.io')
+      .post(`/v2/storage/records/us/find`)
+      .reply(200, (uri, requestBody) => {
+        return {meta: {total: data.length}, data};
+      });
+
+    const response = await encryptedStorage.find('us', {});
+    response.data.forEach((record, idx) => {
+      ['body', 'key', 'key2', 'key3', 'profile_key'].forEach((key) => {
+        if (record[key]) {
+          expect(record[key]).to.eql(TEST_RECORDS[idx][key]);
+        }
+      });
+    });
+    expect(response).to.have.property('errors')
+    expect(response.errors.length).to.eql(1);
+    expect(response.errors[0]).to.have.property('error');
+    expect(response.errors[0]).to.have.property('rawData');
+    expect(response.errors[0].rawData).to.eql(unsupportedData);
+  });
   it('should update one by profile key', function (done) {
     const payload = {profile_key: 'updatedProfileKey'}
     storage._encryptPayload(TEST_RECORDS[4]).then((encrypted) => {
