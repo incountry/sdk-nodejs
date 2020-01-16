@@ -96,7 +96,7 @@ describe('ApiClient', () => {
     });
   });
 
-  describe('apiClient', () => {
+  describe('runQuery', () => {
     let apiClient;
 
     beforeEach(() => {
@@ -118,7 +118,7 @@ describe('ApiClient', () => {
       errorCases.forEach((errCase) => {
         it(`should throw StorageServerError ${errCase.name}`, async () => {
           const scope = errCase.respond(nockEndpoint(POPAPI_HOST, 'write', COUNTRY));
-          await expect(apiClient.apiClient(COUNTRY, undefined, 'write', {})).to.be.rejectedWith(StorageServerError);
+          await expect(apiClient.runQuery(COUNTRY, undefined, 'write', {})).to.be.rejectedWith(StorageServerError);
           assert.equal(scope.isDone(), true, 'Nock scope is done');
         });
       });
@@ -126,7 +126,7 @@ describe('ApiClient', () => {
 
     describe('when called with wrong action', () => {
       it('should throw an error', async () => {
-        await expect(apiClient.apiClient(COUNTRY, undefined, 'test', {})).to.be.rejectedWith(Error, 'Invalid action passed to ApiClient.');
+        await expect(apiClient.runQuery(COUNTRY, undefined, 'test', {})).to.be.rejectedWith(Error, 'Invalid action passed to ApiClient.');
       });
     });
   });

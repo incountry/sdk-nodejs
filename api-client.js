@@ -103,7 +103,7 @@ class ApiClient {
    * @param {('read'|'write'|'delete'|'find'|'batchWrite')} action
    * @param {object} data - request body
    */
-  async apiClient(country, key, action, data = undefined) {
+  async runQuery(country, key, action, data = undefined) {
     const chosenAction = ACTIONS[action];
     if (!chosenAction) {
       throw new Error('Invalid action passed to ApiClient.');
@@ -135,23 +135,23 @@ class ApiClient {
   }
 
   read(country, key) {
-    return this.apiClient(country, key, 'read');
+    return this.runQuery(country, key, 'read');
   }
 
   write(country, data) {
-    return this.apiClient(country, undefined, 'write', data);
+    return this.runQuery(country, undefined, 'write', data);
   }
 
   delete(country, key) {
-    return this.apiClient(country, key, 'delete');
+    return this.runQuery(country, key, 'delete');
   }
 
   find(country, data) {
-    return this.apiClient(country, undefined, 'find', data);
+    return this.runQuery(country, undefined, 'find', data);
   }
 
   batchWrite(country, data) {
-    return this.apiClient(country, undefined, 'batchWrite', data);
+    return this.runQuery(country, undefined, 'batchWrite', data);
   }
 }
 
