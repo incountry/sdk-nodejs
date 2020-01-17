@@ -200,7 +200,7 @@ describe('Storage', function () {
     const unsupportedData = {
       country: 'us',
       key: 'somekey',
-      body: 'unsupported data',
+      body: '2:unsupported data',
     };
 
     const data = [...encryptedData, unsupportedData];
@@ -222,6 +222,47 @@ describe('Storage', function () {
     expect(response.errors[0]).to.have.property('rawData');
     expect(response.errors[0].rawData).to.eql(unsupportedData);
   });
+
+  it('find() in non-encrypted mode should not throw error if some records are encrypted', async () => {
+    const nonEncryptedStorage = new Storage({
+      apiKey: 'string',
+      environmentId: 'string',
+      encrypt: false,
+      endpoint: 'https://us.api.incountry.io',
+    },
+    new SecretKeyAccessor(() => SECRET_KEY));
+
+    const nonEncryptedData = await Promise.all(
+      TEST_RECORDS.map((record) => nonEncryptedStorage._encryptPayload(record)),
+    );
+
+    const unsupportedData = {
+      country: 'us',
+      key: 'somekey',
+      body: '2:unsupported data',
+    };
+
+    const data = [...nonEncryptedData, unsupportedData];
+    nock('https://us.api.incountry.io')
+      .post('/v2/storage/records/us/find')
+      .reply(200, { meta: { total: data.length }, data });
+
+    const response = await nonEncryptedStorage.find('us', {});
+    response.data.forEach((record, idx) => {
+      ['body', 'key', 'key2', 'key3', 'profile_key'].forEach((key) => {
+        if (record[key]) {
+          expect(record[key]).to.eql(TEST_RECORDS[idx][key]);
+        }
+      });
+    });
+    expect(response).to.have.property('errors');
+    expect(response.errors.length).to.eql(1);
+    expect(response.errors[0]).to.have.property('error');
+    expect(response.errors[0]).to.have.property('rawData');
+    expect(response.errors[0].rawData).to.eql(unsupportedData);
+    expect(response.errors[0].error).to.eql('No secretKeyAccessor provided. Cannot decrypt encrypted data');
+  });
+
   it('should update one by profile key', function (done) {
     const payload = { profile_key: 'updatedProfileKey' };
     storage._encryptPayload(TEST_RECORDS[4]).then((encrypted) => {
