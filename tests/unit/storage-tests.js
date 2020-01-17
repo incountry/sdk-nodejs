@@ -41,12 +41,13 @@ const TEST_RECORDS = [
 ];
 
 describe('Storage', function () {
-  this.timeout(5000)
+  this.timeout(5000);
   let storage;
   beforeEach(function () {
     storage = new Storage({
       apiKey: 'string',
       environmentId: 'string',
+      endpoint: 'https://us.api.incountry.io',
     },
     new SecretKeyAccessor(() => SECRET_KEY));
   });
@@ -136,6 +137,7 @@ describe('Storage', function () {
       apiKey: 'string',
       environmentId: 'string',
       encrypt: true,
+      endpoint: 'https://us.api.incountry.io',
     },
     new SecretKeyAccessor(() => SECRET_KEY));
 
@@ -162,6 +164,7 @@ describe('Storage', function () {
       apiKey: 'string',
       environmentId: 'string',
       encrypt: false,
+      endpoint: 'https://us.api.incountry.io',
     },
     null);
     const storedData = await Promise.all(
@@ -187,6 +190,7 @@ describe('Storage', function () {
       apiKey: 'string',
       environmentId: 'string',
       encrypt: true,
+      endpoint: 'https://us.api.incountry.io',
     },
     new SecretKeyAccessor(() => SECRET_KEY));
 
