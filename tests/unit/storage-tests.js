@@ -41,7 +41,6 @@ const TEST_RECORDS = [
 ];
 
 describe('Storage', function () {
-  this.timeout(5000);
   let storage;
   beforeEach(function () {
     storage = new Storage({
