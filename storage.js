@@ -15,6 +15,7 @@ const {
 const RecordIO = require('./dto/record');
 
 const SDK_VERSION = pjson.version;
+const COUNTRY_CODE_REGEXP = /^[a-z]{2}$/i;
 
 /**
  * @typedef Record
@@ -124,15 +125,19 @@ class Storage {
     throw new Error(errorMessage);
   }
 
+  _validateCountryCode(countryCode) {
+    if (typeof countryCode !== 'string' || !countryCode.match(COUNTRY_CODE_REGEXP)) {
+      this._logAndThrowError('Missing country');
+    }
+  }
+
   /**
  * @param {string} countryCode - Country code.
  * @param {Record} record
  * @return {Promise<{ record: Record }>} Matching record.
  */
   async writeAsync(countryCode, record) {
-    if (typeof countryCode !== 'string') {
-      this._logAndThrowError('Missing country');
-    }
+    this._validateCountryCode(countryCode);
 
     tryValidate(RecordIO.decode(record));
 
@@ -158,9 +163,7 @@ class Storage {
    * @param {Array<Record>} records
    */
   async batchWrite(countryCode, records) {
-    if (typeof countryCode !== 'string') {
-      this._logAndThrowError('Missing country');
-    }
+    this._validateCountryCode(countryCode);
 
     try {
       if (!records.length) {
@@ -210,10 +213,7 @@ class Storage {
    * @returns {Promise<{ meta: { migrated: number, totalLeft: number } }>}
    */
   async migrate(countryCode, limit) {
-    if (typeof countryCode !== 'string') {
-      this._logAndThrowError('Missing country');
-    }
-
+    this._validateCountryCode(countryCode);
     this._validateLimit(limit);
 
     if (!this._encryptionEnabled) {
@@ -242,10 +242,7 @@ class Storage {
    * @return {Promise<{ meta: { total: number, count: number }, records: Array<Record> }>} Matching records.
    */
   async find(countryCode, filter, options = {}) {
-    if (typeof countryCode !== 'string') {
-      this._logAndThrowError('Missing country');
-    }
-
+    this._validateCountryCode(countryCode);
     if (options.limit) {
       this._validateLimit(options.limit);
     }
@@ -298,10 +295,7 @@ class Storage {
    * @return {Promise<{ record: Record|null }>} Matching record.
    */
   async readAsync(countryCode, recordKey) {
-    if (typeof countryCode !== 'string') {
-      this._logAndThrowError('Missing country');
-    }
-
+    this._validateCountryCode(countryCode);
     if (typeof recordKey !== 'string') {
       this._logAndThrowError('Missing key');
     }
@@ -401,9 +395,7 @@ class Storage {
    * @return {Promise<{ record: Record }>} Operation result.
    */
   async updateOne(countryCode, filter, doc, options = { override: false }) {
-    if (typeof countryCode !== 'string') {
-      this._logAndThrowError('Missing country');
-    }
+    this._validateCountryCode(countryCode);
 
     if (options.override && doc.key) {
       return this.writeAsync(countryCode, { ...doc });
@@ -426,9 +418,7 @@ class Storage {
 
   async deleteAsync(countryCode, recordKey) {
     try {
-      if (typeof countryCode !== 'string') {
-        this._logAndThrowError('Missing country');
-      }
+      this._validateCountryCode(countryCode);
 
       if (typeof recordKey !== 'string') {
         this._logAndThrowError('Missing key');

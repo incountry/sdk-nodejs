@@ -144,7 +144,9 @@ describe('Update record', function () {
           body: JSON.stringify({ UpdatedName: 'UpdatedPersonName' }),
         };
 
-        await expect(storage.updateOne(COUNTRY, { key: `NotExistingKey${Math.random().toString(36).substr(2, 10)}` }, updatedData, { override: true }))
+        const key = `NotExistingKey${Math.random().toString(36).substr(2, 10)}`;
+
+        await expect(storage.updateOne(COUNTRY, { key }, updatedData, { override: true }))
           .to.be.rejectedWith(Error, 'Record not found');
       });
 
