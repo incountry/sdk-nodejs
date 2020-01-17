@@ -3,7 +3,7 @@ chai.use(require('chai-as-promised'));
 
 const nock = require('nock');
 const { ApiClient } = require('../../api-client');
-const { StorageServerError } = require('../../errors');
+const { StorageServerError, StorageValidationError } = require('../../errors');
 const CountriesCache = require('../../countries-cache');
 const { nockEndpoint } = require('../test-helpers/popapi-nock');
 
@@ -127,6 +127,19 @@ describe('ApiClient', () => {
     describe('when called with wrong action', () => {
       it('should throw an error', async () => {
         await expect(apiClient.runQuery(COUNTRY, undefined, 'test', {})).to.be.rejectedWith(Error, 'Invalid action passed to ApiClient.');
+      });
+    });
+
+    describe('when wrong response received', () => {
+      it('should throw validation error', async () => {
+        const filter = { key: ['test'] };
+        const wrongFindResponse = {
+          meta: { total: 0, limit: 100, offset: 0 },
+          data: [],
+        };
+        const wrongPopAPI = nockEndpoint(POPAPI_HOST, 'find', COUNTRY).reply(200, wrongFindResponse);
+        await expect(apiClient.runQuery(COUNTRY, undefined, 'find', filter)).to.be.rejectedWith(StorageValidationError);
+        assert.equal(wrongPopAPI.isDone(), true, 'Nock scope is done');
       });
     });
   });
