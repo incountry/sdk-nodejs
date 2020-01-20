@@ -19,26 +19,26 @@ const SDK_VERSION = pjson.version;
 const ACTIONS = {
   read: {
     verb: 'get',
-    path: (...args) => `v2/storage/records/${args[0]}/${args[1]}`,
+    path: (country, key) => `v2/storage/records/${country}/${key}`,
     validateResponse: (responseData) => validateRecord(responseData),
   },
   write: {
     verb: 'post',
-    path: (...args) => `v2/storage/records/${args[0]}`,
+    path: (country) => `v2/storage/records/${country}`,
     validateResponse: (responseData) => validateWriteResponse(responseData),
   },
   delete: {
     verb: 'delete',
-    path: (...args) => `v2/storage/records/${args[0]}/${args[1]}`,
+    path: (country, key) => `v2/storage/records/${country}/${key}`,
   },
   find: {
     verb: 'post',
-    path: (...args) => `v2/storage/records/${args[0]}/find`,
+    path: (country) => `v2/storage/records/${country}/find`,
     validateResponse: (responseData) => validateFindResponse(responseData),
   },
   batchWrite: {
     verb: 'post',
-    path: (...args) => `v2/storage/records/${args[0]}/batchWrite`,
+    path: (country) => `v2/storage/records/${country}/batchWrite`,
     validateResponse: (responseData) => validateWriteResponse(responseData),
   },
 };
