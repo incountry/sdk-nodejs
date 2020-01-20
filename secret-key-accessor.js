@@ -1,5 +1,5 @@
 const t = require('io-ts');
-const { validationToPromise } = require('./utils');
+const { validationToPromise } = require('./validation/utils');
 
 /**
  * @typedef SecretsData

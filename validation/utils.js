@@ -1,9 +1,13 @@
 const t = require('io-ts');
 const { PathReporter } = require('io-ts/lib/PathReporter');
-const { StorageValidationError } = require('./errors');
+const { StorageValidationError } = require('../errors');
+
+function isValid(validation) {
+  return validation._tag === 'Right';
+}
 
 function tryValidate(validation) {
-  if (validation._tag === 'Left') {
+  if (!isValid(validation)) {
     const errorMessages = PathReporter.report(validation);
     throw new StorageValidationError(validation, errorMessages[errorMessages.length - 1]);
   }

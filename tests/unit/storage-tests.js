@@ -14,6 +14,9 @@ const {
   nockEndpoint,
   popAPIEndpoints,
 } = require('../test-helpers/popapi-nock');
+const { COUNTRY_CODE_ERROR_MESSAGE } = require('../../validation/country-code');
+const { RECORD_KEY_ERROR_MESSAGE } = require('../../validation/record-key');
+const { MAX_LIMIT, LIMIT_ERROR_MESSAGE_INT, LIMIT_ERROR_MESSAGE_MAX } = require('../../validation/limit');
 
 const { expect, assert } = chai;
 
@@ -259,7 +262,7 @@ describe('Storage', () => {
       describe('should validate record', () => {
         describe('when no country provided', () => {
           it('should throw an error', async () => {
-            await expect(encStorage.writeAsync(undefined, {})).to.be.rejectedWith(Error, 'Missing country');
+            await expect(encStorage.writeAsync(undefined, {})).to.be.rejectedWith(Error, COUNTRY_CODE_ERROR_MESSAGE);
           });
         });
 
@@ -314,13 +317,13 @@ describe('Storage', () => {
       describe('should validate record', () => {
         describe('when no country provided', () => {
           it('should throw an error', async () => {
-            await expect(encStorage.readAsync(undefined, '')).to.be.rejectedWith(Error, 'Missing country');
+            await expect(encStorage.readAsync(undefined, '')).to.be.rejectedWith(Error, COUNTRY_CODE_ERROR_MESSAGE);
           });
         });
 
         describe('when no key provided', () => {
           it('should throw an error', async () => {
-            await expect(encStorage.readAsync(COUNTRY, undefined)).to.be.rejectedWith(Error, 'Missing key');
+            await expect(encStorage.readAsync(COUNTRY, undefined)).to.be.rejectedWith(Error, RECORD_KEY_ERROR_MESSAGE);
           });
         });
       });
@@ -372,13 +375,13 @@ describe('Storage', () => {
       describe('should validate record', () => {
         describe('when no country provided', () => {
           it('should throw an error', async () => {
-            await expect(encStorage.deleteAsync(undefined, '')).to.be.rejectedWith(Error, 'Missing country');
+            await expect(encStorage.deleteAsync(undefined, '')).to.be.rejectedWith(Error, COUNTRY_CODE_ERROR_MESSAGE);
           });
         });
 
         describe('when no key provided', () => {
           it('should throw an error', async () => {
-            await expect(encStorage.deleteAsync(COUNTRY, undefined)).to.be.rejectedWith(Error, 'Missing key');
+            await expect(encStorage.deleteAsync(COUNTRY, undefined)).to.be.rejectedWith(Error, RECORD_KEY_ERROR_MESSAGE);
           });
         });
       });
@@ -441,7 +444,7 @@ describe('Storage', () => {
           it('should throw an error', async () => {
             const wrongCountries = [undefined, null, 1, {}, []];
             await Promise.all(wrongCountries.map((country) => expect(encStorage.find(country))
-              .to.be.rejectedWith(Error, 'Missing country')));
+              .to.be.rejectedWith(Error, COUNTRY_CODE_ERROR_MESSAGE)));
           });
         });
 
@@ -452,9 +455,9 @@ describe('Storage', () => {
 
             const nonPositiveLimits = [-123, 123.124, 'sdsd'];
             await Promise.all(nonPositiveLimits.map((limit) => expect(encStorage.find(COUNTRY, undefined, { limit }))
-              .to.be.rejectedWith(Error, 'Limit should be a positive integer')));
-            await expect(encStorage.find(COUNTRY, undefined, { limit: Storage.MAX_LIMIT + 1 }))
-              .to.be.rejectedWith(Error, `Max limit is ${Storage.MAX_LIMIT}. Use offset to populate more`);
+              .to.be.rejectedWith(Error, LIMIT_ERROR_MESSAGE_INT)));
+            await expect(encStorage.find(COUNTRY, undefined, { limit: MAX_LIMIT + 1 }))
+              .to.be.rejectedWith(Error, LIMIT_ERROR_MESSAGE_MAX);
             await expect(encStorage.find(COUNTRY, {}, { limit: 10 })).not.to.be.rejected;
           });
         });
@@ -545,7 +548,7 @@ describe('Storage', () => {
           it('should throw an error', async () => {
             const wrongCountries = [undefined, null, 1, {}, []];
             await Promise.all(wrongCountries.map((country) => expect(encStorage.updateOne(country))
-              .to.be.rejectedWith(Error, 'Missing country')));
+              .to.be.rejectedWith(Error, COUNTRY_CODE_ERROR_MESSAGE)));
           });
         });
       });
@@ -654,7 +657,7 @@ describe('Storage', () => {
           it('should throw an error', async () => {
             const wrongCountries = [undefined, null, 1, {}, []];
             await Promise.all(wrongCountries.map((country) => expect(encStorage.batchWrite(country))
-              .to.be.rejectedWith(Error, 'Missing country')));
+              .to.be.rejectedWith(Error, COUNTRY_CODE_ERROR_MESSAGE)));
           });
         });
       });

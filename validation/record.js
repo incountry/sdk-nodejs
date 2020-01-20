@@ -1,5 +1,5 @@
 const t = require('io-ts');
-const { nullable } = require('../utils');
+const { nullable, tryValidate } = require('./utils');
 
 const RecordIO = t.type({
   key: t.string,
@@ -11,4 +11,11 @@ const RecordIO = t.type({
   key3: nullable(t.string),
 }, 'RecordIO');
 
-module.exports = RecordIO;
+function validateRecord(record) {
+  return tryValidate(RecordIO.decode(record));
+}
+
+module.exports = {
+  RecordIO,
+  validateRecord,
+};
