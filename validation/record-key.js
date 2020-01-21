@@ -2,8 +2,9 @@ const RECORD_KEY_ERROR_MESSAGE = 'Record key must be a string';
 
 function validateRecordKey(key) {
   if (typeof key !== 'string') {
-    throw Error(RECORD_KEY_ERROR_MESSAGE);
+    return new Error(RECORD_KEY_ERROR_MESSAGE);
   }
+  return key;
 }
 
 module.exports = {

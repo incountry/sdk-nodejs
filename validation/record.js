@@ -1,5 +1,5 @@
 const t = require('io-ts');
-const { nullable, tryValidate } = require('./utils');
+const { nullable, isValid, createStorageValidationError } = require('./utils');
 
 const RecordIO = t.type({
   key: t.string,
@@ -12,7 +12,8 @@ const RecordIO = t.type({
 }, 'RecordIO');
 
 function validateRecord(record) {
-  return tryValidate(RecordIO.decode(record));
+  const validaton = RecordIO.decode(record);
+  return isValid(validaton) ? record : createStorageValidationError(validaton);
 }
 
 module.exports = {

@@ -6,10 +6,14 @@ function isValid(validation) {
   return validation._tag === 'Right';
 }
 
+function createStorageValidationError(validation) {
+  const errorMessages = PathReporter.report(validation);
+  return new StorageValidationError(validation, errorMessages[errorMessages.length - 1]);
+}
+
 function tryValidate(validation) {
   if (!isValid(validation)) {
-    const errorMessages = PathReporter.report(validation);
-    throw new StorageValidationError(validation, errorMessages[errorMessages.length - 1]);
+    throw createStorageValidationError(validation);
   }
   return validation.right;
 }
@@ -33,4 +37,6 @@ module.exports = {
   PositiveInt,
   nullable,
   tryValidate,
+  isValid,
+  createStorageValidationError,
 };

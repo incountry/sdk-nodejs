@@ -3,8 +3,9 @@ const COUNTRY_CODE_ERROR_MESSAGE = 'Country code must be a string with two lette
 
 function validateCountryCode(countryCode) {
   if (typeof countryCode !== 'string' || !countryCode.match(COUNTRY_CODE_REGEXP)) {
-    throw new Error(COUNTRY_CODE_ERROR_MESSAGE);
+    return new Error(COUNTRY_CODE_ERROR_MESSAGE);
   }
+  return countryCode;
 }
 
 module.exports = {

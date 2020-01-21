@@ -6,12 +6,14 @@ const LIMIT_ERROR_MESSAGE_MAX = `Max limit is ${MAX_LIMIT}. Use offset to popula
 
 function validateLimit(limit) {
   if (!PositiveInt.is(limit)) {
-    throw new Error(LIMIT_ERROR_MESSAGE_INT);
+    return new Error(LIMIT_ERROR_MESSAGE_INT);
   }
 
   if (limit > MAX_LIMIT) {
-    throw new Error(LIMIT_ERROR_MESSAGE_MAX);
+    return new Error(LIMIT_ERROR_MESSAGE_MAX);
   }
+
+  return limit;
 }
 
 module.exports = {

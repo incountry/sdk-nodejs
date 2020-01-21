@@ -9,6 +9,7 @@ const SecretKeyAccessor = require('./secret-key-accessor');
 const { InCrypt } = require('./in-crypt');
 const {
   StorageServerError,
+  isError,
 } = require('./errors');
 
 const { validateRecord } = require('./validation/record');
@@ -117,28 +118,32 @@ class Storage {
     this._countriesCache = countriesCache;
   }
 
-  _logAndThrowError(errorMessage) {
-    this._logger.write('error', errorMessage);
-    throw new Error(errorMessage);
-  }
-
-  _logAndReThrowError(error) {
-    this._logger.write('error', error.message);
+  /**
+   * @param {Error|string} errorOrMessage
+   */
+  _logAndThrowError(errorOrMessage) {
+    const error = isError(errorOrMessage) ? errorOrMessage : new Error(errorOrMessage);
+    this._logger.write('error', error);
     throw error;
   }
 
+  _logAndThrowErrorIfAny(...args) {
+    args
+      .filter(isError)
+      .slice(0, 1)
+      .forEach(this._logAndThrowError.bind(this));
+  }
+
   /**
- * @param {string} countryCode - Country code.
- * @param {Record} record
- * @return {Promise<{ record: Record }>} Matching record.
- */
+   * @param {string} countryCode - Country code.
+   * @param {Record} record
+   * @return {Promise<{ record: Record }>} Matching record.
+   */
   async writeAsync(countryCode, record) {
-    try {
-      validateCountryCode(countryCode);
-      validateRecord(record);
-    } catch (err) {
-      this._logAndReThrowError(err);
-    }
+    this._logAndThrowErrorIfAny(
+      validateCountryCode(countryCode),
+      validateRecord(record),
+    );
 
     const data = await this._encryptPayload(record);
 
@@ -162,16 +167,15 @@ class Storage {
    * @param {Array<Record>} records
    */
   async batchWrite(countryCode, records) {
+    this._logAndThrowErrorIfAny(validateCountryCode(countryCode));
     try {
-      validateCountryCode(countryCode);
-
       if (!records.length) {
         throw new Error('You must pass non-empty array');
       }
 
       const encryptedRecords = await Promise.all(
         records.map((r) => {
-          validateRecord(r);
+          this._logAndThrowErrorIfAny(validateRecord(r));
           return this._encryptPayload(r);
         }),
       );
@@ -189,7 +193,7 @@ class Storage {
 
       return { records };
     } catch (err) {
-      this._logAndReThrowError(err);
+      this._logAndThrowError(err);
     }
   }
 
@@ -199,12 +203,10 @@ class Storage {
    * @returns {Promise<{ meta: { migrated: number, totalLeft: number } }>}
    */
   async migrate(countryCode, limit) {
-    try {
-      validateCountryCode(countryCode);
-      validateLimit(limit);
-    } catch (err) {
-      this._logAndReThrowError(err);
-    }
+    this._logAndThrowErrorIfAny(
+      validateCountryCode(countryCode),
+      validateLimit(limit),
+    );
 
     if (!this._encryptionEnabled) {
       throw new Error('Migration not supported when encryption is off');
@@ -232,14 +234,10 @@ class Storage {
    * @return {Promise<{ meta: { total: number, count: number }, records: Array<Record> }>} Matching records.
    */
   async find(countryCode, filter, options = {}) {
-    try {
-      validateCountryCode(countryCode);
-      if (options.limit) {
-        validateLimit(options.limit);
-      }
-    } catch (err) {
-      this._logAndReThrowError(err);
-    }
+    this._logAndThrowErrorIfAny(
+      validateCountryCode(countryCode),
+      options.limit !== undefined && validateLimit(options.limit),
+    );
 
     const data = {
       filter: this._hashKeys(filter),
@@ -289,12 +287,10 @@ class Storage {
    * @return {Promise<{ record: Record|null }>} Matching record.
    */
   async readAsync(countryCode, recordKey) {
-    try {
-      validateCountryCode(countryCode);
-      validateRecordKey(recordKey);
-    } catch (err) {
-      this._logAndReThrowError(err);
-    }
+    this._logAndThrowErrorIfAny(
+      validateCountryCode(countryCode),
+      validateRecordKey(recordKey),
+    );
 
     const key = await this.createKeyHash(recordKey);
 
@@ -391,11 +387,7 @@ class Storage {
    * @return {Promise<{ record: Record }>} Operation result.
    */
   async updateOne(countryCode, filter, doc, options = { override: false }) {
-    try {
-      validateCountryCode(countryCode);
-    } catch (err) {
-      this._logAndReThrowError(err);
-    }
+    this._logAndThrowErrorIfAny(validateCountryCode(countryCode));
 
     if (options.override && doc.key) {
       return this.writeAsync(countryCode, { ...doc });
@@ -417,10 +409,12 @@ class Storage {
   }
 
   async deleteAsync(countryCode, recordKey) {
-    try {
-      validateCountryCode(countryCode);
-      validateRecordKey(recordKey);
+    this._logAndThrowErrorIfAny(
+      validateCountryCode(countryCode),
+      validateRecordKey(recordKey),
+    );
 
+    try {
       const key = await this.createKeyHash(recordKey);
 
       await this._apiClient(
