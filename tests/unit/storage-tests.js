@@ -731,7 +731,7 @@ describe('Storage', () => {
       nock.enableNetConnect();
     });
 
-    describe('_getEndpoint', () => {
+    describe('getEndpoint', () => {
       let nockPB;
       const getCustomStorage = (endpoint = undefined, cache = undefined) => {
         const options = {
@@ -792,7 +792,7 @@ describe('Storage', () => {
       });
     });
 
-    describe('_apiClient', () => {
+    describe('apiClient', () => {
       let encStorage;
 
       beforeEach(() => {

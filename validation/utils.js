@@ -33,8 +33,8 @@ function nullable(type) {
 }
 
 function validateWithIO(obj, io) {
-  const validatioResult = io.decode(obj);
-  return isValid(validatioResult) ? obj : createStorageValidationError(validatioResult);
+  const validationResult = io.decode(obj);
+  return isValid(validationResult) ? obj : createStorageValidationError(validationResult);
 }
 
 module.exports = {
