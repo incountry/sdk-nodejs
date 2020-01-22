@@ -22,18 +22,18 @@ describe('Delete data from Storage', function () {
           body: JSON.stringify({ name: 'PersonName' }),
         };
 
-        await storage.writeAsync(COUNTRY, data);
-        await storage.readAsync(COUNTRY, data.key);
+        await storage.write(COUNTRY, data);
+        await storage.read(COUNTRY, data.key);
 
-        const deleteResult = await storage.deleteAsync(COUNTRY, data.key);
+        const deleteResult = await storage.delete(COUNTRY, data.key);
         expect(deleteResult.success).to.equal(true);
 
-        await expect(storage.readAsync(COUNTRY, data.key)).to.be.rejected;
+        await expect(storage.read(COUNTRY, data.key)).to.be.rejected;
       });
 
       it('Delete not existing data', async function () {
         const key = Math.random().toString(36).substr(2, 10);
-        await expect(storage.deleteAsync(COUNTRY, key))
+        await expect(storage.delete(COUNTRY, key))
           .to.be.rejectedWith(Error, 'Request failed with status code 404');
       });
     });

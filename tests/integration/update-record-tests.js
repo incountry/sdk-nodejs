@@ -22,11 +22,11 @@ describe('Update record', function () {
       body: JSON.stringify({ name: 'PersonName' }),
     };
 
-    await storage.writeAsync(COUNTRY, data);
+    await storage.write(COUNTRY, data);
   });
 
   afterEach(async function () {
-    await storage.deleteAsync(COUNTRY, data.key).catch(noop);
+    await storage.delete(COUNTRY, data.key).catch(noop);
   });
 
   [false, true].forEach((encryption) => {
@@ -46,7 +46,7 @@ describe('Update record', function () {
         await storage.updateOne(COUNTRY, { key: data.key },
           updatedData, { override: true });
 
-        const { record } = await storage.readAsync(COUNTRY, updatedData.key);
+        const { record } = await storage.read(COUNTRY, updatedData.key);
 
         expect(record.body).to.equal(updatedData.body);
         expect(record.key).to.equal(updatedData.key);
@@ -68,7 +68,7 @@ describe('Update record', function () {
         await storage.updateOne(COUNTRY, { profile_key: data.profile_key },
           updatedData, { override: true });
 
-        const { record } = await storage.readAsync(COUNTRY, updatedData.key);
+        const { record } = await storage.read(COUNTRY, updatedData.key);
 
         expect(record.body).to.equal(updatedData.body);
         expect(record.key).to.equal(updatedData.key);
@@ -90,7 +90,7 @@ describe('Update record', function () {
         await storage.updateOne(COUNTRY, { key2: data.key2 },
           updatedData, { override: true });
 
-        const { record } = await storage.readAsync(COUNTRY, updatedData.key);
+        const { record } = await storage.read(COUNTRY, updatedData.key);
 
         expect(record.body).to.equal(updatedData.body);
         expect(record.key).to.equal(updatedData.key);
@@ -109,7 +109,7 @@ describe('Update record', function () {
         await storage.updateOne(COUNTRY, { key: data.key },
           updatedData, { override: false });
 
-        const { record } = await storage.readAsync(COUNTRY, data.key);
+        const { record } = await storage.read(COUNTRY, data.key);
 
         expect(record.body).to.equal(data.body);
         expect(record.key).to.equal(data.key);
@@ -127,7 +127,7 @@ describe('Update record', function () {
         await storage.updateOne(COUNTRY, { key: data.key },
           updatedData, { override: false });
 
-        const { record } = await storage.readAsync(COUNTRY, data.key);
+        const { record } = await storage.read(COUNTRY, data.key);
 
         expect(record.body).to.equal(updatedData.body);
         expect(record.key).to.equal(data.key);

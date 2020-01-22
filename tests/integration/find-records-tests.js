@@ -32,13 +32,13 @@ const dataRequest2 = {
 
 describe('Find records', function () {
   before(async function () {
-    await storage.writeAsync(COUNTRY, dataRequest);
-    await storage.writeAsync(COUNTRY, dataRequest2);
+    await storage.write(COUNTRY, dataRequest);
+    await storage.write(COUNTRY, dataRequest2);
   });
 
   after(async function () {
-    await storage.deleteAsync(COUNTRY, dataRequest.key).catch(noop);
-    await storage.deleteAsync(COUNTRY, dataRequest2.key).catch(noop);
+    await storage.delete(COUNTRY, dataRequest.key).catch(noop);
+    await storage.delete(COUNTRY, dataRequest2.key).catch(noop);
   });
 
   [false, true].forEach((encryption) => {

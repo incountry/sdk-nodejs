@@ -14,7 +14,7 @@ let data;
 
 describe('Read data from Storage', function () {
   afterEach(async function () {
-    await storage.deleteAsync(COUNTRY, data.key).catch(noop);
+    await storage.delete(COUNTRY, data.key).catch(noop);
   });
 
   [false, true].forEach((encryption) => {
@@ -27,8 +27,8 @@ describe('Read data from Storage', function () {
           body: JSON.stringify({ name: 'PersonName' }),
         };
 
-        await storage.writeAsync(COUNTRY, data);
-        const { record } = await storage.readAsync(COUNTRY, data.key);
+        await storage.write(COUNTRY, data);
+        const { record } = await storage.read(COUNTRY, data.key);
 
         expect(record.key).to.equal(data.key);
         expect(record.body).to.equal(data.body);
@@ -36,7 +36,7 @@ describe('Read data from Storage', function () {
 
       it('Read not existing data', async function () {
         const key = Math.random().toString(36).substr(2, 10);
-        await expect(storage.readAsync(COUNTRY, key))
+        await expect(storage.read(COUNTRY, key))
           .to.be.rejectedWith(Error, 'Request failed with status code 404');
       });
 
@@ -50,8 +50,8 @@ describe('Read data from Storage', function () {
           key3: 'optional key value 3',
         };
 
-        await storage.writeAsync(COUNTRY, data);
-        const { record } = await storage.readAsync(COUNTRY, data.key);
+        await storage.write(COUNTRY, data);
+        const { record } = await storage.read(COUNTRY, data.key);
 
         expect(record.body).to.equal(data.body);
         expect(record.key).to.equal(data.key);
@@ -67,8 +67,8 @@ describe('Read data from Storage', function () {
           body: null,
         };
 
-        await storage.writeAsync(COUNTRY, data);
-        const { record } = await storage.readAsync(COUNTRY, data.key);
+        await storage.write(COUNTRY, data);
+        const { record } = await storage.read(COUNTRY, data.key);
 
         expect(record.key).to.equal(data.key);
         expect(record.body).to.equal(data.body);

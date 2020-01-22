@@ -11,7 +11,7 @@ function createStorageValidationError(validation) {
   return new StorageValidationError(validation, errorMessages[errorMessages.length - 1]);
 }
 
-function tryValidate(validation) {
+function throwIfInvalid(validation) {
   if (!isValid(validation)) {
     throw createStorageValidationError(validation);
   }
@@ -19,7 +19,7 @@ function tryValidate(validation) {
 }
 
 function validationToPromise(validation) {
-  return new Promise((resolve) => resolve(tryValidate(validation)));
+  return new Promise((resolve) => resolve(throwIfInvalid(validation)));
 }
 
 const PositiveInt = t.brand(
@@ -32,11 +32,16 @@ function nullable(type) {
   return t.union([type, t.null, t.undefined]);
 }
 
+function validateWithIO(obj, io) {
+  const validatioResult = io.decode(obj);
+  return isValid(validatioResult) ? obj : createStorageValidationError(validatioResult);
+}
+
 module.exports = {
   validationToPromise,
   PositiveInt,
   nullable,
-  tryValidate,
+  validateWithIO,
   isValid,
   createStorageValidationError,
 };
