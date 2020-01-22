@@ -2,10 +2,6 @@
 
 const isError = (obj) => obj instanceof Error;
 
-function applyFirstError(fn, ...args) {
-  return args.filter(isError).slice(0, 1).forEach(fn);
-}
-
 class StorageValidationError extends Error {
   constructor(validation, ...params) {
     super(params);
@@ -51,7 +47,6 @@ class InCryptoError extends Error {
 
 module.exports = {
   isError,
-  applyFirstError,
   StorageClientError,
   StorageServerError,
   InCryptoError,

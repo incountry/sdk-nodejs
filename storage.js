@@ -10,7 +10,6 @@ const { InCrypt } = require('./in-crypt');
 const {
   StorageServerError,
   isError,
-  applyFirstError,
 } = require('./errors');
 
 const { validateRecord } = require('./validation/record');
@@ -83,8 +82,6 @@ class Storage {
     }
 
     this.setCountriesCache(countriesCache || new CountriesCache());
-
-    this.logAndThrowError = this.logAndThrowError.bind(this);
   }
 
   createKeyHash(s) {
@@ -140,14 +137,17 @@ class Storage {
     throw error;
   }
 
+  validate(...validationResults) {
+    validationResults.filter(isError).slice(0, 1).forEach(this.logAndThrowError, this);
+  }
+
   /**
    * @param {string} countryCode - Country code.
    * @param {Record} record
    * @return {Promise<{ record: Record }>} Matching record.
    */
   async write(countryCode, record) {
-    applyFirstError(
-      this.logAndThrowError,
+    this.validate(
       validateCountryCode(countryCode),
       validateRecord(record),
     );
@@ -174,8 +174,7 @@ class Storage {
    * @param {Array<Record>} records
    */
   async batchWrite(countryCode, records) {
-    applyFirstError(
-      this.logAndThrowError,
+    this.validate(
       validateCountryCode(countryCode),
       validateRecordsNEA(records),
     );
@@ -206,8 +205,7 @@ class Storage {
    * @returns {Promise<{ meta: { migrated: number, totalLeft: number } }>}
    */
   async migrate(countryCode, limit) {
-    applyFirstError(
-      this.logAndThrowError,
+    this.validate(
       validateCountryCode(countryCode),
       validateLimit(limit),
     );
@@ -238,8 +236,7 @@ class Storage {
    * @return {Promise<{ meta: { total: number, count: number }, records: Array<Record> }>} Matching records.
    */
   async find(countryCode, filter, options = {}) {
-    applyFirstError(
-      this.logAndThrowError,
+    this.validate(
       validateCountryCode(countryCode),
       validateFindOptions(options),
     );
@@ -292,8 +289,7 @@ class Storage {
    * @return {Promise<{ record: Record|null }>} Matching record.
    */
   async read(countryCode, recordKey) {
-    applyFirstError(
-      this.logAndThrowError,
+    this.validate(
       validateCountryCode(countryCode),
       validateRecordKey(recordKey),
     );
@@ -393,7 +389,7 @@ class Storage {
    * @return {Promise<{ record: Record }>} Operation result.
    */
   async updateOne(countryCode, filter, doc, options = { override: false }) {
-    applyFirstError(this.logAndThrowError, validateCountryCode(countryCode));
+    this.validate(validateCountryCode(countryCode));
 
     if (options.override && doc.key) {
       return this.write(countryCode, { ...doc });
@@ -415,8 +411,7 @@ class Storage {
   }
 
   async delete(countryCode, recordKey) {
-    applyFirstError(
-      this.logAndThrowError,
+    this.validate(
       validateCountryCode(countryCode),
       validateRecordKey(recordKey),
     );
