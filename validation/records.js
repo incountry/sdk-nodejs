@@ -7,7 +7,7 @@ const RecordsIO = t.array(RecordIO);
 const RecordsNEAIO = t.brand(
   RecordsIO,
   (records) => records.length > 0,
-  'RecordsNotEmptyArrayIO',
+  'RecordsNonEmptyArrayIO',
 );
 
 const validateRecordsNEA = (records) => validateWithIO(records, RecordsNEAIO);
