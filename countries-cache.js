@@ -31,8 +31,8 @@ class CountriesCache {
   }
 
   /**
-   * @param {number} timeStamp Custom timeStamp to check expiration
-   * @returns {Array<Country>}
+   * @param {number} timeStamp Custom timeStamp to check expiration [optional]
+   * @returns {Promise<Array<Country>>}
    */
   async getCountriesAsync(timeStamp) {
     const now = typeof timeStamp === 'number' ? timeStamp : Date.now();

@@ -13,6 +13,7 @@ const RecordsNEAIO = t.brand(
 const validateRecordsNEA = (records) => validateWithIO(records, RecordsNEAIO);
 
 module.exports = {
+  RecordsIO,
   RecordsNEAIO,
   validateRecordsNEA,
 };

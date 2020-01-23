@@ -18,6 +18,7 @@ const { validateCountryCode } = require('./validation/country-code');
 const { validateFindOptions } = require('./validation/find-options');
 const { validateLimit } = require('./validation/limit');
 const { validateRecordKey } = require('./validation/record-key');
+const { validateFindResponse } = require('./validation/api-responses/find-response');
 
 const SDK_VERSION = pjson.version;
 
@@ -233,7 +234,7 @@ class Storage {
    * @param {string} countryCode - Country code.
    * @param {object} filter - The filter to apply.
    * @param {{ limit: number, offset: number }} options - The options to pass to PoP.
-   * @return {Promise<{ meta: { total: number, count: number }, records: Array<Record> }>} Matching records.
+   * @return {Promise<{ meta: { total: number, count: number, limit: number, offset: number }, records: Array<Record> }>} Matching records.
    */
   async find(countryCode, filter, options = {}) {
     this.validate(
@@ -254,6 +255,7 @@ class Storage {
         data,
       },
     );
+    this.validate(validateFindResponse(response.data));
 
     const result = {
       records: [],
