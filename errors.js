@@ -1,5 +1,6 @@
 /* eslint max-classes-per-file: "off" */
 
+const isError = (obj) => obj instanceof Error;
 
 class StorageValidationError extends Error {
   constructor(validation, ...params) {
@@ -45,6 +46,7 @@ class InCryptoError extends Error {
 }
 
 module.exports = {
+  isError,
   StorageClientError,
   StorageServerError,
   InCryptoError,

@@ -14,10 +14,7 @@ let data;
 
 describe('Read data from Storage', function () {
   afterEach(async function () {
-    await storage.deleteAsync({
-      country: data.country,
-      key: data.key,
-    }).catch(noop);
+    await storage.delete(COUNTRY, data.key).catch(noop);
   });
 
   [false, true].forEach((encryption) => {
@@ -26,35 +23,25 @@ describe('Read data from Storage', function () {
     context(`${encryption ? 'with' : 'without'} encryption`, function () {
       it('Read data', async function () {
         data = {
-          country: COUNTRY,
           key: Math.random().toString(36).substr(2, 10),
           body: JSON.stringify({ name: 'PersonName' }),
         };
 
-        await storage.writeAsync(data);
-
-        const { record } = await storage.readAsync({
-          country: data.country,
-          key: data.key,
-        });
+        await storage.write(COUNTRY, data);
+        const { record } = await storage.read(COUNTRY, data.key);
 
         expect(record.key).to.equal(data.key);
         expect(record.body).to.equal(data.body);
       });
 
       it('Read not existing data', async function () {
-        data = {
-          country: COUNTRY,
-          key: Math.random().toString(36).substr(2, 10),
-        };
-
-        await expect(storage.readAsync(data))
+        const key = Math.random().toString(36).substr(2, 10);
+        await expect(storage.read(COUNTRY, key))
           .to.be.rejectedWith(Error, 'Request failed with status code 404');
       });
 
       it('Read data with optional keys and range', async function () {
         data = {
-          country: COUNTRY,
           key: Math.random().toString(36).substr(2, 10),
           body: JSON.stringify({ name: 'PersonName' }),
           profile_key: 'profileKey',
@@ -63,12 +50,8 @@ describe('Read data from Storage', function () {
           key3: 'optional key value 3',
         };
 
-        await storage.writeAsync(data);
-
-        const { record } = await storage.readAsync({
-          country: data.country,
-          key: data.key,
-        });
+        await storage.write(COUNTRY, data);
+        const { record } = await storage.read(COUNTRY, data.key);
 
         expect(record.body).to.equal(data.body);
         expect(record.key).to.equal(data.key);
@@ -80,17 +63,12 @@ describe('Read data from Storage', function () {
 
       it('Read data with empty body', async function () {
         data = {
-          country: COUNTRY,
           key: Math.random().toString(36).substr(2, 10),
           body: null,
         };
 
-        await storage.writeAsync(data);
-
-        const { record } = await storage.readAsync({
-          country: data.country,
-          key: data.key,
-        });
+        await storage.write(COUNTRY, data);
+        const { record } = await storage.read(COUNTRY, data.key);
 
         expect(record.key).to.equal(data.key);
         expect(record.body).to.equal(data.body);

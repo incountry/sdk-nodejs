@@ -110,18 +110,20 @@ const storage = new Storage(
 
 ### Writing data to Storage
 
-Use `writeAsync` method in order to create/replace (by `key`) a record.
+Use `write` method in order to create/replace (by `key`) a record.
 
 ```javascript
-const writeResponse = await storage.writeAsync({
-  country: "string", // Required country code of where to store the data
-  key: "string", // Required record key
-  body: "string", // Optional payload
-  profile_key: "string", // Optional
-  range_key: integer, // Optional
-  key2: "string", // Optional
-  key3: "string" // Optional
-});
+const writeResponse = await storage.write(
+  country, // Required country code of where to store the data 
+  {  
+    key: "string", // Required record key
+    body: "string", // Optional payload
+    profile_key: "string", // Optional
+    range_key: integer, // Optional
+    key2: "string", // Optional
+    key3: "string" // Optional
+  }
+);
 
 // Use writeReponse.status for status code.
 ```
@@ -134,11 +136,11 @@ Here is how data is transformed and stored in InCountry database:
 ```javascript
 {
   key, // hashed
-    body, // encrypted
-    profile_key, // hashed
-    range_key, // plain
-    key2, // hashed
-    key3; // hashed
+  body, // encrypted
+  profile_key, // hashed
+  range_key, // plain
+  key2, // hashed
+  key3; // hashed
 }
 ```
 
@@ -157,18 +159,18 @@ batchResponse = await storage.batchWrite(
 
 ### Reading stored data
 
-Stored record can be read by `key` using `readAsync` method. It accepts an object with two fields: `country` and `key`
+Stored record can be read by `key` using `read` method. It accepts an object with two fields: `country` and `key`
 
 ```javascript
-const readResponse = await storage.readAsync({
-  country: "string", // Required country code
-  key: "string" // Required record key
-});
+const readResponse = await storage.read(
+  country, // Required country code
+  key // Required record key
+);
 
 // Use readResponse.status for status code, and readResponse.data for payload received.
 ```
 
-Note that `readAsync` returns a `Promise` which is always fulfilled. Use `status` property in order check if operation was successful or not.
+Note that `read` returns a `Promise` which is always fulfilled. Use `status` property in order check if operation was successful or not.
 
 ### Find records
 
@@ -256,13 +258,13 @@ If record not found, it will return `null`.
 
 ### Delete records
 
-Use `deleteAsync` method in order to delete a record from InCountry storage. It is only possible using `key` field.
+Use `delete` method in order to delete a record from InCountry storage. It is only possible using `key` field.
 
 ```javascript
-const deleteResponse = await storage.deleteAsync({
-  country: "string", // Required country code
-  key: "string" // Required record key
-});
+const deleteResponse = await storage.delete(
+  country, // Required country code
+  key // Required record key
+);
 
 // Use deleteResponse.status for status code.
 ```

@@ -13,7 +13,6 @@ const ANOTHER_COUNTRY = COUNTRY === 'us' ? 'se' : 'us';
 let storage;
 
 const dataRequest = {
-  country: COUNTRY,
   key: Math.random().toString(36).substr(2, 10),
   key2: Math.random().toString(36).substr(2, 10),
   key3: Math.random().toString(36).substr(2, 10),
@@ -23,7 +22,6 @@ const dataRequest = {
 };
 
 const dataRequest2 = {
-  country: COUNTRY,
   key: Math.random().toString(36).substr(2, 10),
   key2: Math.random().toString(36).substr(2, 10),
   key3: Math.random().toString(36).substr(2, 10),
@@ -34,20 +32,13 @@ const dataRequest2 = {
 
 describe('Find records', function () {
   before(async function () {
-    await storage.writeAsync(dataRequest);
-    await storage.writeAsync(dataRequest2);
+    await storage.write(COUNTRY, dataRequest);
+    await storage.write(COUNTRY, dataRequest2);
   });
 
   after(async function () {
-    await storage.deleteAsync({
-      country: dataRequest.country,
-      key: dataRequest.key,
-    }).catch(noop);
-
-    await storage.deleteAsync({
-      country: dataRequest2.country,
-      key: dataRequest2.key,
-    }).catch(noop);
+    await storage.delete(COUNTRY, dataRequest.key).catch(noop);
+    await storage.delete(COUNTRY, dataRequest2.key).catch(noop);
   });
 
   [false, true].forEach((encryption) => {
@@ -55,7 +46,7 @@ describe('Find records', function () {
 
     context(`${encryption ? 'with' : 'without'} encryption`, function () {
       it.skip('Find records by country', async function () {
-        const { records, meta } = await storage.find(dataRequest.country, {}, {});
+        const { records, meta } = await storage.find(COUNTRY, {}, {});
 
         expect(records).to.have.lengthOf.above(0);
         expect(meta).to.have.all.keys('count', 'limit', 'offset', 'total');
@@ -64,7 +55,7 @@ describe('Find records', function () {
       });
 
       it('Find records by key', async function () {
-        const { records, meta } = await storage.find(dataRequest.country, { key: dataRequest.key }, {});
+        const { records, meta } = await storage.find(COUNTRY, { key: dataRequest.key }, {});
 
         expect(records).to.have.lengthOf(1);
         expect(records[0].key).to.equal(dataRequest.key);
@@ -77,7 +68,7 @@ describe('Find records', function () {
       });
 
       it('Find records by key2', async function () {
-        const { records, meta } = await storage.find(dataRequest.country, { key2: dataRequest.key2 }, {});
+        const { records, meta } = await storage.find(COUNTRY, { key2: dataRequest.key2 }, {});
 
         expect(records).to.have.lengthOf(1);
         expect(records[0].key).to.equal(dataRequest.key);
@@ -91,7 +82,7 @@ describe('Find records', function () {
       });
 
       it('Find records by key3', async function () {
-        const { records, meta } = await storage.find(dataRequest.country, { key3: dataRequest.key3 }, {});
+        const { records, meta } = await storage.find(COUNTRY, { key3: dataRequest.key3 }, {});
 
         expect(records).to.have.lengthOf(1);
         expect(records[0].key3).to.equal(dataRequest.key3);
@@ -103,7 +94,7 @@ describe('Find records', function () {
       });
 
       it.skip('Find records by profile_key', async function () {
-        const { records, meta } = await storage.find(dataRequest.country, { profile_key: dataRequest.profile_key }, {});
+        const { records, meta } = await storage.find(COUNTRY, { profile_key: dataRequest.profile_key }, {});
 
         expect(records).to.have.lengthOf(1);
         expect(records[0].profile_key).to.equal(dataRequest.profile_key);
@@ -115,7 +106,7 @@ describe('Find records', function () {
       });
 
       it('Find record list of keys', async function () {
-        const { records, meta } = await storage.find(dataRequest.country, { key2: [dataRequest.key2, dataRequest2.key2] }, {});
+        const { records, meta } = await storage.find(COUNTRY, { key2: [dataRequest.key2, dataRequest2.key2] }, {});
 
         expect(records).to.have.lengthOf(2);
         expect(meta).to.have.all.keys('count', 'limit', 'offset', 'total');
@@ -128,7 +119,7 @@ describe('Find records', function () {
       it('Find records with pagination', async function () {
         const limit = 10;
         const offset = 10;
-        const { records, meta } = await storage.find(dataRequest.country, { version: 0 },
+        const { records, meta } = await storage.find(COUNTRY, { version: 0 },
           {
             limit,
             offset,
@@ -144,7 +135,7 @@ describe('Find records', function () {
       });
 
       it('Find records by filter with range_key', async function () {
-        const { records, meta } = await storage.find(dataRequest.country,
+        const { records, meta } = await storage.find(COUNTRY,
           { range_key: { $gt: 100 }, version: 0 }, {});
 
         expect(records).to.have.lengthOf.above(0);
