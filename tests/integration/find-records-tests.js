@@ -1,12 +1,18 @@
 /* eslint-disable prefer-arrow-callback,func-names */
-const { expect } = require('chai');
-const storageCommon = require('./common');
+const chai = require('chai');
+const chaiAsPromised = require('chai-as-promised');
+const { createStorage, noop } = require('./common');
 
-const { createStorage } = storageCommon;
+chai.use(chaiAsPromised);
+const { expect } = chai;
+
+const COUNTRY = process.env.INT_INC_COUNTRY;
+const ANOTHER_COUNTRY = COUNTRY === 'us' ? 'se' : 'us';
+
+/** @type {import('../../storage')} */
 let storage;
 
 const dataRequest = {
-  country: 'us',
   key: Math.random().toString(36).substr(2, 10),
   key2: Math.random().toString(36).substr(2, 10),
   key3: Math.random().toString(36).substr(2, 10),
@@ -15,176 +21,142 @@ const dataRequest = {
   body: JSON.stringify({ name: 'PersonName' }),
 };
 
+const dataRequest2 = {
+  key: Math.random().toString(36).substr(2, 10),
+  key2: Math.random().toString(36).substr(2, 10),
+  key3: Math.random().toString(36).substr(2, 10),
+  profile_key: Math.random().toString(36).substr(2, 10),
+  range_key: Math.floor(Math.random() * 100) + 1,
+  body: JSON.stringify({ name: 'PersonName2' }),
+};
+
 describe('Find records', function () {
   before(async function () {
-    storage = createStorage(false);
-    await storage.writeAsync(dataRequest);
+    await storage.write(COUNTRY, dataRequest);
+    await storage.write(COUNTRY, dataRequest2);
   });
 
-  it('C1913 Find records by country', async function () {
-    const findResponse = await storage.find(dataRequest.country, {}, {});
-
-    expect(findResponse.status).to.equal(200);
-    expect(findResponse.data.data).to.have.lengthOf.above(0);
-
-    expect(findResponse.data.meta).to.have.all.keys('count', 'limit', 'offset', 'total');
-    expect(findResponse.data.meta.offset).to.equal(0);
-    expect(findResponse.data.meta.limit).to.equal(100);
+  after(async function () {
+    await storage.delete(COUNTRY, dataRequest.key).catch(noop);
+    await storage.delete(COUNTRY, dataRequest2.key).catch(noop);
   });
 
-  it('C1926 Find records by key', async function () {
-    const findResponse = await storage.find('US', { key: dataRequest.key }, {});
+  [false, true].forEach((encryption) => {
+    storage = createStorage(encryption);
 
-    expect(findResponse.status).to.equal(200);
+    context(`${encryption ? 'with' : 'without'} encryption`, function () {
+      it.skip('Find records by country', async function () {
+        const { records, meta } = await storage.find(COUNTRY, {}, {});
 
-    expect(findResponse.data.data).to.have.lengthOf(1);
-    expect(findResponse.data.data[0].key).to.equal(dataRequest.key);
-
-    expect(findResponse.data.meta).to.have.all.keys('count', 'limit', 'offset', 'total');
-    expect(findResponse.data.meta.count).to.equal(1);
-    expect(findResponse.data.meta.total).to.equal(1);
-    expect(findResponse.data.meta.offset).to.equal(0);
-    expect(findResponse.data.meta.limit).to.equal(100);
-  });
-
-  it('C19493 Find records by key2', async function () {
-    const findResponse = await storage.find('US', { key2: dataRequest.key2 }, {});
-
-    expect(findResponse.status).to.equal(200);
-
-    expect(findResponse.data.data).to.have.lengthOf(1);
-    expect(findResponse.data.data[0].key2).to.equal(dataRequest.key2);
-
-    expect(findResponse.data.meta).to.have.all.keys('count', 'limit', 'offset', 'total');
-    expect(findResponse.data.meta.count).to.equal(1);
-    expect(findResponse.data.meta.total).to.equal(1);
-    expect(findResponse.data.meta.offset).to.equal(0);
-    expect(findResponse.data.meta.limit).to.equal(100);
-  });
-
-  it('C19494 Find records by key3', async function () {
-    const findResponse = await storage.find('US', { key3: dataRequest.key3 }, {});
-
-    expect(findResponse.status).to.equal(200);
-
-    expect(findResponse.data.data).to.have.lengthOf(1);
-    expect(findResponse.data.data[0].key3).to.equal(dataRequest.key3);
-
-    expect(findResponse.data.meta).to.have.all.keys('count', 'limit', 'offset', 'total');
-    expect(findResponse.data.meta.count).to.equal(1);
-    expect(findResponse.data.meta.total).to.equal(1);
-    expect(findResponse.data.meta.offset).to.equal(0);
-    expect(findResponse.data.meta.limit).to.equal(100);
-  });
-
-  it('C19495 Find records by profile_key', async function () {
-    const findResponse = await storage.find('US', { profile_key: dataRequest.profile_key }, {});
-
-    expect(findResponse.status).to.equal(200);
-
-    expect(findResponse.data.data).to.have.lengthOf(1);
-    expect(findResponse.data.data[0].profile_key).to.equal(dataRequest.profile_key);
-
-    expect(findResponse.data.meta).to.have.all.keys('count', 'limit', 'offset', 'total');
-    expect(findResponse.data.meta.count).to.equal(1);
-    expect(findResponse.data.meta.total).to.equal(1);
-    expect(findResponse.data.meta.offset).to.equal(0);
-    expect(findResponse.data.meta.limit).to.equal(100);
-  });
-
-  it('C19496 Find record list of keys', async function () {
-    const dataRequest2 = {
-      country: 'us',
-      key: Math.random().toString(36).substr(2, 10),
-      key2: Math.random().toString(36).substr(2, 10),
-      key3: Math.random().toString(36).substr(2, 10),
-      profile_key: Math.random().toString(36).substr(2, 10),
-      range_key: Math.floor(Math.random() * 100) + 1,
-      body: JSON.stringify({ name: 'PersonName' }),
-    };
-    await storage.writeAsync(dataRequest2);
-
-    const findResponse = await storage.find('US', { key2: [dataRequest.key2, dataRequest2.key2] }, {});
-
-    expect(findResponse.status).to.equal(200);
-    expect(findResponse.data.data).to.have.lengthOf(2);
-
-    expect(findResponse.data.meta).to.have.all.keys('count', 'limit', 'offset', 'total');
-    expect(findResponse.data.meta.count).to.equal(2);
-    expect(findResponse.data.meta.total).to.equal(2);
-    expect(findResponse.data.meta.offset).to.equal(0);
-    expect(findResponse.data.meta.limit).to.equal(100);
-  });
-
-  it('C1927 Find records with pagination', async function () {
-    const limit = 10;
-    const offset = 10;
-    const findResponse = await storage.find(dataRequest.country, {},
-      {
-        limit,
-        offset,
+        expect(records).to.have.lengthOf.above(0);
+        expect(meta).to.have.all.keys('count', 'limit', 'offset', 'total');
+        expect(meta.offset).to.equal(0);
+        expect(meta.limit).to.equal(100);
       });
 
-    expect(findResponse.status).to.equal(200);
-    expect(findResponse.data.data).to.have.lengthOf(limit);
+      it('Find records by key', async function () {
+        const { records, meta } = await storage.find(COUNTRY, { key: dataRequest.key }, {});
 
-    expect(findResponse.data.meta).to.have.all.keys('count', 'limit', 'offset', 'total');
-    expect(findResponse.data.meta.count).to.equal(limit);
-    expect(findResponse.data.meta.offset).to.equal(offset);
-    expect(findResponse.data.meta.limit).to.equal(limit);
-  });
+        expect(records).to.have.lengthOf(1);
+        expect(records[0].key).to.equal(dataRequest.key);
+        expect(records[0].body).to.equal(dataRequest.body);
+        expect(meta).to.have.all.keys('count', 'limit', 'offset', 'total');
+        expect(meta.count).to.equal(1);
+        expect(meta.total).to.equal(1);
+        expect(meta.offset).to.equal(0);
+        expect(meta.limit).to.equal(100);
+      });
 
-  it('C1928 Find records by filter with range_key', async function () {
-    const findResponse = await storage.find('US',
-      { range_key: { $lt: 1000 } }, {});
+      it('Find records by key2', async function () {
+        const { records, meta } = await storage.find(COUNTRY, { key2: dataRequest.key2 }, {});
 
-    expect(findResponse.status).to.equal(200);
+        expect(records).to.have.lengthOf(1);
+        expect(records[0].key).to.equal(dataRequest.key);
+        expect(records[0].key2).to.equal(dataRequest.key2);
+        expect(records[0].body).to.equal(dataRequest.body);
+        expect(meta).to.have.all.keys('count', 'limit', 'offset', 'total');
+        expect(meta.count).to.equal(1);
+        expect(meta.total).to.equal(1);
+        expect(meta.offset).to.equal(0);
+        expect(meta.limit).to.equal(100);
+      });
 
-    expect(findResponse.data.meta).to.have.all.keys('count', 'limit', 'offset', 'total');
-    expect(findResponse.data.meta.offset).to.equal(0);
-  });
+      it('Find records by key3', async function () {
+        const { records, meta } = await storage.find(COUNTRY, { key3: dataRequest.key3 }, {});
 
-  it('C19498 Records not found by key value', async function () {
-    const findResponse = await storage.find('US', { key2: 'NotExistingKey212341' }, {});
+        expect(records).to.have.lengthOf(1);
+        expect(records[0].key3).to.equal(dataRequest.key3);
+        expect(meta).to.have.all.keys('count', 'limit', 'offset', 'total');
+        expect(meta.count).to.equal(1);
+        expect(meta.total).to.equal(1);
+        expect(meta.offset).to.equal(0);
+        expect(meta.limit).to.equal(100);
+      });
 
-    expect(findResponse.data.data).to.have.lengthOf(0);
-    expect(findResponse.data.meta).to.have.all.keys('count', 'limit', 'offset', 'total');
-    expect(findResponse.data.meta.count).to.equal(0);
-    expect(findResponse.data.meta.total).to.equal(0);
-    expect(findResponse.data.meta.offset).to.equal(0);
-    expect(findResponse.data.meta.limit).to.equal(100);
-  });
+      it.skip('Find records by profile_key', async function () {
+        const { records, meta } = await storage.find(COUNTRY, { profile_key: dataRequest.profile_key }, {});
 
-  it.skip('C19499 Records not found by country', async function () {
-    const findResponse = await storage.find('PT', {}, {});
-    console.log(findResponse);
-    // expect(findResponse.status).to.equal(404);
-  });
-});
+        expect(records).to.have.lengthOf(1);
+        expect(records[0].profile_key).to.equal(dataRequest.profile_key);
+        expect(meta).to.have.all.keys('count', 'limit', 'offset', 'total');
+        expect(meta.count).to.equal(1);
+        expect(meta.total).to.equal(1);
+        expect(meta.offset).to.equal(0);
+        expect(meta.limit).to.equal(100);
+      });
 
-describe.skip('Find encrypted records', function () {
-  const encData = {
-    country: 'us',
-    key: `EncKey_${Math.random().toString(36).substr(2, 5)}`,
-    key2: `EncKey2_${Math.random().toString(36).substr(2, 5)}`,
-    key3: `EncKey3_${Math.random().toString(36).substr(2, 5)}`,
-    profile_key: `EncPrfKey_${Math.random().toString(36).substr(2, 5)}`,
-    range_key: Math.floor(Math.random() * 100) + 1,
-    body: JSON.stringify({ name: 'PersonName' }),
-  };
+      it('Find record list of keys', async function () {
+        const { records, meta } = await storage.find(COUNTRY, { key2: [dataRequest.key2, dataRequest2.key2] }, {});
 
-  before(async function () {
-    storage = createStorage(true);
-    await storage.writeAsync(encData);
-  });
+        expect(records).to.have.lengthOf(2);
+        expect(meta).to.have.all.keys('count', 'limit', 'offset', 'total');
+        expect(meta.count).to.equal(2);
+        expect(meta.total).to.equal(2);
+        expect(meta.offset).to.equal(0);
+        expect(meta.limit).to.equal(100);
+      });
 
-  it('C1945 Find encrypted records', async function () {
-    const findResponse = await storage.find(dataRequest.country, { key: encData.key });
+      it('Find records with pagination', async function () {
+        const limit = 10;
+        const offset = 10;
+        const { records, meta } = await storage.find(COUNTRY, { version: 0 },
+          {
+            limit,
+            offset,
+          });
 
-    expect(findResponse.status).to.equal(200);
-    expect(findResponse.data.data).to.have.lengthOf(1);
+        expect(records).to.be.lengthOf.above(2);
+        expect(records).to.be.lengthOf.not.above(limit);
 
-    expect(findResponse.data.meta).to.have.all.keys('count', 'limit', 'offset', 'total');
-    expect(findResponse.data.data[0].key).to.equal(dataRequest.key);
+        expect(meta).to.have.all.keys('count', 'limit', 'offset', 'total');
+        expect(meta.count).to.be.not.above(limit);
+        expect(meta.offset).to.equal(offset);
+        expect(meta.limit).to.equal(limit);
+      });
+
+      it('Find records by filter with range_key', async function () {
+        const { records, meta } = await storage.find(COUNTRY,
+          { range_key: { $gt: 100 }, version: 0 }, {});
+
+        expect(records).to.have.lengthOf.above(0);
+        expect(meta).to.have.all.keys('count', 'limit', 'offset', 'total');
+        expect(meta.offset).to.equal(0);
+      });
+
+      it('Records not found by key value', async function () {
+        const { records, meta } = await storage.find(COUNTRY, { key2: Math.random().toString(36).substr(2, 10) }, {});
+
+        expect(records).to.have.lengthOf(0);
+        expect(meta.count).to.equal(0);
+        expect(meta.total).to.equal(0);
+        expect(meta.offset).to.equal(0);
+        expect(meta.limit).to.equal(100);
+      });
+
+      it('Records not found by country', async function () {
+        await expect(storage.findOne(ANOTHER_COUNTRY, {}))
+          .to.be.rejectedWith(Error, 'Request failed with status code 409');
+      });
+    });
   });
 });

@@ -1,17 +1,20 @@
 /* eslint-disable prefer-arrow-callback,func-names */
-const { expect } = require('chai');
-const storageCommon = require('./common');
+const chai = require('chai');
+const chaiAsPromised = require('chai-as-promised');
+const { createStorage, noop } = require('./common');
 
-const { createStorage } = storageCommon;
+chai.use(chaiAsPromised);
+const { expect } = chai;
+
+const COUNTRY = process.env.INT_INC_COUNTRY;
+
+/** @type {import('../../storage')} */
 let storage;
 let data;
 
 describe('Update record', function () {
   beforeEach(async function () {
-    storage = createStorage(false);
-
     data = {
-      country: 'us',
       key: Math.random().toString(36).substr(2, 10),
       key3: Math.random().toString(36).substr(2, 10),
       profile_key: Math.random().toString(36).substr(2, 10),
@@ -19,131 +22,147 @@ describe('Update record', function () {
       body: JSON.stringify({ name: 'PersonName' }),
     };
 
-    await storage.writeAsync(data);
+    await storage.write(COUNTRY, data);
   });
 
-  it('C19527 Update record with override', async function () {
-    const updatedData = {
-      key: `UpdKey_${data.key}`,
-      key2: `UpdKey2_${data.key2}`,
-      key3: `UpdKey3_${data.key3}`,
-      profile_key: `UpdPrfKey_${data.profile_key}`,
-      range_key: Math.floor(Math.random() * 100) + 1,
-      body: JSON.stringify({ UpdatedName: 'UpdatedPersonName' }),
-    };
-    const updateResponse = await storage.updateOne(data.country, { key: data.key },
-      updatedData, { override: true });
-
-    expect(updateResponse.status).to.equal(201);
-    expect(updateResponse.data).to.equal('OK');
-
-    const readResponse = await storage.readAsync({ country: data.country, key: updatedData.key });
-
-    expect(readResponse.data.body).to.equal(updatedData.body);
-    expect(readResponse.data.key).to.equal(updatedData.key);
-    expect(readResponse.data.key2).to.equal(updatedData.key2);
-    expect(readResponse.data.key3).to.equal(updatedData.key3);
-    expect(readResponse.data.profile_key).to.equal(updatedData.profile_key);
-    expect(readResponse.data.range_key).to.equal(updatedData.range_key);
+  afterEach(async function () {
+    await storage.delete(COUNTRY, data.key).catch(noop);
   });
 
-  it.skip('C19528 Update record with override by profile_key', async function () {
-    const updatedData = {
-      key: data.key,
-      key2: 'UpdKey2',
-      key3: `UpdKey3_${data.key3}`,
-      profile_key: data.profile_key,
-      range_key: Math.floor(Math.random() * 100) + 1,
-      body: data.body,
-    };
-    const updateResponse = await storage.updateOne(data.country, { profile_key: data.profile_key },
-      updatedData, { override: true });
+  [false, true].forEach((encryption) => {
+    storage = createStorage(encryption);
 
-    expect(updateResponse.status).to.equal(201);
-    expect(updateResponse.data).to.equal('OK');
+    context(`${encryption ? 'with' : 'without'} encryption`, function () {
+      it('Update record with override', async function () {
+        const updatedData = {
+          key: `UpdKey_${data.key}`,
+          key2: `UpdKey2_${data.key2}`,
+          key3: `UpdKey3_${data.key3}`,
+          profile_key: `UpdPrfKey_${data.profile_key}`,
+          range_key: Math.floor(Math.random() * 100) + 1,
+          body: JSON.stringify({ UpdatedName: 'UpdatedPersonName' }),
+        };
 
-    const readResponse = await storage.readAsync({ country: data.country, key: updatedData.key });
+        await storage.updateOne(COUNTRY, { key: data.key },
+          updatedData, { override: true });
 
-    expect(readResponse.data.body).to.equal(updatedData.body);
-    expect(readResponse.data.key).to.equal(updatedData.key);
-    expect(readResponse.data.key2).to.equal(updatedData.key2);
-    expect(readResponse.data.key3).to.equal(updatedData.key3);
-    expect(readResponse.data.profile_key).to.equal(updatedData.profile_key);
-    expect(readResponse.data.range_key).to.equal(updatedData.range_key);
-  });
+        const { record } = await storage.read(COUNTRY, updatedData.key);
 
-  it('C19529 Update record with override by key3', async function () {
-    const updatedData = {
-      key: `UpdKey_${data.key}`,
-      profile_key: `UpdPrfKey_${data.profile_key}`,
-      range_key: Math.floor(Math.random() * 100) + 1,
-      body: JSON.stringify({ UpdatedName: 'UpdatedPersonName' }),
-    };
-    const updateResponse = await storage.updateOne(data.country, { key3: data.key3 },
-      updatedData, { override: true });
+        expect(record.body).to.equal(updatedData.body);
+        expect(record.key).to.equal(updatedData.key);
+        expect(record.key2).to.equal(updatedData.key2);
+        expect(record.key3).to.equal(updatedData.key3);
+        expect(record.profile_key).to.equal(updatedData.profile_key);
+        expect(record.range_key).to.equal(updatedData.range_key);
+      });
 
-    expect(updateResponse.status).to.equal(201);
-    expect(updateResponse.data).to.equal('OK');
+      it('Update record with override by profile_key', async function () {
+        const updatedData = {
+          key: data.key,
+          key2: 'UpdKey2',
+          key3: `UpdKey3_${data.key3}`,
+          profile_key: data.profile_key,
+          range_key: Math.floor(Math.random() * 100) + 1,
+          body: JSON.stringify({ UpdatedName: 'UpdatedPersonName' }),
+        };
+        await storage.updateOne(COUNTRY, { profile_key: data.profile_key },
+          updatedData, { override: true });
 
-    const readResponse = await storage.readAsync({ country: data.country, key: updatedData.key });
+        const { record } = await storage.read(COUNTRY, updatedData.key);
 
-    expect(readResponse.data.body).to.equal(updatedData.body);
-    expect(readResponse.data.key).to.equal(updatedData.key);
-    expect(readResponse.data.key2).to.equal(null);
-    expect(readResponse.data.key3).to.equal(null);
-    expect(readResponse.data.profile_key).to.equal(updatedData.profile_key);
-    expect(readResponse.data.range_key).to.equal(updatedData.range_key);
-  });
+        expect(record.body).to.equal(updatedData.body);
+        expect(record.key).to.equal(updatedData.key);
+        expect(record.key2).to.equal(updatedData.key2);
+        expect(record.key3).to.equal(updatedData.key3);
+        expect(record.profile_key).to.equal(updatedData.profile_key);
+        expect(record.range_key).to.equal(updatedData.range_key);
+      });
 
-  it.skip('C19530 Update record without override', async function () {
-    const updatedData = {
-      key: data.key,
-      key2: 'MergedKey2',
-    };
+      it('Update record with override by key2', async function () {
+        const updatedData = {
+          key: `UpdKey_${data.key}`,
+          key3: `UpdKey3_${data.key3}`,
+          profile_key: `UpdPrfKey_${data.profile_key}`,
+          range_key: Math.floor(Math.random() * 100) + 1,
+          body: JSON.stringify({ UpdatedName: 'UpdatedPersonName' }),
+        };
 
-    const updateResponse = await storage.updateOne(data.country, { key: data.key },
-      updatedData, { override: false });
+        await storage.updateOne(COUNTRY, { key2: data.key2 },
+          updatedData, { override: true });
 
-    expect(updateResponse.status).to.equal(201);
-    expect(updateResponse.data).to.equal('OK');
+        const { record } = await storage.read(COUNTRY, updatedData.key);
 
-    const readResponse = await storage.readAsync({ country: data.country, key: data.key });
+        expect(record.body).to.equal(updatedData.body);
+        expect(record.key).to.equal(updatedData.key);
+        expect(record.key2).to.equal(null);
+        expect(record.key3).to.equal(updatedData.key3);
+        expect(record.profile_key).to.equal(updatedData.profile_key);
+        expect(record.range_key).to.equal(updatedData.range_key);
+      });
 
-    console.log(readResponse);
-    expect(readResponse.data.body).to.equal(data.body);
-    expect(readResponse.data.key).to.equal(data.key);
-    expect(readResponse.data.key2).to.equal(updatedData.key2);
-  });
+      it('Update record without override', async function () {
+        const updatedData = {
+          key: data.key,
+          key2: 'MergedKey2',
+        };
 
-  it.skip('C19531 Update not existing record', async function () {
-    const updatedData = {
-      key: `UpdKey_${data.key}`,
-      key2: `UpdKey2_${data.key2}`,
-      key3: `UpdKey3_${data.key3}`,
-      profile_key: `UpdPrfKey_${data.profile_key}`,
-      range_key: Math.floor(Math.random() * 100) + 1,
-      body: JSON.stringify({ UpdatedName: 'UpdatedPersonName' }),
-    };
-    const updateResponse = await storage.updateOne(data.country, { key: `NotExistingKey${Math.random().toString(36).substr(2, 10)}` },
-      updatedData, { override: true });
+        await storage.updateOne(COUNTRY, { key: data.key },
+          updatedData, { override: false });
 
-    expect(updateResponse.status).to.equal(400);
-    expect(updateResponse.data).to.equal('Error');
-  });
+        const { record } = await storage.read(COUNTRY, data.key);
 
-  it.skip('C19536 Filter return more than one records', async function () {
-    const updatedData = {
-      key: `UpdKey_${data.key}`,
-      key2: `UpdKey2_${data.key2}`,
-      key3: `UpdKey3_${data.key3}`,
-      profile_key: `UpdPrfKey_${data.profile_key}`,
-      range_key: Math.floor(Math.random() * 100) + 1,
-      body: JSON.stringify({ UpdatedName: 'UpdatedPersonName' }),
-    };
-    const updateResponse = await storage.updateOne(data.country, { key: 'recordKey0' },
-      updatedData, { override: false });
+        expect(record.body).to.equal(data.body);
+        expect(record.key).to.equal(data.key);
+        expect(record.key2).to.equal(updatedData.key2);
+        expect(record.key3).to.equal(data.key3);
+      });
 
-    expect(updateResponse.status).to.equal(400);
-    expect(updateResponse.data).to.equal('Error');
+      it('Update record without override with body', async function () {
+        const updatedData = {
+          key: data.key,
+          key2: 'MergedKey2',
+          body: JSON.stringify({ UpdatedName: 'OverrideName' }),
+        };
+
+        await storage.updateOne(COUNTRY, { key: data.key },
+          updatedData, { override: false });
+
+        const { record } = await storage.read(COUNTRY, data.key);
+
+        expect(record.body).to.equal(updatedData.body);
+        expect(record.key).to.equal(data.key);
+        expect(record.key2).to.equal(updatedData.key2);
+        expect(record.key3).to.equal(data.key3);
+      });
+
+      it('Update not existing record', async function () {
+        const updatedData = {
+          key2: 'UpdKey2',
+          key3: `UpdKey3_${data.key3}`,
+          profile_key: `UpdPrfKey_${data.profile_key}`,
+          range_key: Math.floor(Math.random() * 100) + 1,
+          body: JSON.stringify({ UpdatedName: 'UpdatedPersonName' }),
+        };
+
+        const key = `NotExistingKey${Math.random().toString(36).substr(2, 10)}`;
+
+        await expect(storage.updateOne(COUNTRY, { key }, updatedData, { override: true }))
+          .to.be.rejectedWith(Error, 'Record not found');
+      });
+
+      it.skip('Filter return more than one records', async function () {
+        const updatedData = {
+          key: `UpdKey_${data.key}`,
+          key2: `UpdKey2_${data.key2}`,
+          key3: `UpdKey3_${data.key3}`,
+          profile_key: `UpdPrfKey_${data.profile_key}`,
+          range_key: Math.floor(Math.random() * 100) + 1,
+          body: JSON.stringify({ UpdatedName: 'UpdatedPersonName' }),
+        };
+
+        await expect(storage.updateOne(COUNTRY, { key2: 'recordKey13' }, updatedData, { override: false }))
+          .to.be.rejectedWith(Error, 'Multiple records found');
+      });
+    });
   });
 });

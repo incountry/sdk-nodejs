@@ -57,4 +57,10 @@ describe('logger', () => {
       });
     });
   });
+
+  it('should use current time when the timestamp is not specified', () => {
+    const logger = Logger.withBaseLogLevel('debug');
+    logger.write('debug', message, null);
+    expect(spy.calledWith(sinon.match(/^.+ \[debug\] test message/))).equal(true);
+  });
 });

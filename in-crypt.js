@@ -1,6 +1,8 @@
 const crypto = require('crypto');
 const util = require('util');
-const utf8 = require('utf8');
+
+const SecretKeyAccessor = require('./secret-key-accessor');
+const { InCryptoError } = require('./errors');
 
 const pbkdf2 = util.promisify(crypto.pbkdf2);
 
@@ -10,6 +12,7 @@ const SALT_SIZE = 64;
 const PBKDF2_ITERATIONS_COUNT = 10000;
 const AUTH_TAG_SIZE = 16;
 const VERSION = '2';
+const PT_VERSION = 'pt';
 
 const SUPPORTED_VERSIONS = ['0', '1', '2'];
 
@@ -35,10 +38,20 @@ class InCrypt {
   }
 
   async encryptAsync(text) {
+    if (this._secretKeyAccessor === undefined) {
+      return {
+        message: `${PT_VERSION}:${Buffer.from(text).toString('base64')}`,
+        secretVersion: SecretKeyAccessor.DEFAULT_VERSION,
+      };
+    }
     if (this._customEncryptionVersion) {
       const {encrypt} = this._customEncryption[this._customEncryptionVersion];
       const { secret, version } = await this._secretKeyAccessor.getSecret();
       const ciphertext = await encrypt(text, secret);
+      };
+    }
+
+    const { key, version } = await this._getEncryptionKey(salt);
       return {
         message: `${this._customEncryptionVersion}:${ciphertext}`,
         secretVersion: version,
@@ -54,19 +67,31 @@ class InCrypt {
    */
   async decryptAsync(s, secret) {
     const parts = s.split(':');
-    let version;
-    let encryptedHex;
-    if (parts.length === 2) {
-      [version, encryptedHex] = parts;
-    } else {
-      version = '0';
-      encryptedHex = s;
+
+    if (parts.length !== 2) {
+      throw new InCryptoError('Invalid ciphertext');
+    }
+    const [version, encrypted] = parts;
+
+    if (!this._secretKeyAccessor && version !== PT_VERSION) {
+      return this.decryptStub(encrypted);
     }
     if (this._customEncryption && this._customEncryption[version]) {
       return this._customEncryption[version].decrypt(encryptedHex)
-    } else {
-      const decrypt = this[`decryptV${version}`].bind(this);
-      return decrypt(encryptedHex, secret);
+    }
+    const decrypt = this[`decryptV${version}`];
+    if (decrypt === undefined) {
+      throw new InCryptoError('Unknown decryptor version requested');
+    }
+    return decrypt.bind(this)(encrypted, secretVersion);
+  }
+
+  decryptStub(encrypted) {
+    return encrypted;
+  }
+
+  decryptVpt(plainTextBase64) {
+    return Buffer.from(plainTextBase64, 'base64').toString('utf-8');
     }
   }
 
@@ -92,9 +117,9 @@ class InCrypt {
 
   /**
    * @param {string} encryptedBase64
-   * @param {string} secret
+   * @param {number} secretVersion
    */
-  async decryptV2(encryptedBase64, secret) {
+  async decryptV2(encryptedBase64, secretVersion) {
     const bData = Buffer.from(encryptedBase64, 'base64');
 
     const salt = bData.slice(0, SALT_SIZE);
@@ -102,7 +127,7 @@ class InCrypt {
     const encrypted = bData.slice(SALT_SIZE + IV_SIZE, bData.length - AUTH_TAG_SIZE);
     const tag = bData.slice(-AUTH_TAG_SIZE);
 
-    const key = await pbkdf2(secret, salt, PBKDF2_ITERATIONS_COUNT, KEY_SIZE, 'sha512');
+    const { key } = await this._getEncryptionKey(salt, secretVersion);
 
     const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
     decipher.setAuthTag(tag);
@@ -112,9 +137,9 @@ class InCrypt {
 
   /**
    * @param {string} encryptedHex
-   * @param {string} secret
+   * @param {number} secretVersion
    */
-  async decryptV1(encryptedHex, secret) {
+  async decryptV1(encryptedHex, secretVersion) {
     const bData = Buffer.from(encryptedHex, 'hex');
 
     const salt = bData.slice(0, SALT_SIZE);
@@ -122,7 +147,7 @@ class InCrypt {
     const encrypted = bData.slice(SALT_SIZE + IV_SIZE, bData.length - AUTH_TAG_SIZE);
     const tag = bData.slice(-AUTH_TAG_SIZE);
 
-    const key = await pbkdf2(secret, salt, PBKDF2_ITERATIONS_COUNT, KEY_SIZE, 'sha512');
+    const { key } = await this._getEncryptionKey(salt, secretVersion);
 
     const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
     decipher.setAuthTag(tag);
@@ -130,27 +155,14 @@ class InCrypt {
     return decipher.update(encrypted, 'binary', 'utf8') + decipher.final('utf8');
   }
 
-  /**
-   * @param {string} encryptedHex
-   * @param {string} secret
-   */
-  async decryptV0(encryptedHex, secret) {
-    const key = Buffer.allocUnsafe(16);
-    const iv = Buffer.allocUnsafe(16);
-    const hash = crypto.createHash('sha256');
+  async _getEncryptionKey(salt, secretVersion = undefined) {
+    if (!this._secretKeyAccessor) {
+      return { key: null, version: null };
+    }
+    const { secret, isKey, version } = await this._secretKeyAccessor.getSecret(secretVersion);
 
-    const encodedKey = utf8.encode(secret);
-    const ba = hash.update(encodedKey).digest('hex');
-    const salt = Buffer.from(ba, 'hex');
-    salt.copy(key, 0, 0, 16);
-    salt.copy(iv, 0, 16, 32);
-
-    const encryptedBytes = Buffer.from(encryptedHex, 'hex');
-    const decipher = crypto.createDecipheriv('aes-128-cbc', key, iv);
-
-    let decrypted = decipher.update(encryptedBytes);
-    decrypted = Buffer.concat([decrypted, decipher.final()]);
-    return decrypted.toString();
+    const key = isKey ? secret : (await pbkdf2(secret, salt, PBKDF2_ITERATIONS_COUNT, KEY_SIZE, 'sha512'));
+    return { key, version };
   }
 }
 

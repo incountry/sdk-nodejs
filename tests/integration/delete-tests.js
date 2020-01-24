@@ -1,64 +1,41 @@
 /* eslint-disable prefer-arrow-callback,func-names */
-const { expect } = require('chai');
-const storageCommon = require('./common');
+const chai = require('chai');
+const chaiAsPromised = require('chai-as-promised');
+const { createStorage } = require('./common');
 
-const { createStorage } = storageCommon;
+chai.use(chaiAsPromised);
+const { expect } = chai;
+
+const COUNTRY = process.env.INT_INC_COUNTRY;
+
+/** @type {import('../../storage')} */
 let storage;
 
 describe('Delete data from Storage', function () {
-  before(async function () {
-    storage = createStorage(false);
-  });
+  [false, true].forEach((encryption) => {
+    storage = createStorage(encryption);
 
-  it('C1885 Delete data', async function () {
-    const data = {
-      country: 'US',
-      key: 'recordKey201',
-      body: JSON.stringify({ name: 'PersonName' }),
-    };
-    const writeResponse = await storage.writeAsync(data);
-    expect(writeResponse.data).to.equal('OK');
+    context(`${encryption ? 'with' : 'without'} encryption`, function () {
+      it('Delete data', async function () {
+        const data = {
+          key: Math.random().toString(36).substr(2, 10),
+          body: JSON.stringify({ name: 'PersonName' }),
+        };
 
-    const deleteResponse = await storage.deleteAsync({
-      country: data.country,
-      key: data.key,
-    });
+        await storage.write(COUNTRY, data);
+        await storage.read(COUNTRY, data.key);
 
-    expect(deleteResponse.status).to.equal(200);
-  });
+        const deleteResult = await storage.delete(COUNTRY, data.key);
+        expect(deleteResult.success).to.equal(true);
 
-
-  it.skip('C1886 Delete not existing data', async function () {
-    const notExistingKey = 'NotExistingKey123';
-    const deleteResponse = await storage.deleteAsync({
-      country: 'US',
-      key: notExistingKey,
-    });
-
-    expect(deleteResponse.status).to.equal(404);
-    expect(deleteResponse.error).to.equal(`Could not find a record for key: ${notExistingKey}`);
-  });
-
-  describe.skip('Encryption', function () {
-    before(async function () {
-      storage = createStorage(true);
-    });
-
-    it('C1920 Delete encrypted data', async function () {
-      const data = {
-        country: 'US',
-        key: 'recordEncKey0101',
-        body: JSON.stringify({ LastName: 'MyEncLastName' }),
-      };
-      const writeResponse = await storage.writeAsync(data);
-      expect(writeResponse.status).to.equal(201);
-
-      const deleteResponse = await storage.deleteAsync({
-        country: data.country,
-        key: data.key,
+        await expect(storage.read(COUNTRY, data.key)).to.be.rejected;
       });
 
-      expect(deleteResponse.status).to.equal(200);
+      it('Delete not existing data', async function () {
+        const key = Math.random().toString(36).substr(2, 10);
+        await expect(storage.delete(COUNTRY, key))
+          .to.be.rejectedWith(Error, 'Request failed with status code 404');
+      });
     });
   });
 });

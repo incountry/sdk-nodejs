@@ -19,6 +19,9 @@ function createStorage(encryption) {
   );
 }
 
+function noop() { }
+
 module.exports = {
   createStorage,
+  noop,
 };

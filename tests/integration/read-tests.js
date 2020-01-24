@@ -1,113 +1,78 @@
 /* eslint-disable prefer-arrow-callback,func-names */
-const { expect } = require('chai');
-const storageCommon = require('./common');
+const chai = require('chai');
+const chaiAsPromised = require('chai-as-promised');
+const { createStorage, noop } = require('./common');
 
-const { createStorage } = storageCommon;
+chai.use(chaiAsPromised);
+const { expect } = chai;
+
+const COUNTRY = process.env.INT_INC_COUNTRY;
+
+/** @type {import('../../storage')} */
 let storage;
+let data;
 
 describe('Read data from Storage', function () {
-  before(async function () {
-    storage = createStorage(false);
+  afterEach(async function () {
+    await storage.delete(COUNTRY, data.key).catch(noop);
   });
 
-  it('C1883 Read data', async function () {
-    const data = {
-      country: 'US',
-      key: Math.random().toString(36).substr(2, 10),
-      body: JSON.stringify({ name: 'PersonName' }),
-    };
-    const writeResponse = await storage.writeAsync(data);
-    expect(writeResponse.data).to.equal('OK');
+  [false, true].forEach((encryption) => {
+    storage = createStorage(encryption);
 
-    const readResponse = await storage.readAsync({
-      country: data.country,
-      key: data.key,
-    });
+    context(`${encryption ? 'with' : 'without'} encryption`, function () {
+      it('Read data', async function () {
+        data = {
+          key: Math.random().toString(36).substr(2, 10),
+          body: JSON.stringify({ name: 'PersonName' }),
+        };
 
-    expect(readResponse.status).to.equal(200);
-    expect(readResponse.data.key).to.equal(data.key);
-    expect(readResponse.data.body).to.equal(data.body);
-  });
+        await storage.write(COUNTRY, data);
+        const { record } = await storage.read(COUNTRY, data.key);
 
-  it('C1884 Read not existing data', async function () {
-    const data = {
-      country: 'US',
-      key: 'NotExistingKey11',
-    };
-    const readResponse = await storage.readAsync(data);
-
-    expect(readResponse.status).to.equal(404);
-    expect(readResponse.error).to.equal(`Could not find a record for key: ${data.key}`);
-  });
-
-  it('C1922 Read data with optional keys and range', async function () {
-    const data = {
-      country: 'US',
-      key: Math.random().toString(36).substr(2, 10),
-      body: JSON.stringify({ name: 'PersonName' }),
-      profile_key: 'profileKey',
-      range_key: 42341,
-      key2: 'optional key value 2',
-      key3: 'optional key value 3',
-    };
-    const writeResponse = await storage.writeAsync(data);
-    expect(writeResponse.data).to.equal('OK');
-
-    const readResponse = await storage.readAsync({
-      country: data.country,
-      key: data.key,
-    });
-
-    expect(readResponse.status).to.equal(200);
-    expect(readResponse.data.body).to.equal(data.body);
-    expect(readResponse.data.key).to.equal(data.key);
-    expect(readResponse.data.key2).to.equal(data.key2);
-    expect(readResponse.data.key3).to.equal(data.key3);
-    expect(readResponse.data.profile_key).to.equal(data.profile_key);
-    expect(readResponse.data.range_key).to.equal(data.range_key);
-  });
-
-  it('C1929 Read data with empty body', async function () {
-    const data = {
-      country: 'US',
-      key: Math.random().toString(36).substr(2, 10),
-      body: null,
-    };
-    const writeResponse = await storage.writeAsync(data);
-    expect(writeResponse.data).to.equal('OK');
-
-    const readResponse = await storage.readAsync({
-      country: data.country,
-      key: data.key,
-    });
-
-    expect(readResponse.status).to.equal(200);
-    expect(readResponse.data.key).to.equal(data.key);
-    expect(readResponse.data.body).to.equal(data.body);
-  });
-
-  describe.skip('Encryption', function () {
-    before(async function () {
-      storage = createStorage(true);
-    });
-
-    it('C1919 Read encrypted data', async function () {
-      const data = {
-        country: 'US',
-        key: `EncKey_${Math.random().toString(36).substr(2, 5)}`,
-        body: JSON.stringify({ LastName: 'MyEncLastName' }),
-      };
-      const writeResponse = await storage.writeAsync(data);
-      expect(writeResponse.status).to.equal(201);
-
-      const readResponse = await storage.readAsync({
-        country: data.country,
-        key: data.key,
+        expect(record.key).to.equal(data.key);
+        expect(record.body).to.equal(data.body);
       });
 
-      expect(readResponse.status).to.equal(200);
-      expect(readResponse.data.key).to.equal(data.key);
-      expect(readResponse.data.body).to.equal(data.body);
+      it('Read not existing data', async function () {
+        const key = Math.random().toString(36).substr(2, 10);
+        await expect(storage.read(COUNTRY, key))
+          .to.be.rejectedWith(Error, 'Request failed with status code 404');
+      });
+
+      it('Read data with optional keys and range', async function () {
+        data = {
+          key: Math.random().toString(36).substr(2, 10),
+          body: JSON.stringify({ name: 'PersonName' }),
+          profile_key: 'profileKey',
+          range_key: 42341,
+          key2: 'optional key value 2',
+          key3: 'optional key value 3',
+        };
+
+        await storage.write(COUNTRY, data);
+        const { record } = await storage.read(COUNTRY, data.key);
+
+        expect(record.body).to.equal(data.body);
+        expect(record.key).to.equal(data.key);
+        expect(record.key2).to.equal(data.key2);
+        expect(record.key3).to.equal(data.key3);
+        expect(record.profile_key).to.equal(data.profile_key);
+        expect(record.range_key).to.equal(data.range_key);
+      });
+
+      it('Read data with empty body', async function () {
+        data = {
+          key: Math.random().toString(36).substr(2, 10),
+          body: null,
+        };
+
+        await storage.write(COUNTRY, data);
+        const { record } = await storage.read(COUNTRY, data.key);
+
+        expect(record.key).to.equal(data.key);
+        expect(record.body).to.equal(data.body);
+      });
     });
   });
 });

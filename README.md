@@ -31,9 +31,9 @@ const storage = new Storage(
 
 `apiKey` and `environmentId` can be fetched from your dashboard on `Incountry` site.
 
-#### Encryption key
+#### Encryption key/secret
 
-`secretKeyAccessor` is used to pass a secret used for encryption.
+`secretKeyAccessor` is used to pass a key or secret used for encryption.
 
 Note: even though SDK uses PBKDF2 to generate a cryptographically strong encryption key, you must make sure you provide a secret/password which follows modern security best practices and standards.
 
@@ -48,16 +48,19 @@ Note: even though SDK uses PBKDF2 to generate a cryptographically strong encrypt
     },
     {
       secret: "def", // {string}
-      version: 1 // {number} Should be a positive integer
+      version: 1, // {number} Should be a positive integer
+      isKey: false // {boolean} Should be true only for user-defined encryption key
     }
   ],
   currentVersion: 1 // {number} Should be a positive integer
 };
 ```
 
-`SecretsData` allows you to specify multiple keys which SDK will use for decryption based on the version of the secret used for encryption. Meanwhile SDK will encrypt only using secret that matches `currentVersion` provided in `SecretsData` object.
+`SecretsData` allows you to specify multiple keys/secrets which SDK will use for decryption based on the version of the key or secret used for encryption. Meanwhile SDK will encrypt only using key/secret that matches `currentVersion` provided in `SecretsData` object.
 
-This enables the flexibility required to support Key Rotation policies when secrets/keys need to be changed with time. SDK will encrypt data using current secret while maintaining the ability to decrypt records encrypted with old secrets. SDK also provides a method for data migration which allows to re-encrypt data with the newest secret. For details please see `migrate` method.
+This enables the flexibility required to support Key Rotation policies when secrets/keys need to be changed with time. SDK will encrypt data using current secret/key while maintaining the ability to decrypt records encrypted with old keys/secrets. SDK also provides a method for data migration which allows to re-encrypt data with the newest key/secret. For details please see `migrate` method.
+
+SDK allows you to use custom encryption keys, instead of secrets. Please note that user-defined encryption key should be a 32-characters 'utf8' encoded string as it's required by AES-256 cryptographic algorithm.
 
 Here are some examples how you can use `SecretKeyAccessor`.
 
@@ -107,18 +110,20 @@ const storage = new Storage(
 
 ### Writing data to Storage
 
-Use `writeAsync` method in order to create/replace (by `key`) a record.
+Use `write` method in order to create/replace (by `key`) a record.
 
 ```javascript
-const writeResponse = await storage.writeAsync({
-  country: "string", // Required country code of where to store the data
-  key: "string", // Required record key
-  body: "string", // Optional payload
-  profile_key: "string", // Optional
-  range_key: integer, // Optional
-  key2: "string", // Optional
-  key3: "string" // Optional
-});
+const writeResponse = await storage.write(
+  country, // Required country code of where to store the data 
+  {  
+    key: "string", // Required record key
+    body: "string", // Optional payload
+    profile_key: "string", // Optional
+    range_key: integer, // Optional
+    key2: "string", // Optional
+    key3: "string" // Optional
+  }
+);
 
 // Use writeReponse.status for status code.
 ```
@@ -131,11 +136,11 @@ Here is how data is transformed and stored in InCountry database:
 ```javascript
 {
   key, // hashed
-    body, // encrypted
-    profile_key, // hashed
-    range_key, // plain
-    key2, // hashed
-    key3; // hashed
+  body, // encrypted
+  profile_key, // hashed
+  range_key, // plain
+  key2, // hashed
+  key3; // hashed
 }
 ```
 
@@ -154,18 +159,18 @@ batchResponse = await storage.batchWrite(
 
 ### Reading stored data
 
-Stored record can be read by `key` using `readAsync` method. It accepts an object with two fields: `country` and `key`
+Stored record can be read by `key` using `read` method. It accepts an object with two fields: `country` and `key`
 
 ```javascript
-const readResponse = await storage.readAsync({
-  country: "string", // Required country code
-  key: "string" // Required record key
-});
+const readResponse = await storage.read(
+  country, // Required country code
+  key // Required record key
+);
 
 // Use readResponse.status for status code, and readResponse.data for payload received.
 ```
 
-Note that `readAsync` returns a `Promise` which is always fulfilled. Use `status` property in order check if operation was successful or not.
+Note that `read` returns a `Promise` which is always fulfilled. Use `status` property in order check if operation was successful or not.
 
 ### Find records
 
@@ -251,29 +256,15 @@ const record = await storage.findOne(country, filter);
 
 If record not found, it will return `null`.
 
-### Batch read
-
-**Warning**. This method is deprecated. It is recommended to use `find` instead.
-
-It is possible to get a number of records by `key` at once.
-
-```javascript
-// Currently only GET batches are supported
-const batchResponse = await storage.batchAsync({
- "GET": [ // Array of strings mapping to keys ]})
-
-// Use batchResponse.status for status code, and batchResponse.data for payload received.
-```
-
 ### Delete records
 
-Use `deleteAsync` method in order to delete a record from InCountry storage. It is only possible using `key` field.
+Use `delete` method in order to delete a record from InCountry storage. It is only possible using `key` field.
 
 ```javascript
-const deleteResponse = await storage.deleteAsync({
-  country: "string", // Required country code
-  key: "string" // Required record key
-});
+const deleteResponse = await storage.delete(
+  country, // Required country code
+  key // Required record key
+);
 
 // Use deleteResponse.status for status code.
 ```

@@ -1,12 +1,19 @@
 /* eslint-disable prefer-arrow-callback,func-names */
-const { expect } = require('chai');
-const storageCommon = require('./common');
+const chai = require('chai');
+const chaiAsPromised = require('chai-as-promised');
+const { createStorage, noop } = require('./common');
+const { StorageServerError } = require('../../errors');
 
-const { createStorage } = storageCommon;
+chai.use(chaiAsPromised);
+const { expect } = chai;
+
+const COUNTRY = process.env.INT_INC_COUNTRY;
+const ANOTHER_COUNTRY = COUNTRY === 'us' ? 'se' : 'us';
+
+/** @type {import('../../storage')} */
 let storage;
 
 const dataRequest = {
-  country: 'us',
   key: Math.random().toString(36).substr(2, 10),
   key2: Math.random().toString(36).substr(2, 10),
   key3: Math.random().toString(36).substr(2, 10),
@@ -15,94 +22,77 @@ const dataRequest = {
   body: JSON.stringify({ name: 'PersonName' }),
 };
 
-describe.skip('Find one record', function () {
+describe('Find one record', function () {
   before(async function () {
     storage = createStorage(false);
-    await storage.writeAsync(dataRequest);
+    await storage.write(COUNTRY, dataRequest);
   });
 
-  it('C1914 Find one record by country', async function () {
-    const findResponse = await storage.findOne(dataRequest.country, {});
-
-    expect(findResponse).to.have.all.keys('body', 'key', 'key2', 'key3', 'profile_key', 'range_key');
+  after(async function () {
+    await storage.delete(COUNTRY, dataRequest.key).catch(noop);
   });
 
-  it('C1925 Find one record by key', async function () {
-    const findResponse = await storage.findOne(dataRequest.country, { key: dataRequest.key });
+  [false, true].forEach((encryption) => {
+    storage = createStorage(encryption);
 
-    expect(findResponse.key).to.equal(dataRequest.key);
-    expect(findResponse.key2).to.equal(dataRequest.key2);
-    expect(findResponse.key3).to.equal(dataRequest.key3);
-    expect(findResponse.profile_key).to.equal(dataRequest.profile_key);
-    expect(findResponse.range_key).to.equal(dataRequest.range_key);
-    expect(findResponse.body).to.equal(dataRequest.body);
-  });
+    context(`${encryption ? 'with' : 'without'} encryption`, function () {
+      it.skip('Find one record by country', async function () {
+        const { record } = await storage.findOne(COUNTRY, {});
+        expect(record).to.have.all.keys('body', 'key', 'key2', 'key3', 'profile_key', 'range_key', 'version');
+      });
 
-  it('C19500 Find one record by key2', async function () {
-    const findResponse = await storage.findOne(dataRequest.country, { key2: dataRequest.key2 });
+      it('Find one record by key', async function () {
+        const { record } = await storage.findOne(COUNTRY, { key: dataRequest.key });
 
-    expect(findResponse.key).to.equal(dataRequest.key);
-    expect(findResponse.key2).to.equal(dataRequest.key2);
-    expect(findResponse.key3).to.equal(dataRequest.key3);
-    expect(findResponse.profile_key).to.equal(dataRequest.profile_key);
-    expect(findResponse.range_key).to.equal(dataRequest.range_key);
-    expect(findResponse.body).to.equal(dataRequest.body);
-  });
+        expect(record.key).to.equal(dataRequest.key);
+        expect(record.key2).to.equal(dataRequest.key2);
+        expect(record.key3).to.equal(dataRequest.key3);
+        expect(record.profile_key).to.equal(dataRequest.profile_key);
+        expect(record.range_key).to.equal(dataRequest.range_key);
+        expect(record.body).to.equal(dataRequest.body);
+      });
 
-  it('C19501 Find one record by key3', async function () {
-    const findResponse = await storage.findOne(dataRequest.country, { key3: dataRequest.key3 });
+      it('Find one record by key2', async function () {
+        const { record } = await storage.findOne(COUNTRY, { key2: dataRequest.key2 });
 
-    expect(findResponse.key).to.equal(dataRequest.key);
-    expect(findResponse.key2).to.equal(dataRequest.key2);
-    expect(findResponse.key3).to.equal(dataRequest.key3);
-    expect(findResponse.profile_key).to.equal(dataRequest.profile_key);
-    expect(findResponse.range_key).to.equal(dataRequest.range_key);
-    expect(findResponse.body).to.equal(dataRequest.body);
-  });
+        expect(record.key).to.equal(dataRequest.key);
+        expect(record.key2).to.equal(dataRequest.key2);
+        expect(record.key3).to.equal(dataRequest.key3);
+        expect(record.profile_key).to.equal(dataRequest.profile_key);
+        expect(record.range_key).to.equal(dataRequest.range_key);
+        expect(record.body).to.equal(dataRequest.body);
+      });
 
-  it('C19502 Find one record by profile_key', async function () {
-    const findResponse = await storage.findOne(dataRequest.country, { profile_key: dataRequest.profile_key });
+      it('Find one record by key3', async function () {
+        const { record } = await storage.findOne(COUNTRY, { key3: dataRequest.key3 });
 
-    expect(findResponse.key).to.equal(dataRequest.key);
-    expect(findResponse.key2).to.equal(dataRequest.key2);
-    expect(findResponse.key3).to.equal(dataRequest.key3);
-    expect(findResponse.profile_key).to.equal(dataRequest.profile_key);
-    expect(findResponse.range_key).to.equal(dataRequest.range_key);
-    expect(findResponse.body).to.equal(dataRequest.body);
-  });
+        expect(record.key).to.equal(dataRequest.key);
+        expect(record.key2).to.equal(dataRequest.key2);
+        expect(record.key3).to.equal(dataRequest.key3);
+        expect(record.profile_key).to.equal(dataRequest.profile_key);
+        expect(record.range_key).to.equal(dataRequest.range_key);
+        expect(record.body).to.equal(dataRequest.body);
+      });
 
-  it.skip('C19503 Record not found by key value', async function () {
-    const findResponse = await storage.findOne(dataRequest.country, { key: 'NotExistingKey987' });
-    expect(findResponse.status).to.equal(404);
-  });
+      it('Find one record by profile_key', async function () {
+        const { record } = await storage.findOne(COUNTRY, { profile_key: dataRequest.profile_key });
 
-  it.skip('C19504 Record not found by country', async function () {
-    const findResponse = await storage.findOne('BR', {});
-    expect(findResponse.status).to.equal(404);
-  });
-});
+        expect(record.key).to.equal(dataRequest.key);
+        expect(record.key2).to.equal(dataRequest.key2);
+        expect(record.key3).to.equal(dataRequest.key3);
+        expect(record.profile_key).to.equal(dataRequest.profile_key);
+        expect(record.range_key).to.equal(dataRequest.range_key);
+        expect(record.body).to.equal(dataRequest.body);
+      });
 
-describe.skip('Find encrypted record', function () {
-  const encData = {
-    country: 'us',
-    key: `EncKey_${Math.random().toString(36).substr(2, 5)}`,
-    key2: `EncKey2_${Math.random().toString(36).substr(2, 5)}`,
-    key3: `EncKey3_${Math.random().toString(36).substr(2, 5)}`,
-    profile_key: `EncPrfKey_${Math.random().toString(36).substr(2, 5)}`,
-    range_key: Math.floor(Math.random() * 100) + 1,
-    body: JSON.stringify({ name: 'PersonName' }),
-  };
+      it('Record not found by key value', async function () {
+        const { record } = await storage.findOne(COUNTRY, { key: Math.random().toString(36).substr(2, 10) });
+        expect(record).to.equal(null);
+      });
 
-  before(async function () {
-    storage = createStorage(true);
-    await storage.writeAsync(encData);
-  });
-
-  it('C19505 Find one encrypted record by key', async function () {
-    const findResponse = await storage.findOne(dataRequest.country, { key: encData.key });
-
-    expect(findResponse.status).to.equal(200);
-    expect(findResponse.data.data).to.have.lengthOf(1);
-    expect(findResponse.data.data[0].key).to.equal(dataRequest.key);
+      it('Record not found by country', async function () {
+        await expect(storage.findOne(ANOTHER_COUNTRY, {})).to.be.rejectedWith(StorageServerError, 'Request failed with status code 409');
+      });
+    });
   });
 });

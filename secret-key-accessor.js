@@ -1,21 +1,11 @@
-const t = require('io-ts');
-const { toPromise } = require('./utils');
-
-/**
- * @typedef SecretsData
- * @property {Array<{ secret: string, version: number }>} secrets
- * @property {number} currentVersion
- */
-
-/**
- * @param {SecretsData} o
- * @return {boolean}
- */
-function hasSecretOfCurrentVersion(o) {
-  return o.secrets.findIndex((s) => s.version === o.currentVersion) !== -1;
-}
+const { validationToPromise } = require('./validation/utils');
+const { SecretsDataIO } = require('./validation/secrets-data');
 
 const DEFAULT_VERSION = 0;
+
+/**
+ * @typedef {import('./validation/secrets-data').SecretsData} SecretsData
+ */
 
 /**
  * @param {string} secret
@@ -31,25 +21,11 @@ function wrapToSecretsData(secret) {
   };
 }
 
-const SecretsDataIO = t.brand(
-  t.type({
-    currentVersion: t.Int,
-    secrets: t.array(
-      t.type({
-        secret: t.string, version: t.Int,
-      }),
-    ),
-  }),
-  (so) => hasSecretOfCurrentVersion(so),
-  'SecretsDataIO',
-);
-
-
 /**
- * Callback handles fetching keys and is provided by SDK user
+ * Callback handles fetching keys/secrets and is provided by SDK user
  * Can return:
- * - single key string
- * - KeyObject with diffrent verions of key
+ * - single secret string
+ * - KeyObject with different versions of key/secret
  * - Promise<string> or Promise<KeyObject> for any async jobs
  *
  * @callback GetSecretCallback
@@ -84,8 +60,10 @@ class SecretKeyAccessor {
   _getSecrets() {
     return Promise
       .resolve(this._getSecretCallback())
-      .then((v) => (typeof v === 'string' ? wrapToSecretsData(v) : toPromise(SecretsDataIO.decode(v))));
+      .then((v) => (typeof v === 'string' ? wrapToSecretsData(v) : validationToPromise(SecretsDataIO.decode(v))));
   }
 }
+
+SecretKeyAccessor.DEFAULT_VERSION = DEFAULT_VERSION;
 
 module.exports = SecretKeyAccessor;
