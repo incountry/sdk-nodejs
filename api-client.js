@@ -2,7 +2,9 @@ const axios = require('axios');
 const { StorageServerError } = require('./errors');
 const pjson = require('./package.json');
 const { validateRecord } = require('./validation/record');
+const { validateDeleteResponse } = require('./validation/api-responses/delete-response');
 const { validateFindResponse } = require('./validation/api-responses/find-response');
+const { validateWriteResponse } = require('./validation/api-responses/write-response');
 const { isError } = require('./errors');
 
 const SDK_VERSION = pjson.version;
@@ -24,10 +26,12 @@ const ACTIONS = {
   write: {
     verb: 'post',
     path: (...args) => `v2/storage/records/${args[0]}`,
+    validateResponse: (responseData) => validateWriteResponse(responseData),
   },
   delete: {
     verb: 'delete',
     path: (...args) => `v2/storage/records/${args[0]}/${args[1]}`,
+    validateResponse: (responseData) => validateDeleteResponse(responseData),
   },
   find: {
     verb: 'post',

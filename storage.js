@@ -77,7 +77,7 @@ class Storage {
 
     this.setCountriesCache(countriesCache || new CountriesCache());
 
-    this.apiClient = new ApiClient(this._apiKey, this._envId, this._endpoint, this._logger.write, this._countriesCache.getCountriesAsync);
+    this.apiClient = new ApiClient(this._apiKey, this._envId, this._endpoint, (...args) => this._logger.write(...args), (...args) => this._countriesCache.getCountriesAsync(...args));
   }
 
   createKeyHash(s) {

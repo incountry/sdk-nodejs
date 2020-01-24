@@ -256,7 +256,7 @@ describe('Storage', () => {
       let popAPI;
 
       beforeEach(() => {
-        popAPI = nockEndpoint(POPAPI_HOST, 'write', COUNTRY).reply(200);
+        popAPI = nockEndpoint(POPAPI_HOST, 'write', COUNTRY).reply(200, 'OK');
       });
 
       describe('should validate record', () => {
@@ -393,7 +393,7 @@ describe('Storage', () => {
           const encryptedKey = encStorage.createKeyHash(key);
           const popAPI = nockEndpoint(POPAPI_HOST, 'delete', COUNTRY, encryptedKey)
             .times(2)
-            .reply(200);
+            .reply(200, { success: true });
 
           await encStorage.delete(COUNTRY, key);
           await noEncStorage.delete(COUNTRY, key);
@@ -404,7 +404,7 @@ describe('Storage', () => {
           context(`with test case ${idx}`, () => {
             it('should delete a record', async () => {
               const encryptedPayload = await encStorage.encryptPayload(testCase);
-              const popAPI = nockEndpoint(POPAPI_HOST, 'delete', COUNTRY, encryptedPayload.key).reply(200);
+              const popAPI = nockEndpoint(POPAPI_HOST, 'delete', COUNTRY, encryptedPayload.key).reply(200, { success: true });
 
               const result = await encStorage.delete(COUNTRY, testCase.key);
               expect(result).to.deep.equal({ success: true });
@@ -427,7 +427,7 @@ describe('Storage', () => {
       describe('request headers', () => {
         it('should set User-Agent', async () => {
           const encryptedPayload = await encStorage.encryptPayload(TEST_RECORDS[0]);
-          const popAPI = nockEndpoint(POPAPI_HOST, 'delete', COUNTRY, encryptedPayload.key).reply(200);
+          const popAPI = nockEndpoint(POPAPI_HOST, 'delete', COUNTRY, encryptedPayload.key).reply(200, { success: true });
 
           const [headers] = await Promise.all([getNockedRequestHeaders(popAPI), encStorage.delete(COUNTRY, TEST_RECORDS[0].key)]);
           const userAgent = headers['user-agent'];
@@ -574,7 +574,7 @@ describe('Storage', () => {
             },
             data: [encryptedRecord],
           });
-        const popAPIWrite = nockEndpoint(POPAPI_HOST, 'write', COUNTRY).reply(200);
+        const popAPIWrite = nockEndpoint(POPAPI_HOST, 'write', COUNTRY).reply(200, 'OK');
         return [popAPIFind, popAPIWrite];
       };
 
