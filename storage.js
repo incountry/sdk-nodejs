@@ -3,6 +3,7 @@ const axios = require('axios');
 const crypto = require('crypto');
 const pjson = require('./package.json');
 
+const { POPAPI_ACTIONS } = require('./api-client');
 const defaultLogger = require('./logger');
 const CountriesCache = require('./countries-cache');
 const SecretKeyAccessor = require('./secret-key-accessor');
@@ -157,14 +158,7 @@ class Storage {
 
     this._logger.write('debug', `Raw data: ${JSON.stringify(data)}`);
 
-    await this.apiClient(
-      countryCode,
-      `v2/storage/records/${countryCode}`,
-      {
-        method: 'post',
-        data,
-      },
-    );
+    await this.apiClient(countryCode, undefined, 'write', data);
 
     return { record };
   }
@@ -183,16 +177,7 @@ class Storage {
     try {
       const encryptedRecords = await Promise.all(records.map((r) => this.encryptPayload(r)));
 
-      await this.apiClient(
-        countryCode,
-        `v2/storage/records/${countryCode}/batchWrite`,
-        {
-          method: 'post',
-          data: {
-            records: encryptedRecords,
-          },
-        },
-      );
+      await this.apiClient(countryCode, undefined, 'batchWrite', { records: encryptedRecords });
 
       return { records };
     } catch (err) {
@@ -247,14 +232,7 @@ class Storage {
       options,
     };
 
-    const response = await this.apiClient(
-      countryCode,
-      `v2/storage/records/${countryCode}/find`,
-      {
-        method: 'post',
-        data,
-      },
-    );
+    const response = await this.apiClient(countryCode, undefined, 'find', data);
     this.validate(validateFindResponse(response.data));
 
     const result = {
@@ -298,13 +276,7 @@ class Storage {
 
     const key = await this.createKeyHash(recordKey);
 
-    const response = await this.apiClient(
-      countryCode,
-      `v2/storage/records/${countryCode}/${key}`,
-      {
-        method: 'get',
-      },
-    );
+    const response = await this.apiClient(countryCode, key, 'read');
     this.validate(validateRecord(response.data));
 
     this._logger.write('debug', `Raw data: ${JSON.stringify(response.data)}`);
@@ -421,13 +393,7 @@ class Storage {
     try {
       const key = await this.createKeyHash(recordKey);
 
-      await this.apiClient(
-        countryCode,
-        `v2/storage/records/${countryCode}/${key}`,
-        {
-          method: 'delete',
-        },
-      );
+      await this.apiClient(countryCode, key, 'delete');
 
       return { success: true };
     } catch (err) {
@@ -467,17 +433,20 @@ class Storage {
 
   /**
    * @param {string} countryCode
-   * @param {string} path
-   * @param {{ method: string, url: string, headers: object }} params - axious params
+   * @param {string} key
+   * @param {string} action - one of [read, write, delete, find, batchWrite]
+   * @param {object} data - request body
    */
-  async apiClient(countryCode, path, params = {}) {
+  async apiClient(countryCode, key, action, data = undefined) {
+    const path = POPAPI_ACTIONS[action].path(countryCode, key);
     const url = await this.getEndpoint(countryCode.toLowerCase(), path);
-    const method = typeof params.method === 'string' ? params.method.toUpperCase() : '';
-    this._logger.write('debug', `${method} ${url}`);
+    const method = POPAPI_ACTIONS[action].verb;
+    this._logger.write('debug', `${method.toUpperCase()} ${url}`);
     return axios({
       url,
       headers: this.headers(),
-      ...params,
+      method,
+      data,
     }).catch((err) => {
       const storageServerError = new StorageServerError(err.code, err.response ? err.response.data : {}, `${method} ${url} ${err.message}`);
       this._logger.write('error', storageServerError);
