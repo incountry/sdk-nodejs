@@ -305,7 +305,7 @@ class Storage {
         method: 'get',
       },
     );
-
+    this.validate(validateRecord(response.data));
 
     this._logger.write('debug', `Raw data: ${JSON.stringify(response.data)}`);
     this._logger.write('debug', 'Decrypting...');
