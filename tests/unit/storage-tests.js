@@ -685,7 +685,7 @@ describe('Storage', () => {
           })));
 
           const popAPIFind = nockEndpoint(POPAPI_HOST, 'find', COUNTRY).reply(200, findResponse);
-          const popAPIBatchWrite = nockEndpoint(POPAPI_HOST, 'batchWrite', COUNTRY).reply(200);
+          const popAPIBatchWrite = nockEndpoint(POPAPI_HOST, 'batchWrite', COUNTRY).reply(200, 'OK');
 
           const result = await encStorage.migrate(COUNTRY, TEST_RECORDS.length);
           expect(result).to.deep.equal(migrateResult);
@@ -699,7 +699,7 @@ describe('Storage', () => {
       let popAPI;
 
       beforeEach(() => {
-        popAPI = nockEndpoint(POPAPI_HOST, 'batchWrite', COUNTRY).reply(200);
+        popAPI = nockEndpoint(POPAPI_HOST, 'batchWrite', COUNTRY).reply(200, 'OK');
       });
 
       describe('should validate arguments', () => {

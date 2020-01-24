@@ -41,6 +41,7 @@ const ACTIONS = {
   batchWrite: {
     verb: 'post',
     path: (...args) => `v2/storage/records/${args[0]}/batchWrite`,
+    validateResponse: (responseData) => validateWriteResponse(responseData),
   },
 };
 
