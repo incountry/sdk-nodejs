@@ -1,5 +1,8 @@
 const axios = require('axios');
 const { StorageServerError } = require('./errors');
+const pjson = require('./package.json');
+
+const SDK_VERSION = pjson.version;
 
 const ACTIONS = {
   read: {
@@ -27,6 +30,13 @@ const ACTIONS = {
 const DEFAULT_POPAPI_HOST = 'https://us.api.incountry.io';
 
 class ApiClient {
+  /**
+   * @param {string} apiKey
+   * @param {string} envId
+   * @param {string} popapiHost
+   * @param {function} loggerFn - function(logLevel, message)
+   * @param {function} countriesProviderFn - async function()
+   */
   constructor(apiKey, envId, popapiHost, loggerFn, countriesProviderFn) {
     this.apiKey = apiKey;
     this.envId = envId;
@@ -37,9 +47,10 @@ class ApiClient {
 
   headers() {
     return {
-      Authorization: `Bearer ${this._apiKey}`,
-      'x-env-id': this._envId,
+      Authorization: `Bearer ${this.apiKey}`,
+      'x-env-id': this.envId,
       'Content-Type': 'application/json',
+      'User-Agent': `SDK-Node.js/${SDK_VERSION}`,
     };
   }
 
@@ -59,7 +70,7 @@ class ApiClient {
 
     return countryHasApi
       ? `https://${countryCode}.api.incountry.io/${path}`
-      : `${DEFAULT_POPAPI_HOST}${path}`;
+      : `${DEFAULT_POPAPI_HOST}/${path}`;
   }
 
   /**
@@ -81,7 +92,7 @@ class ApiClient {
       data,
     }).catch((err) => {
       const storageServerError = new StorageServerError(err.code, err.response ? err.response.data : {}, `${method} ${url} ${err.message}`);
-      this._logger.write('error', storageServerError);
+      this.loggerFn('error', storageServerError);
       throw storageServerError;
     });
   }
@@ -109,5 +120,4 @@ class ApiClient {
 
 module.exports = {
   ApiClient,
-  POPAPI_ACTIONS: ACTIONS,
 };

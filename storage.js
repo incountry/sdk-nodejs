@@ -1,17 +1,12 @@
 require('dotenv').config();
-const axios = require('axios');
 const crypto = require('crypto');
-const pjson = require('./package.json');
 
-const { POPAPI_ACTIONS } = require('./api-client');
+const { ApiClient } = require('./api-client');
 const defaultLogger = require('./logger');
 const CountriesCache = require('./countries-cache');
 const SecretKeyAccessor = require('./secret-key-accessor');
 const { InCrypt } = require('./in-crypt');
-const {
-  StorageServerError,
-  isError,
-} = require('./errors');
+const { isError } = require('./errors');
 
 const { validateRecord } = require('./validation/record');
 const { validateRecordsNEA } = require('./validation/records');
@@ -20,8 +15,6 @@ const { validateFindOptions } = require('./validation/find-options');
 const { validateLimit } = require('./validation/limit');
 const { validateRecordKey } = require('./validation/record-key');
 const { validateFindResponse } = require('./validation/api-responses/find-response');
-
-const SDK_VERSION = pjson.version;
 
 /**
  * @typedef {import('./secret-key-accessor')} SecretKeyAccessor
@@ -84,6 +77,8 @@ class Storage {
     }
 
     this.setCountriesCache(countriesCache || new CountriesCache());
+
+    this.apiClient = new ApiClient(this._apiKey, this._envId, this._endpoint, this._logger.write, this._countriesCache.getCountriesAsync);
   }
 
   createKeyHash(s) {
@@ -158,7 +153,7 @@ class Storage {
 
     this._logger.write('debug', `Raw data: ${JSON.stringify(data)}`);
 
-    await this.apiClient(countryCode, undefined, 'write', data);
+    await this.apiClient.write(countryCode, data);
 
     return { record };
   }
@@ -177,7 +172,7 @@ class Storage {
     try {
       const encryptedRecords = await Promise.all(records.map((r) => this.encryptPayload(r)));
 
-      await this.apiClient(countryCode, undefined, 'batchWrite', { records: encryptedRecords });
+      await this.apiClient.batchWrite(countryCode, { records: encryptedRecords });
 
       return { records };
     } catch (err) {
@@ -232,7 +227,7 @@ class Storage {
       options,
     };
 
-    const response = await this.apiClient(countryCode, undefined, 'find', data);
+    const response = await this.apiClient.find(countryCode, data);
     this.validate(validateFindResponse(response.data));
 
     const result = {
@@ -276,7 +271,7 @@ class Storage {
 
     const key = await this.createKeyHash(recordKey);
 
-    const response = await this.apiClient(countryCode, key, 'read');
+    const response = await this.apiClient.read(countryCode, key);
     this.validate(validateRecord(response.data));
 
     this._logger.write('debug', `Raw data: ${JSON.stringify(response.data)}`);
@@ -393,65 +388,13 @@ class Storage {
     try {
       const key = await this.createKeyHash(recordKey);
 
-      await this.apiClient(countryCode, key, 'delete');
+      await this.apiClient.delete(countryCode, key);
 
       return { success: true };
     } catch (err) {
       this._logger.write('error', err);
       throw err;
     }
-  }
-
-  async getEndpoint(countryCode, path) {
-    if (this._endpoint) {
-      return `${this._endpoint}/${path}`;
-    }
-
-    const countryRegex = new RegExp(countryCode, 'i');
-    let countryHasApi;
-    try {
-      countryHasApi = (
-        await this._countriesCache.getCountriesAsync()
-      ).find((country) => countryRegex.test(country.id));
-    } catch (err) {
-      this._logger.write('error', err);
-    }
-
-    return countryHasApi
-      ? `https://${countryCode}.api.incountry.io/${path}`
-      : `https://us.api.incountry.io/${path}`;
-  }
-
-  headers() {
-    return {
-      Authorization: `Bearer ${this._apiKey}`,
-      'x-env-id': this._envId,
-      'Content-Type': 'application/json',
-      'User-Agent': `SDK-Node.js/${SDK_VERSION}`,
-    };
-  }
-
-  /**
-   * @param {string} countryCode
-   * @param {string} key
-   * @param {string} action - one of [read, write, delete, find, batchWrite]
-   * @param {object} data - request body
-   */
-  async apiClient(countryCode, key, action, data = undefined) {
-    const path = POPAPI_ACTIONS[action].path(countryCode, key);
-    const url = await this.getEndpoint(countryCode.toLowerCase(), path);
-    const method = POPAPI_ACTIONS[action].verb;
-    this._logger.write('debug', `${method.toUpperCase()} ${url}`);
-    return axios({
-      url,
-      headers: this.headers(),
-      method,
-      data,
-    }).catch((err) => {
-      const storageServerError = new StorageServerError(err.code, err.response ? err.response.data : {}, `${method} ${url} ${err.message}`);
-      this._logger.write('error', storageServerError);
-      throw storageServerError;
-    });
   }
 }
 
