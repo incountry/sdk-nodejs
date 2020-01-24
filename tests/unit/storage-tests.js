@@ -12,7 +12,6 @@ const {
   getNockedRequestBodyObject,
   getNockedRequestHeaders,
   nockEndpoint,
-  popAPIEndpoints,
 } = require('../test-helpers/popapi-nock');
 const { COUNTRY_CODE_ERROR_MESSAGE } = require('../../validation/country-code');
 const { RECORD_KEY_ERROR_MESSAGE } = require('../../validation/record-key');
@@ -23,7 +22,6 @@ const { expect, assert } = chai;
 const COUNTRY = 'us';
 const SECRET_KEY = 'password';
 const POPAPI_HOST = `https://${COUNTRY}.api.incountry.io`;
-const CUSTOM_STORAGE_ENDPOINT = 'https://test.example';
 const PORTAL_BACKEND_HOST = 'portal-backend.incountry.com';
 const PORTAL_BACKEND_COUNTRIES_LIST_PATH = '/countries';
 const REQUEST_TIMEOUT_ERROR = { code: 'ETIMEDOUT' };
@@ -79,12 +77,6 @@ const getDefaultStorage = (encrypt) => new Storage({
   endpoint: POPAPI_HOST,
   encrypt,
 }, new SecretKeyAccessor(() => SECRET_KEY), LOGGER_STUB);
-
-function createFakeCountriesCache(countries) {
-  const countriesCache = new CountriesCache();
-  countriesCache.getCountriesAsync = async () => countries;
-  return countriesCache;
-}
 
 describe('Storage', () => {
   describe('interface methods', () => {
@@ -761,131 +753,6 @@ describe('Storage', () => {
 
           await expect(encStorage.batchWrite(COUNTRY, TEST_RECORDS)).to.be.rejectedWith(StorageServerError);
           assert.equal(scope.isDone(), true, 'Nock scope is done');
-        });
-      });
-    });
-  });
-
-  describe('helper methods', () => {
-    const countriesCache = createFakeCountriesCache([
-      { id: 'BE', name: 'Belgium', direct: true },
-      { id: 'HU', name: 'Hungary', direct: true },
-    ]);
-
-    beforeEach(() => {
-      nock.disableNetConnect();
-    });
-
-    afterEach(() => {
-      nock.cleanAll();
-      nock.enableNetConnect();
-    });
-
-    describe('getEndpoint', () => {
-      let nockPB;
-      const getCustomStorage = (endpoint = undefined, cache = undefined) => {
-        const options = {
-          apiKey: 'string',
-          environmentId: 'string',
-          endpoint,
-        };
-        return new Storage(options, new SecretKeyAccessor(() => SECRET_KEY), LOGGER_STUB, cache);
-      };
-
-      const expectCorrectURLReturned = async (storage, country, host) => {
-        const writePath = popAPIEndpoints.write.path(country);
-        const result = await storage.getEndpoint(country, writePath.replace(/^\//, ''));
-        assert.equal(nockPB.isDone(), false, 'PB was not called');
-        expect(result).to.equal(`${host}${writePath}`);
-      };
-
-      beforeEach(() => {
-        nockPB = nock(PORTAL_BACKEND_HOST).get(PORTAL_BACKEND_COUNTRIES_LIST_PATH).reply(400);
-      });
-
-      describe('if the endpoint was set during storage creation', () => {
-        it('should use the provided endpoint', async () => {
-          const storage = getCustomStorage(CUSTOM_STORAGE_ENDPOINT);
-          await expectCorrectURLReturned(storage, COUNTRY, CUSTOM_STORAGE_ENDPOINT);
-        });
-      });
-
-      describe('otherwise it should request country data from CountriesCache', () => {
-        let storage;
-        beforeEach(() => {
-          storage = getCustomStorage(undefined, countriesCache);
-        });
-
-        it('should use the endpoint provided by CountriesCache if it matches requested country', async () => {
-          const country = 'hu';
-          const customPOPAPIHost = `https://${country}.api.incountry.io`;
-          await expectCorrectURLReturned(storage, country, customPOPAPIHost);
-        });
-
-        it('should use the default endpoint otherwise', async () => {
-          const country = 'ae';
-          await expectCorrectURLReturned(storage, country, POPAPI_HOST);
-        });
-      });
-
-      describe('when CountriesCache threw an error', () => {
-        it('should use the default host', async () => {
-          const failingCache = new CountriesCache();
-          failingCache.getCountriesAsync = () => {
-            throw new Error('test');
-          };
-          const storage = getCustomStorage(undefined, failingCache);
-
-          const country = 'ae';
-          await expectCorrectURLReturned(storage, country, POPAPI_HOST);
-        });
-      });
-    });
-
-    describe('apiClient', () => {
-      let encStorage;
-
-      beforeEach(() => {
-        encStorage = getDefaultStorage(true);
-      });
-
-      describe('errors handling', () => {
-        const writePath = popAPIEndpoints.write.path(COUNTRY).replace(/^\//, '');
-        const params = { method: 'post', data: {} };
-        const errorCases = [{
-          name: 'on 404',
-          respond: (popAPI) => popAPI.reply(404),
-        }, {
-          name: 'on 500',
-          respond: (popAPI) => popAPI.reply(500),
-        }, {
-          name: 'in case of network error',
-          respond: (popAPI) => popAPI.replyWithError(REQUEST_TIMEOUT_ERROR),
-        }];
-
-        errorCases.forEach((errCase) => {
-          it(`should throw StorageServerError ${errCase.name}`, async () => {
-            const scope = errCase.respond(nockEndpoint(POPAPI_HOST, 'write', COUNTRY));
-            await expect(encStorage.apiClient(COUNTRY, writePath, params)).to.be.rejectedWith(StorageServerError);
-            assert.equal(scope.isDone(), true, 'Nock scope is done');
-          });
-        });
-      });
-
-      describe('should make GET request by default', () => {
-        const runApiClientWithParams = async (params) => {
-          const readPath = popAPIEndpoints.read.path(COUNTRY, 'key').replace(/^\//, '');
-          const scope = nockEndpoint(POPAPI_HOST, 'read', COUNTRY, 'key').reply(200);
-          await encStorage.apiClient(COUNTRY, readPath, params);
-          expect(scope.isDone()).to.eq(true);
-        };
-
-        it('when called without parameters', async () => {
-          await runApiClientWithParams();
-        });
-
-        it('when method not specified in parameters', async () => {
-          await runApiClientWithParams({ data: 'test' });
         });
       });
     });
