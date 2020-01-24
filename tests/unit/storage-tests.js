@@ -451,7 +451,12 @@ describe('Storage', () => {
         describe('when options.limit is not positive integer or greater than MAX_LIMIT', () => {
           it('should throw an error', async () => {
             nock(PORTAL_BACKEND_HOST).get(PORTAL_BACKEND_COUNTRIES_LIST_PATH).reply(400);
-            nockEndpoint(POPAPI_HOST, 'find', COUNTRY, 'test').reply(200);
+            nockEndpoint(POPAPI_HOST, 'find', COUNTRY, 'test').reply(200, {
+              meta: {
+                total: 0, count: 0, limit: 100, offset: 0,
+              },
+              data: [],
+            });
 
             const nonPositiveLimits = [-123, 123.124, 'sdsd'];
             await Promise.all(nonPositiveLimits.map((limit) => expect(encStorage.find(COUNTRY, undefined, { limit }))
@@ -470,7 +475,12 @@ describe('Storage', () => {
 
           const popAPI = nockEndpoint(POPAPI_HOST, 'find', COUNTRY)
             .times(2)
-            .reply(200);
+            .reply(200, {
+              meta: {
+                total: 0, count: 0, limit: 100, offset: 0,
+              },
+              data: [],
+            });
 
           let [bodyObj] = await Promise.all([getNockedRequestBodyObject(popAPI), encStorage.find(COUNTRY, filter)]);
           expect(bodyObj.filter).to.deep.equal(hashedFilter);
