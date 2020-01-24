@@ -14,7 +14,6 @@ const { validateCountryCode } = require('./validation/country-code');
 const { validateFindOptions } = require('./validation/find-options');
 const { validateLimit } = require('./validation/limit');
 const { validateRecordKey } = require('./validation/record-key');
-const { validateFindResponse } = require('./validation/api-responses/find-response');
 
 /**
  * @typedef {import('./secret-key-accessor')} SecretKeyAccessor
@@ -227,18 +226,17 @@ class Storage {
       options,
     };
 
-    const response = await this.apiClient.find(countryCode, data);
-    this.validate(validateFindResponse(response.data));
+    const responseData = await this.apiClient.find(countryCode, data);
 
     const result = {
       records: [],
       meta: {},
     };
 
-    if (response.data) {
-      result.meta = response.data.meta;
+    if (responseData) {
+      result.meta = responseData.meta;
       result.records = await Promise.all(
-        response.data.data.map((item) => this.decryptPayload(item)),
+        responseData.data.map((item) => this.decryptPayload(item)),
       );
     }
 
@@ -271,12 +269,11 @@ class Storage {
 
     const key = await this.createKeyHash(recordKey);
 
-    const response = await this.apiClient.read(countryCode, key);
-    this.validate(validateRecord(response.data));
+    const responseData = await this.apiClient.read(countryCode, key);
 
-    this._logger.write('debug', `Raw data: ${JSON.stringify(response.data)}`);
+    this._logger.write('debug', `Raw data: ${JSON.stringify(responseData)}`);
     this._logger.write('debug', 'Decrypting...');
-    const recordData = await this.decryptPayload(response.data);
+    const recordData = await this.decryptPayload(responseData);
     this._logger.write('debug', `Decrypted data: ${JSON.stringify(recordData)}`);
 
     return { record: recordData };

@@ -1,13 +1,25 @@
 const axios = require('axios');
 const { StorageServerError } = require('./errors');
 const pjson = require('./package.json');
+const { validateRecord } = require('./validation/record');
+const { validateFindResponse } = require('./validation/api-responses/find-response');
+const { isError } = require('./errors');
 
 const SDK_VERSION = pjson.version;
 
+/**
+ * @typedef ApiClientAction
+ * @property {string} verb
+ * @property {(country: string, key?: string) => string} path - function(country, key?)
+ * @property {(responseData: any) => any} [validateResponse]
+ */
+
+/** @type {Object.<string, ApiClientAction>} */
 const ACTIONS = {
   read: {
     verb: 'get',
     path: (...args) => `v2/storage/records/${args[0]}/${args[1]}`,
+    validateResponse: (responseData) => validateRecord(responseData),
   },
   write: {
     verb: 'post',
@@ -20,6 +32,7 @@ const ACTIONS = {
   find: {
     verb: 'post',
     path: (...args) => `v2/storage/records/${args[0]}/find`,
+    validateResponse: (responseData) => validateFindResponse(responseData),
   },
   batchWrite: {
     verb: 'post',
@@ -34,7 +47,7 @@ class ApiClient {
    * @param {string} apiKey
    * @param {string} envId
    * @param {string} popapiHost
-   * @param {function} loggerFn - function(logLevel, message)
+   * @param {(logLevel: string, message: any) => void} loggerFn
    * @param {function} countriesProviderFn - async function()
    */
   constructor(apiKey, envId, popapiHost, loggerFn, countriesProviderFn) {
@@ -73,10 +86,17 @@ class ApiClient {
       : `${DEFAULT_POPAPI_HOST}/${path}`;
   }
 
+  tryValidate(validationResult) {
+    if (isError(validationResult)) {
+      this.loggerFn('error', validationResult.message);
+      throw validationResult;
+    }
+  }
+
   /**
    * @param {string} country
    * @param {string} key
-   * @param {string} action - one of [read, write, delete, find, batchWrite]
+   * @param {('read'|'write'|'delete'|'find'|'batchWrite')} action
    * @param {object} data - request body
    */
   async apiClient(country, key, action, data = undefined) {
@@ -103,7 +123,11 @@ class ApiClient {
       throw storageServerError;
     }
 
-    return response;
+    if (chosenAction.validateResponse) {
+      this.tryValidate(chosenAction.validateResponse(response.data));
+    }
+
+    return response.data;
   }
 
   read(country, key) {
