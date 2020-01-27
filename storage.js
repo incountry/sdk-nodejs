@@ -388,7 +388,6 @@ class Storage {
 
   async decryptPayload(originalRecord) {
     const record = { ...originalRecord };
-    const { secret } = await this._secretKeyAccessor.getSecret(record.version);
     const decrypted = await this._crypto.decryptAsync(
       record.body,
       record.version,
