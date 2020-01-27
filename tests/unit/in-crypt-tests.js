@@ -72,13 +72,8 @@ describe('InCrypt', function () {
       if (item.version !== 'pt') {
         it('should not decrypt non pt without secretKeyAccessor', async function () {
           const incrypt = new InCrypt();
-          const decrypted = await incrypt.decryptAsync(item.encrypted);
-
-          if (item.encrypted.includes(':')) {
-            expect(decrypted).to.eql(item.encrypted.split(':')[1]);
-          } else {
-            expect(decrypted).to.eql(item.encrypted);
-          }
+          await expect(incrypt.decryptAsync(item.encrypted))
+            .to.be.rejectedWith(Error, 'No secretKeyAccessor provided. Cannot decrypt encrypted data');
         });
       }
 
