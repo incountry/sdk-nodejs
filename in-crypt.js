@@ -44,28 +44,25 @@ class InCrypt {
         secretVersion: SecretKeyAccessor.DEFAULT_VERSION,
       };
     }
-    if (this._customEncryptionVersion) {
-      const {encrypt} = this._customEncryption[this._customEncryptionVersion];
-      const { secret, version } = await this._secretKeyAccessor.getSecret();
-      const ciphertext = await encrypt(text, secret);
-      };
-    }
 
-    const { key, version } = await this._getEncryptionKey(salt);
+    if (this._customEncryptionVersion) {
+      const { encrypt } = this._customEncryption[this._customEncryptionVersion];
+      const salt = crypto.randomBytes(SALT_SIZE);
+      const { key, version } = await this._getEncryptionKey(salt);
+      const ciphertext = await encrypt(text, key);
+
       return {
         message: `${this._customEncryptionVersion}:${ciphertext}`,
         secretVersion: version,
       };
-    } else {
-      return this.encryptDefault(text)
     }
+    return this.encryptDefault(text);
   }
 
   /**
    * @param {string} s
-   * @param {string} secret
    */
-  async decryptAsync(s, secret) {
+  async decryptAsync(s) {
     const parts = s.split(':');
 
     if (parts.length !== 2) {
@@ -77,13 +74,13 @@ class InCrypt {
       return this.decryptStub(encrypted);
     }
     if (this._customEncryption && this._customEncryption[version]) {
-      return this._customEncryption[version].decrypt(encryptedHex)
+      return this._customEncryption[version].decrypt(encrypted);
     }
     const decrypt = this[`decryptV${version}`];
     if (decrypt === undefined) {
       throw new InCryptoError('Unknown decryptor version requested');
     }
-    return decrypt.bind(this)(encrypted, secretVersion);
+    return decrypt.bind(this)(encrypted, version);
   }
 
   decryptStub(encrypted) {
@@ -92,7 +89,6 @@ class InCrypt {
 
   decryptVpt(plainTextBase64) {
     return Buffer.from(plainTextBase64, 'base64').toString('utf-8');
-    }
   }
 
   /**
