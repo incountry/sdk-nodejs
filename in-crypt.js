@@ -61,8 +61,9 @@ class InCrypt {
 
   /**
    * @param {string} s
+   * @param {number} secretVersion
    */
-  async decryptAsync(s) {
+  async decryptAsync(s, secretVersion) {
     const parts = s.split(':');
 
     if (parts.length !== 2) {
@@ -80,7 +81,7 @@ class InCrypt {
     if (decrypt === undefined) {
       throw new InCryptoError('Unknown decryptor version requested');
     }
-    return decrypt.bind(this)(encrypted, version);
+    return decrypt.bind(this)(encrypted, secretVersion);
   }
 
   decryptStub(encrypted) {
@@ -95,10 +96,9 @@ class InCrypt {
    * @param {string} text
    */
   async encryptDefault(text) {
-    const { secret, version } = await this._secretKeyAccessor.getSecret();
     const iv = crypto.randomBytes(IV_SIZE);
     const salt = crypto.randomBytes(SALT_SIZE);
-    const key = await pbkdf2(secret, salt, PBKDF2_ITERATIONS_COUNT, KEY_SIZE, 'sha512');
+    const { key, version } = await this._getEncryptionKey(salt);
 
     const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
     const encrypted = Buffer.concat([cipher.update(text, 'utf8'), cipher.final()]);

@@ -1,7 +1,11 @@
 /* eslint-disable prefer-arrow-callback,func-names */
-const { expect } = require('chai');
+const chai = require('chai');
+const chaiAsPromised = require('chai-as-promised');
 const { InCrypt } = require('../../in-crypt');
 const SecretKeyAccessor = require('../../secret-key-accessor');
+
+chai.use(chaiAsPromised);
+const { expect } = chai;
 
 const PLAINTEXTS = [
   '',
