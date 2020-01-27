@@ -1,7 +1,7 @@
 const axios = require('axios');
 const { StorageServerError } = require('./errors');
 const pjson = require('./package.json');
-const { validateRecord } = require('./validation/record');
+const { validateRecordResponse } = require('./validation/api-responses/record-response');
 const { validateFindResponse } = require('./validation/api-responses/find-response');
 const { validateWriteResponse } = require('./validation/api-responses/write-response');
 const { isError } = require('./errors');
@@ -20,7 +20,7 @@ const ACTIONS = {
   read: {
     verb: 'get',
     path: (country, key) => `v2/storage/records/${country}/${key}`,
-    validateResponse: (responseData) => validateRecord(responseData),
+    validateResponse: (responseData) => validateRecordResponse(responseData),
   },
   write: {
     verb: 'post',

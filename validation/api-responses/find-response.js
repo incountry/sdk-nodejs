@@ -1,6 +1,8 @@
 const t = require('io-ts');
-const { RecordsIO } = require('../records');
+const { RecordResponseIO } = require('./record-response');
 const { validateWithIO } = require('../utils');
+
+const RecordsResponseIO = t.array(RecordResponseIO);
 
 const FindResponseIO = t.type({
   meta: t.type({
@@ -9,7 +11,7 @@ const FindResponseIO = t.type({
     offset: t.Int,
     total: t.Int,
   }),
-  data: RecordsIO,
+  data: RecordsResponseIO,
 });
 
 const validateFindResponse = (responseData) => validateWithIO(responseData, FindResponseIO);
