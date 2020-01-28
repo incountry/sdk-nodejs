@@ -43,6 +43,14 @@ const SDK_VERSION = pjson.version;
  */
 
 /**
+ * @typedef {Object} CustomEncryption
+ * @property {function} encrypt
+ * @property {function} decrypt
+ * @property {string} version
+ * @property {boolean} [isCurrent]
+ */
+
+/**
 * @typedef Logger
 * @property {(logLevel: string, message: string, id?: string, timestamp?: string) => boolean} write
 */
@@ -119,36 +127,28 @@ class Storage {
     this._secretKeyAccessor = secretKeyAccessor;
   }
 
+  /**
+   * @param {Array.<CustomEncryption>} customEncryption
+   */
   setCustomEncryption(customEncryption) {
-    const example = [{
-      encrypt: () => {},
-      decrypt: () => {},
-      version: '123',
-      isCurrent: true,
-    }, {
-      encrypt: () => {},
-      decrypt: () => {},
-      version: '456',
-    }]
-
     const transformed = {};
     let currentVersion = null;
-    customEncryption.forEach((encryption, idx) => {
+    customEncryption.forEach((encryption) => {
       if (SUPPORTED_VERSIONS.includes(encryption.version)) {
         throw new Error(`Custom encryption version must not correspond build-in encryption: ${encryption.version}`);
       }
       if (encryption.isCurrent) {
         if (currentVersion != null) {
-          throw new Error(`There must be at most one current version of custom encryption`)
+          throw new Error('There must be at most one current version of custom encryption');
         }
         currentVersion = encryption.version;
       }
       transformed[encryption.version] = encryption;
-    })
+    });
 
     this._crypto.setCustomEncryption(transformed);
     if (currentVersion) {
-      this._crypto.setCurrentEncryptionVersion(currentVersion)
+      this._crypto.setCurrentEncryptionVersion(currentVersion);
     }
   }
 
