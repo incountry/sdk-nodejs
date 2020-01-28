@@ -395,7 +395,6 @@ describe('Storage', () => {
               storage.setCustomEncryption([{
                 encrypt: () => 'encrypted',
                 decrypt: (encryptedData, secret, version) => {
-                  console.log(encryptedData, secret, version);
                   const response = {};
                   response.meta = _.omit(testCase, ['body', 'version', 'range_key']);
                   if (testCase.body) {
