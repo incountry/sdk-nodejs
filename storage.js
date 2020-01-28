@@ -1,16 +1,12 @@
 require('dotenv').config();
-const axios = require('axios');
 const crypto = require('crypto');
-const pjson = require('./package.json');
 
+const { ApiClient } = require('./api-client');
 const defaultLogger = require('./logger');
 const CountriesCache = require('./countries-cache');
 const SecretKeyAccessor = require('./secret-key-accessor');
 const { InCrypt, SUPPORTED_VERSIONS } = require('./in-crypt');
-const {
-  StorageServerError,
-  isError,
-} = require('./errors');
+const { isError } = require('./errors');
 
 const { validateRecord } = require('./validation/record');
 const { validateRecordsNEA } = require('./validation/records');
@@ -18,8 +14,6 @@ const { validateCountryCode } = require('./validation/country-code');
 const { validateFindOptions } = require('./validation/find-options');
 const { validateLimit } = require('./validation/limit');
 const { validateRecordKey } = require('./validation/record-key');
-
-const SDK_VERSION = pjson.version;
 
 /**
  * @typedef {import('./secret-key-accessor')} SecretKeyAccessor
@@ -90,6 +84,8 @@ class Storage {
     }
 
     this.setCountriesCache(countriesCache || new CountriesCache());
+
+    this.apiClient = new ApiClient(this._apiKey, this._envId, this._endpoint, (...args) => this._logger.write(...args), (...args) => this._countriesCache.getCountriesAsync(...args));
   }
 
   createKeyHash(s) {
@@ -193,14 +189,7 @@ class Storage {
 
     this._logger.write('debug', `Raw data: ${JSON.stringify(data)}`);
 
-    await this.apiClient(
-      countryCode,
-      `v2/storage/records/${countryCode}`,
-      {
-        method: 'post',
-        data,
-      },
-    );
+    await this.apiClient.write(countryCode, data);
 
     return { record };
   }
@@ -219,16 +208,7 @@ class Storage {
     try {
       const encryptedRecords = await Promise.all(records.map((r) => this.encryptPayload(r)));
 
-      await this.apiClient(
-        countryCode,
-        `v2/storage/records/${countryCode}/batchWrite`,
-        {
-          method: 'post',
-          data: {
-            records: encryptedRecords,
-          },
-        },
-      );
+      await this.apiClient.batchWrite(countryCode, { records: encryptedRecords });
 
       return { records };
     } catch (err) {
@@ -270,7 +250,7 @@ class Storage {
    * @param {string} countryCode - Country code.
    * @param {object} filter - The filter to apply.
    * @param {{ limit: number, offset: number }} options - The options to pass to PoP.
-   * @return {Promise<{ meta: { total: number, count: number }, records: Array<Record> }>} Matching records.
+   * @return {Promise<{ meta: { total: number, count: number, limit: number, offset: number }, records: Array<Record> }>} Matching records.
    */
   async find(countryCode, filter, options = {}) {
     this.validate(
@@ -283,24 +263,17 @@ class Storage {
       options,
     };
 
-    const response = await this.apiClient(
-      countryCode,
-      `v2/storage/records/${countryCode}/find`,
-      {
-        method: 'post',
-        data,
-      },
-    );
+    const responseData = await this.apiClient.find(countryCode, data);
 
     const result = {
       records: [],
       meta: {},
     };
 
-    if (response.data) {
-      result.meta = response.data.meta;
+    if (responseData) {
+      result.meta = responseData.meta;
       result.records = await Promise.all(
-        response.data.data.map((item) => this.decryptPayload(item)),
+        responseData.data.map((item) => this.decryptPayload(item)),
       );
     }
 
@@ -333,18 +306,11 @@ class Storage {
 
     const key = await this.createKeyHash(recordKey);
 
-    const response = await this.apiClient(
-      countryCode,
-      `v2/storage/records/${countryCode}/${key}`,
-      {
-        method: 'get',
-      },
-    );
+    const responseData = await this.apiClient.read(countryCode, key);
 
-
-    this._logger.write('debug', `Raw data: ${JSON.stringify(response.data)}`);
+    this._logger.write('debug', `Raw data: ${JSON.stringify(responseData)}`);
     this._logger.write('debug', 'Decrypting...');
-    const recordData = await this.decryptPayload(response.data);
+    const recordData = await this.decryptPayload(responseData);
     this._logger.write('debug', `Decrypted data: ${JSON.stringify(recordData)}`);
 
     return { record: recordData };
@@ -456,68 +422,13 @@ class Storage {
     try {
       const key = await this.createKeyHash(recordKey);
 
-      await this.apiClient(
-        countryCode,
-        `v2/storage/records/${countryCode}/${key}`,
-        {
-          method: 'delete',
-        },
-      );
+      await this.apiClient.delete(countryCode, key);
 
       return { success: true };
     } catch (err) {
       this._logger.write('error', err);
       throw err;
     }
-  }
-
-  async getEndpoint(countryCode, path) {
-    if (this._endpoint) {
-      return `${this._endpoint}/${path}`;
-    }
-
-    const countryRegex = new RegExp(countryCode, 'i');
-    let countryHasApi;
-    try {
-      countryHasApi = (
-        await this._countriesCache.getCountriesAsync()
-      ).find((country) => countryRegex.test(country.id));
-    } catch (err) {
-      this._logger.write('error', err);
-    }
-
-    return countryHasApi
-      ? `https://${countryCode}.api.incountry.io/${path}`
-      : `https://us.api.incountry.io/${path}`;
-  }
-
-  headers() {
-    return {
-      Authorization: `Bearer ${this._apiKey}`,
-      'x-env-id': this._envId,
-      'Content-Type': 'application/json',
-      'User-Agent': `SDK-Node.js/${SDK_VERSION}`,
-    };
-  }
-
-  /**
-   * @param {string} countryCode
-   * @param {string} path
-   * @param {{ method: string, url: string, headers: object }} params - axious params
-   */
-  async apiClient(countryCode, path, params = {}) {
-    const url = await this.getEndpoint(countryCode.toLowerCase(), path);
-    const method = typeof params.method === 'string' ? params.method.toUpperCase() : '';
-    this._logger.write('debug', `${method} ${url}`);
-    return axios({
-      url,
-      headers: this.headers(),
-      ...params,
-    }).catch((err) => {
-      const storageServerError = new StorageServerError(err.code, err.response ? err.response.data : {}, `${method} ${url} ${err.message}`);
-      this._logger.write('error', storageServerError);
-      throw storageServerError;
-    });
   }
 }
 
