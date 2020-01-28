@@ -137,6 +137,9 @@ class Storage {
       if (SUPPORTED_VERSIONS.includes(encryption.version)) {
         throw new Error(`Custom encryption version must not correspond build-in encryption: ${encryption.version}`);
       }
+      if (!/^[A-Za-z0-9_-]+$/.test(encryption.version)) {
+        throw new Error('Custom encryption version must contain letters, numbers, - and _ signs only');
+      }
       if (encryption.isCurrent) {
         if (currentVersion != null) {
           throw new Error('There must be at most one current version of custom encryption');
