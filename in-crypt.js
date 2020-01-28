@@ -47,9 +47,8 @@ class InCrypt {
 
     if (this._customEncryptionVersion) {
       const { encrypt } = this._customEncryption[this._customEncryptionVersion];
-      const salt = crypto.randomBytes(SALT_SIZE);
-      const { key, version } = await this._getEncryptionKey(salt);
-      const ciphertext = await encrypt(text, key);
+      const { secret, version } = await this._secretKeyAccessor.getSecret();
+      const ciphertext = await encrypt(text, secret);
 
       return {
         message: `${this._customEncryptionVersion}:${ciphertext}`,

@@ -304,6 +304,35 @@ describe('Storage', () => {
         });
       });
 
+      describe('custom encryption', () => {
+        TEST_RECORDS.forEach((testCase, idx) => {
+          context(`with test case ${idx}`, () => {
+            it('should write data into storage', async () => {
+              const storage = encStorage;
+              storage.setCustomEncryption([{
+                encrypt: (data, secret) => {
+                  const meta = _.omit(testCase, ['body', 'version', 'range_key']);
+                  const expected = { meta };
+                  if (testCase.body) {
+                    expected.payload = testCase.body;
+                  }
+                  expect(JSON.parse(data)).to.deep.equal(expected);
+                  expect(secret).to.equal(SECRET_KEY);
+                  return 'encrypted';
+                },
+                decrypt: (...rest) => { console.log(rest); return 'bar'; },
+                version: 'customEncryption',
+                isCurrent: true,
+              }]);
+              const [bodyObj, result] = await Promise.all([getNockedRequestBodyObject(popAPI), storage.write(COUNTRY, testCase)]);
+              const expected = 'customEncryption:encrypted';
+              expect(bodyObj.body).to.equal(expected);
+              expect(result.record).to.deep.equal(testCase);
+            });
+          });
+        });
+      });
+
       describe('request headers', () => {
         it('should set User-Agent', async () => {
           const [headers] = await Promise.all([getNockedRequestHeaders(popAPI), encStorage.write(COUNTRY, TEST_RECORDS[0])]);

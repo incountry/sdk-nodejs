@@ -143,7 +143,7 @@ class Storage {
         }
         currentVersion = encryption.version;
       }
-      transformed[encryption.version] = customEncryption;
+      transformed[encryption.version] = encryption;
     })
 
     this._crypto.setCustomEncryption(transformed);
