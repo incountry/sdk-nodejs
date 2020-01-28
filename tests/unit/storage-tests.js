@@ -387,6 +387,36 @@ describe('Storage', () => {
         });
       });
 
+      describe('custom encryption', () => {
+        TEST_RECORDS.forEach((testCase, idx) => {
+          context(`with test case ${idx}`, () => {
+            it('should read custom encrypted record', async () => {
+              const storage = encStorage;
+              storage.setCustomEncryption([{
+                encrypt: () => 'encrypted',
+                decrypt: (encryptedData) => {
+                  const response = {};
+                  response.meta = _.omit(testCase, ['body', 'version', 'range_key']);
+                  if (testCase.body) {
+                    response.payload = testCase.body;
+                  }
+                  expect(encryptedData).to.equal('encrypted');
+                  return JSON.stringify(response);
+                },
+                version: 'customEncryption',
+                isCurrent: true,
+              }]);
+              const encryptedPayload = await storage.encryptPayload(testCase);
+              expect(encryptedPayload.body).to.equal('customEncryption:encrypted');
+              nockEndpoint(POPAPI_HOST, 'read', COUNTRY, encryptedPayload.key)
+                .reply(200, encryptedPayload);
+              const { record } = await storage.read(COUNTRY, testCase.key);
+              expect(record).to.deep.equal(testCase);
+            });
+          });
+        });
+      });
+
       describe('request headers', () => {
         it('should set User-Agent', async () => {
           const encryptedPayload = await encStorage.encryptPayload(TEST_RECORDS[0]);
