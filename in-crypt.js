@@ -48,7 +48,7 @@ class InCrypt {
     if (this._customEncryptionVersion) {
       const { encrypt } = this._customEncryption[this._customEncryptionVersion];
       const { secret, version } = await this._secretKeyAccessor.getSecret();
-      const ciphertext = await encrypt(text, secret);
+      const ciphertext = await encrypt(text, secret, version);
 
       return {
         message: `${this._customEncryptionVersion}:${ciphertext}`,
@@ -74,7 +74,8 @@ class InCrypt {
       return this.decryptStub(encrypted);
     }
     if (this._customEncryption && this._customEncryption[version]) {
-      return this._customEncryption[version].decrypt(encrypted);
+      const { secret } = await this._secretKeyAccessor.getSecret(secretVersion);
+      return this._customEncryption[version].decrypt(encrypted, secret, secretVersion);
     }
     const decrypt = this[`decryptV${version}`];
     if (decrypt === undefined) {

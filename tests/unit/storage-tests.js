@@ -309,7 +309,7 @@ describe('Storage', () => {
             it('should write data into storage', async () => {
               const storage = encStorage;
               storage.setCustomEncryption([{
-                encrypt: (data, secret) => {
+                encrypt: (data, secret, version) => {
                   const meta = _.omit(testCase, ['body', 'version', 'range_key']);
                   const expected = { meta };
                   if (testCase.body) {
@@ -317,6 +317,7 @@ describe('Storage', () => {
                   }
                   expect(JSON.parse(data)).to.deep.equal(expected);
                   expect(secret).to.equal(SECRET_KEY);
+                  expect(version).to.equal(testCase.version);
                   return 'encrypted';
                 },
                 decrypt: (...rest) => { console.log(rest); return 'bar'; },
@@ -393,13 +394,16 @@ describe('Storage', () => {
               const storage = encStorage;
               storage.setCustomEncryption([{
                 encrypt: () => 'encrypted',
-                decrypt: (encryptedData) => {
+                decrypt: (encryptedData, secret, version) => {
+                  console.log(encryptedData, secret, version);
                   const response = {};
                   response.meta = _.omit(testCase, ['body', 'version', 'range_key']);
                   if (testCase.body) {
                     response.payload = testCase.body;
                   }
                   expect(encryptedData).to.equal('encrypted');
+                  expect(secret).to.equal(SECRET_KEY);
+                  expect(version).to.equal(testCase.version);
                   return JSON.stringify(response);
                 },
                 version: 'customEncryption',
