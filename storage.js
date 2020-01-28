@@ -172,11 +172,10 @@ class Storage {
       const encryptedRecords = await Promise.all(records.map((r) => this.encryptPayload(r)));
 
       await this.apiClient.batchWrite(countryCode, { records: encryptedRecords });
-
-      return { records };
     } catch (err) {
       this.logAndThrowError(err);
     }
+    return { records };
   }
 
   /**
