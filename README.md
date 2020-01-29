@@ -1,9 +1,5 @@
 # InCountry Storage SDK
 
-## Important notes
-
-We've changed the encryption algorithm since version `1.0.0` so it is not compatible with earlier versions.
-
 ## Installation
 
 SDK is available via NPM:
