@@ -30,7 +30,7 @@
     "test": "nyc --reporter=lcov --reporter=text --report-dir=ut-coverage --exclude=tests/**/*.js mocha tests/unit/*.js",
     "validate-eslint": "eslint ./*.js tests/"
   },
-  "version": "1.0.0",
+  "version": "1.0.0a",
   "devDependencies": {
     "chai": "4.2.0",
     "chai-as-promised": "7.1.1",
