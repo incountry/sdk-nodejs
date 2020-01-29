@@ -135,12 +135,12 @@ Here is how data is transformed and stored in InCountry database:
 
 ```javascript
 {
-  key, // hashed
-  body, // encrypted
-  profile_key, // hashed
-  range_key, // plain
-  key2, // hashed
-  key3 // hashed
+	key,          // hashed
+	body,         // encrypted
+	profile_key,  // hashed
+	range_key,    // plain
+	key2,         // hashed
+	key3          // hashed
 }
 ```
 
