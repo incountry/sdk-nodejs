@@ -2,7 +2,7 @@
 
 ## Important notes
 
-We've changed the encryption algorithm since version `0.5.0` so it is not compatible with earlier versions.
+We've changed the encryption algorithm since version `1.0.0` so it is not compatible with earlier versions.
 
 ## Installation
 
@@ -140,7 +140,7 @@ Here is how data is transformed and stored in InCountry database:
   profile_key, // hashed
   range_key, // plain
   key2, // hashed
-  key3; // hashed
+  key3 // hashed
 }
 ```
 
