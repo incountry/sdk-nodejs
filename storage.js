@@ -79,14 +79,14 @@ class Storage {
     this.setCountriesCache(countriesCache || new CountriesCache());
 
     this.apiClient = new ApiClient(this._apiKey, this._envId, this._endpoint, (...args) => this._logger.write(...args), (...args) => this._countriesCache.getCountriesAsync(...args));
-    this._normnalizeKeys = options.normalizeKeys;
+    this.normalizeKeys = options.normalizeKeys;
   }
 
   /**
    * @param {string} s
    */
   normalizeKey(s) {
-    return this._normnalizeKeys ? s.toLowerCase() : s;
+    return this.normalizeKeys ? s.toLowerCase() : s;
   }
 
   /**
