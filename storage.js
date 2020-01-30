@@ -52,7 +52,7 @@ class Storage {
     if (logger) {
       this.setLogger(logger);
     } else {
-      this._logger = defaultLogger.withBaseLogLevel('debug');
+      this._logger = defaultLogger.withBaseLogLevel('info');
     }
 
     this._apiKey = options.apiKey || process.env.INC_API_KEY;
@@ -140,9 +140,10 @@ class Storage {
   /**
    * @param {string} countryCode - Country code.
    * @param {Record} record
+   * @param {object} [requestOptions]
    * @return {Promise<{ record: Record }>} Matching record.
    */
-  async write(countryCode, record) {
+  async write(countryCode, record, requestOptions = {}) {
     this.validate(
       validateCountryCode(countryCode),
       validateRecord(record),
@@ -150,9 +151,7 @@ class Storage {
 
     const data = await this.encryptPayload(record);
 
-    this._logger.write('debug', `Raw data: ${JSON.stringify(data)}`);
-
-    await this.apiClient.write(countryCode, data);
+    await this.apiClient.write(countryCode, data, requestOptions);
 
     return { record };
   }
@@ -212,9 +211,10 @@ class Storage {
    * @param {string} countryCode - Country code.
    * @param {object} filter - The filter to apply.
    * @param {{ limit: number, offset: number }} options - The options to pass to PoP.
+   * @param {object} [requestOptions]
    * @return {Promise<{ meta: { total: number, count: number, limit: number, offset: number }, records: Array<Record> }>} Matching records.
    */
-  async find(countryCode, filter, options = {}) {
+  async find(countryCode, filter, options = {}, requestOptions = {}) {
     this.validate(
       validateCountryCode(countryCode),
       validateFindOptions(options),
@@ -225,7 +225,7 @@ class Storage {
       options,
     };
 
-    const responseData = await this.apiClient.find(countryCode, data);
+    const responseData = await this.apiClient.find(countryCode, data, requestOptions);
 
     const result = {
       records: [],
@@ -234,9 +234,26 @@ class Storage {
 
     if (responseData) {
       result.meta = responseData.meta;
-      result.records = await Promise.all(
-        responseData.data.map((item) => this.decryptPayload(item)),
+
+      const decrypted = await Promise.all(
+        responseData.data.map((item) => this.decryptPayload(item).catch((e) => ({
+          error: e.message,
+          rawData: item,
+        }))),
       );
+
+      const errors = [];
+      decrypted.forEach((item) => {
+        if (item.error) {
+          errors.push(item);
+        } else {
+          result.records.push(item);
+        }
+      });
+
+      if (errors.length) {
+        result.errors = errors;
+      }
     }
 
     return result;
@@ -247,10 +264,11 @@ class Storage {
    * @param {string} countryCode - Country code.
    * @param {object} filter - The filter to apply.
    * @param {{ limit: number, offset: number }} options - The options to pass to PoP.
+   * @param {object} [requestOptions]
    * @return {Promise<{ record: Record|null }>} Matching record.
    */
-  async findOne(countryCode, filter, options = {}) {
-    const result = await this.find(countryCode, filter, options);
+  async findOne(countryCode, filter, options = {}, requestOptions = {}) {
+    const result = await this.find(countryCode, filter, options, requestOptions);
     const record = result.records.length ? result.records[0] : null;
     return { record };
   }
@@ -258,9 +276,10 @@ class Storage {
   /**
    * @param {string} countryCode - Country code.
    * @param {string} recordKey
+   * @param {object} [requestOptions]
    * @return {Promise<{ record: Record|null }>} Matching record.
    */
-  async read(countryCode, recordKey) {
+  async read(countryCode, recordKey, requestOptions = {}) {
     this.validate(
       validateCountryCode(countryCode),
       validateRecordKey(recordKey),
@@ -268,18 +287,16 @@ class Storage {
 
     const key = await this.createKeyHash(recordKey);
 
-    const responseData = await this.apiClient.read(countryCode, key);
+    const responseData = await this.apiClient.read(countryCode, key, requestOptions);
 
-    this._logger.write('debug', `Raw data: ${JSON.stringify(responseData)}`);
-    this._logger.write('debug', 'Decrypting...');
     const recordData = await this.decryptPayload(responseData);
-    this._logger.write('debug', `Decrypted data: ${JSON.stringify(recordData)}`);
 
     return { record: recordData };
   }
 
   async encryptPayload(originalRecord) {
     this._logger.write('debug', 'Encrypting...');
+    this._logger.write('debug', JSON.stringify(originalRecord, null, 2));
 
     const record = { ...originalRecord };
     const body = {
@@ -300,6 +317,8 @@ class Storage {
     );
     record.body = message;
     record.version = secretVersion;
+    this._logger.write('debug', 'Finished encryption');
+    this._logger.write('debug', JSON.stringify(record, null, 2));
     return record;
   }
 
@@ -318,6 +337,8 @@ class Storage {
   }
 
   async decryptPayload(originalRecord) {
+    this._logger.write('debug', 'Start decrypting...');
+    this._logger.write('debug', JSON.stringify(originalRecord, null, 2));
     const record = { ...originalRecord };
     const decrypted = await this._crypto.decryptAsync(
       record.body,
@@ -342,6 +363,8 @@ class Storage {
     } else {
       delete record.body;
     }
+    this._logger.write('debug', 'Finished decryption');
+    this._logger.write('debug', JSON.stringify(record, null, 2));
     return record;
   }
 
@@ -351,16 +374,17 @@ class Storage {
    * @param {object} filter - The filter to apply.
    * @param {object} doc - New values to be set in matching records.
    * @param {object} options - Options object.
+   * @param {object} [requestOptions]
    * @return {Promise<{ record: Record }>} Operation result.
    */
-  async updateOne(countryCode, filter, doc, options = { override: false }) {
+  async updateOne(countryCode, filter, doc, options = { override: false }, requestOptions = {}) {
     this.validate(validateCountryCode(countryCode));
 
     if (options.override && doc.key) {
-      return this.write(countryCode, { ...doc });
+      return this.write(countryCode, { ...doc }, requestOptions);
     }
 
-    const result = await this.find(countryCode, filter, { limit: 1 });
+    const result = await this.find(countryCode, filter, { limit: 1 }, requestOptions);
     if (result.meta.total > 1) {
       this.logAndThrowError('Multiple records found');
     } else if (result.meta.total === 0) {
@@ -372,10 +396,10 @@ class Storage {
       ...doc,
     };
 
-    return this.write(countryCode, { ...newData });
+    return this.write(countryCode, { ...newData }, requestOptions);
   }
 
-  async delete(countryCode, recordKey) {
+  async delete(countryCode, recordKey, requestOptions = {}) {
     this.validate(
       validateCountryCode(countryCode),
       validateRecordKey(recordKey),
@@ -384,7 +408,7 @@ class Storage {
     try {
       const key = await this.createKeyHash(recordKey);
 
-      await this.apiClient.delete(countryCode, key);
+      await this.apiClient.delete(countryCode, key, requestOptions);
 
       return { success: true };
     } catch (err) {

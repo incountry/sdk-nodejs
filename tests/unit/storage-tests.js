@@ -510,6 +510,61 @@ describe('Storage', () => {
           const { records } = await noEncStorage.find(COUNTRY, { key: 'key1' });
           expect(records).to.deep.equal(TEST_RECORDS);
         });
+
+        it('should not throw if some records cannot be decrypted', async () => {
+          const encryptedData = await Promise.all(TEST_RECORDS.map((record) => encStorage.encryptPayload(record)));
+          const unsupportedData = {
+            country: 'us',
+            key: 'somekey',
+            body: '2:unsupported data',
+            version: 0,
+          };
+          const data = [...encryptedData, unsupportedData];
+
+          nockEndpoint(POPAPI_HOST, 'find', COUNTRY)
+            .reply(200, getDefaultFindResponse(data.length, data));
+
+          const result = await encStorage.find('us', {});
+
+          expect(result).to.deep.equal({
+            meta: {
+              count: TEST_RECORDS.length + 1, total: TEST_RECORDS.length + 1, limit: 100, offset: 0,
+            },
+            records: TEST_RECORDS,
+            errors: [{
+              error: 'Invalid IV length',
+              rawData: unsupportedData,
+            }],
+          });
+        });
+
+        it('find() in non-encrypted mode should not throw error if some records are encrypted', async () => {
+          const nonEncryptedData = await Promise.all(
+            TEST_RECORDS.map((record) => noEncStorage.encryptPayload(record)),
+          );
+          const unsupportedData = {
+            country: 'us',
+            key: 'somekey',
+            body: '2:unsupported data',
+            version: 0,
+          };
+          const data = [...nonEncryptedData, unsupportedData];
+
+          nockEndpoint(POPAPI_HOST, 'find', COUNTRY)
+            .reply(200, getDefaultFindResponse(data.length, data));
+
+          const result = await noEncStorage.find('us', {});
+          expect(result).to.deep.equal({
+            meta: {
+              count: TEST_RECORDS.length + 1, total: TEST_RECORDS.length + 1, limit: 100, offset: 0,
+            },
+            records: TEST_RECORDS,
+            errors: [{
+              error: 'No secretKeyAccessor provided. Cannot decrypt encrypted data',
+              rawData: unsupportedData,
+            }],
+          });
+        });
       });
     });
 
