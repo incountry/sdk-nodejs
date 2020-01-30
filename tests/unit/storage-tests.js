@@ -71,11 +71,12 @@ const TEST_RECORDS = [
 
 const LOGGER_STUB = { write: (a, b) => [a, b] };
 
-const getDefaultStorage = (encrypt) => new Storage({
+const getDefaultStorage = (encrypt, normalizeKeys) => new Storage({
   apiKey: 'string',
   environmentId: 'string',
   endpoint: POPAPI_HOST,
   encrypt,
+  normalizeKeys,
 }, new SecretKeyAccessor(() => SECRET_KEY), LOGGER_STUB);
 
 const getDefaultFindResponse = (count, data) => ({
@@ -310,6 +311,30 @@ describe('Storage', () => {
           expect(userAgent).to.match(sdkVersionRegExp);
         });
       });
+
+      describe('normalize keys option', () => {
+        const key = 'aAbB';
+        const keyNormalized = 'aabb';
+
+        describe('when enabled', () => {
+          it('should normalize', async () => {
+            const storage = getDefaultStorage(true, true);
+            const record = { key };
+            const [bodyObj] = await Promise.all([getNockedRequestBodyObject(popAPI), storage.write(COUNTRY, record)]);
+            expect(bodyObj.key).to.equal(storage.createKeyHash(keyNormalized));
+          });
+        });
+
+
+        describe('when not enabled', () => {
+          it('should not normalize', async () => {
+            const storage = getDefaultStorage(true);
+            const record = { key };
+            const [bodyObj] = await Promise.all([getNockedRequestBodyObject(popAPI), storage.write(COUNTRY, record)]);
+            expect(bodyObj.key).to.equal(storage.createKeyHash(key));
+          });
+        });
+      });
     });
 
     describe('read', () => {
@@ -366,6 +391,49 @@ describe('Storage', () => {
           const [headers] = await Promise.all([getNockedRequestHeaders(popAPI), encStorage.read(COUNTRY, TEST_RECORDS[0].key)]);
           const userAgent = headers['user-agent'];
           expect(userAgent).to.match(sdkVersionRegExp);
+        });
+      });
+
+      describe('normalize keys option', () => {
+        const key = 'aAbB';
+        const keyNormalized = 'aabb';
+
+        describe('when enabled', () => {
+          it('should normalize', async () => {
+            const storage = getDefaultStorage(true, true);
+            const encryptedPayload = await storage.encryptPayload({ key });
+
+            const popAPI = nockEndpoint(POPAPI_HOST, 'read', COUNTRY, storage.createKeyHash(keyNormalized))
+              .reply(200, encryptedPayload);
+
+            await storage.read(COUNTRY, key);
+            assert.equal(popAPI.isDone(), true, 'Requested record using normalized key');
+          });
+
+          it('should return record with original keys', async () => {
+            const storage = getDefaultStorage(true, true);
+            const encryptedPayload = await storage.encryptPayload({ key });
+            nockEndpoint(POPAPI_HOST, 'read', COUNTRY, storage.createKeyHash(keyNormalized))
+              .reply(200, encryptedPayload);
+
+            const { record } = await storage.read(COUNTRY, key);
+            expect(record.key).to.equal(key);
+          });
+        });
+
+        describe('when not enabled', () => {
+          it('should not normalize', async () => {
+            const storage = getDefaultStorage(true);
+            const encryptedPayload = await storage.encryptPayload({ key });
+            expect(encryptedPayload.key).to.equal(storage.createKeyHash(key));
+
+            const popAPI = nockEndpoint(POPAPI_HOST, 'read', COUNTRY, storage.createKeyHash(key))
+              .reply(200, encryptedPayload);
+
+            const { record } = await storage.read(COUNTRY, key);
+            expect(record.key).to.equal(key);
+            assert.equal(popAPI.isDone(), true, 'Requested record using not normalized key');
+          });
         });
       });
     });
@@ -431,6 +499,33 @@ describe('Storage', () => {
           const [headers] = await Promise.all([getNockedRequestHeaders(popAPI), encStorage.delete(COUNTRY, TEST_RECORDS[0].key)]);
           const userAgent = headers['user-agent'];
           expect(userAgent).to.match(sdkVersionRegExp);
+        });
+      });
+
+      describe('normalize keys option', () => {
+        const key = 'aAbB';
+        const keyNormalized = 'aabb';
+
+        describe('when enabled', () => {
+          it('should normalize', async () => {
+            const storage = getDefaultStorage(true, true);
+            const popAPI = nockEndpoint(POPAPI_HOST, 'delete', COUNTRY, storage.createKeyHash(keyNormalized))
+              .reply(200);
+
+            await storage.delete(COUNTRY, key);
+            assert.equal(popAPI.isDone(), true, 'Requested record using normalized key');
+          });
+        });
+
+        describe('when not enabled', () => {
+          it('should not normalize', async () => {
+            const storage = getDefaultStorage(true);
+            const popAPI = nockEndpoint(POPAPI_HOST, 'delete', COUNTRY, storage.createKeyHash(key))
+              .reply(200);
+
+            await storage.delete(COUNTRY, key);
+            assert.equal(popAPI.isDone(), true, 'Requested record using not normalized key');
+          });
         });
       });
     });
@@ -509,6 +604,33 @@ describe('Storage', () => {
 
           const { records } = await noEncStorage.find(COUNTRY, { key: 'key1' });
           expect(records).to.deep.equal(TEST_RECORDS);
+        });
+      });
+
+      describe('normalize keys option', () => {
+        const key = 'aAbB';
+        const keyNormalized = 'aabb';
+
+        let popAPI;
+        beforeEach(() => {
+          popAPI = nockEndpoint(POPAPI_HOST, 'find', COUNTRY)
+            .reply(200, { meta: { total: 0 }, data: [] });
+        });
+
+        describe('when enabled', () => {
+          it('should normalize filter object', async () => {
+            const storage = getDefaultStorage(true, true);
+            const [bodyObj] = await Promise.all([getNockedRequestBodyObject(popAPI), storage.find(COUNTRY, { key })]);
+            expect(bodyObj.filter.key).to.equal(storage.createKeyHash(keyNormalized));
+          });
+        });
+
+        describe('when not enabled', () => {
+          it('should not normalize filter object', async () => {
+            const storage = getDefaultStorage(true);
+            const [bodyObj] = await Promise.all([getNockedRequestBodyObject(popAPI), storage.find(COUNTRY, { key })]);
+            expect(bodyObj.filter.key).to.equal(storage.createKeyHash(key));
+          });
         });
       });
     });
@@ -611,6 +733,41 @@ describe('Storage', () => {
           assert.equal(popAPIFind.isDone(), true, 'find() called');
         });
       });
+
+      describe('normalize keys option', () => {
+        const key = 'aAbB';
+        const keyNormalized = 'aabb';
+
+        describe('when enabled', () => {
+          it('should normalize filter object', async () => {
+            const [popAPIFind, popAPIWrite] = await preparePOPAPI({ key });
+
+            const storage = getDefaultStorage(true, true);
+            const [findBodyObj, writeBodyObj] = await Promise.all([
+              getNockedRequestBodyObject(popAPIFind),
+              getNockedRequestBodyObject(popAPIWrite),
+              storage.updateOne(COUNTRY, { key }, { range: 1 }),
+            ]);
+            expect(findBodyObj.filter.key).to.equal(storage.createKeyHash(keyNormalized));
+            expect(writeBodyObj.key).to.equal(storage.createKeyHash(keyNormalized));
+          });
+        });
+
+        describe('when not enabled', () => {
+          it('should not normalize filter object', async () => {
+            const [popAPIFind, popAPIWrite] = await preparePOPAPI({ key });
+
+            const storage = getDefaultStorage(true);
+            const [findBodyObj, writeBodyObj] = await Promise.all([
+              getNockedRequestBodyObject(popAPIFind),
+              getNockedRequestBodyObject(popAPIWrite),
+              storage.updateOne(COUNTRY, { key }, { range: 1 }),
+            ]);
+            expect(findBodyObj.filter.key).to.equal(storage.createKeyHash(key));
+            expect(writeBodyObj.key).to.equal(storage.createKeyHash(key));
+          });
+        });
+      });
     });
 
     describe('migrate', () => {
@@ -709,6 +866,33 @@ describe('Storage', () => {
 
           await expect(encStorage.batchWrite(COUNTRY, TEST_RECORDS)).to.be.rejectedWith(StorageServerError);
           assert.equal(scope.isDone(), true, 'Nock scope is done');
+        });
+      });
+
+      describe('normalize keys option', () => {
+        const key1 = 'aAbB';
+        const key1Normalized = 'aabb';
+        const key2 = 'cCdD';
+        const key2Normalized = 'ccdd';
+
+        describe('when enabled', () => {
+          it('should normalize', async () => {
+            const storage = getDefaultStorage(true, true);
+            const records = [{ key: key1 }, { key: key2 }];
+            const [bodyObj] = await Promise.all([getNockedRequestBodyObject(popAPI), storage.batchWrite(COUNTRY, records)]);
+            expect(bodyObj.records[0].key).to.equal(storage.createKeyHash(key1Normalized));
+            expect(bodyObj.records[1].key).to.equal(storage.createKeyHash(key2Normalized));
+          });
+        });
+
+        describe('when not enabled', () => {
+          it('should not normalize', async () => {
+            const storage = getDefaultStorage(true);
+            const records = [{ key: key1 }, { key: key2 }];
+            const [bodyObj] = await Promise.all([getNockedRequestBodyObject(popAPI), storage.batchWrite(COUNTRY, records)]);
+            expect(bodyObj.records[0].key).to.equal(storage.createKeyHash(key1));
+            expect(bodyObj.records[1].key).to.equal(storage.createKeyHash(key2));
+          });
         });
       });
     });
