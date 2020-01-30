@@ -614,7 +614,12 @@ describe('Storage', () => {
         let popAPI;
         beforeEach(() => {
           popAPI = nockEndpoint(POPAPI_HOST, 'find', COUNTRY)
-            .reply(200, { meta: { total: 0 }, data: [] });
+            .reply(200, {
+              meta: {
+                count: 0, limit: 100, offset: 0, total: 0,
+              },
+              data: [],
+            });
         });
 
         describe('when enabled', () => {
