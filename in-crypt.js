@@ -63,17 +63,13 @@ class InCrypt {
     const [version, encrypted] = parts;
 
     if (!this._secretKeyAccessor && version !== PT_VERSION) {
-      return this.decryptStub(encrypted);
+      throw new Error('No secretKeyAccessor provided. Cannot decrypt encrypted data');
     }
     const decrypt = this[`decryptV${version}`];
     if (decrypt === undefined) {
       throw new InCryptoError('Unknown decryptor version requested');
     }
     return decrypt.bind(this)(encrypted, secretVersion);
-  }
-
-  decryptStub(encrypted) {
-    return encrypted;
   }
 
   decryptVpt(plainTextBase64) {

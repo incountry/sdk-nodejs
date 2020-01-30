@@ -13,6 +13,7 @@
     "dotenv": "8.2.0",
     "fp-ts": "2.1.2",
     "io-ts": "2.0.1",
+    "lodash.get": "4.4.2",
     "utf8": "3.0.0"
   },
   "deprecated": false,
@@ -27,9 +28,10 @@
   },
   "scripts": {
     "integrations": "nyc --reporter=lcov --reporter=text --report-dir=it-coverage mocha tests/integration/*.js --timeout 40000",
-    "test": "nyc --reporter=lcov --reporter=text --report-dir=ut-coverage --exclude=tests/**/*.js mocha tests/unit/*.js"
+    "test": "nyc --reporter=lcov --reporter=text --report-dir=ut-coverage --exclude=tests/**/*.js mocha tests/unit/*.js",
+    "validate-eslint": "eslint ./*.js tests/"
   },
-  "version": "0.5.3",
+  "version": "1.1.0",
   "devDependencies": {
     "chai": "4.2.0",
     "chai-as-promised": "7.1.1",
