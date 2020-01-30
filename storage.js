@@ -34,6 +34,7 @@ const { validateRecordKey } = require('./validation/record-key');
  * @property {string} environmentId
  * @property {string} endpoint
  * @property {boolean} encrypt
+ * @property {boolean} normalizeKeys
  */
 
 /**
@@ -78,8 +79,19 @@ class Storage {
     this.setCountriesCache(countriesCache || new CountriesCache());
 
     this.apiClient = new ApiClient(this._apiKey, this._envId, this._endpoint, (...args) => this._logger.write(...args), (...args) => this._countriesCache.getCountriesAsync(...args));
+    this.normalizeKeys = options.normalizeKeys;
   }
 
+  /**
+   * @param {string} s
+   */
+  normalizeKey(s) {
+    return this.normalizeKeys ? s.toLowerCase() : s;
+  }
+
+  /**
+   * @param {string} s
+   */
   createKeyHash(s) {
     const stringToHash = `${s}:${this._envId}`;
     return crypto
@@ -221,7 +233,7 @@ class Storage {
     );
 
     const data = {
-      filter: this.hashKeys(filter),
+      filter: this.hashFilterKeys(filter),
       options,
     };
 
@@ -259,6 +271,20 @@ class Storage {
     return result;
   }
 
+  hashFilterKeys(filter) {
+    const hashedFilter = { ...filter };
+    ['profile_key', 'key', 'key2', 'key3'].forEach((field) => {
+      if (hashedFilter[field] != null) {
+        if (Array.isArray(hashedFilter[field])) {
+          hashedFilter[field] = hashedFilter[field].map((v) => this.createKeyHash(this.normalizeKey(v)));
+        } else {
+          hashedFilter[field] = this.createKeyHash(this.normalizeKey(hashedFilter[field]));
+        }
+      }
+    });
+    return hashedFilter;
+  }
+
   /**
    * Find first record matching filter.
    * @param {string} countryCode - Country code.
@@ -285,7 +311,7 @@ class Storage {
       validateRecordKey(recordKey),
     );
 
-    const key = await this.createKeyHash(recordKey);
+    const key = await this.createKeyHash(this.normalizeKey(recordKey));
 
     const responseData = await this.apiClient.read(countryCode, key, requestOptions);
 
@@ -305,7 +331,7 @@ class Storage {
     ['profile_key', 'key', 'key2', 'key3'].forEach((field) => {
       if (record[field] != null) {
         body.meta[field] = record[field];
-        record[field] = this.createKeyHash(record[field]);
+        record[field] = this.createKeyHash(this.normalizeKey(record[field]));
       }
     });
     if (record.body !== undefined) {
@@ -319,20 +345,6 @@ class Storage {
     record.version = secretVersion;
     this._logger.write('debug', 'Finished encryption');
     this._logger.write('debug', JSON.stringify(record, null, 2));
-    return record;
-  }
-
-  hashKeys(originalRecord) {
-    const record = { ...originalRecord };
-    ['profile_key', 'key', 'key2', 'key3'].forEach((field) => {
-      if (record[field] != null) {
-        if (Array.isArray(record[field])) {
-          record[field] = record[field].map((v) => this.createKeyHash(v));
-        } else {
-          record[field] = this.createKeyHash(record[field]);
-        }
-      }
-    });
     return record;
   }
 
@@ -406,7 +418,7 @@ class Storage {
     );
 
     try {
-      const key = await this.createKeyHash(recordKey);
+      const key = await this.createKeyHash(this.normalizeKey(recordKey));
 
       await this.apiClient.delete(countryCode, key, requestOptions);
 
