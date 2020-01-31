@@ -45,7 +45,7 @@ const { validateRecordKey } = require('./validation/record-key');
 class Storage {
   /**
    * @param {StorageOptions} options
-   * @param {SecretKeyAccessor} secretKeyAccessor
+   * @param {SecretKeyAccessor | unknown} secretKeyAccessor
    * @param {Logger} logger
    * @param {CountriesCache} countriesCache
    */
@@ -69,11 +69,15 @@ class Storage {
     this._endpoint = options.endpoint;
 
     if (options.encrypt !== false) {
+      if (!(secretKeyAccessor instanceof SecretKeyAccessor)) {
+        throw new Error('secretKeyAccessor must be an instance of SecretKeyAccessor');
+      }
+
       this._encryptionEnabled = true;
-      this.setSecretKeyAccessor(secretKeyAccessor);
+      this._crypto = new InCrypt(secretKeyAccessor);
     } else {
       this._encryptionEnabled = false;
-      this.setSecretKeyAccessor();
+      this._crypto = new InCrypt();
     }
 
     this.setCountriesCache(countriesCache || new CountriesCache());
@@ -114,16 +118,6 @@ class Storage {
       throw new Error('Logger.write must have at least 2 parameters');
     }
     this._logger = logger;
-  }
-
-  /**
-   * @param {SecretKeyAccessor | unknown} secretKeyAccessor
-   */
-  setSecretKeyAccessor(secretKeyAccessor) {
-    if (secretKeyAccessor !== undefined && !(secretKeyAccessor instanceof SecretKeyAccessor)) {
-      throw new Error('secretKeyAccessor must be an instance of SecretKeyAccessor');
-    }
-    this._crypto = new InCrypt(secretKeyAccessor);
   }
 
   /**
