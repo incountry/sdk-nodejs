@@ -4,10 +4,12 @@ const SecretKeyAccessor = require('../../secret-key-accessor');
 
 dotenv.config();
 
+const DEFAULT_SECRET_KEY_ACCESSOR = new SecretKeyAccessor((() => 'supersecret'));
+
 /**
  * @param {Boolean} encryption - Encryption value
  */
-function createStorage(encryption) {
+function createStorage(encryption, secretKeyAccessor = DEFAULT_SECRET_KEY_ACCESSOR) {
   return new Storage(
     {
       apiKey: process.env.INC_API_KEY,
@@ -15,7 +17,7 @@ function createStorage(encryption) {
       endpoint: process.env.INC_URL,
       encrypt: encryption,
     },
-    new SecretKeyAccessor((() => 'supersecret')),
+    secretKeyAccessor,
   );
 }
 

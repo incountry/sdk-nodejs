@@ -42,6 +42,8 @@ const { validateRecordKey } = require('./validation/record-key');
 * @property {(logLevel: string, message: string, id?: string, timestamp?: string) => boolean} write
 */
 
+const FIND_LIMIT = 100;
+
 class Storage {
   /**
    * @param {StorageOptions} options
@@ -78,7 +80,7 @@ class Storage {
 
     this.setCountriesCache(countriesCache || new CountriesCache());
 
-    this.apiClient = new ApiClient(this._apiKey, this._envId, this._endpoint, (...args) => this._logger.write(...args), (...args) => this._countriesCache.getCountriesAsync(...args));
+    this.apiClient = new ApiClient(this._apiKey, this._envId, this._endpoint, (level, message) => this._logger.write(level, message), (...args) => this._countriesCache.getCountriesAsync(...args));
     this.normalizeKeys = options.normalizeKeys;
   }
 
@@ -181,7 +183,6 @@ class Storage {
 
     try {
       const encryptedRecords = await Promise.all(records.map((r) => this.encryptPayload(r)));
-
       await this.apiClient.batchWrite(countryCode, { records: encryptedRecords });
     } catch (err) {
       this.logAndThrowError(err);
@@ -194,7 +195,7 @@ class Storage {
    * @param {number} limit - Find limit
    * @returns {Promise<{ meta: { migrated: number, totalLeft: number } }>}
    */
-  async migrate(countryCode, limit) {
+  async migrate(countryCode, limit = FIND_LIMIT, findFilterOptional = {}) {
     this.validate(
       validateCountryCode(countryCode),
       validateLimit(limit),
@@ -205,7 +206,7 @@ class Storage {
     }
 
     const currentSecretVersion = await this._crypto.getCurrentSecretVersion();
-    const findFilter = { version: { $not: currentSecretVersion } };
+    const findFilter = { ...findFilterOptional, version: { $not: currentSecretVersion } };
     const findOptions = { limit };
     const { records, meta } = await this.find(countryCode, findFilter, findOptions);
     await this.batchWrite(countryCode, records);
@@ -234,7 +235,7 @@ class Storage {
 
     const data = {
       filter: this.hashFilterKeys(filter),
-      options,
+      options: { limit: FIND_LIMIT, offset: 0, ...options },
     };
 
     const responseData = await this.apiClient.find(countryCode, data, requestOptions);
