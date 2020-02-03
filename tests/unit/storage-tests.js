@@ -71,13 +71,15 @@ const TEST_RECORDS = [
 
 const LOGGER_STUB = { write: (a, b) => [a, b] };
 
-const getDefaultStorage = (encrypt, normalizeKeys) => new Storage({
+const defaultSecretKeyAccessor = new SecretKeyAccessor(() => SECRET_KEY);
+
+const getDefaultStorage = (encrypt, normalizeKeys, secretKeyAccessor = defaultSecretKeyAccessor) => new Storage({
   apiKey: 'string',
   environmentId: 'string',
   endpoint: POPAPI_HOST,
   encrypt,
   normalizeKeys,
-}, new SecretKeyAccessor(() => SECRET_KEY), LOGGER_STUB);
+}, secretKeyAccessor, LOGGER_STUB);
 
 const getDefaultFindResponse = (count, data) => ({
   meta: {
@@ -124,11 +126,11 @@ describe('Storage', () => {
                 .to.throw(Error, 'Please pass apiKey in options or set INC_API_KEY env var');
             });
 
-            expect(() => new Storage({ apiKey: 'apiKey', environmentId: 'envId' })).not.to.throw();
+            expect(() => new Storage({ apiKey: 'apiKey', environmentId: 'envId', encrypt: false })).not.to.throw();
 
             process.env.INC_API_KEY = 'apiKey';
 
-            expect(() => new Storage({ environmentId: 'envId' })).not.to.throw();
+            expect(() => new Storage({ environmentId: 'envId', encrypt: false })).not.to.throw();
           });
         });
 
@@ -150,19 +152,42 @@ describe('Storage', () => {
                 .to.throw(Error, 'Please pass environmentId in options or set INC_ENVIRONMENT_ID env var');
             });
 
-            expect(() => new Storage({ apiKey: 'apiKey', environmentId: 'envId' })).not.to.throw();
+            expect(() => new Storage({ apiKey: 'apiKey', environmentId: 'envId', encrypt: false })).not.to.throw();
 
             process.env.INC_ENVIRONMENT_ID = 'envId';
 
-            expect(() => new Storage({ apiKey: 'apiKey' })).not.to.throw();
+            expect(() => new Storage({ apiKey: 'apiKey', encrypt: false })).not.to.throw();
           });
+        });
+      });
+
+      describe('secretKeyAccessor', () => {
+        it('should throw an error if encryption is enabled and no secretKeyAccessor provided', () => {
+          expect(() => new Storage(
+            {
+              apiKey: 'API_KEY',
+              environmentId: 'ENVIRONMENT_ID',
+              endpoint: 'URL',
+            },
+          )).to.throw(Error, 'secretKeyAccessor must be an instance of SecretKeyAccessor');
+        });
+
+        it('should not throw an error if encryption is disabled and no secretKeyAccessor provided', () => {
+          expect(() => new Storage(
+            {
+              apiKey: 'API_KEY',
+              environmentId: 'ENVIRONMENT_ID',
+              endpoint: 'URL',
+              encrypt: false,
+            },
+          )).not.to.throw(Error, 'secretKeyAccessor must be an instance of SecretKeyAccessor');
         });
       });
 
       describe('logger', () => {
         it('should throw an error if provided logger is not object or has no "write" method or is not a function', () => {
           const expectStorageConstructorThrowsError = (wrongLogger) => {
-            expect(() => new Storage(undefined, undefined, wrongLogger, undefined))
+            expect(() => new Storage({ encrypt: false }, undefined, wrongLogger, undefined))
               .to.throw(Error, 'Logger must implement write function');
           };
 
@@ -172,7 +197,7 @@ describe('Storage', () => {
 
         it('should throw an error if provided logger.write is a function with less than 2 arguments', () => {
           const expectStorageConstructorThrowsError = (wrongLogger) => {
-            expect(() => new Storage(undefined, undefined, wrongLogger, undefined))
+            expect(() => new Storage({ encrypt: false }, undefined, wrongLogger, undefined))
               .to.throw(Error, 'Logger.write must have at least 2 parameters');
           };
 
@@ -180,6 +205,7 @@ describe('Storage', () => {
             expect(() => new Storage({
               apiKey: 'string',
               environmentId: 'string',
+              encrypt: false,
             }, undefined, correctLogger, undefined)).not.to.throw();
           };
 
@@ -197,7 +223,7 @@ describe('Storage', () => {
       let storage;
 
       beforeEach(() => {
-        storage = new Storage({ apiKey: 'apiKey', environmentId: 'envId' });
+        storage = new Storage({ apiKey: 'apiKey', environmentId: 'envId', encrypt: false });
       });
 
       it('should throw an error if called with falsy argument', () => {
@@ -228,22 +254,10 @@ describe('Storage', () => {
       });
     });
 
-    describe('setSecretKeyAccessor', () => {
-      it('should throw an error if not instance of SecretKeyAccessor was passed as argument', () => {
-        /** @type {import('../../storage')} */
-        const storage = new Storage({ apiKey: 'apiKey', environmentId: 'envId' });
-        const wrongSecretKeyAccessors = [null, false, '', {}, [], console];
-        wrongSecretKeyAccessors.forEach((item) => {
-          expect(() => storage.setSecretKeyAccessor(item)).to.throw(Error, 'secretKeyAccessor must be an instance of SecretKeyAccessor');
-        });
-        expect(() => storage.setSecretKeyAccessor(new SecretKeyAccessor(() => null))).not.to.throw();
-      });
-    });
-
     describe('setCountriesCache', () => {
       it('should throw an error if not instance of CountriesCache was passed as argument', () => {
         /** @type {import('../../storage')} */
-        const storage = new Storage({ apiKey: 'apiKey', environmentId: 'envId' });
+        const storage = new Storage({ apiKey: 'apiKey', environmentId: 'envId', encrypt: false });
         const wrongCountriesCaches = [null, undefined, false, {}];
         wrongCountriesCaches.forEach((item) => {
           expect(() => storage.setCountriesCache(item)).to.throw(Error, 'You must pass an instance of CountriesCache');
@@ -844,7 +858,8 @@ describe('Storage', () => {
 
           const oldSecret = { secret: SECRET_KEY, version: 0 };
           const newSecret = { secret: 'newnew', version: 1 };
-          encStorage.setSecretKeyAccessor(new SecretKeyAccessor(() => ({
+
+          const encStorage2 = getDefaultStorage(true, false, new SecretKeyAccessor(() => ({
             secrets: [oldSecret, newSecret],
             currentVersion: newSecret.version,
           })));
@@ -852,7 +867,7 @@ describe('Storage', () => {
           const popAPIFind = nockEndpoint(POPAPI_HOST, 'find', COUNTRY).reply(200, getDefaultFindResponse(encryptedRecords.length, encryptedRecords));
           const popAPIBatchWrite = nockEndpoint(POPAPI_HOST, 'batchWrite', COUNTRY).reply(200, 'OK');
 
-          const result = await encStorage.migrate(COUNTRY, TEST_RECORDS.length);
+          const result = await encStorage2.migrate(COUNTRY, TEST_RECORDS.length);
           expect(result).to.deep.equal(migrateResult);
           assert.equal(popAPIFind.isDone(), true, 'find() called');
           assert.equal(popAPIBatchWrite.isDone(), true, 'batchWrite() called');
