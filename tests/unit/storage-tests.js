@@ -162,7 +162,7 @@ describe('Storage', () => {
       });
 
       describe('secretKeyAccessor', () => {
-        it('should throw an error if options.encrypt is not set to "false" and no secretKeyAccessor provided', () => {
+        it('should throw an error if encryption is enabled and no secretKeyAccessor provided', () => {
           expect(() => new Storage(
             {
               apiKey: 'API_KEY',
@@ -172,7 +172,7 @@ describe('Storage', () => {
           )).to.throw(Error, 'secretKeyAccessor must be an instance of SecretKeyAccessor');
         });
 
-        it('should not throw an error if options.encrypt is set to "false" and no secretKeyAccessor provided', () => {
+        it('should throw an error if encryption is disabled and no secretKeyAccessor provided', () => {
           expect(() => new Storage(
             {
               apiKey: 'API_KEY',
