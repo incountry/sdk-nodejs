@@ -172,7 +172,7 @@ describe('Storage', () => {
           )).to.throw(Error, 'secretKeyAccessor must be an instance of SecretKeyAccessor');
         });
 
-        it('should throw an error if encryption is disabled and no secretKeyAccessor provided', () => {
+        it('should not throw an error if encryption is disabled and no secretKeyAccessor provided', () => {
           expect(() => new Storage(
             {
               apiKey: 'API_KEY',
