@@ -35,6 +35,7 @@ const { validateRecordKey } = require('./validation/record-key');
  * @property {string} environmentId
  * @property {string} [clientId]
  * @property {string} [clientSecret]
+ * @property {string} [authUrl]
  * @property {string} endpoint
  * @property {boolean} encrypt
  * @property {boolean} normalizeKeys
@@ -81,7 +82,9 @@ class Storage {
         throw new Error('Please pass clientSecret in options or set INC_CLIENT_SECRET env var');
       }
 
-      this.authClient = new AuthClient(this._clientId, this._clientSecret);
+      const authUrl = options.authUrl || process.env.INC_AUTH_URL;
+
+      this.authClient = new AuthClient(this._clientId, this._clientSecret, authUrl);
     } else {
       this.authClient = getFakeAuthClient(this._apiKey);
     }
