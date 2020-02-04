@@ -28,7 +28,7 @@ const SecretsDataIO = t.brand(
     secrets: t.array(SecretOrKey),
   }),
   (so) => hasSecretOfCurrentVersion(so),
-  'SecretsDataIO',
+  'SecretsData',
 );
 
 module.exports = {

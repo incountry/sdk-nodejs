@@ -268,7 +268,7 @@ describe('Storage', () => {
 
         describe('when the record has no key field', () => {
           it('should throw an error', async () => {
-            await expect(encStorage.write(COUNTRY, {})).to.be.rejectedWith(Error, 'Invalid value');
+            await expect(encStorage.write(COUNTRY, {})).to.be.rejectedWith(Error, 'Storage.write() Validation Error: <Record>.key should be string but got undefined');
           });
         });
       });
@@ -879,13 +879,22 @@ describe('Storage', () => {
 
       describe('should validate records', () => {
         const errorCases = [{
+          name: 'when the records has wrong type',
+          arg: 'recordzzz',
+          error: 'Storage.batchWrite() Validation Error: You must pass non-empty array of records',
+        }, {
           name: 'when the records is empty array',
           arg: [],
-          error: 'Invalid value []',
+          error: 'Storage.batchWrite() Validation Error: You must pass non-empty array of records',
         }, {
           name: 'when the record has no key field',
           arg: [{}],
-          error: 'Invalid value undefined',
+          error: 'Storage.batchWrite() Validation Error: <RecordsArray>.0.key should be string but got undefined',
+        },
+        {
+          name: 'when the record has no key field',
+          arg: [{ key: '1' }, {}],
+          error: 'Storage.batchWrite() Validation Error: <RecordsArray>.1.key should be string but got undefined',
         }];
 
         errorCases.forEach((errCase) => {

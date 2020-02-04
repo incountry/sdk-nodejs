@@ -1,5 +1,5 @@
 const t = require('io-ts');
-const { PathReporter } = require('io-ts/lib/PathReporter');
+const { report } = require('./error-reporter');
 const { StorageValidationError } = require('../errors');
 
 function isValid(validation) {
@@ -7,8 +7,8 @@ function isValid(validation) {
 }
 
 function createStorageValidationError(validation) {
-  const errorMessages = PathReporter.report(validation);
-  return new StorageValidationError(validation, errorMessages[errorMessages.length - 1]);
+  const errorMessages = report(validation);
+  return new StorageValidationError(validation, errorMessages.join('\n'));
 }
 
 function throwIfInvalid(validation) {

@@ -12,7 +12,7 @@ const FindResponseIO = t.type({
     total: t.Int,
   }),
   data: RecordsResponseIO,
-});
+}, 'FindResponse');
 
 const validateFindResponse = (responseData) => validateWithIO(responseData, FindResponseIO);
 
