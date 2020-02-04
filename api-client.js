@@ -10,6 +10,10 @@ const { isError } = require('./errors');
 const SDK_VERSION = pjson.version;
 
 /**
+ * @typedef {import('./auth-client').OAuthClient} AuthClient
+ */
+
+/**
  * @typedef ApiClientAction
  * @property {string} verb
  * @property {(country: string, key?: string) => string} path - function(country, key?)
@@ -56,23 +60,24 @@ const parsePoPError = (e) => {
 
 class ApiClient {
   /**
-   * @param {string} apiKey
+   * @param {AuthClient} authClient
    * @param {string} envId
    * @param {string} popapiHost
    * @param {(logLevel: string, message: any) => void} loggerFn
    * @param {function} countriesProviderFn - async function()
    */
-  constructor(apiKey, envId, popapiHost, loggerFn, countriesProviderFn) {
-    this.apiKey = apiKey;
+  constructor(authClient, envId, popapiHost, loggerFn, countriesProviderFn) {
+    this.authClient = authClient;
     this.envId = envId;
     this.host = popapiHost;
     this.loggerFn = loggerFn;
     this.countriesProviderFn = countriesProviderFn;
   }
 
-  headers() {
+  async headers() {
+    const token = await this.authClient.getToken();
     return {
-      Authorization: `Bearer ${this.apiKey}`,
+      Authorization: `Bearer ${token}`,
       'x-env-id': this.envId,
       'Content-Type': 'application/json',
       'User-Agent': `SDK-Node.js/${SDK_VERSION}`,
@@ -118,7 +123,7 @@ class ApiClient {
       throw new Error('Invalid action passed to ApiClient.');
     }
 
-    let headers = this.headers();
+    let headers = await this.headers();
     if (requestOptions.headers) {
       headers = {
         ...headers,

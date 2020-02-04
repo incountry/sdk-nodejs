@@ -1,6 +1,7 @@
 require('dotenv').config();
 const crypto = require('crypto');
 
+const { AuthClient, getFakeAuthClient } = require('./auth-client');
 const { ApiClient } = require('./api-client');
 const defaultLogger = require('./logger');
 const CountriesCache = require('./countries-cache');
@@ -32,9 +33,12 @@ const { validateRecordKey } = require('./validation/record-key');
  * @typedef StorageOptions
  * @property {string} apiKey
  * @property {string} environmentId
+ * @property {string} [clientId]
+ * @property {string} [clientSecret]
  * @property {string} endpoint
  * @property {boolean} encrypt
  * @property {boolean} normalizeKeys
+ * @property {boolean} [oauth]
  */
 
 /**
@@ -66,6 +70,22 @@ class Storage {
       throw new Error('Please pass environmentId in options or set INC_ENVIRONMENT_ID env var');
     }
 
+    if (options.oauth) {
+      this._clientId = options.clientId || process.env.INC_CLIENT_ID;
+      if (!this._clientId) {
+        throw new Error('Please pass clientId in options or set INC_CLIENT_ID env var');
+      }
+
+      this._clientSecret = options.clientSecret || process.env.INC_CLIENT_SECRET;
+      if (!this._clientSecret) {
+        throw new Error('Please pass clientSecret in options or set INC_CLIENT_SECRET env var');
+      }
+
+      this.authClient = new AuthClient(this._clientId, this._clientSecret);
+    } else {
+      this.authClient = getFakeAuthClient(this._apiKey);
+    }
+
     this._endpoint = options.endpoint;
 
     if (options.encrypt !== false) {
@@ -82,7 +102,7 @@ class Storage {
 
     this.setCountriesCache(countriesCache || new CountriesCache());
 
-    this.apiClient = new ApiClient(this._apiKey, this._envId, this._endpoint, (...args) => this._logger.write(...args), (...args) => this._countriesCache.getCountriesAsync(...args));
+    this.apiClient = new ApiClient(this.authClient, this._envId, this._endpoint, (...args) => this._logger.write(...args), (...args) => this._countriesCache.getCountriesAsync(...args));
     this.normalizeKeys = options.normalizeKeys;
   }
 

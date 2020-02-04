@@ -3,6 +3,7 @@ chai.use(require('chai-as-promised'));
 
 const nock = require('nock');
 const { ApiClient } = require('../../api-client');
+const { getFakeAuthClient } = require('../../auth-client');
 const { StorageServerError, StorageValidationError } = require('../../errors');
 const CountriesCache = require('../../countries-cache');
 const { nockEndpoint } = require('../test-helpers/popapi-nock');
@@ -27,7 +28,7 @@ const getApiClient = (host = undefined, cache = undefined) => {
   const environmentId = 'string';
   const loggerFn = (a, b) => [a, b];
 
-  return new ApiClient(apiKey, environmentId, host, loggerFn, cache ? cache.getCountriesAsync : cache);
+  return new ApiClient(getFakeAuthClient(apiKey), environmentId, host, loggerFn, cache ? cache.getCountriesAsync : cache);
 };
 
 describe('ApiClient', () => {
