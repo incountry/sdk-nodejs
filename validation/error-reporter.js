@@ -12,25 +12,30 @@ function last(arr) {
   return arr[arr.length - 1];
 }
 
-function getContextPath(context) {
+function formatContextPath(context) {
   return context
-    .filter((item, index, arr) => (!arr[index - 1] || (arr[index - 1] && arr[index - 1].type._tag !== 'IntersectionType')))
     .map(({ key, type }) => (key || `<${type.name}>`))
     .join('.');
 }
 
 function getMessage(e) {
+  const filtered = e.context
+    .filter((item, index, arr) => {
+      const prevItem = arr[index - 1];
+      return prevItem === undefined || (prevItem.type._tag !== 'IntersectionType' && prevItem.type._tag !== 'UnionType');
+    });
+
   return e.message !== undefined
     ? e.message
-    : `${getContextPath(e.context)} should be ${last(e.context).type.name} but got ${stringify(e.value)} `;
+    : `${formatContextPath(filtered)} should be ${last(filtered).type.name} but got ${stringify(e.value)} `;
 }
 
 function failure(es) {
-  return es.map(getMessage);
+  return last(es.map(getMessage));
 }
 
 function success() {
-  return ['No errors!'];
+  return 'No errors!';
 }
 
 module.exports = {

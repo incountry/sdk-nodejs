@@ -7,8 +7,8 @@ function isValid(validation) {
 }
 
 function createStorageValidationError(validation) {
-  const errorMessages = report(validation);
-  return new StorageValidationError(validation, errorMessages.join('\n'));
+  const errorMessage = report(validation);
+  return new StorageValidationError(validation, errorMessage);
 }
 
 function throwIfInvalid(validation) {

@@ -887,14 +887,19 @@ describe('Storage', () => {
           arg: [],
           error: 'Storage.batchWrite() Validation Error: You must pass non-empty array of records',
         }, {
-          name: 'when the record has no key field',
+          name: 'when any record has no key field',
           arg: [{}],
           error: 'Storage.batchWrite() Validation Error: <RecordsArray>.0.key should be string but got undefined',
         },
         {
-          name: 'when the record has no key field',
+          name: 'when any record has no key field',
           arg: [{ key: '1' }, {}],
           error: 'Storage.batchWrite() Validation Error: <RecordsArray>.1.key should be string but got undefined',
+        },
+        {
+          name: 'when any record has wrong format',
+          arg: [{ key: '1', key2: 41234512 }],
+          error: 'Storage.batchWrite() Validation Error: <RecordsArray>.0.key2 should be (string | null | undefined) but got 41234512',
         }];
 
         errorCases.forEach((errCase) => {
