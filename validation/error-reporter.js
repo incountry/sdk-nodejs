@@ -30,8 +30,8 @@ function getMessage(e) {
     : `${formatContextPath(filtered)} should be ${last(filtered).type.name} but got ${stringify(e.value)} `;
 }
 
-function failure(es) {
-  return last(es.map(getMessage));
+function failure(errors) {
+  return last(errors.map(getMessage));
 }
 
 function success() {
