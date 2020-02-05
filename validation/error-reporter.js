@@ -18,16 +18,19 @@ function formatContextPath(context) {
     .join('.');
 }
 
+function isUnionType(type) { return type._tag === 'UnionType'; }
+function isIntersectionType(type) { return type._tag === 'IntersectionType'; }
+
 function getMessage(e) {
   const filtered = e.context
     .filter((item, index, arr) => {
       const prevItem = arr[index - 1];
-      return prevItem === undefined || (prevItem.type._tag !== 'IntersectionType' && prevItem.type._tag !== 'UnionType');
+      return prevItem === undefined || (!isIntersectionType(prevItem.type) && !isUnionType(prevItem.type));
     });
 
   return e.message !== undefined
     ? e.message
-    : `${formatContextPath(filtered)} should be ${last(filtered).type.name} but got ${stringify(e.value)} `;
+    : `${formatContextPath(filtered)} should be ${last(filtered).type.name} but got ${stringify(e.value)}`;
 }
 
 function failure(errors) {
