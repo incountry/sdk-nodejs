@@ -174,7 +174,9 @@ describe('Storage', () => {
             });
 
             it('should be provided via either options or environment variable', () => {
-              const baseOptions = { apiKey: 'apiKey', environmentId: 'envId', oauth: true };
+              const baseOptions = {
+                apiKey: 'apiKey', environmentId: 'envId', oauth: true, encrypt: false,
+              };
               [baseOptions, { ...baseOptions, clientId: undefined }].forEach((options) => {
                 expect(() => new Storage(options))
                   .to.throw(Error, 'Please pass clientId in options or set INC_CLIENT_ID env var');
@@ -199,7 +201,7 @@ describe('Storage', () => {
 
             it('should be provided via either options or environment variable', () => {
               const baseOptions = {
-                apiKey: 'apiKey', environmentId: 'envId', oauth: true, clientId: 'clientId',
+                apiKey: 'apiKey', environmentId: 'envId', oauth: true, clientId: 'clientId', encrypt: false,
               };
               [baseOptions, { ...baseOptions, clientSecret: undefined }].forEach((options) => {
                 expect(() => new Storage(options))
