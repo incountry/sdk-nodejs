@@ -1,5 +1,6 @@
 const axios = require('axios');
 const ClientOAuth2 = require('client-oauth2');
+const { StorageServerError } = require('./errors');
 
 /**
  * @typedef OAuthClient
@@ -22,6 +23,9 @@ class AuthClient {
     }).then((res) => {
       res.body = JSON.stringify(res.data);
       return res;
+    }).catch((e) => {
+      e.response.body = JSON.stringify(e.response.data);
+      return e.response;
     });
 
     this.token = null;
@@ -36,10 +40,13 @@ class AuthClient {
   /** @returns {Promise<string>} */
   async getToken() {
     if (new Date() >= this.tokenExpiresAt) {
-      // TODO: throw custom error
-      const { accessToken, expires } = await this.authClient.credentials.getToken();
-      this.token = accessToken;
-      this.tokenExpiresAt = expires;
+      try {
+        const { accessToken, expires } = await this.authClient.credentials.getToken();
+        this.token = accessToken;
+        this.tokenExpiresAt = expires;
+      } catch (err) {
+        throw new StorageServerError(err.code, err.body, err.message);
+      }
     }
 
     return this.token;

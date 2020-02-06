@@ -4,6 +4,7 @@ chai.use(require('chai-as-promised'));
 const nock = require('nock');
 const sinon = require('sinon');
 const { AuthClient } = require('../../auth-client');
+const { StorageServerError } = require('../../errors');
 
 const { expect, assert } = chai;
 
@@ -109,13 +110,13 @@ describe('AuthClient', () => {
           error_description: 'Client authentication failed (e.g., unknown client, no client authentication included, or unsupported authentication method)',
           status_code: 401,
         };
-        nockDefaultAuth().reply(200, invalidClientErr);
-        await expect(authClient.getToken()).to.be.rejectedWith(Error, invalidClientErr.error_description);
+        nockDefaultAuth().reply(401, invalidClientErr);
+        await expect(authClient.getToken()).to.be.rejectedWith(StorageServerError, invalidClientErr.error_description);
       });
 
       it('network error', async () => {
         nockDefaultAuth().reply(500);
-        await expect(authClient.getToken()).to.be.rejectedWith(Error, 'Request failed with status code 500');
+        await expect(authClient.getToken()).to.be.rejectedWith(StorageServerError, 'HTTP status 500');
       });
     });
   });
