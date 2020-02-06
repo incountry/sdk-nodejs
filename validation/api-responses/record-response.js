@@ -10,7 +10,7 @@ const RecordResponseIO = t.type({
   range_key: nullable(t.Int),
   key2: nullable(t.string),
   key3: nullable(t.string),
-}, 'RecordResponseIO');
+}, 'RecordResponse');
 
 const validateRecordResponse = (record) => validateWithIO(record, RecordResponseIO);
 

@@ -139,8 +139,20 @@ class Storage {
     throw error;
   }
 
-  validate(...validationResults) {
-    validationResults.filter(isError).slice(0, 1).forEach(this.logAndThrowError, this);
+  /**
+   * @param {string} context
+   * @param {Array<Error|unknown>} validationResults
+   */
+  validate(context, ...validationResults) {
+    validationResults
+      .filter(isError)
+      .slice(0, 1)
+      .map((error) => {
+        /* eslint-disable-next-line no-param-reassign */
+        error.message = `${context} Validation Error: ${error.message}`;
+        return error;
+      })
+      .forEach(this.logAndThrowError, this);
   }
 
   /**
@@ -151,6 +163,7 @@ class Storage {
    */
   async write(countryCode, record, requestOptions = {}) {
     this.validate(
+      'Storage.write()',
       validateCountryCode(countryCode),
       validateRecord(record),
     );
@@ -169,6 +182,7 @@ class Storage {
    */
   async batchWrite(countryCode, records) {
     this.validate(
+      'Storage.batchWrite()',
       validateCountryCode(countryCode),
       validateRecordsNEA(records),
     );
@@ -190,6 +204,7 @@ class Storage {
    */
   async migrate(countryCode, limit) {
     this.validate(
+      'Storage.migrate()',
       validateCountryCode(countryCode),
       validateLimit(limit),
     );
@@ -222,6 +237,7 @@ class Storage {
    */
   async find(countryCode, filter, options = {}, requestOptions = {}) {
     this.validate(
+      'Storage.find()',
       validateCountryCode(countryCode),
       validateFindOptions(options),
     );
@@ -301,6 +317,7 @@ class Storage {
    */
   async read(countryCode, recordKey, requestOptions = {}) {
     this.validate(
+      'Storage.read()',
       validateCountryCode(countryCode),
       validateRecordKey(recordKey),
     );
@@ -384,7 +401,10 @@ class Storage {
    * @return {Promise<{ record: Record }>} Operation result.
    */
   async updateOne(countryCode, filter, doc, options = { override: false }, requestOptions = {}) {
-    this.validate(validateCountryCode(countryCode));
+    this.validate(
+      'Storage.updateOne()',
+      validateCountryCode(countryCode),
+    );
 
     if (options.override && doc.key) {
       return this.write(countryCode, { ...doc }, requestOptions);
@@ -407,6 +427,7 @@ class Storage {
 
   async delete(countryCode, recordKey, requestOptions = {}) {
     this.validate(
+      'Storage.delete()',
       validateCountryCode(countryCode),
       validateRecordKey(recordKey),
     );
