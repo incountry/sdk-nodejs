@@ -159,6 +159,58 @@ describe('Storage', () => {
             expect(() => new Storage({ apiKey: 'apiKey', encrypt: false })).not.to.throw();
           });
         });
+
+        describe('oauth', () => {
+          describe('clientId', () => {
+            let clientId;
+
+            beforeEach(() => {
+              clientId = process.env.INC_CLIENT_ID;
+              delete process.env.INC_CLIENT_ID;
+            });
+
+            afterEach(() => {
+              process.env.INC_CLIENT_ID = clientId;
+            });
+
+            it('should be provided via either options or environment variable', () => {
+              const baseOptions = { apiKey: 'apiKey', environmentId: 'envId', oauth: true };
+              [baseOptions, { ...baseOptions, clientId: undefined }].forEach((options) => {
+                expect(() => new Storage(options))
+                  .to.throw(Error, 'Please pass clientId in options or set INC_CLIENT_ID env var');
+              });
+              expect(() => new Storage({ ...baseOptions, clientId: 'clientId', clientSecret: 'clientSecret' })).not.to.throw();
+              process.env.INC_CLIENT_ID = 'clientId';
+              expect(() => new Storage({ ...baseOptions, clientSecret: 'clientSecret' })).not.to.throw();
+            });
+          });
+
+          describe('clientSecret', () => {
+            let clientSecret;
+
+            beforeEach(() => {
+              clientSecret = process.env.INC_CLIENT_SECRET;
+              delete process.env.INC_CLIENT_SECRET;
+            });
+
+            afterEach(() => {
+              process.env.INC_CLIENT_SECRET = clientSecret;
+            });
+
+            it('should be provided via either options or environment variable', () => {
+              const baseOptions = {
+                apiKey: 'apiKey', environmentId: 'envId', oauth: true, clientId: 'clientId',
+              };
+              [baseOptions, { ...baseOptions, clientSecret: undefined }].forEach((options) => {
+                expect(() => new Storage(options))
+                  .to.throw(Error, 'Please pass clientSecret in options or set INC_CLIENT_SECRET env var');
+              });
+              expect(() => new Storage({ ...baseOptions, clientSecret: 'clientSecret' })).not.to.throw();
+              process.env.INC_CLIENT_SECRET = 'clientSecret';
+              expect(() => new Storage(baseOptions)).not.to.throw();
+            });
+          });
+        });
       });
 
       describe('secretKeyAccessor', () => {
