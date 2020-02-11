@@ -145,10 +145,7 @@ class Storage {
       transformed[encryption.version] = encryption;
     });
 
-    this._crypto.setCustomEncryption(transformed);
-    if (currentVersion) {
-      this._crypto.setCurrentEncryptionVersion(currentVersion);
-    }
+    this._crypto.setCustomEncryption(transformed, currentVersion);
   }
 
   /**

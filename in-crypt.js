@@ -13,6 +13,7 @@ const PBKDF2_ITERATIONS_COUNT = 10000;
 const AUTH_TAG_SIZE = 16;
 const VERSION = '2';
 const PT_VERSION = 'pt';
+const CUSTOM_ENCRYPTION_VERSION_PREFIX = "c";
 
 const SUPPORTED_VERSIONS = ['0', '1', '2'];
 
@@ -24,11 +25,8 @@ class InCrypt {
     this._secretKeyAccessor = secretKeyAccessor;
   }
 
-  setCustomEncryption(customEncryption) {
+  setCustomEncryption(customEncryption, currentVersion) {
     this._customEncryption = customEncryption;
-  }
-
-  setCurrentEncryptionVersion(currentVersion) {
     this._customEncryptionVersion = currentVersion;
   }
 
@@ -164,3 +162,4 @@ class InCrypt {
 
 module.exports.InCrypt = InCrypt;
 module.exports.SUPPORTED_VERSIONS = SUPPORTED_VERSIONS;
+module.exports.KEY_SIZE = KEY_SIZE;

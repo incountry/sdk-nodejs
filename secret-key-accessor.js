@@ -1,5 +1,6 @@
 const { validationToPromise } = require('./validation/utils');
 const { SecretsDataIO } = require('./validation/secrets-data');
+const { KEY_SIZE } = require('./in-crypt');
 
 const DEFAULT_VERSION = 0;
 
