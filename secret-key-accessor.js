@@ -40,12 +40,16 @@ class SecretKeyAccessor {
     this._getSecretCallback = getSecretCallback;
   }
 
+  async initialize() {
+    await this.getSecrets();
+  }
+
   /**
    * @param {number} secretVersion optional, will fallback to "currentSecretVersion"
    * @return {Promise<{ secret: string, version: number }>}
    */
   getSecret(secretVersion) {
-    return this._getSecrets().then((so) => {
+    return this.getSecrets().then((so) => {
       const version = secretVersion !== undefined ? secretVersion : so.currentVersion;
       const item = so.secrets.find((s) => s.version === version);
       return item !== undefined
@@ -57,7 +61,7 @@ class SecretKeyAccessor {
   /**
    * @return {Promise<SecretsData>}
    */
-  _getSecrets() {
+  getSecrets() {
     return Promise
       .resolve(this._getSecretCallback())
       .then((v) => (typeof v === 'string' ? wrapToSecretsData(v) : validationToPromise(SecretsDataIO.decode(v))));

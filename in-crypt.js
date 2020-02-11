@@ -22,6 +22,12 @@ class InCrypt {
     this._secretKeyAccessor = secretKeyAccessor;
   }
 
+  async initialize() {
+    if (this._secretKeyAccessor !== undefined) {
+      await this._secretKeyAccessor.initialize();
+    }
+  }
+
   async getCurrentSecretVersion() {
     const { version } = await this._secretKeyAccessor.getSecret();
     return version;

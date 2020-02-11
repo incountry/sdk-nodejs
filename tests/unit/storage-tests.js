@@ -182,6 +182,18 @@ describe('Storage', () => {
             },
           )).not.to.throw(Error, 'secretKeyAccessor must be an instance of SecretKeyAccessor');
         });
+
+        it('should throw an error if malformed secretData is provided', () => {
+          const storage = new Storage(
+            {
+              apiKey: 'API_KEY',
+              environmentId: 'ENVIRONMENT_ID',
+              endpoint: 'URL',
+            }, new SecretKeyAccessor({}),
+          );
+
+          expect(storage._crypto.initialize()).not.to.throw(Error, 'secretKeyAccessor must be an instance of SecretKeyAccessor');
+        });
       });
 
       describe('logger', () => {

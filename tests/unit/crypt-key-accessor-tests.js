@@ -234,10 +234,13 @@ describe('SecretKeyAccessor', () => {
     });
 
     context('with malformed secret keys object', () => {
-      it('should reject if secret keys object has bad structure', () => {
+      it('should reject if secret keys object has bad structure', async () => {
         const secret = 'supersecret';
         const secretKeyAccessor1 = new SecretKeyAccessor(() => ({ blabla: secret }));
         expect(secretKeyAccessor1.getSecret()).to.be.rejectedWith(StorageValidationError);
+
+        const secretKeyAccessor2 = new SecretKeyAccessor(() => ({ blabla: secret }));
+        expect(secretKeyAccessor2.initialize()).to.be.rejectedWith(StorageValidationError);
       });
 
       it('should reject if there is no key of "currentVersion"', () => {
