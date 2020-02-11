@@ -37,6 +37,9 @@ class SecretKeyAccessor {
    * @param {GetSecretCallback} getSecretCallback
    */
   constructor(getSecretCallback) {
+    if (typeof getSecretCallback !== 'function') {
+      throw new Error('Provide callback function for secretData');
+    }
     this._getSecretCallback = getSecretCallback;
   }
 

@@ -183,7 +183,19 @@ describe('Storage', () => {
           )).not.to.throw(Error, 'secretKeyAccessor must be an instance of SecretKeyAccessor');
         });
 
-        it('should throw an error if malformed secretData is provided', () => {
+        it('should throw an error if malformed secretData is provided', async () => {
+          const storage = new Storage(
+            {
+              apiKey: 'API_KEY',
+              environmentId: 'ENVIRONMENT_ID',
+              endpoint: 'URL',
+            }, new SecretKeyAccessor(() => { }),
+          );
+
+          await expect(storage._crypto.initialize()).to.be.rejectedWith(Error, 'secretKeyAccessor must be an instance of SecretKeyAccessor');
+        });
+
+        it('should throw an error if malformed secretData is provided', async () => {
           const storage = new Storage(
             {
               apiKey: 'API_KEY',
@@ -192,7 +204,7 @@ describe('Storage', () => {
             }, new SecretKeyAccessor({}),
           );
 
-          expect(storage._crypto.initialize()).not.to.throw(Error, 'secretKeyAccessor must be an instance of SecretKeyAccessor');
+          await expect(storage._crypto.initialize()).to.be.rejectedWith(Error, 'secretKeyAccessor must be an instance of SecretKeyAccessor');
         });
       });
 
