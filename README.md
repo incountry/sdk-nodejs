@@ -1,9 +1,5 @@
 # InCountry Storage SDK
 
-## Important notes
-
-We've changed the encryption algorithm since version `0.5.0` so it is not compatible with earlier versions.
-
 ## Installation
 
 SDK is available via NPM:
@@ -135,12 +131,12 @@ Here is how data is transformed and stored in InCountry database:
 
 ```javascript
 {
-  key, // hashed
-  body, // encrypted
-  profile_key, // hashed
-  range_key, // plain
-  key2, // hashed
-  key3; // hashed
+	key,          // hashed
+	body,         // encrypted
+	profile_key,  // hashed
+	range_key,    // plain
+	key2,         // hashed
+	key3          // hashed
 }
 ```
 
@@ -207,7 +203,8 @@ The return object looks like the following:
 
 ```javascript
 {
-	data: [/* kitties */],
+	records: [/* kitties */],
+	errors: [], // optional
 	meta: {
 		limit: 10,
 		offset: 10,
@@ -245,6 +242,23 @@ One of the values:
 
 Available request options for `range_key`: `$lt`, `$lte`, `$gt`, `$gte`.
 You can search by any keys: `key`, `key2`, `key3`, `profile_key`, `range_key`.
+
+#### Error handling
+
+There could be a situation when `find` method will receive records that could not be decrypted.
+For example, if one changed the encryption key while the found data is encrypted with the older version of that key.
+In such cases find() method return data will be as follows:
+
+```javascript
+{
+	records: [/* successfully decrypted records */],
+	errors: [{
+		rawData,  // raw record which caused decryption error
+		error,    // decryption error description 
+	}, ...],
+	meta: { ... }
+}
+```
 
 ### Find one record matching filter
 

@@ -11,7 +11,7 @@ module.exports = {
 
     const baseLevel = filterLevels[baseLogLevel];
 
-    const write = function (logLevel, message, id, timestamp) {
+    const write = (logLevel, message, id, timestamp) => {
       if (filterLevels[logLevel] >= baseLevel) {
         const logEntry = {
           type: 'application.proxy.app_log',

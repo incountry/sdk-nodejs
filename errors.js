@@ -3,8 +3,8 @@
 const isError = (obj) => obj instanceof Error;
 
 class StorageValidationError extends Error {
-  constructor(validation, ...params) {
-    super(params);
+  constructor(validation, message) {
+    super(message);
     this.validation = validation;
     this.name = 'StorageValidationError';
     if (Error.captureStackTrace) {
@@ -14,8 +14,8 @@ class StorageValidationError extends Error {
 }
 
 class StorageClientError extends Error {
-  constructor(...params) {
-    super(params);
+  constructor(message) {
+    super(message);
     this.name = 'StorageClientError';
     if (Error.captureStackTrace) {
       Error.captureStackTrace(this, StorageClientError);
@@ -24,8 +24,8 @@ class StorageClientError extends Error {
 }
 
 class StorageServerError extends Error {
-  constructor(code, responseData, ...params) {
-    super(params);
+  constructor(code, responseData, message) {
+    super(message);
     this.code = code;
     this.responseData = responseData;
     this.name = 'StorageServerError';
@@ -36,8 +36,8 @@ class StorageServerError extends Error {
 }
 
 class InCryptoError extends Error {
-  constructor(...params) {
-    super(params);
+  constructor(message) {
+    super(message);
     this.name = 'InCryptoError';
     if (Error.captureStackTrace) {
       Error.captureStackTrace(this, InCryptoError);

@@ -1,4 +1,5 @@
 const axios = require('axios');
+const get = require('lodash.get');
 const { StorageServerError } = require('./errors');
 const pjson = require('./package.json');
 const { validateRecordResponse } = require('./validation/api-responses/record-response');
@@ -44,6 +45,14 @@ const ACTIONS = {
 };
 
 const DEFAULT_POPAPI_HOST = 'https://us.api.incountry.io';
+
+const parsePoPError = (e) => {
+  const errors = get(e, 'response.data.errors', []);
+  const errorMessage = errors.map(({ title, source }) => `${title}: ${source}`).join(';\n');
+  const requestHeaders = get(e, 'config.headers');
+  const responseHeaders = get(e, 'response.headers');
+  return { errorMessage, requestHeaders, responseHeaders };
+};
 
 class ApiClient {
   /**
@@ -101,30 +110,68 @@ class ApiClient {
    * @param {string} key
    * @param {('read'|'write'|'delete'|'find'|'batchWrite')} action
    * @param {object} data - request body
+   * @param {object} [requestOptions]
    */
-  async runQuery(country, key, action, data = undefined) {
+  async runQuery(country, key, action, data = undefined, requestOptions = {}) {
     const chosenAction = ACTIONS[action];
     if (!chosenAction) {
       throw new Error('Invalid action passed to ApiClient.');
     }
 
+    let headers = this.headers();
+    if (requestOptions.headers) {
+      headers = {
+        ...headers,
+        ...requestOptions.headers,
+      };
+    }
+
+    const operation = `${action[0].toUpperCase()}${action.slice(1)}`;
     const path = chosenAction.path(country, key);
     const url = await this.getEndpoint(country.toLowerCase(), path);
     const method = chosenAction.verb;
-    this.loggerFn('debug', `${method.toUpperCase()} ${url}`);
+
+    this.loggerFn('info', `Sending ${method.toUpperCase()} ${url}`, {
+      endpoint: url,
+      country,
+      op_result: 'in_progress',
+      key: key || data.key,
+      operation,
+      requestHeaders: requestOptions.headers,
+    });
+
     let response;
     try {
       response = await axios({
         url,
-        headers: this.headers(),
+        headers,
         method,
         data,
       });
     } catch (err) {
-      const storageServerError = new StorageServerError(err.code, err.response ? err.response.data : {}, `${method.toUpperCase()} ${url} ${err.message}`);
-      this.loggerFn('error', storageServerError);
-      throw storageServerError;
+      const popError = parsePoPError(err);
+      this.loggerFn('error', err, {
+        endpoint: url,
+        country,
+        op_result: 'error',
+        key: key || data.key,
+        operation,
+        requestHeaders: popError.requestHeaders,
+        responseHeaders: popError.responseHeaders,
+        message: popError.errorMessage || err.message,
+      });
+      throw new StorageServerError(err.code, err.response ? err.response.data : {}, `${method.toUpperCase()} ${url} ${err.message}`);
     }
+
+    this.loggerFn('info', `Finished ${method.toUpperCase()} ${url}`, {
+      endpoint: url,
+      country,
+      op_result: 'success',
+      key: key || data.key,
+      operation,
+      requestHeaders: response.config.headers,
+      responseHeaders: response.headers,
+    });
 
     if (chosenAction.validateResponse) {
       this.tryValidate(chosenAction.validateResponse(response.data));
@@ -133,24 +180,24 @@ class ApiClient {
     return response.data;
   }
 
-  read(country, key) {
-    return this.runQuery(country, key, 'read');
+  read(country, key, requestOptions = {}) {
+    return this.runQuery(country, key, 'read', undefined, requestOptions);
   }
 
-  write(country, data) {
-    return this.runQuery(country, undefined, 'write', data);
+  write(country, data, requestOptions = {}) {
+    return this.runQuery(country, undefined, 'write', data, requestOptions);
   }
 
-  delete(country, key) {
-    return this.runQuery(country, key, 'delete');
+  delete(country, key, requestOptions = {}) {
+    return this.runQuery(country, key, 'delete', undefined, requestOptions);
   }
 
-  find(country, data) {
-    return this.runQuery(country, undefined, 'find', data);
+  find(country, data, requestOptions = {}) {
+    return this.runQuery(country, undefined, 'find', data, requestOptions);
   }
 
-  batchWrite(country, data) {
-    return this.runQuery(country, undefined, 'batchWrite', data);
+  batchWrite(country, data, requestOptions = {}) {
+    return this.runQuery(country, undefined, 'batchWrite', data, requestOptions);
   }
 }
 

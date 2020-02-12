@@ -13,7 +13,7 @@ const PBKDF2_ITERATIONS_COUNT = 10000;
 const AUTH_TAG_SIZE = 16;
 const VERSION = '2';
 const PT_VERSION = 'pt';
-const CUSTOM_ENCRYPTION_VERSION_PREFIX = "c";
+const CUSTOM_ENCRYPTION_VERSION_PREFIX = 'c';
 
 const SUPPORTED_VERSIONS = ['0', '1', '2'];
 
@@ -69,7 +69,7 @@ class InCrypt {
     const [version, encrypted] = parts;
 
     if (!this._secretKeyAccessor && version !== PT_VERSION) {
-      return this.decryptStub(encrypted);
+      throw new Error('No secretKeyAccessor provided. Cannot decrypt encrypted data');
     }
     if (this._customEncryption && this._customEncryption[version]) {
       const { secret } = await this._secretKeyAccessor.getSecret(secretVersion);
@@ -80,10 +80,6 @@ class InCrypt {
       throw new InCryptoError('Unknown decryptor version requested');
     }
     return decrypt.bind(this)(encrypted, secretVersion);
-  }
-
-  decryptStub(encrypted) {
-    return encrypted;
   }
 
   decryptVpt(plainTextBase64) {
