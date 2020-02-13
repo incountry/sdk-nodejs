@@ -5,7 +5,7 @@ const { ApiClient } = require('./api-client');
 const defaultLogger = require('./logger');
 const CountriesCache = require('./countries-cache');
 const SecretKeyAccessor = require('./secret-key-accessor');
-const { InCrypt, SUPPORTED_VERSIONS } = require('./in-crypt');
+const { InCrypt } = require('./in-crypt');
 const { isError } = require('./errors');
 
 const { validateRecord } = require('./validation/record');
@@ -14,9 +14,14 @@ const { validateCountryCode } = require('./validation/country-code');
 const { validateFindOptions } = require('./validation/find-options');
 const { validateLimit } = require('./validation/limit');
 const { validateRecordKey } = require('./validation/record-key');
+const { validateCustomEncryptionData } = require('./validation/custom-encryption-data');
 
 /**
  * @typedef {import('./secret-key-accessor')} SecretKeyAccessor
+ */
+
+/**
+ * @typedef {import('./validation/custom-encryption-data').CustomEncryption} CustomEncryption
  */
 
 /**
@@ -35,14 +40,6 @@ const { validateRecordKey } = require('./validation/record-key');
  * @property {string} endpoint
  * @property {boolean} encrypt
  * @property {boolean} normalizeKeys
- */
-
-/**
- * @typedef {Object} CustomEncryption
- * @property {function} encrypt
- * @property {function} decrypt
- * @property {string} version
- * @property {boolean} [isCurrent]
  */
 
 /**
@@ -132,25 +129,12 @@ class Storage {
    * @param {Array<CustomEncryption>} customEncryption
    */
   setCustomEncryption(customEncryption) {
-    const transformed = {};
-    let currentVersion = null;
-    customEncryption.forEach((encryption) => {
-      // if (SUPPORTED_VERSIONS.includes(encryption.version)) {
-      //   throw new Error(`Custom encryption version must not correspond build-in encryption: ${encryption.version}`);
-      // }
-      // if (!/^[A-Za-z0-9_-]+$/.test(encryption.version)) {
-      //   throw new Error('Custom encryption version must contain letters, numbers, - and _ signs only');
-      // }
-      if (encryption.isCurrent) {
-        if (currentVersion != null) {
-          throw new Error('There must be at most one current version of custom encryption');
-        }
-        currentVersion = encryption.version;
-      }
-      transformed[encryption.version] = encryption;
-    });
+    this.validate(
+      'Storage.setCustomEncryption()',
+      validateCustomEncryptionData(customEncryption),
+    );
 
-    this._crypto.setCustomEncryption(transformed, currentVersion);
+    this._crypto.setCustomEncryption(customEncryption);
   }
 
   /**
@@ -373,7 +357,7 @@ class Storage {
       meta: {},
     };
     ['profile_key', 'key', 'key2', 'key3'].forEach((field) => {
-      if (record[field] != null) {
+      if (record[field] !== undefined) {
         body.meta[field] = record[field];
         record[field] = this.createKeyHash(this.normalizeKey(record[field]));
       }

@@ -1,8 +1,5 @@
 const { validationToPromise } = require('./validation/utils');
 const { SecretsDataIO } = require('./validation/secrets-data');
-const { KEY_SIZE } = require('./in-crypt');
-
-const DEFAULT_VERSION = 0;
 
 /**
  * @typedef {import('./validation/secrets-data').SecretsData} SecretsData
@@ -12,6 +9,9 @@ const DEFAULT_VERSION = 0;
  * @param {string} secret
  * @return {SecretsData}
  */
+
+const DEFAULT_VERSION = 0;
+
 function wrapToSecretsData(secret) {
   return {
     currentVersion: DEFAULT_VERSION,
@@ -66,5 +66,4 @@ class SecretKeyAccessor {
 }
 
 SecretKeyAccessor.DEFAULT_VERSION = DEFAULT_VERSION;
-
 module.exports = SecretKeyAccessor;

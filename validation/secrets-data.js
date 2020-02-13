@@ -1,5 +1,7 @@
 const t = require('io-ts');
 
+const KEY_SIZE = 32;
+
 /**
  * @typedef SecretsData
  * @property {Array<{ secret: string, version: number, isKey?: boolean }>} secrets
@@ -18,7 +20,7 @@ const SecretOrKey = t.brand(
   t.type({
     secret: t.string, version: t.Int, isKey: t.union([t.boolean, t.undefined]),
   }),
-  (v) => !v.isKey || (v.isKey && v.secret.length === 32),
+  (v) => !v.isKey || (v.isKey && v.secret.length === KEY_SIZE),
   'SecretOrKey',
 );
 

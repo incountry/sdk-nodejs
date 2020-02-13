@@ -307,7 +307,9 @@ describe('Storage', () => {
                 it(`should hash keys and send ${opt.bodyDescr}`, async () => {
                   const storage = opt.encrypted ? encStorage : noEncStorage;
                   const encrypted = await storage.encryptPayload(testCase);
+
                   const [bodyObj, result] = await Promise.all([getNockedRequestBodyObject(popAPI), storage.write(COUNTRY, testCase)]);
+
                   expect(_.omit(bodyObj, ['body'])).to.deep.equal(_.omit(encrypted, ['body']));
                   expect(bodyObj.body).to.match(opt.bodyRegExp);
                   expect(result.record).to.deep.equal(testCase);
@@ -324,24 +326,16 @@ describe('Storage', () => {
             it('should write data into storage', async () => {
               const storage = encStorage;
               storage.setCustomEncryption([{
-                encrypt: (data, secret, version) => {
-                  const meta = _.omit(testCase, ['body', 'version', 'range_key']);
-                  const expected = { meta };
-                  if (testCase.body) {
-                    expected.payload = testCase.body;
-                  }
-                  expect(JSON.parse(data)).to.deep.equal(expected);
-                  expect(secret).to.equal(SECRET_KEY);
-                  expect(version).to.equal(testCase.version);
-                  return 'encrypted';
-                },
-                decrypt: (...rest) => { console.log(rest); return 'bar'; },
+                encrypt: (text) => Buffer.from(text).toString('base64'),
+                decrypt: (encryptedData) => Buffer.from(encryptedData, 'base64').toString('utf-8'),
                 version: 'customEncryption',
                 isCurrent: true,
               }]);
+
+              const encryptedPayload = await storage.encryptPayload(testCase);
+
               const [bodyObj, result] = await Promise.all([getNockedRequestBodyObject(popAPI), storage.write(COUNTRY, testCase)]);
-              const expected = 'customEncryption:encrypted';
-              expect(bodyObj.body).to.equal(expected);
+              expect(bodyObj.body).to.equal(encryptedPayload.body);
               expect(result.record).to.deep.equal(testCase);
             });
           });
@@ -432,25 +426,16 @@ describe('Storage', () => {
             it('should read custom encrypted record', async () => {
               const storage = encStorage;
               storage.setCustomEncryption([{
-                encrypt: () => 'encrypted',
-                decrypt: (encryptedData, secret, version) => {
-                  const response = {};
-                  response.meta = _.omit(testCase, ['body', 'version', 'range_key']);
-                  if (testCase.body) {
-                    response.payload = testCase.body;
-                  }
-                  expect(encryptedData).to.equal('encrypted');
-                  expect(secret).to.equal(SECRET_KEY);
-                  expect(version).to.equal(testCase.version);
-                  return JSON.stringify(response);
-                },
+                encrypt: (text) => Buffer.from(text).toString('base64'),
+                decrypt: (encryptedData) => Buffer.from(encryptedData, 'base64').toString('utf-8'),
                 version: 'customEncryption',
                 isCurrent: true,
               }]);
+
               const encryptedPayload = await storage.encryptPayload(testCase);
-              expect(encryptedPayload.body).to.equal('customEncryption:encrypted');
               nockEndpoint(POPAPI_HOST, 'read', COUNTRY, encryptedPayload.key)
                 .reply(200, encryptedPayload);
+
               const { record } = await storage.read(COUNTRY, testCase.key);
               expect(record).to.deep.equal(testCase);
             });
