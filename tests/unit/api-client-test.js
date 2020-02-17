@@ -91,7 +91,7 @@ describe('ApiClient', () => {
         };
         const country = 'ae';
         const apiClient = getApiClient(undefined, failingCache);
-        await expect(apiClient.getEndpoint(country, 'testPath')).to.be.rejectedWith(StorageServerError, 'test');
+        await expect(apiClient.getEndpoint(country, 'testPath')).to.be.rejectedWith(StorageServerError, 'Unable to retrieve countries list: test');
         assert.equal(nockPB.isDone(), false, 'PB was not called');
       });
     });
@@ -108,7 +108,7 @@ describe('ApiClient', () => {
         const workingCache = new CountriesCache(countriesProviderHost, 1000, Date.now() + 1000);
         const country = 'ae';
         const apiClient = getApiClient(undefined, workingCache);
-        await expect(apiClient.getEndpoint(country, 'testPath')).to.be.rejectedWith(StorageServerError, 'Request failed with status code 500');
+        await expect(apiClient.getEndpoint(country, 'testPath')).to.be.rejectedWith(StorageServerError, 'Unable to retrieve countries list: Request failed with status code 500');
         assert.equal(countriesProviderNock.isDone(), true, 'Countries provider was called');
       });
     });
