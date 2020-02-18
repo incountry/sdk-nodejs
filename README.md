@@ -298,6 +298,66 @@ SDK introduces `migrate(country: str, limit: int)` method which allows you to re
 
 For a detailed example of a migration script please see `/examples/fullMigration.js`
 
+#### Custom encryption
+
+SDK supports the ability to provide custom encryption/decryption methods if you decide to use your own algorithm instead of the default one.
+
+`storage.setCustomEncryption(configs)` allows you to pass an array of custom encryption configurations with the following schema, which enables custom encryption:
+
+```typescript
+{
+  encrypt: (text: string, secret: string, secretVersion: string) => Promise<string>,
+  decrypt: (encryptedText: string, secret: string, secretVersion: string) => Promise<string>,
+  isCurrent:? boolean, // optional but at least one in array should be isCurrent: true
+  version: string
+}
+```
+They should accept raw data to encrypt/decrypt, key data and key version received from SecretKeyAccessor. 
+The resulted encrypted/decrypted data should be a string. 
+
+`version` attribute is used to differ one custom encryption from another and from the default encryption as well. 
+This way SDK will be able to successfully decrypt any old data if encryption changes with time.
+
+`isCurrent` attribute allows to specify one of the custom encryption configurations to use for encryption. 
+Only one configuration can be set as `isCurrent: true`.
+
+
+Here's an example of how you can set up SDK to use custom encryption (using XXTEA encryption algorithm):
+
+```javascript
+const xxtea = require("xxtea");
+const encrypt = async function(text, secret) {
+  return xxtea.encrypt(text, secret);
+};
+
+const decrypt = async function(encryptedText, secret) {
+  return xxtea.decrypt(encryptedText, secret);
+};
+
+const secretKeyAccessor = new SecretKeyAccessor(() => {
+  return "longAndStrongPassword";
+});
+
+const storage = new Storage(
+  {
+    apiKey: "",
+    environmentId: "",
+    endpoint: "",
+    encrypt: true,
+  },
+  secretKeyAccessor,
+);
+
+storage.setCustomEncryption([{ 
+  encrypt,
+  decrypt,
+  isCurrent: true,
+  version: "current",
+}]);
+
+await storage.write("US", { key: "123", data: "{}" });
+```
+
 ### Logging
 
 You can specify a custom logger at any time as following:

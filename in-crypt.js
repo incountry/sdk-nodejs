@@ -4,7 +4,7 @@ const util = require('util');
 const { DEFAULT_VERSION } = require('./secret-key-accessor');
 const { InCryptoError } = require('./errors');
 /**
- * @typedef {import('./validation/custom-encryption-data').CustomEncryption} CustomEncryption
+ * @typedef {import('./validation/custom-encryption-configs').CustomEncryptionConfig} CustomEncryptionConfig
  */
 
 const pbkdf2 = util.promisify(crypto.pbkdf2);
@@ -18,6 +18,10 @@ const VERSION = '2';
 const PT_VERSION = 'pt';
 const CUSTOM_ENCRYPTION_VERSION_PREFIX = 'c';
 
+const CUSTOM_ENCRYPTION_ERROR_MESSAGE_NO_SKA = 'Custom encryption not supported without secretKeyAccessor provided';
+const CUSTOM_ENCRYPTION_ERROR_MESSAGE_ENC = 'Custom encryption \'encrypt\' method should return string';
+const CUSTOM_ENCRYPTION_ERROR_MESSAGE_DEC = 'Custom encryption \'decrypt\' method should return string';
+
 class InCrypt {
   /**
   * @param {import('./secret-key-accessor')} secretKeyAccessor
@@ -26,12 +30,27 @@ class InCrypt {
     this._secretKeyAccessor = secretKeyAccessor;
   }
 
+  packCustomEncryptionVersion(version) {
+    return `${CUSTOM_ENCRYPTION_VERSION_PREFIX}${Buffer.from(version).toString('base64')}`;
+  }
+
   /**
-   *  @param {Array<CustomEncryption>} customEncryption
+   *  @param {Array<CustomEncryptionConfig>} customEncryptionConfigs
    */
-  setCustomEncryption(customEncryption) {
-    this._customEncryption = customEncryption.reduce((result, item) => ({ ...result, [item.version]: item }), {});
-    this._customEncryptionVersion = customEncryption.find((c) => c.isCurrent).version;
+  setCustomEncryption(customEncryptionConfigs) {
+    if (this._secretKeyAccessor === undefined) {
+      throw new InCryptoError(CUSTOM_ENCRYPTION_ERROR_MESSAGE_NO_SKA);
+    }
+
+    this._customEncryption = customEncryptionConfigs.reduce((result, item) => ({
+      ...result,
+      [this.packCustomEncryptionVersion(item.version)]: item,
+    }), {});
+
+    const current = customEncryptionConfigs.find((c) => c.isCurrent);
+    if (current) {
+      this._customEncryptionVersion = this.packCustomEncryptionVersion(current.version);
+    }
   }
 
   async getCurrentSecretVersion() {
@@ -47,16 +66,20 @@ class InCrypt {
       };
     }
 
-    if (this._customEncryption) {
+    if (this._customEncryptionVersion) {
       const { encrypt } = this._customEncryption[this._customEncryptionVersion];
       const { secret, version } = await this._secretKeyAccessor.getSecret();
       const ciphertext = await encrypt(text, secret, version);
+      if (typeof ciphertext !== 'string') {
+        throw new InCryptoError(`${CUSTOM_ENCRYPTION_ERROR_MESSAGE_ENC}. Got ${typeof ciphertext}`);
+      }
 
       return {
-        message: `${CUSTOM_ENCRYPTION_VERSION_PREFIX}${Buffer.from(this._customEncryptionVersion).toString('base64')}:${ciphertext}`,
+        message: `${this._customEncryptionVersion}:${ciphertext}`,
         secretVersion: version,
       };
     }
+
     return this.encryptDefault(text);
   }
 
@@ -71,27 +94,35 @@ class InCrypt {
     }
     const [version, encrypted] = parts;
 
-    if (!this._secretKeyAccessor && version !== PT_VERSION) {
-      throw new Error('No secretKeyAccessor provided. Cannot decrypt encrypted data');
+    if (version === PT_VERSION) {
+      return this.decryptVpt(encrypted);
     }
 
-    if (this._customEncryption) {
-      const customEncryptionVersion = Buffer.from(version.substr(1), 'base64').toString('utf-8');
-      const customEncryption = this._customEncryption[customEncryptionVersion];
-      if (customEncryption === undefined) {
-        throw new InCryptoError('No custom encryption methods for this version provided');
-      }
+    if (!this._secretKeyAccessor) {
+      throw new InCryptoError('No secretKeyAccessor provided. Cannot decrypt encrypted data');
+    }
 
+    if (version === '1') {
+      return this.decryptV1(encrypted, secretVersion);
+    }
+
+    if (version === '2') {
+      return this.decryptV2(encrypted, secretVersion);
+    }
+
+    if (this._customEncryption && this._customEncryption[version]) {
+      const { decrypt } = this._customEncryption[this._customEncryptionVersion];
       const { secret } = await this._secretKeyAccessor.getSecret(secretVersion);
-      return customEncryption.decrypt(encrypted, secret, secretVersion);
+      const decrypted = decrypt(encrypted, secret, secretVersion);
+      if (typeof decrypted !== 'string') {
+        throw new InCryptoError(`${CUSTOM_ENCRYPTION_ERROR_MESSAGE_DEC}. Got ${typeof decrypted}`);
+      }
+      return decrypted;
     }
 
-    const decrypt = this[`decryptV${version}`];
-    if (decrypt === undefined) {
-      throw new InCryptoError('Unknown decryptor version requested');
-    }
-    return decrypt.bind(this)(encrypted, secretVersion);
+    throw new InCryptoError('Unknown decryptor version requested');
   }
+
 
   decryptVpt(plainTextBase64) {
     return Buffer.from(plainTextBase64, 'base64').toString('utf-8');
@@ -167,5 +198,12 @@ class InCrypt {
   }
 }
 
-module.exports.InCrypt = InCrypt;
-module.exports.KEY_SIZE = KEY_SIZE;
+module.exports = {
+  InCrypt,
+  KEY_SIZE,
+  VERSION,
+  CUSTOM_ENCRYPTION_VERSION_PREFIX,
+  CUSTOM_ENCRYPTION_ERROR_MESSAGE_NO_SKA,
+  CUSTOM_ENCRYPTION_ERROR_MESSAGE_ENC,
+  CUSTOM_ENCRYPTION_ERROR_MESSAGE_DEC,
+};

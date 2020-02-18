@@ -1,7 +1,14 @@
 /* eslint-disable prefer-arrow-callback,func-names */
 const chai = require('chai');
 const chaiAsPromised = require('chai-as-promised');
-const { InCrypt } = require('../../in-crypt');
+const {
+  InCrypt,
+  CUSTOM_ENCRYPTION_VERSION_PREFIX,
+  VERSION,
+  CUSTOM_ENCRYPTION_ERROR_MESSAGE_NO_SKA,
+  CUSTOM_ENCRYPTION_ERROR_MESSAGE_ENC,
+  CUSTOM_ENCRYPTION_ERROR_MESSAGE_DEC,
+} = require('../../in-crypt');
 const SecretKeyAccessor = require('../../secret-key-accessor');
 
 chai.use(chaiAsPromised);
@@ -111,6 +118,106 @@ describe('InCrypt', function () {
         expect(encrypted).not.to.eql(plain);
         expect(decrypted).to.eql(plain);
       });
+    });
+  });
+
+  context('when custom enryption configs provided', () => {
+    PLAINTEXTS.forEach((plain) => {
+      it('should use custom encryption', async function () {
+        const configs = [{
+          encrypt: (text) => Buffer.from(text).toString('base64'),
+          decrypt: (encryptedData) => Buffer.from(encryptedData, 'base64').toString('utf-8'),
+          version: 'customEncryption',
+          isCurrent: true,
+        }];
+
+        const secretKeyAccessor = new SecretKeyAccessor(() => ({
+          secrets: [{ version: 0, secret: 'supersecret' }], currentVersion: 0,
+        }));
+
+        const incrypt = new InCrypt(secretKeyAccessor);
+
+        incrypt.setCustomEncryption(configs);
+
+        const encrypted = await incrypt.encryptAsync(plain, 0);
+        expect(encrypted.message.startsWith(CUSTOM_ENCRYPTION_VERSION_PREFIX)).to.equal(true);
+
+        const decrypted = await incrypt.decryptAsync(encrypted.message, encrypted.secretVersion);
+        expect(decrypted).to.equal(plain);
+      });
+
+      it('should use default encryption if no current custom encryption config', async function () {
+        const configs = [{
+          encrypt: (text) => Buffer.from(text).toString('base64'),
+          decrypt: (encryptedData) => Buffer.from(encryptedData, 'base64').toString('utf-8'),
+          version: 'customEncryption',
+        }];
+
+        const secretKeyAccessor = new SecretKeyAccessor(() => ({
+          secrets: [{ version: 0, secret: 'supersecret' }], currentVersion: 0,
+        }));
+
+        const incrypt = new InCrypt(secretKeyAccessor);
+
+        incrypt.setCustomEncryption(configs);
+
+        const encrypted = await incrypt.encryptAsync(plain, 0);
+        expect(encrypted.message.startsWith(VERSION)).to.equal(true);
+
+        const decrypted = await incrypt.decryptAsync(encrypted.message, encrypted.secretVersion);
+        expect(decrypted).to.equal(plain);
+      });
+    });
+
+    it('should throw an error if no SecretKeyAccessor provided', () => {
+      const configs = [{
+        encrypt: () => { },
+        decrypt: () => { },
+        version: 'customEncryption',
+      }];
+
+      const incrypt = new InCrypt();
+
+      expect(() => incrypt.setCustomEncryption(configs)).to.throw(CUSTOM_ENCRYPTION_ERROR_MESSAGE_NO_SKA);
+    });
+
+    it('should throw an error if custom encryption "encrypt" function returns not string', async function () {
+      const configs = [{
+        encrypt: () => 100,
+        decrypt: () => { },
+        version: 'customEncryption',
+        isCurrent: true,
+      }];
+
+      const secretKeyAccessor = new SecretKeyAccessor(() => ({
+        secrets: [{ version: 0, secret: 'supersecret' }], currentVersion: 0,
+      }));
+
+      const incrypt = new InCrypt(secretKeyAccessor);
+
+      incrypt.setCustomEncryption(configs);
+
+      await expect(incrypt.encryptAsync('plain', 0)).to.be.rejectedWith(Error, CUSTOM_ENCRYPTION_ERROR_MESSAGE_ENC);
+    });
+
+    it('should throw an error if custom encryption "decrypt" function returns not string', async function () {
+      const configs = [{
+        encrypt: () => '',
+        decrypt: () => 100,
+        version: 'customEncryption',
+        isCurrent: true,
+      }];
+
+      const secretKeyAccessor = new SecretKeyAccessor(() => ({
+        secrets: [{ version: 0, secret: 'supersecret' }], currentVersion: 0,
+      }));
+
+      const incrypt = new InCrypt(secretKeyAccessor);
+
+      incrypt.setCustomEncryption(configs);
+
+      const encrypted = await incrypt.encryptAsync('plain', 0);
+      await expect(incrypt.decryptAsync(encrypted.message, encrypted.secretVersion)).to.be.rejectedWith(Error, CUSTOM_ENCRYPTION_ERROR_MESSAGE_DEC);
     });
   });
 

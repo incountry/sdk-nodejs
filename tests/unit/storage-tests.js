@@ -5,7 +5,7 @@ const nock = require('nock');
 const uuid = require('uuid/v4');
 const _ = require('lodash');
 const Storage = require('../../storage');
-const { StorageServerError } = require('../../errors');
+const { StorageServerError, StorageClientError, StorageValidationError } = require('../../errors');
 const CountriesCache = require('../../countries-cache');
 const SecretKeyAccessor = require('../../secret-key-accessor');
 const {
@@ -15,6 +15,11 @@ const {
 } = require('../test-helpers/popapi-nock');
 const { COUNTRY_CODE_ERROR_MESSAGE } = require('../../validation/country-code');
 const { RECORD_KEY_ERROR_MESSAGE } = require('../../validation/record-key');
+const {
+  CUSTOM_ENCRYPTION_CONFIG_ERROR_MESSAGE_CURRENT,
+  CUSTOM_ENCRYPTION_CONFIG_ERROR_MESSAGE_ARRAY,
+  CUSTOM_ENCRYPTION_CONFIG_ERROR_MESSAGE_VERSIONS,
+} = require('../../validation/custom-encryption-configs');
 const { MAX_LIMIT, LIMIT_ERROR_MESSAGE_INT, LIMIT_ERROR_MESSAGE_MAX } = require('../../validation/limit');
 
 const { expect, assert } = chai;
@@ -263,6 +268,47 @@ describe('Storage', () => {
           expect(() => storage.setCountriesCache(item)).to.throw(Error, 'You must pass an instance of CountriesCache');
         });
         expect(() => storage.setCountriesCache(new CountriesCache())).not.to.throw();
+      });
+    });
+
+    describe('setCustomEncryption', () => {
+      it('should throw an error when setting custom encryption configs with disabled encryption', () => {
+        const storage = new Storage({
+          apiKey: 'string',
+          environmentId: 'string',
+          endpoint: POPAPI_HOST,
+          encrypt: false,
+        }, defaultSecretKeyAccessor, LOGGER_STUB);
+
+        const customEncryptionConfigs = [{ encrypt: () => { }, decrypt: () => { }, version: '' }];
+
+        expect(() => storage.setCustomEncryption(customEncryptionConfigs)).to.throw(StorageClientError, 'Cannot use custom encryption when encryption is off');
+      });
+
+      it('should throw an error if configs object is malformed', () => {
+        ['', {}, () => { }].forEach((configs) => {
+          expect(() => encStorage.setCustomEncryption(configs)).to.throw(CUSTOM_ENCRYPTION_CONFIG_ERROR_MESSAGE_ARRAY);
+        });
+      });
+
+      it('should throw an error if 2 configs is marked as current', () => {
+        const configs = [{
+          encrypt: () => { }, decrypt: () => { }, isCurrent: true, version: '1',
+        }, {
+          encrypt: () => { }, decrypt: () => { }, isCurrent: true, version: '2',
+        }];
+
+        expect(() => encStorage.setCustomEncryption(configs)).to.throw(CUSTOM_ENCRYPTION_CONFIG_ERROR_MESSAGE_CURRENT);
+      });
+
+      it('should throw an error if 2 configs have same version', () => {
+        const configs = [{
+          encrypt: () => { }, decrypt: () => { }, version: '1',
+        }, {
+          encrypt: () => { }, decrypt: () => { }, isCurrent: true, version: '1',
+        }];
+
+        expect(() => encStorage.setCustomEncryption(configs)).to.throw(CUSTOM_ENCRYPTION_CONFIG_ERROR_MESSAGE_VERSIONS);
       });
     });
 
