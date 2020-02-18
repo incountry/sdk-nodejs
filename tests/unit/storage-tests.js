@@ -5,7 +5,7 @@ const nock = require('nock');
 const uuid = require('uuid/v4');
 const _ = require('lodash');
 const Storage = require('../../storage');
-const { StorageServerError, StorageClientError, StorageValidationError } = require('../../errors');
+const { StorageServerError, StorageClientError } = require('../../errors');
 const CountriesCache = require('../../countries-cache');
 const SecretKeyAccessor = require('../../secret-key-accessor');
 const {
