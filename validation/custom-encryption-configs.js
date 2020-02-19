@@ -41,9 +41,9 @@ const CustomEncryptionConfigIO = t.union([
   }),
 ]);
 
-const CUSTOM_ENCRYPTION_CONFIG_ERROR_MESSAGE_ARRAY = 'Should be an array of custom encryption configs';
-const CUSTOM_ENCRYPTION_CONFIG_ERROR_MESSAGE_VERSIONS = 'Array of custom encryption configs should have unique versions';
-const CUSTOM_ENCRYPTION_CONFIG_ERROR_MESSAGE_CURRENT = 'Array of custom encryption configs should have not more than one current version';
+const CUSTOM_ENCRYPTION_CONFIG_ERROR_MESSAGE_ARRAY = 'Custom encryption configs should be an array';
+const CUSTOM_ENCRYPTION_CONFIG_ERROR_MESSAGE_VERSIONS = 'Custom encryption configs should have unique versions';
+const CUSTOM_ENCRYPTION_CONFIG_ERROR_MESSAGE_CURRENT = 'Custom encryption configs should have only one current version';
 
 const CustomEncryptionConfigsIO = new t.Type(
   'CustomEncryptionConfigs',
