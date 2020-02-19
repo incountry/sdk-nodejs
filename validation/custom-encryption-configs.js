@@ -13,12 +13,12 @@ const { validateWithIO } = require('./utils');
  * @param {Array<CustomEncryptionConfig>} configs
  */
 function hasUniqueVersions(configs) {
-  const versions = {};
+  const versions = new Set();
   return configs.find((c) => {
-    if (Object.prototype.hasOwnProperty.call(versions, c.version)) {
+    if (versions.has(c.version)) {
       return true;
     }
-    versions[c.version] = true;
+    versions.add(c.version);
     return false;
   }) === undefined;
 }
