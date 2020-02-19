@@ -86,6 +86,10 @@ class Storage {
     this.normalizeKeys = options.normalizeKeys;
   }
 
+  async initialize() {
+    await this._crypto.initialize();
+  }
+
   /**
    * @param {string} s
    */
@@ -445,4 +449,18 @@ class Storage {
   }
 }
 
-module.exports = Storage;
+
+/**
+ * @param {StorageOptions} options
+ * @param {SecretKeyAccessor | unknown} secretKeyAccessor
+ * @param {Logger} logger
+ * @param {CountriesCache} countriesCache
+ * @returns {Storage}
+ */
+async function createStorage(options, secretKeyAccessor, logger, countriesCache) {
+  const s = new Storage(options, secretKeyAccessor, logger, countriesCache);
+  await s.initialize();
+  return s;
+}
+
+module.exports = createStorage;

@@ -4,7 +4,7 @@ chai.use(require('chai-as-promised'));
 const nock = require('nock');
 const uuid = require('uuid/v4');
 const _ = require('lodash');
-const Storage = require('../../storage');
+const createStorage = require('../../storage');
 const { StorageServerError } = require('../../errors');
 const CountriesCache = require('../../countries-cache');
 const SecretKeyAccessor = require('../../secret-key-accessor');
@@ -73,7 +73,7 @@ const LOGGER_STUB = { write: (a, b) => [a, b] };
 
 const defaultSecretKeyAccessor = new SecretKeyAccessor(() => SECRET_KEY);
 
-const getDefaultStorage = (encrypt, normalizeKeys, secretKeyAccessor = defaultSecretKeyAccessor) => new Storage({
+const getDefaultStorage = async (encrypt, normalizeKeys, secretKeyAccessor = defaultSecretKeyAccessor) => createStorage({
   apiKey: 'string',
   environmentId: 'string',
   endpoint: POPAPI_HOST,
@@ -90,15 +90,13 @@ const getDefaultFindResponse = (count, data) => ({
 
 describe('Storage', () => {
   describe('interface methods', () => {
-    /** @type {import('../../storage')} */
     let encStorage;
-    /** @type {import('../../storage')} */
     let noEncStorage;
 
-    beforeEach(() => {
+    beforeEach(async () => {
       nock.disableNetConnect();
-      encStorage = getDefaultStorage(true);
-      noEncStorage = getDefaultStorage(false);
+      encStorage = await getDefaultStorage(true);
+      noEncStorage = await getDefaultStorage(false);
     });
 
     afterEach(() => {
@@ -120,17 +118,17 @@ describe('Storage', () => {
             process.env.INC_API_KEY = envApiKey;
           });
 
-          it('should be provided via either options or environment variable', () => {
-            [{}, { apiKey: undefined }].forEach((options) => {
-              expect(() => new Storage(options))
-                .to.throw(Error, 'Please pass apiKey in options or set INC_API_KEY env var');
-            });
+          it('should be provided via either options or environment variable', async () => {
+            await Promise.all([{}, { apiKey: undefined }].map(async (options) => {
+              await expect(createStorage(options))
+                .to.be.rejectedWith(Error, 'Please pass apiKey in options or set INC_API_KEY env var');
+            }));
 
-            expect(() => new Storage({ apiKey: 'apiKey', environmentId: 'envId', encrypt: false })).not.to.throw();
+            await expect(createStorage({ apiKey: 'apiKey', environmentId: 'envId', encrypt: false })).not.to.be.rejectedWith(Error);
 
             process.env.INC_API_KEY = 'apiKey';
 
-            expect(() => new Storage({ environmentId: 'envId', encrypt: false })).not.to.throw();
+            await expect(createStorage({ environmentId: 'envId', encrypt: false })).not.to.be.rejectedWith(Error);
           });
         });
 
@@ -146,98 +144,91 @@ describe('Storage', () => {
             process.env.INC_ENVIRONMENT_ID = envEnvironmentId;
           });
 
-          it('should be provided via either options or environment variable', () => {
-            [{ apiKey: 'apiKey' }, { apiKey: 'apiKey', environmentId: undefined }].forEach((options) => {
-              expect(() => new Storage(options))
-                .to.throw(Error, 'Please pass environmentId in options or set INC_ENVIRONMENT_ID env var');
-            });
+          it('should be provided via either options or environment variable', async () => {
+            await Promise.all([{ apiKey: 'apiKey' }, { apiKey: 'apiKey', environmentId: undefined }].map(async (options) => {
+              await expect(createStorage(options))
+                .to.be.rejectedWith(Error, 'Please pass environmentId in options or set INC_ENVIRONMENT_ID env var');
+            }));
 
-            expect(() => new Storage({ apiKey: 'apiKey', environmentId: 'envId', encrypt: false })).not.to.throw();
+            await expect(createStorage({ apiKey: 'apiKey', environmentId: 'envId', encrypt: false })).not.to.be.rejectedWith(Error);
 
             process.env.INC_ENVIRONMENT_ID = 'envId';
 
-            expect(() => new Storage({ apiKey: 'apiKey', encrypt: false })).not.to.throw();
+            await expect(createStorage({ apiKey: 'apiKey', encrypt: false })).not.to.be.rejectedWith(Error);
           });
         });
       });
 
       describe('secretKeyAccessor', () => {
-        it('should throw an error if encryption is enabled and no secretKeyAccessor provided', () => {
-          expect(() => new Storage(
+        it('should throw an error if encryption is enabled and no secretKeyAccessor provided', async () => {
+          await expect(createStorage(
             {
               apiKey: 'API_KEY',
               environmentId: 'ENVIRONMENT_ID',
               endpoint: 'URL',
             },
-          )).to.throw(Error, 'secretKeyAccessor must be an instance of SecretKeyAccessor');
+          )).to.be.rejectedWith(Error, 'secretKeyAccessor must be an instance of SecretKeyAccessor');
         });
 
-        it('should not throw an error if encryption is disabled and no secretKeyAccessor provided', () => {
-          expect(() => new Storage(
+        it('should not throw an error if encryption is disabled and no secretKeyAccessor provided', async () => {
+          await expect(createStorage(
             {
               apiKey: 'API_KEY',
               environmentId: 'ENVIRONMENT_ID',
               endpoint: 'URL',
               encrypt: false,
             },
-          )).not.to.throw(Error, 'secretKeyAccessor must be an instance of SecretKeyAccessor');
+          )).not.to.be.rejectedWith(Error, 'secretKeyAccessor must be an instance of SecretKeyAccessor');
         });
 
         it('should throw an error if malformed secretData is provided', async () => {
-          const storage = new Storage(
+          await expect(createStorage(
             {
               apiKey: 'API_KEY',
               environmentId: 'ENVIRONMENT_ID',
               endpoint: 'URL',
             }, new SecretKeyAccessor(() => { }),
-          );
-
-          await expect(storage._crypto.initialize()).to.be.rejectedWith(Error, 'secretKeyAccessor must be an instance of SecretKeyAccessor');
+          )).to.be.rejectedWith(Error, '<SecretsData> should be SecretsData but got undefined');
         });
 
         it('should throw an error if malformed secretData is provided', async () => {
-          const storage = new Storage(
+          await expect(createStorage(
             {
               apiKey: 'API_KEY',
               environmentId: 'ENVIRONMENT_ID',
               endpoint: 'URL',
             }, new SecretKeyAccessor({}),
-          );
-
-          await expect(storage._crypto.initialize()).to.be.rejectedWith(Error, 'secretKeyAccessor must be an instance of SecretKeyAccessor');
+          )).to.be.rejectedWith(Error, 'Provide callback function for secretData');
         });
       });
 
       describe('logger', () => {
-        it('should throw an error if provided logger is not object or has no "write" method or is not a function', () => {
-          const expectStorageConstructorThrowsError = (wrongLogger) => {
-            expect(() => new Storage({ encrypt: false }, undefined, wrongLogger, undefined))
-              .to.throw(Error, 'Logger must implement write function');
-          };
+        it('should throw an error if provided logger is not object or has no "write" method or is not a function', async () => {
+          const expectStorageConstructorThrowsError = async (wrongLogger) => expect(createStorage({ encrypt: false }, undefined, wrongLogger, undefined))
+            .to.be.rejectedWith(Error, 'Logger must implement write function');
+
 
           const wrongLoggers = [42, () => null, {}, { write: 'write' }, { write: {} }];
-          wrongLoggers.map((item) => expectStorageConstructorThrowsError(item));
+          await Promise.all(wrongLoggers.map((item) => expectStorageConstructorThrowsError(item)));
         });
 
-        it('should throw an error if provided logger.write is a function with less than 2 arguments', () => {
-          const expectStorageConstructorThrowsError = (wrongLogger) => {
-            expect(() => new Storage({ encrypt: false }, undefined, wrongLogger, undefined))
-              .to.throw(Error, 'Logger.write must have at least 2 parameters');
-          };
+        it('should throw an error if provided logger.write is a function with less than 2 arguments', async () => {
+          const expectStorageConstructorThrowsError = async (wrongLogger) => expect(createStorage({ encrypt: false }, undefined, wrongLogger, undefined))
+            .to.be.rejectedWith(Error, 'Logger.write must have at least 2 parameters');
 
-          const expectStorageConstructorNotThrowsError = (correctLogger) => {
-            expect(() => new Storage({
-              apiKey: 'string',
-              environmentId: 'string',
-              encrypt: false,
-            }, undefined, correctLogger, undefined)).not.to.throw();
-          };
+
+          const expectStorageConstructorNotThrowsError = async (correctLogger) => expect(createStorage({
+            apiKey: 'string',
+            environmentId: 'string',
+            encrypt: false,
+          }, undefined, correctLogger, undefined)).not.to.be.rejected;
+
 
           const wrongLoggers = [{ write: () => null }, { write: (a) => a }];
-          wrongLoggers.map((item) => expectStorageConstructorThrowsError(item));
+          await Promise.all(wrongLoggers.map((item) => expectStorageConstructorThrowsError(item)));
 
           const correctLoggers = [{ write: (a, b) => [a, b] }, { write: (a, b, c) => [a, b, c] }];
-          correctLoggers.map((item) => expectStorageConstructorNotThrowsError(item));
+          await Promise.all(correctLoggers.map((item) => expectStorageConstructorNotThrowsError(item)));
         });
       });
     });
@@ -246,8 +237,8 @@ describe('Storage', () => {
       /** @type {import('../../storage')} */
       let storage;
 
-      beforeEach(() => {
-        storage = new Storage({ apiKey: 'apiKey', environmentId: 'envId', encrypt: false });
+      beforeEach(async () => {
+        storage = await createStorage({ apiKey: 'apiKey', environmentId: 'envId', encrypt: false });
       });
 
       it('should throw an error if called with falsy argument', () => {
@@ -279,9 +270,9 @@ describe('Storage', () => {
     });
 
     describe('setCountriesCache', () => {
-      it('should throw an error if not instance of CountriesCache was passed as argument', () => {
+      it('should throw an error if not instance of CountriesCache was passed as argument', async () => {
         /** @type {import('../../storage')} */
-        const storage = new Storage({ apiKey: 'apiKey', environmentId: 'envId', encrypt: false });
+        const storage = await createStorage({ apiKey: 'apiKey', environmentId: 'envId', encrypt: false });
         const wrongCountriesCaches = [null, undefined, false, {}];
         wrongCountriesCaches.forEach((item) => {
           expect(() => storage.setCountriesCache(item)).to.throw(Error, 'You must pass an instance of CountriesCache');
@@ -356,7 +347,7 @@ describe('Storage', () => {
 
         describe('when enabled', () => {
           it('should normalize', async () => {
-            const storage = getDefaultStorage(true, true);
+            const storage = await getDefaultStorage(true, true);
             const record = { key };
             const [bodyObj] = await Promise.all([getNockedRequestBodyObject(popAPI), storage.write(COUNTRY, record)]);
             expect(bodyObj.key).to.equal(storage.createKeyHash(keyNormalized));
@@ -366,7 +357,7 @@ describe('Storage', () => {
 
         describe('when not enabled', () => {
           it('should not normalize', async () => {
-            const storage = getDefaultStorage(true);
+            const storage = await getDefaultStorage(true);
             const record = { key };
             const [bodyObj] = await Promise.all([getNockedRequestBodyObject(popAPI), storage.write(COUNTRY, record)]);
             expect(bodyObj.key).to.equal(storage.createKeyHash(key));
@@ -438,7 +429,7 @@ describe('Storage', () => {
 
         describe('when enabled', () => {
           it('should normalize', async () => {
-            const storage = getDefaultStorage(true, true);
+            const storage = await getDefaultStorage(true, true);
             const encryptedPayload = await storage.encryptPayload({ key });
 
             const popAPI = nockEndpoint(POPAPI_HOST, 'read', COUNTRY, storage.createKeyHash(keyNormalized))
@@ -449,7 +440,7 @@ describe('Storage', () => {
           });
 
           it('should return record with original keys', async () => {
-            const storage = getDefaultStorage(true, true);
+            const storage = await getDefaultStorage(true, true);
             const encryptedPayload = await storage.encryptPayload({ key });
             nockEndpoint(POPAPI_HOST, 'read', COUNTRY, storage.createKeyHash(keyNormalized))
               .reply(200, encryptedPayload);
@@ -461,7 +452,7 @@ describe('Storage', () => {
 
         describe('when not enabled', () => {
           it('should not normalize', async () => {
-            const storage = getDefaultStorage(true);
+            const storage = await getDefaultStorage(true);
             const encryptedPayload = await storage.encryptPayload({ key });
             expect(encryptedPayload.key).to.equal(storage.createKeyHash(key));
 
@@ -546,7 +537,7 @@ describe('Storage', () => {
 
         describe('when enabled', () => {
           it('should normalize', async () => {
-            const storage = getDefaultStorage(true, true);
+            const storage = await getDefaultStorage(true, true);
             const popAPI = nockEndpoint(POPAPI_HOST, 'delete', COUNTRY, storage.createKeyHash(keyNormalized))
               .reply(200);
 
@@ -557,7 +548,7 @@ describe('Storage', () => {
 
         describe('when not enabled', () => {
           it('should not normalize', async () => {
-            const storage = getDefaultStorage(true);
+            const storage = await getDefaultStorage(true);
             const popAPI = nockEndpoint(POPAPI_HOST, 'delete', COUNTRY, storage.createKeyHash(key))
               .reply(200);
 
@@ -717,7 +708,7 @@ describe('Storage', () => {
 
         describe('when enabled', () => {
           it('should normalize filter object', async () => {
-            const storage = getDefaultStorage(true, true);
+            const storage = await getDefaultStorage(true, true);
             const [bodyObj] = await Promise.all([getNockedRequestBodyObject(popAPI), storage.find(COUNTRY, { key })]);
             expect(bodyObj.filter.key).to.equal(storage.createKeyHash(keyNormalized));
           });
@@ -725,7 +716,7 @@ describe('Storage', () => {
 
         describe('when not enabled', () => {
           it('should not normalize filter object', async () => {
-            const storage = getDefaultStorage(true);
+            const storage = await getDefaultStorage(true);
             const [bodyObj] = await Promise.all([getNockedRequestBodyObject(popAPI), storage.find(COUNTRY, { key })]);
             expect(bodyObj.filter.key).to.equal(storage.createKeyHash(key));
           });
@@ -840,7 +831,7 @@ describe('Storage', () => {
           it('should normalize filter object', async () => {
             const [popAPIFind, popAPIWrite] = await preparePOPAPI({ key });
 
-            const storage = getDefaultStorage(true, true);
+            const storage = await getDefaultStorage(true, true);
             const [findBodyObj, writeBodyObj] = await Promise.all([
               getNockedRequestBodyObject(popAPIFind),
               getNockedRequestBodyObject(popAPIWrite),
@@ -855,7 +846,7 @@ describe('Storage', () => {
           it('should not normalize filter object', async () => {
             const [popAPIFind, popAPIWrite] = await preparePOPAPI({ key });
 
-            const storage = getDefaultStorage(true);
+            const storage = await getDefaultStorage(true);
             const [findBodyObj, writeBodyObj] = await Promise.all([
               getNockedRequestBodyObject(popAPIFind),
               getNockedRequestBodyObject(popAPIWrite),
@@ -883,7 +874,7 @@ describe('Storage', () => {
           const oldSecret = { secret: SECRET_KEY, version: 0 };
           const newSecret = { secret: 'newnew', version: 1 };
 
-          const encStorage2 = getDefaultStorage(true, false, new SecretKeyAccessor(() => ({
+          const encStorage2 = await getDefaultStorage(true, false, new SecretKeyAccessor(() => ({
             secrets: [oldSecret, newSecret],
             currentVersion: newSecret.version,
           })));
@@ -990,7 +981,7 @@ describe('Storage', () => {
 
         describe('when enabled', () => {
           it('should normalize', async () => {
-            const storage = getDefaultStorage(true, true);
+            const storage = await getDefaultStorage(true, true);
             const records = [{ key: key1 }, { key: key2 }];
             const [bodyObj] = await Promise.all([getNockedRequestBodyObject(popAPI), storage.batchWrite(COUNTRY, records)]);
             expect(bodyObj.records[0].key).to.equal(storage.createKeyHash(key1Normalized));
@@ -1000,7 +991,7 @@ describe('Storage', () => {
 
         describe('when not enabled', () => {
           it('should not normalize', async () => {
-            const storage = getDefaultStorage(true);
+            const storage = await getDefaultStorage(true);
             const records = [{ key: key1 }, { key: key2 }];
             const [bodyObj] = await Promise.all([getNockedRequestBodyObject(popAPI), storage.batchWrite(COUNTRY, records)]);
             expect(bodyObj.records[0].key).to.equal(storage.createKeyHash(key1));

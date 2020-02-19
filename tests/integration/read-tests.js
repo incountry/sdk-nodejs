@@ -18,9 +18,11 @@ describe('Read data from Storage', function () {
   });
 
   [false, true].forEach((encryption) => {
-    storage = createStorage(encryption);
-
     context(`${encryption ? 'with' : 'without'} encryption`, function () {
+      before(async function () {
+        storage = await createStorage(encryption);
+      });
+
       it('Read data', async function () {
         data = {
           key: Math.random().toString(36).substr(2, 10),
