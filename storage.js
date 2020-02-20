@@ -370,7 +370,7 @@ class Storage {
       body.payload = record.body;
     }
 
-    const { message, secretVersion } = await this._crypto.encryptAsync(
+    const { message, secretVersion } = await this._crypto.encrypt(
       JSON.stringify(body),
     );
     record.body = message;
@@ -384,7 +384,7 @@ class Storage {
     this._logger.write('debug', 'Start decrypting...');
     this._logger.write('debug', JSON.stringify(originalRecord, null, 2));
     const record = { ...originalRecord };
-    const decrypted = await this._crypto.decryptAsync(
+    const decrypted = await this._crypto.decrypt(
       record.body,
       record.version,
     );
