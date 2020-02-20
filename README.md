@@ -355,7 +355,7 @@ storage.setCustomEncryption([{
   version: "current",
 }]);
 
-await storage.write("US", { key: "123", data: "{}" });
+await storage.write("US", { key: "<key>", body: "<body>" });
 ```
 
 ### Logging

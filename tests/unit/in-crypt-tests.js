@@ -123,7 +123,7 @@ describe('InCrypt', function () {
 
   context('when custom enryption configs provided', () => {
     PLAINTEXTS.forEach((plain) => {
-      it('should use custom encryption', async function () {
+      it(`should encrypt and decrypt text "${plain}" using custom encryption`, async function () {
         const configs = [{
           encrypt: (text) => Buffer.from(text).toString('base64'),
           decrypt: (encryptedData) => Buffer.from(encryptedData, 'base64').toString('utf-8'),
@@ -146,7 +146,7 @@ describe('InCrypt', function () {
         expect(decrypted).to.equal(plain);
       });
 
-      it('should use default encryption if no current custom encryption config', async function () {
+      it(`should encrypt and decrypt text "${plain}" using default encryption if no current custom encryption config`, async function () {
         const configs = [{
           encrypt: (text) => Buffer.from(text).toString('base64'),
           decrypt: (encryptedData) => Buffer.from(encryptedData, 'base64').toString('utf-8'),
