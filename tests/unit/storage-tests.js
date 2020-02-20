@@ -291,7 +291,7 @@ describe('Storage', () => {
         });
       });
 
-      it('should throw an error if 2 configs is marked as current', () => {
+      it('should throw an error if 2 configs are marked as current', () => {
         const configs = [{
           encrypt: () => { }, decrypt: () => { }, isCurrent: true, version: '1',
         }, {

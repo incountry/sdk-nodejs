@@ -14,13 +14,11 @@ const { validateWithIO } = require('./utils');
  */
 function hasUniqueVersions(configs) {
   const versions = new Set();
-  return configs.find((c) => {
-    if (versions.has(c.version)) {
-      return true;
-    }
+  return configs.some((c) => {
+    if (versions.has(c.version)) return true;
     versions.add(c.version);
     return false;
-  }) === undefined;
+  }) === false;
 }
 
 /**
