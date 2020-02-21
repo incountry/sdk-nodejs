@@ -197,7 +197,7 @@ describe('InCrypt', function () {
 
       incrypt.setCustomEncryption(configs);
 
-      await expect(incrypt.encrypt('plain', 0)).to.be.rejectedWith(Error, CUSTOM_ENCRYPTION_ERROR_MESSAGE_ENC);
+      await expect(incrypt.encrypt('plain')).to.be.rejectedWith(Error, CUSTOM_ENCRYPTION_ERROR_MESSAGE_ENC);
     });
 
     it('should throw an error if custom encryption "decrypt" function returns not string', async function () {
@@ -216,7 +216,7 @@ describe('InCrypt', function () {
 
       incrypt.setCustomEncryption(configs);
 
-      const encrypted = await incrypt.encrypt('plain', 0);
+      const encrypted = await incrypt.encrypt('plain');
       await expect(incrypt.decrypt(encrypted.message, encrypted.secretVersion)).to.be.rejectedWith(Error, CUSTOM_ENCRYPTION_ERROR_MESSAGE_DEC);
     });
   });
