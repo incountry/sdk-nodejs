@@ -219,6 +219,26 @@ describe('InCrypt', function () {
       const encrypted = await incrypt.encrypt('plain');
       await expect(incrypt.decrypt(encrypted.message, encrypted.secretVersion)).to.be.rejectedWith(Error, CUSTOM_ENCRYPTION_ERROR_MESSAGE_DEC);
     });
+
+    it('should accept keys of any length', async function () {
+      const configs = [{
+        encrypt: () => '',
+        decrypt: () => '',
+        version: 'customEncryption',
+        isCurrent: true,
+      }];
+
+      const text = 'plain';
+
+      const secretKeyAccessor = new SecretKeyAccessor(() => ({
+        secrets: [{ version: 0, secret: 'aaa', isKey: true }], currentVersion: 0,
+      }));
+
+      const incrypt = new InCrypt(secretKeyAccessor);
+      incrypt.setCustomEncryption(configs);
+
+      await expect(incrypt.encrypt(text)).to.not.be.rejected;
+    });
   });
 
   it('should return current secret version', async function () {

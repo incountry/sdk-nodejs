@@ -77,7 +77,7 @@ class InCrypt {
 
   async encryptCustom(text) {
     const { encrypt } = this.customEncryption[this.customEncryptionVersion];
-    const { secret, version } = await this.secretKeyAccessor.getSecret();
+    const { secret, version } = await this.secretKeyAccessor.getSecret(undefined, true);
     const ciphertext = await encrypt(text, secret, version);
     if (typeof ciphertext !== 'string') {
       throw new InCryptoError(`${CUSTOM_ENCRYPTION_ERROR_MESSAGE_ENC}. Got ${typeof ciphertext}`);
@@ -194,7 +194,7 @@ class InCrypt {
    */
   async decryptCustom(encrypted, secretVersion, version) {
     const { decrypt } = this.customEncryption[version];
-    const { secret } = await this.secretKeyAccessor.getSecret(secretVersion);
+    const { secret } = await this.secretKeyAccessor.getSecret(secretVersion, true);
     const decrypted = decrypt(encrypted, secret, secretVersion);
     if (typeof decrypted !== 'string') {
       throw new InCryptoError(`${CUSTOM_ENCRYPTION_ERROR_MESSAGE_DEC}. Got ${typeof decrypted}`);

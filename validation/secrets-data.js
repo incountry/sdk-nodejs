@@ -16,23 +16,43 @@ function hasSecretOfCurrentVersion(o) {
   return o.secrets.findIndex((s) => s.version === o.currentVersion) !== -1;
 }
 
-const SecretOrKey = t.brand(
-  t.type({
-    secret: t.string, version: t.Int, isKey: t.union([t.boolean, t.undefined]),
-  }),
-  (v) => !v.isKey || (v.isKey && v.secret.length === KEY_SIZE),
+const SecretOrKeyCustom = t.intersection([
+  t.type({ secret: t.string, version: t.Int }),
+  t.partial({ isKey: t.boolean }),
+], 'SecretOrKeyCustom');
+
+function isValidKey(key) {
+  return key.length === KEY_SIZE;
+}
+
+const SecretOrKey = new t.Type(
   'SecretOrKey',
+  (u) => SecretOrKeyCustom.is(u) && (!u.isKey || isValidKey(u.secret)),
+  (u, c) => {
+    if (!SecretOrKeyCustom.is(u)) {
+      return t.failure(u, c);
+    }
+
+    if (u.isKey && !isValidKey(u.secret)) {
+      return t.failure(u, c, `Key should be ${KEY_SIZE}-characters long`);
+    }
+
+    return t.success(u);
+  },
+  Number,
 );
 
-const SecretsDataIO = t.brand(
-  t.type({
-    currentVersion: t.Int,
-    secrets: t.array(SecretOrKey),
-  }),
-  (so) => hasSecretOfCurrentVersion(so),
-  'SecretsData',
-);
+function getSecretsDataIO(forCustomEncryption = false) {
+  return t.brand(
+    t.type({
+      currentVersion: t.Int,
+      secrets: t.array(forCustomEncryption ? SecretOrKeyCustom : SecretOrKey),
+    }),
+    (so) => hasSecretOfCurrentVersion(so),
+    'SecretsData',
+  );
+}
 
 module.exports = {
-  SecretsDataIO,
+  getSecretsDataIO,
 };
