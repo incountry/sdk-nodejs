@@ -45,11 +45,14 @@ describe('Find records', function () {
     storage = createStorage(encryption);
 
     context(`${encryption ? 'with' : 'without'} encryption`, function () {
-      it.skip('Find records by country', async function () {
+      it('Find records by country', async function () {
         const { records, meta } = await storage.find(COUNTRY, {}, {});
 
-        expect(records).to.have.lengthOf.above(0);
+        expect(records).to.have.lengthOf(2);
+
         expect(meta).to.have.all.keys('count', 'limit', 'offset', 'total');
+        expect(meta.count).to.equal(2);
+        expect(meta.total).to.equal(2);
         expect(meta.offset).to.equal(0);
         expect(meta.limit).to.equal(100);
       });
@@ -93,7 +96,7 @@ describe('Find records', function () {
         expect(meta.limit).to.equal(100);
       });
 
-      it.skip('Find records by profile_key', async function () {
+      it('Find records by profile_key', async function () {
         const { records, meta } = await storage.find(COUNTRY, { profile_key: dataRequest.profile_key }, {});
 
         expect(records).to.have.lengthOf(1);
@@ -118,14 +121,14 @@ describe('Find records', function () {
 
       it('Find records with pagination', async function () {
         const limit = 10;
-        const offset = 10;
-        const { records, meta } = await storage.find(COUNTRY, { version: 0 },
+        const offset = 1;
+        const { records, meta } = await storage.find(COUNTRY, { range_key: { $lt: 100 } },
           {
             limit,
             offset,
           });
 
-        expect(records).to.be.lengthOf.above(2);
+        expect(records).to.be.lengthOf(1);
         expect(records).to.be.lengthOf.not.above(limit);
 
         expect(meta).to.have.all.keys('count', 'limit', 'offset', 'total');
@@ -136,7 +139,7 @@ describe('Find records', function () {
 
       it('Find records by filter with range_key', async function () {
         const { records, meta } = await storage.find(COUNTRY,
-          { range_key: { $gt: 100 }, version: 0 }, {});
+          { range_key: { $lt: 100 }, version: 0 }, {});
 
         expect(records).to.have.lengthOf.above(0);
         expect(meta).to.have.all.keys('count', 'limit', 'offset', 'total');
