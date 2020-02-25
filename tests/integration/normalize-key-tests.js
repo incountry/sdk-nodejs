@@ -20,7 +20,7 @@ const dataRequest = {
   body: JSON.stringify({ name: 'PersonName' }),
 };
 
-describe('Normolize keys records', function () {
+describe('Normalize keys records', function () {
   before(async function () {
     await storage.write(COUNTRY, dataRequest);
   });
