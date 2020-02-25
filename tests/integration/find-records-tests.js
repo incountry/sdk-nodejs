@@ -17,7 +17,7 @@ const dataRequest = {
   key2: Math.random().toString(36).substr(2, 10),
   key3: Math.random().toString(36).substr(2, 10),
   profile_key: Math.random().toString(36).substr(2, 10),
-  range_key: Math.floor(Math.random() * 100) + 1,
+  range_key: Math.floor(Math.random() * 100) + 100,
   body: JSON.stringify({ name: 'PersonName' }),
 };
 
@@ -26,7 +26,7 @@ const dataRequest2 = {
   key2: Math.random().toString(36).substr(2, 10),
   key3: Math.random().toString(36).substr(2, 10),
   profile_key: Math.random().toString(36).substr(2, 10),
-  range_key: Math.floor(Math.random() * 100) + 1,
+  range_key: Math.floor(Math.random() * 100) + 100,
   body: JSON.stringify({ name: 'PersonName2' }),
 };
 
