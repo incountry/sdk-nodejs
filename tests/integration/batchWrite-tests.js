@@ -16,7 +16,6 @@ let dataList;
 
 
 describe('Batch write data to Storage', function () {
-
   beforeEach(function () {
     dataList = [];
   });
