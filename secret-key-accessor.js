@@ -42,11 +42,16 @@ class SecretKeyAccessor {
   }
 
   /**
-   * @param {number} secretVersion optional, will fallback to "currentSecretVersion"
-   * @param {boolean} forCustomEncryption optional, will ease validation
+   * @typedef GetSecretParams
+   * @property {number|undefined} secretVersion optional, will fallback to "currentSecretVersion"
+   * @property {boolean|undefined} forCustomEncryption optional, will ease validation
+   */
+
+  /**
+   * @param {GetSecretParams}
    * @return {Promise<{ secret: string, version: number }>}
    */
-  getSecret(secretVersion, forCustomEncryption) {
+  getSecret({ secretVersion, forCustomEncryption } = {}) {
     return Promise
       .resolve(this._getSecretCallback())
       .then((v) => (typeof v === 'string' ? wrapToSecretsData(v) : validationToPromise(getSecretsDataIO(forCustomEncryption).decode(v))))

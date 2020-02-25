@@ -77,7 +77,7 @@ class InCrypt {
 
   async encryptCustom(text) {
     const { encrypt } = this.customEncryption[this.customEncryptionVersion];
-    const { secret, version } = await this.secretKeyAccessor.getSecret(undefined, true);
+    const { secret, version } = await this.secretKeyAccessor.getSecret({ forCustomEncryption: true });
     const ciphertext = await encrypt(text, secret, version);
     if (typeof ciphertext !== 'string') {
       throw new InCryptoError(`${CUSTOM_ENCRYPTION_ERROR_MESSAGE_ENC}. Got ${typeof ciphertext}`);
@@ -194,7 +194,7 @@ class InCrypt {
    */
   async decryptCustom(encrypted, secretVersion, version) {
     const { decrypt } = this.customEncryption[version];
-    const { secret } = await this.secretKeyAccessor.getSecret(secretVersion, true);
+    const { secret } = await this.secretKeyAccessor.getSecret({ secretVersion, forCustomEncryption: true });
     const decrypted = decrypt(encrypted, secret, secretVersion);
     if (typeof decrypted !== 'string') {
       throw new InCryptoError(`${CUSTOM_ENCRYPTION_ERROR_MESSAGE_DEC}. Got ${typeof decrypted}`);
@@ -206,7 +206,7 @@ class InCrypt {
     if (!this.secretKeyAccessor) {
       return { key: null, version: null };
     }
-    const { secret, isKey, version } = await this.secretKeyAccessor.getSecret(secretVersion);
+    const { secret, isKey, version } = await this.secretKeyAccessor.getSecret({ secretVersion });
 
     const key = isKey ? secret : (await pbkdf2(secret, salt, PBKDF2_ITERATIONS_COUNT, KEY_SIZE, 'sha512'));
     return { key, version };
