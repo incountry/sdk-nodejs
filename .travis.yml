@@ -9,7 +9,7 @@ node_js:
 jobs:
   include:
     - stage: tests
-      name: "eslint validation"
+      name: "ESLint validation"
       script:
         - npm run validate-eslint
     - stage: tests
