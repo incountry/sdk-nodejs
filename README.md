@@ -62,16 +62,16 @@ Here are some examples of `GetSecretCallback`.
 
 ```javascript
 // Synchronous 
-const secretKeyAccessor = () => "longAndStrongPassword";
+const getSecretSync = () => "longAndStrongPassword";
 
 // Asynchronous
-const secretKeyAccessor = async () => {
+const getSecretAsync = async () => {
   const secretsData = await getSecretsDataFromSomewhere();
   return secretsData;
 };
 
 // Using promises
-const secretKeyAccessor = () =>
+const getSecretPromise = () =>
   new Promise(resolve => {
     getPasswordFromSomewhere(secretsData => {
       resolve(secretsData);
