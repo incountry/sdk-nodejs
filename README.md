@@ -21,7 +21,7 @@ const storage = new Storage(
     endpoint: "", // {string} Optional. Defines API URL
     encrypt: true // {boolean} Optional. If false, encryption is not used. If omitted is set to true.
   },
-  secretKeyAccessor // {SecretKeyAccessor} Used to fetch encryption secret
+  () => "", // {GetSecretCallback} Used to fetch encryption secret
 );
 ```
 
@@ -29,11 +29,11 @@ const storage = new Storage(
 
 #### Encryption key/secret
 
-`secretKeyAccessor` is used to pass a key or secret used for encryption.
+`GetSecretCallback` is used to pass a key or secret used for encryption.
 
 Note: even though SDK uses PBKDF2 to generate a cryptographically strong encryption key, you must make sure you provide a secret/password which follows modern security best practices and standards.
 
-`SecretKeyAccessor` class constructor allows you to pass a function that should return either a string representing your secret or a dict (we call it `SecretsData` object):
+`GetSecretCallback` is a function that should return either a string representing your secret or a dict (we call it `SecretsData` object):
 
 ```javascript
 {
@@ -52,37 +52,31 @@ Note: even though SDK uses PBKDF2 to generate a cryptographically strong encrypt
 };
 ```
 
-`SecretsData` allows you to specify multiple keys/secrets which SDK will use for decryption based on the version of the key or secret used for encryption. Meanwhile SDK will encrypt only using key/secret that matches `currentVersion` provided in `SecretsData` object.
+`GetSecretCallback` allows you to specify multiple keys/secrets which SDK will use for decryption based on the version of the key or secret used for encryption. Meanwhile SDK will encrypt only using key/secret that matches `currentVersion` provided in `SecretsData` object.
 
 This enables the flexibility required to support Key Rotation policies when secrets/keys need to be changed with time. SDK will encrypt data using current secret/key while maintaining the ability to decrypt records encrypted with old keys/secrets. SDK also provides a method for data migration which allows to re-encrypt data with the newest key/secret. For details please see `migrate` method.
 
 SDK allows you to use custom encryption keys, instead of secrets. Please note that user-defined encryption key should be a 32-characters 'utf8' encoded string as it's required by AES-256 cryptographic algorithm.
 
-Here are some examples how you can use `SecretKeyAccessor`.
+Here are some examples of `GetSecretCallback`.
 
 ```javascript
-const SecretKeyAccessor = require("incountry/secret-key-accessor");
+// Synchronous 
+const secretKeyAccessor = () => "longAndStrongPassword";
 
-// Synchronous accessor
-const secretKeyAccessor = new SecretKeyAccessor(() => {
-  return "longAndStrongPassword";
-});
-
-// Asynchronous accessor
-const secretKeyAccessor = new SecretKeyAccessor(async () => {
+// Asynchronous
+const secretKeyAccessor = async () => {
   const secretsData = await getSecretsDataFromSomewhere();
   return secretsData;
-});
+};
 
 // Using promises
-const secretKeyAccessor = new SecretKeyAccessor(
-  () =>
-    new Promise(resolve => {
-      getPasswordFromSomewhere(secretsData => {
-        resolve(secretsData);
-      });
-    })
-);
+const secretKeyAccessor = () =>
+  new Promise(resolve => {
+    getPasswordFromSomewhere(secretsData => {
+      resolve(secretsData);
+    });
+  });
 ```
 
 #### Logging
@@ -99,7 +93,7 @@ const storage = new Storage(
     apiKey: "",
     environmentId: ""
   },
-  secretKeyAccessor,
+  () => "",
   customLogger
 );
 ```
@@ -285,9 +279,9 @@ const deleteResponse = await storage.delete(
 
 ## Data Migration and Key Rotation support
 
-Using `secretKeyAccessor` that provides `secretsData` object enables key rotation and data migration support.
+Using `GetSecretCallback` that fetches `secretsData` object enables key rotation and data migration support.
 
-SDK introduces `migrate(country: str, limit: int)` method which allows you to re-encrypt data encrypted with old versions of the secret. You should specify `country` you want to conduct migration in and `limit` for precise amount of records to migrate. `migrate` return a dict which contains some information about the migration - the amount of records migrated (`migrated`) and the amount of records left to migrate (`total_left`) (which basically means the amount of records with version different from `currentVersion` provided by `secretKeyAccessor`)
+SDK introduces `migrate(country: str, limit: int)` method which allows you to re-encrypt data encrypted with old versions of the secret. You should specify `country` you want to conduct migration in and `limit` for precise amount of records to migrate. `migrate` return a dict which contains some information about the migration - the amount of records migrated (`migrated`) and the amount of records left to migrate (`total_left`) (which basically means the amount of records with version different from `currentVersion` provided by `GetSecretCallback`)
 
 ```javascript
 {
@@ -334,10 +328,6 @@ const decrypt = async function(encryptedText, secret) {
   return xxtea.decrypt(encryptedText, secret);
 };
 
-const secretKeyAccessor = new SecretKeyAccessor(() => {
-  return "longAndStrongPassword";
-});
-
 const storage = new Storage(
   {
     apiKey: "",
@@ -345,7 +335,7 @@ const storage = new Storage(
     endpoint: "",
     encrypt: true,
   },
-  secretKeyAccessor,
+  () => "longAndStrongPassword",
 );
 
 storage.setCustomEncryption([{ 

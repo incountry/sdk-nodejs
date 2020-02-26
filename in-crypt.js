@@ -56,8 +56,8 @@ class InCrypt {
   }
 
   async initialize() {
-    if (this._secretKeyAccessor !== undefined) {
-      await this._secretKeyAccessor.initialize();
+    if (this.secretKeyAccessor !== undefined) {
+      await this.secretKeyAccessor.initialize();
     }
   }
 

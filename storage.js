@@ -21,6 +21,10 @@ const { validateCustomEncryptionConfigs } = require('./validation/custom-encrypt
  */
 
 /**
+ * @typedef {import('./secret-key-accessor').GetSecretCallback} GetSecretCallback
+ */
+
+/**
  * @typedef {import('./validation/custom-encryption-data').CustomEncryption} CustomEncryption
  */
 
@@ -50,11 +54,11 @@ const { validateCustomEncryptionConfigs } = require('./validation/custom-encrypt
 class Storage {
   /**
    * @param {StorageOptions} options
-   * @param {SecretKeyAccessor | unknown} secretKeyAccessor
+   * @param {GetSecretCallback | unknown} getSecretCallback
    * @param {Logger} logger
    * @param {CountriesCache} countriesCache
    */
-  constructor(options, secretKeyAccessor, logger, countriesCache) {
+  constructor(options, getSecretCallback, logger, countriesCache) {
     if (logger) {
       this.setLogger(logger);
     } else {
@@ -74,12 +78,8 @@ class Storage {
     this._endpoint = options.endpoint;
 
     if (options.encrypt !== false) {
-      if (!(secretKeyAccessor instanceof SecretKeyAccessor)) {
-        throw new StorageClientError('secretKeyAccessor must be an instance of SecretKeyAccessor');
-      }
-
       this._encryptionEnabled = true;
-      this._crypto = new InCrypt(secretKeyAccessor);
+      this._crypto = new InCrypt(new SecretKeyAccessor(getSecretCallback));
     } else {
       this._encryptionEnabled = false;
       this._crypto = new InCrypt();
@@ -473,13 +473,13 @@ class Storage {
 
 /**
  * @param {StorageOptions} options
- * @param {SecretKeyAccessor | unknown} secretKeyAccessor
+ * @param {GetSecretCallback | unknown} getSecretCallback
  * @param {Logger} logger
  * @param {CountriesCache} countriesCache
  * @returns {Storage}
  */
-async function createStorage(options, secretKeyAccessor, logger, countriesCache) {
-  const s = new Storage(options, secretKeyAccessor, logger, countriesCache);
+async function createStorage(options, getSecretCallback, logger, countriesCache) {
+  const s = new Storage(options, getSecretCallback, logger, countriesCache);
   await s.initialize();
   return s;
 }

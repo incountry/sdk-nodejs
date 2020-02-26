@@ -1,6 +1,5 @@
 const dotenv = require('dotenv');
 const createStorage = require('../../storage');
-const SecretKeyAccessor = require('../../secret-key-accessor');
 
 dotenv.config();
 
@@ -15,7 +14,7 @@ async function createDefaultStorage(encryption) {
       endpoint: process.env.INC_URL,
       encrypt: encryption,
     },
-    new SecretKeyAccessor(() => 'supersecret'),
+    () => 'supersecret',
   );
 }
 

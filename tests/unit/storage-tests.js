@@ -76,15 +76,15 @@ const TEST_RECORDS = [
 
 const LOGGER_STUB = { write: (a, b) => [a, b] };
 
-const defaultSecretKeyAccessor = new SecretKeyAccessor(() => SECRET_KEY);
+const defaultGetSecretCallback = () => SECRET_KEY;
 
-const getDefaultStorage = async (encrypt, normalizeKeys, secretKeyAccessor = defaultSecretKeyAccessor) => createStorage({
+const getDefaultStorage = async (encrypt, normalizeKeys, getSecretCallback = defaultGetSecretCallback) => createStorage({
   apiKey: 'string',
   environmentId: 'string',
   endpoint: POPAPI_HOST,
   encrypt,
   normalizeKeys,
-}, secretKeyAccessor, LOGGER_STUB);
+}, getSecretCallback, LOGGER_STUB);
 
 const getDefaultFindResponse = (count, data) => ({
   meta: {
@@ -172,7 +172,7 @@ describe('Storage', () => {
               environmentId: 'ENVIRONMENT_ID',
               endpoint: 'URL',
             },
-          )).to.be.rejectedWith(Error, 'secretKeyAccessor must be an instance of SecretKeyAccessor');
+          )).to.be.rejectedWith(Error, 'Provide callback function for secretData');
         });
 
         it('should not throw an error if encryption is disabled and no secretKeyAccessor provided', async () => {
@@ -192,17 +192,17 @@ describe('Storage', () => {
               apiKey: 'API_KEY',
               environmentId: 'ENVIRONMENT_ID',
               endpoint: 'URL',
-            }, new SecretKeyAccessor(() => { }),
+            }, () => { },
           )).to.be.rejectedWith(Error, '<SecretsData> should be SecretsData but got undefined');
         });
 
-        it('should throw an error if malformed secretData is provided', async () => {
+        it('should throw an error if not a getSecretKey callback is provided', async () => {
           await expect(createStorage(
             {
               apiKey: 'API_KEY',
               environmentId: 'ENVIRONMENT_ID',
               endpoint: 'URL',
-            }, new SecretKeyAccessor({}),
+            }, {},
           )).to.be.rejectedWith(Error, 'Provide callback function for secretData');
         });
       });
@@ -293,7 +293,7 @@ describe('Storage', () => {
           environmentId: 'string',
           endpoint: POPAPI_HOST,
           encrypt: false,
-        }, defaultSecretKeyAccessor, LOGGER_STUB);
+        }, defaultGetSecretCallback, LOGGER_STUB);
 
         const customEncryptionConfigs = [{ encrypt: () => { }, decrypt: () => { }, version: '' }];
 
@@ -967,10 +967,10 @@ describe('Storage', () => {
           const oldSecret = { secret: SECRET_KEY, version: 0 };
           const newSecret = { secret: 'newnew', version: 1 };
 
-          const encStorage2 = await getDefaultStorage(true, false, new SecretKeyAccessor(() => ({
+          const encStorage2 = await getDefaultStorage(true, false, () => ({
             secrets: [oldSecret, newSecret],
             currentVersion: newSecret.version,
-          })));
+          }));
 
           const popAPIFind = nockEndpoint(POPAPI_HOST, 'find', COUNTRY).reply(200, getDefaultFindResponse(encryptedRecords.length, encryptedRecords));
           const popAPIBatchWrite = nockEndpoint(POPAPI_HOST, 'batchWrite', COUNTRY).reply(200, 'OK');
