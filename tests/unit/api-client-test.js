@@ -27,7 +27,7 @@ const getApiClient = (host = undefined, cache = undefined) => {
   const environmentId = 'string';
   const loggerFn = (a, b) => [a, b];
 
-  return new ApiClient(apiKey, environmentId, host, loggerFn, cache ? cache.getCountriesAsync : cache);
+  return new ApiClient(apiKey, environmentId, host, loggerFn, cache ? cache.getCountriesAsync.bind(cache) : cache);
 };
 
 describe('ApiClient', () => {
@@ -84,14 +84,32 @@ describe('ApiClient', () => {
     });
 
     describe('when CountriesCache threw an error', () => {
-      it('should use the default host', async () => {
+      it('should throw StorageServerError', async () => {
         const failingCache = new CountriesCache();
         failingCache.getCountriesAsync = () => {
           throw new Error('test');
         };
         const country = 'ae';
         const apiClient = getApiClient(undefined, failingCache);
-        await expectCorrectURLReturned(apiClient, country, POPAPI_HOST);
+        await expect(apiClient.getEndpoint(country, 'testPath')).to.be.rejectedWith(StorageServerError, 'Unable to retrieve countries list: test');
+        assert.equal(nockPB.isDone(), false, 'PB was not called');
+      });
+    });
+
+    describe('when countries list provider responds with server error', () => {
+      let countriesProviderNock;
+      const countriesProviderHost = 'test.example';
+
+      beforeEach(() => {
+        countriesProviderNock = nock(`https://${countriesProviderHost}`).get(PORTAL_BACKEND_COUNTRIES_LIST_PATH).reply(500, { error: 'Oh no!' });
+      });
+
+      it('should throw StorageServerError', async () => {
+        const workingCache = new CountriesCache(countriesProviderHost, 1000, Date.now() + 1000);
+        const country = 'ae';
+        const apiClient = getApiClient(undefined, workingCache);
+        await expect(apiClient.getEndpoint(country, 'testPath')).to.be.rejectedWith(StorageServerError, 'Unable to retrieve countries list: Request failed with status code 500');
+        assert.equal(countriesProviderNock.isDone(), true, 'Countries provider was called');
       });
     });
   });

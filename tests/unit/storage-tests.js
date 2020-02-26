@@ -5,7 +5,7 @@ const nock = require('nock');
 const uuid = require('uuid/v4');
 const _ = require('lodash');
 const createStorage = require('../../storage');
-const { StorageServerError } = require('../../errors');
+const { StorageServerError, StorageClientError } = require('../../errors');
 const CountriesCache = require('../../countries-cache');
 const SecretKeyAccessor = require('../../secret-key-accessor');
 const {
@@ -15,6 +15,11 @@ const {
 } = require('../test-helpers/popapi-nock');
 const { COUNTRY_CODE_ERROR_MESSAGE } = require('../../validation/country-code');
 const { RECORD_KEY_ERROR_MESSAGE } = require('../../validation/record-key');
+const {
+  CUSTOM_ENCRYPTION_CONFIG_ERROR_MESSAGE_CURRENT,
+  CUSTOM_ENCRYPTION_CONFIG_ERROR_MESSAGE_ARRAY,
+  CUSTOM_ENCRYPTION_CONFIG_ERROR_MESSAGE_VERSIONS,
+} = require('../../validation/custom-encryption-configs');
 const { MAX_LIMIT, LIMIT_ERROR_MESSAGE_INT, LIMIT_ERROR_MESSAGE_MAX } = require('../../validation/limit');
 
 const { expect, assert } = chai;
@@ -281,6 +286,47 @@ describe('Storage', () => {
       });
     });
 
+    describe('setCustomEncryption', () => {
+      it('should throw an error when setting custom encryption configs with disabled encryption', async () => {
+        const storage = await createStorage({
+          apiKey: 'string',
+          environmentId: 'string',
+          endpoint: POPAPI_HOST,
+          encrypt: false,
+        }, defaultSecretKeyAccessor, LOGGER_STUB);
+
+        const customEncryptionConfigs = [{ encrypt: () => { }, decrypt: () => { }, version: '' }];
+
+        expect(() => storage.setCustomEncryption(customEncryptionConfigs)).to.throw(StorageClientError, 'Cannot use custom encryption when encryption is off');
+      });
+
+      it('should throw an error if configs object is malformed', () => {
+        ['', {}, () => { }].forEach((configs) => {
+          expect(() => encStorage.setCustomEncryption(configs)).to.throw(CUSTOM_ENCRYPTION_CONFIG_ERROR_MESSAGE_ARRAY);
+        });
+      });
+
+      it('should throw an error if 2 configs are marked as current', () => {
+        const configs = [{
+          encrypt: () => { }, decrypt: () => { }, isCurrent: true, version: '1',
+        }, {
+          encrypt: () => { }, decrypt: () => { }, isCurrent: true, version: '2',
+        }];
+
+        expect(() => encStorage.setCustomEncryption(configs)).to.throw(CUSTOM_ENCRYPTION_CONFIG_ERROR_MESSAGE_CURRENT);
+      });
+
+      it('should throw an error if 2 configs have same version', () => {
+        const configs = [{
+          encrypt: () => { }, decrypt: () => { }, version: '1',
+        }, {
+          encrypt: () => { }, decrypt: () => { }, isCurrent: true, version: '1',
+        }];
+
+        expect(() => encStorage.setCustomEncryption(configs)).to.throw(CUSTOM_ENCRYPTION_CONFIG_ERROR_MESSAGE_VERSIONS);
+      });
+    });
+
     describe('write', () => {
       let popAPI;
 
@@ -322,12 +368,36 @@ describe('Storage', () => {
                 it(`should hash keys and send ${opt.bodyDescr}`, async () => {
                   const storage = opt.encrypted ? encStorage : noEncStorage;
                   const encrypted = await storage.encryptPayload(testCase);
+
                   const [bodyObj, result] = await Promise.all([getNockedRequestBodyObject(popAPI), storage.write(COUNTRY, testCase)]);
+
                   expect(_.omit(bodyObj, ['body'])).to.deep.equal(_.omit(encrypted, ['body']));
                   expect(bodyObj.body).to.match(opt.bodyRegExp);
                   expect(result.record).to.deep.equal(testCase);
                 });
               });
+            });
+          });
+        });
+      });
+
+      describe('custom encryption', () => {
+        TEST_RECORDS.forEach((testCase, idx) => {
+          context(`with test case ${idx}`, () => {
+            it('should write data into storage', async () => {
+              const storage = encStorage;
+              storage.setCustomEncryption([{
+                encrypt: (text) => Buffer.from(text).toString('base64'),
+                decrypt: (encryptedData) => Buffer.from(encryptedData, 'base64').toString('utf-8'),
+                version: 'customEncryption',
+                isCurrent: true,
+              }]);
+
+              const encryptedPayload = await storage.encryptPayload(testCase);
+
+              const [bodyObj, result] = await Promise.all([getNockedRequestBodyObject(popAPI), storage.write(COUNTRY, testCase)]);
+              expect(bodyObj.body).to.equal(encryptedPayload.body);
+              expect(result.record).to.deep.equal(testCase);
             });
           });
         });
@@ -407,6 +477,29 @@ describe('Storage', () => {
 
             const { record } = await noEncStorage.read(COUNTRY, recordData.key);
             expect(record).to.deep.include(recordData);
+          });
+        });
+      });
+
+      describe('custom encryption', () => {
+        TEST_RECORDS.forEach((testCase, idx) => {
+          context(`with test case ${idx}`, () => {
+            it('should read custom encrypted record', async () => {
+              const storage = encStorage;
+              storage.setCustomEncryption([{
+                encrypt: (text) => Buffer.from(text).toString('base64'),
+                decrypt: (encryptedData) => Buffer.from(encryptedData, 'base64').toString('utf-8'),
+                version: 'customEncryption',
+                isCurrent: true,
+              }]);
+
+              const encryptedPayload = await storage.encryptPayload(testCase);
+              nockEndpoint(POPAPI_HOST, 'read', COUNTRY, encryptedPayload.key)
+                .reply(200, encryptedPayload);
+
+              const { record } = await storage.read(COUNTRY, testCase.key);
+              expect(record).to.deep.equal(testCase);
+            });
           });
         });
       });

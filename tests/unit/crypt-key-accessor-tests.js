@@ -53,11 +53,11 @@ describe('SecretKeyAccessor', () => {
         currentVersion: 0,
       }));
 
-      const secretObj10 = await secretKeyAccessor10.getSecret(0);
+      const secretObj10 = await secretKeyAccessor10.getSecret({ secretVersion: 0 });
       expect(secretObj10.secret).to.equal(secret0);
-      const secretObj11 = await secretKeyAccessor10.getSecret(1);
+      const secretObj11 = await secretKeyAccessor10.getSecret({ secretVersion: 1 });
       expect(secretObj11.secret).to.equal(secret1);
-      const secretObj12 = await secretKeyAccessor10.getSecret(2);
+      const secretObj12 = await secretKeyAccessor10.getSecret({ secretVersion: 2 });
       expect(secretObj12.secret).to.equal(secret2);
 
       const secretKeyAccessor20 = new SecretKeyAccessor(async () => ({
@@ -69,11 +69,11 @@ describe('SecretKeyAccessor', () => {
         currentVersion: 1,
       }));
 
-      const secretObj20 = await secretKeyAccessor20.getSecret(0);
+      const secretObj20 = await secretKeyAccessor20.getSecret({ secretVersion: 0 });
       expect(secretObj20.secret).to.equal(secret0);
-      const secretObj21 = await secretKeyAccessor20.getSecret(1);
+      const secretObj21 = await secretKeyAccessor20.getSecret({ secretVersion: 1 });
       expect(secretObj21.secret).to.equal(secret1);
-      const secretObj22 = await secretKeyAccessor20.getSecret(2);
+      const secretObj22 = await secretKeyAccessor20.getSecret({ secretVersion: 2 });
       expect(secretObj22.secret).to.equal(secret2);
     });
 
@@ -209,11 +209,11 @@ describe('SecretKeyAccessor', () => {
         currentVersion: 0,
       }));
 
-      const secretObj10 = await secretKeyAccessor10.getSecret(0);
+      const secretObj10 = await secretKeyAccessor10.getSecret({ secretVersion: 0 });
       expect(secretObj10.secret).to.equal(secret0);
-      const secretObj11 = await secretKeyAccessor10.getSecret(1);
+      const secretObj11 = await secretKeyAccessor10.getSecret({ secretVersion: 1 });
       expect(secretObj11.secret).to.equal(secret1);
-      const secretObj12 = await secretKeyAccessor10.getSecret(2);
+      const secretObj12 = await secretKeyAccessor10.getSecret({ secretVersion: 2 });
       expect(secretObj12.secret).to.equal(secret2);
 
       const secretKeyAccessor20 = new SecretKeyAccessor(() => ({
@@ -225,11 +225,11 @@ describe('SecretKeyAccessor', () => {
         currentVersion: 1,
       }));
 
-      const secretObj20 = await secretKeyAccessor20.getSecret(0);
+      const secretObj20 = await secretKeyAccessor20.getSecret({ secretVersion: 0 });
       expect(secretObj20.secret).to.equal(secret0);
-      const secretObj21 = await secretKeyAccessor20.getSecret(1);
+      const secretObj21 = await secretKeyAccessor20.getSecret({ secretVersion: 1 });
       expect(secretObj21.secret).to.equal(secret1);
-      const secretObj22 = await secretKeyAccessor20.getSecret(2);
+      const secretObj22 = await secretKeyAccessor20.getSecret({ secretVersion: 2 });
       expect(secretObj22.secret).to.equal(secret2);
     });
 
@@ -276,7 +276,7 @@ describe('SecretKeyAccessor', () => {
 
       it('should reject if secret keys object does not contain requested version of secret key', () => {
         const secret = 'supersecret';
-        const version = 42;
+        const secretVersion = 42;
 
         const secretKeyAccessor1 = new SecretKeyAccessor(() => ({
           secrets: [
@@ -284,7 +284,7 @@ describe('SecretKeyAccessor', () => {
             { version: 2, secret }],
           currentVersion: 1,
         }));
-        expect(secretKeyAccessor1.getSecret(version)).to.be.rejectedWith(Error, `Secret not found for version ${version}`);
+        expect(secretKeyAccessor1.getSecret({ secretVersion })).to.be.rejectedWith(Error, `Secret not found for version ${secretVersion}`);
       });
     });
   });

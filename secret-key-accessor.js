@@ -1,7 +1,5 @@
 const { validationToPromise } = require('./validation/utils');
-const { SecretsDataIO } = require('./validation/secrets-data');
-
-const DEFAULT_VERSION = 0;
+const { getSecretsDataIO } = require('./validation/secrets-data');
 
 /**
  * @typedef {import('./validation/secrets-data').SecretsData} SecretsData
@@ -11,6 +9,9 @@ const DEFAULT_VERSION = 0;
  * @param {string} secret
  * @return {SecretsData}
  */
+
+const DEFAULT_VERSION = 0;
+
 function wrapToSecretsData(secret) {
   return {
     currentVersion: DEFAULT_VERSION,
@@ -40,37 +41,36 @@ class SecretKeyAccessor {
     if (typeof getSecretCallback !== 'function') {
       throw new Error('Provide callback function for secretData');
     }
-    this._getSecretCallback = getSecretCallback;
+    this.getSecretCallback = getSecretCallback;
   }
 
   async initialize() {
-    await this.getSecrets();
+    await this.getSecret();
   }
 
   /**
-   * @param {number} secretVersion optional, will fallback to "currentSecretVersion"
+   * @typedef GetSecretParams
+   * @property {number|undefined} secretVersion optional, will fallback to "currentSecretVersion"
+   * @property {boolean|undefined} forCustomEncryption optional, will ease validation
+   */
+
+  /**
+   * @param {GetSecretParams}
    * @return {Promise<{ secret: string, version: number }>}
    */
-  getSecret(secretVersion) {
-    return this.getSecrets().then((so) => {
-      const version = secretVersion !== undefined ? secretVersion : so.currentVersion;
-      const item = so.secrets.find((s) => s.version === version);
-      return item !== undefined
-        ? item
-        : Promise.reject(new Error(`Secret not found for version ${secretVersion}`));
-    });
-  }
-
-  /**
-   * @return {Promise<SecretsData>}
-   */
-  getSecrets() {
+  getSecret({ secretVersion, forCustomEncryption } = {}) {
     return Promise
-      .resolve(this._getSecretCallback())
-      .then((v) => (typeof v === 'string' ? wrapToSecretsData(v) : validationToPromise(SecretsDataIO.decode(v))));
+      .resolve(this.getSecretCallback())
+      .then((v) => (typeof v === 'string' ? wrapToSecretsData(v) : validationToPromise(getSecretsDataIO(forCustomEncryption).decode(v))))
+      .then((so) => {
+        const version = secretVersion !== undefined ? secretVersion : so.currentVersion;
+        const item = so.secrets.find((s) => s.version === version);
+        return item !== undefined
+          ? item
+          : Promise.reject(new Error(`Secret not found for version ${secretVersion}`));
+      });
   }
 }
 
 SecretKeyAccessor.DEFAULT_VERSION = DEFAULT_VERSION;
-
 module.exports = SecretKeyAccessor;
