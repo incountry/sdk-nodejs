@@ -7,7 +7,6 @@ const _ = require('lodash');
 const createStorage = require('../../storage');
 const { StorageServerError, StorageClientError } = require('../../errors');
 const CountriesCache = require('../../countries-cache');
-const SecretKeyAccessor = require('../../secret-key-accessor');
 const {
   getNockedRequestBodyObject,
   getNockedRequestHeaders,
