@@ -33,7 +33,7 @@ const storage = await createStorage(
 
 Note: even though SDK uses PBKDF2 to generate a cryptographically strong encryption key, you must make sure you provide a secret/password which follows modern security best practices and standards.
 
-`GetSecretCallback` is a function that should return either a string representing your secret or a dict (we call it `SecretsData` object):
+`GetSecretCallback` is a function that should return either a string representing your secret or an object (we call it `SecretsData`) or a `Promise` which resolves to that string or object:
 
 ```javascript
 {
@@ -141,7 +141,7 @@ Use `batchWrite` method to create/replace multiple records at once
 ```javascript
 batchResponse = await storage.batchWrite(
   country, // Required country code of where to store the data
-  records // Required list of records
+  records // Required array of records
 );
 
 // `batchWrite` returns axios http response
@@ -281,7 +281,7 @@ const deleteResponse = await storage.delete(
 
 Using `GetSecretCallback` that fetches `secretsData` object enables key rotation and data migration support.
 
-SDK introduces `migrate(country: str, limit: int)` method which allows you to re-encrypt data encrypted with old versions of the secret. You should specify `country` you want to conduct migration in and `limit` for precise amount of records to migrate. `migrate` return a dict which contains some information about the migration - the amount of records migrated (`migrated`) and the amount of records left to migrate (`total_left`) (which basically means the amount of records with version different from `currentVersion` provided by `GetSecretCallback`)
+SDK introduces `migrate(country: str, limit: int)` method which allows you to re-encrypt data encrypted with old versions of the secret. You should specify `country` you want to conduct migration in and `limit` for precise amount of records to migrate. `migrate` return an object which contains some information about the migration - the amount of records migrated (`migrated`) and the amount of records left to migrate (`total_left`) (which basically means the amount of records with version different from `currentVersion` provided by `GetSecretCallback`)
 
 ```javascript
 {
