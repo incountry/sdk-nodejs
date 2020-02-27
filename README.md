@@ -279,7 +279,7 @@ const deleteResponse = await storage.delete(
 
 ## Data Migration and Key Rotation support
 
-Using `GetSecretCallback` that fetches `secretsData` object enables key rotation and data migration support.
+Using `GetSecretCallback` that provides `secretsData` object enables key rotation and data migration support.
 
 SDK introduces `migrate(country: str, limit: int)` method which allows you to re-encrypt data encrypted with old versions of the secret. You should specify `country` you want to conduct migration in and `limit` for precise amount of records to migrate. `migrate` return an object which contains some information about the migration - the amount of records migrated (`migrated`) and the amount of records left to migrate (`total_left`) (which basically means the amount of records with version different from `currentVersion` provided by `GetSecretCallback`)
 
