@@ -10,11 +10,11 @@ npm install incountry --save
 
 ## Usage
 
-To access your data in InCountry using NodeJS SDK, you need to create an instance of `Storage` class.
+To access your data in InCountry using NodeJS SDK, you need to create an instance of `Storage` class using async constructor `createStorage`.
 
 ```javascript
-const Storage = require("incountry/storage");
-const storage = new Storage(
+const createStorage = require("incountry/storage");
+const storage = await createStorage(
   {
     apiKey: "", // {string} Required to be passed in, or as environment variable INC_API_KEY
     environmentId: "", // {string} Required to be passed in, or as environment variable INC_ENVIRONMENT_ID
@@ -88,7 +88,7 @@ const customLogger = {
   write: (logLevel, message) => {} // Custom logger must implement `write` with two parameters - logLevel {string}, message {string}
 };
 
-const storage = new Storage(
+const storage = await createStorage(
   {
     apiKey: "",
     environmentId: ""
@@ -328,7 +328,7 @@ const decrypt = async function(encryptedText, secret) {
   return xxtea.decrypt(encryptedText, secret);
 };
 
-const storage = new Storage(
+const storage = await createStorage(
   {
     apiKey: "",
     environmentId: "",
