@@ -10,7 +10,6 @@ const { expect } = chai;
 const COUNTRY = process.env.INT_INC_COUNTRY;
 const ANOTHER_COUNTRY = COUNTRY === 'us' ? 'se' : 'us';
 
-/** @type {import('../../storage')} */
 let storage;
 
 const dataRequest = {
@@ -23,19 +22,17 @@ const dataRequest = {
 };
 
 describe('Find one record', function () {
-  before(async function () {
-    storage = createStorage(false);
-    await storage.write(COUNTRY, dataRequest);
-  });
-
   after(async function () {
     await storage.delete(COUNTRY, dataRequest.key).catch(noop);
   });
 
   [false, true].forEach((encryption) => {
-    storage = createStorage(encryption);
-
     context(`${encryption ? 'with' : 'without'} encryption`, function () {
+      before(async function () {
+        storage = await createStorage(encryption);
+        await storage.write(COUNTRY, dataRequest);
+      });
+
       it.skip('Find one record by country', async function () {
         const { record } = await storage.findOne(COUNTRY, {});
         expect(record).to.have.all.keys('body', 'key', 'key2', 'key3', 'profile_key', 'range_key', 'version');

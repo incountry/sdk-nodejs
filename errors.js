@@ -45,10 +45,21 @@ class InCryptoError extends Error {
   }
 }
 
+class SecretKeyAccessorError extends Error {
+  constructor(message) {
+    super(message);
+    this.name = 'SecretKeyAccessorError';
+    if (Error.captureStackTrace) {
+      Error.captureStackTrace(this, SecretKeyAccessorError);
+    }
+  }
+}
+
 module.exports = {
   isError,
   StorageClientError,
   StorageServerError,
   InCryptoError,
+  SecretKeyAccessorError,
   StorageValidationError,
 };

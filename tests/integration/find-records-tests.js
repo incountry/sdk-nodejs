@@ -31,20 +31,19 @@ const dataRequest2 = {
 };
 
 describe('Find records', function () {
-  before(async function () {
-    await storage.write(COUNTRY, dataRequest);
-    await storage.write(COUNTRY, dataRequest2);
-  });
-
   after(async function () {
     await storage.delete(COUNTRY, dataRequest.key).catch(noop);
     await storage.delete(COUNTRY, dataRequest2.key).catch(noop);
   });
 
   [false, true].forEach((encryption) => {
-    storage = createStorage(encryption);
-
     context(`${encryption ? 'with' : 'without'} encryption`, function () {
+      before(async function () {
+        storage = await createStorage(encryption);
+        await storage.write(COUNTRY, dataRequest);
+        await storage.write(COUNTRY, dataRequest2);
+      });
+
       it.skip('Find records by country', async function () {
         const { records, meta } = await storage.find(COUNTRY, {}, {});
 
@@ -118,14 +117,14 @@ describe('Find records', function () {
 
       it('Find records with pagination', async function () {
         const limit = 10;
-        const offset = 10;
+        const offset = 1;
         const { records, meta } = await storage.find(COUNTRY, { version: 0 },
           {
             limit,
             offset,
           });
 
-        expect(records).to.be.lengthOf.above(2);
+        expect(records).to.be.lengthOf.above(1);
         expect(records).to.be.lengthOf.not.above(limit);
 
         expect(meta).to.have.all.keys('count', 'limit', 'offset', 'total');

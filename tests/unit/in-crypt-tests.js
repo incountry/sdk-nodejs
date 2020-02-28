@@ -96,7 +96,7 @@ describe('InCrypt', function () {
 
     wrongCiphertexts.forEach((ciphertext) => {
       it(`should throw an error for '${ciphertext}'`, async () => {
-        const secretKeyAccessor = new SecretKeyAccessor('supersecret');
+        const secretKeyAccessor = new SecretKeyAccessor(() => 'supersecret');
         const incrypt = new InCrypt(secretKeyAccessor);
         await expect(incrypt.decrypt(ciphertext)).to.be.rejected;
       });

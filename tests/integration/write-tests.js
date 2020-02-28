@@ -17,9 +17,12 @@ describe('Write data to Storage', function () {
     await storage.delete(COUNTRY, data.key).catch(noop);
   });
 
-  [false, true].forEach((encryption) => {
-    storage = createStorage(encryption);
+  [false, true].forEach(async (encryption) => {
     context(`${encryption ? 'with' : 'without'} encryption`, function () {
+      before(async function () {
+        storage = await createStorage(encryption);
+      });
+
       it('Write data', async function () {
         data = {
           key: Math.random().toString(36).substr(2, 10),
