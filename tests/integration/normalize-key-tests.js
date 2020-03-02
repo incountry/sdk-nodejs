@@ -21,10 +21,6 @@ const dataRequest = {
 };
 
 describe('Normalize keys records', function () {
-  before(async function () {
-    await storage.write(COUNTRY, dataRequest);
-  });
-
   after(async function () {
     await storage.delete(COUNTRY, dataRequest.key).catch(noop);
   });
@@ -33,6 +29,10 @@ describe('Normalize keys records', function () {
     storage = createStorage(encryption, true);
 
     context(`${encryption ? 'with' : 'without'} encryption`, function () {
+      before(async function () {
+        storage = await createStorage(encryption, true);
+        await storage.write(COUNTRY, dataRequest);
+      });
       it('Find records by key with lower case', async function () {
         const { records, meta } = await storage.find(COUNTRY, { key: dataRequest.key.toLowerCase() }, {});
         const records2 = await storage.find(COUNTRY, { key: dataRequest.key }, {});
