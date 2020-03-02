@@ -1,6 +1,5 @@
 const dotenv = require('dotenv');
-const Storage = require('../../storage');
-const SecretKeyAccessor = require('../../secret-key-accessor');
+const createStorage = require('../../storage');
 
 dotenv.config();
 
@@ -8,6 +7,7 @@ dotenv.config();
  * @param {Boolean} encryption - Encryption value
  * @param {Boolean} normalizeKeys - normalizeKeys value, default false
  */
+
 function createStorage(encryption, normalizeKeys = false) {
   return new Storage(
     {
@@ -17,13 +17,13 @@ function createStorage(encryption, normalizeKeys = false) {
       encrypt: encryption,
       normalizeKeys,
     },
-    new SecretKeyAccessor((() => 'supersecret')),
+    () => 'supersecret',
   );
 }
 
 function noop() { }
 
 module.exports = {
-  createStorage,
+  createStorage: createDefaultStorage,
   noop,
 };

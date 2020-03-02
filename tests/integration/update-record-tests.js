@@ -30,9 +30,11 @@ describe('Update record', function () {
   });
 
   [false, true].forEach((encryption) => {
-    storage = createStorage(encryption);
-
     context(`${encryption ? 'with' : 'without'} encryption`, function () {
+      before(async function () {
+        storage = await createStorage(encryption);
+      });
+
       it('Update record with override', async function () {
         const updatedData = {
           key: data.key,

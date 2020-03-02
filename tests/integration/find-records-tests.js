@@ -17,7 +17,7 @@ const dataRequest = {
   key2: Math.random().toString(36).substr(2, 10),
   key3: Math.random().toString(36).substr(2, 10),
   profile_key: Math.random().toString(36).substr(2, 10),
-  range_key: Math.floor(Math.random() * 100) + 1,
+  range_key: Math.floor(Math.random() * 100) + 100,
   body: JSON.stringify({ name: 'PersonName' }),
 };
 
@@ -26,24 +26,23 @@ const dataRequest2 = {
   key2: Math.random().toString(36).substr(2, 10),
   key3: Math.random().toString(36).substr(2, 10),
   profile_key: Math.random().toString(36).substr(2, 10),
-  range_key: Math.floor(Math.random() * 100) + 1,
+  range_key: Math.floor(Math.random() * 100) + 100,
   body: JSON.stringify({ name: 'PersonName2' }),
 };
 
 describe('Find records', function () {
   before(async function () {
-    await storage.write(COUNTRY, dataRequest);
-    await storage.write(COUNTRY, dataRequest2);
+        storage = await createStorage(encryption);
+        await storage.write(COUNTRY, dataRequest);
+        await storage.write(COUNTRY, dataRequest2);
   });
-
+  
   after(async function () {
     await storage.delete(COUNTRY, dataRequest.key).catch(noop);
     await storage.delete(COUNTRY, dataRequest2.key).catch(noop);
   });
 
   [false, true].forEach((encryption) => {
-    storage = createStorage(encryption);
-
     context(`${encryption ? 'with' : 'without'} encryption`, function () {
       it('Find records by country', async function () {
         const { records, meta } = await storage.find(COUNTRY, {}, {});
