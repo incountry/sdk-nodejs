@@ -25,14 +25,14 @@ describe('Find one record', function () {
   after(async function () {
     await storage.delete(COUNTRY, dataRequest.key).catch(noop);
   });
-  
-  before(async function () {
-        storage = await createStorage(encryption);
-        await storage.write(COUNTRY, dataRequest);
-  });
 
   [false, true].forEach((encryption) => {
+    storage = createStorage(encryption);
     context(`${encryption ? 'with' : 'without'} encryption`, function () {
+      before(async function () {
+        storage = await createStorage(encryption);
+        await storage.write(COUNTRY, dataRequest);
+      });
       it('Find one record by country', async function () {
         const { record } = await storage.findOne(COUNTRY, {});
 

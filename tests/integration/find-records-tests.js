@@ -17,7 +17,7 @@ const dataRequest = {
   key2: Math.random().toString(36).substr(2, 10),
   key3: Math.random().toString(36).substr(2, 10),
   profile_key: Math.random().toString(36).substr(2, 10),
-  range_key: Math.floor(Math.random() * 100) + 100,
+  range_key: Math.floor(Math.random() * 100) + 1,
   body: JSON.stringify({ name: 'PersonName' }),
 };
 
@@ -26,17 +26,11 @@ const dataRequest2 = {
   key2: Math.random().toString(36).substr(2, 10),
   key3: Math.random().toString(36).substr(2, 10),
   profile_key: Math.random().toString(36).substr(2, 10),
-  range_key: Math.floor(Math.random() * 100) + 100,
+  range_key: Math.floor(Math.random() * 100) + 1,
   body: JSON.stringify({ name: 'PersonName2' }),
 };
 
 describe('Find records', function () {
-  before(async function () {
-        storage = await createStorage(encryption);
-        await storage.write(COUNTRY, dataRequest);
-        await storage.write(COUNTRY, dataRequest2);
-  });
-  
   after(async function () {
     await storage.delete(COUNTRY, dataRequest.key).catch(noop);
     await storage.delete(COUNTRY, dataRequest2.key).catch(noop);
@@ -44,6 +38,12 @@ describe('Find records', function () {
 
   [false, true].forEach((encryption) => {
     context(`${encryption ? 'with' : 'without'} encryption`, function () {
+      before(async function () {
+        storage = await createStorage(encryption);
+        await storage.write(COUNTRY, dataRequest);
+        await storage.write(COUNTRY, dataRequest2);
+      });
+
       it('Find records by country', async function () {
         const { records, meta } = await storage.find(COUNTRY, {}, {});
 
@@ -138,11 +138,14 @@ describe('Find records', function () {
 
       it('Find records by filter with range_key', async function () {
         const { records, meta } = await storage.find(COUNTRY,
-          { range_key: { $lt: 100 }, version: 0 }, {});
+          { range_key: { $lt: 100 } }, {});
 
-        expect(records).to.have.lengthOf.above(0);
+        expect(records).to.have.lengthOf(2);
         expect(meta).to.have.all.keys('count', 'limit', 'offset', 'total');
         expect(meta.offset).to.equal(0);
+        expect(meta.limit).to.equal(100);
+        expect(meta.count).to.equal(2);
+        expect(meta.total).to.equal(2);
       });
 
       it('Records not found by key value', async function () {
