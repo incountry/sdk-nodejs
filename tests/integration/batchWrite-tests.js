@@ -16,10 +16,6 @@ let dataList;
 
 
 describe('Batch write data to Storage', function () {
-  beforeEach(function () {
-    dataList = [];
-  });
-
   afterEach(async function () {
     console.log('After each tests');
     console.log(`Delete data from ${COUNTRY} country`);
@@ -30,8 +26,11 @@ describe('Batch write data to Storage', function () {
   });
 
   [false, true].forEach((encryption) => {
-    storage = createStorage(encryption);
     context(`${encryption ? 'with' : 'without'} encryption`, function () {
+      beforeEach(async function () {
+        storage = await createStorage(encryption);
+        dataList = [];
+      });
       it('Batch write data', async function () {
         const data1 = {
           key: Math.random().toString(36).substr(2, 10),
