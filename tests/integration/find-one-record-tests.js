@@ -27,15 +27,21 @@ describe('Find one record', function () {
   });
 
   [false, true].forEach((encryption) => {
+    storage = createStorage(encryption);
     context(`${encryption ? 'with' : 'without'} encryption`, function () {
       before(async function () {
         storage = await createStorage(encryption);
         await storage.write(COUNTRY, dataRequest);
       });
-
-      it.skip('Find one record by country', async function () {
+      it('Find one record by country', async function () {
         const { record } = await storage.findOne(COUNTRY, {});
-        expect(record).to.have.all.keys('body', 'key', 'key2', 'key3', 'profile_key', 'range_key', 'version');
+
+        expect(record.key).to.equal(dataRequest.key);
+        expect(record.key2).to.equal(dataRequest.key2);
+        expect(record.key3).to.equal(dataRequest.key3);
+        expect(record.profile_key).to.equal(dataRequest.profile_key);
+        expect(record.range_key).to.equal(dataRequest.range_key);
+        expect(record.body).to.equal(dataRequest.body);
       });
 
       it('Find one record by key', async function () {
