@@ -91,6 +91,7 @@ class ApiClient {
       countryHasApi = countriesList.find((country) => countryRegex.test(country.id));
     } catch (err) {
       this.loggerFn('error', err);
+      throw new StorageServerError(err.code, err.response ? err.response.data : {}, `Unable to retrieve countries list: ${err.message}`);
     }
 
     return countryHasApi

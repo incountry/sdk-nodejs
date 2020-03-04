@@ -1,27 +1,29 @@
 const dotenv = require('dotenv');
-const Storage = require('../../storage');
-const SecretKeyAccessor = require('../../secret-key-accessor');
+const createStorage = require('../../storage');
 
 dotenv.config();
 
 /**
  * @param {Boolean} encryption - Encryption value
+ * @param {Boolean} normalizeKeys - normalizeKeys value, default false
  */
-function createStorage(encryption) {
-  return new Storage(
+
+async function createDefaultStorage(encryption, normalizeKeys = false) {
+  return createStorage(
     {
       apiKey: process.env.INC_API_KEY,
       environmentId: process.env.INC_ENVIRONMENT_ID,
       endpoint: process.env.INC_URL,
       encrypt: encryption,
+      normalizeKeys,
     },
-    new SecretKeyAccessor((() => 'supersecret')),
+    () => 'supersecret',
   );
 }
 
 function noop() { }
 
 module.exports = {
-  createStorage,
+  createStorage: createDefaultStorage,
   noop,
 };

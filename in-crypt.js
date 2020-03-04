@@ -55,6 +55,12 @@ class InCrypt {
     }
   }
 
+  async initialize() {
+    if (this.secretKeyAccessor !== undefined) {
+      await this.secretKeyAccessor.initialize();
+    }
+  }
+
   async getCurrentSecretVersion() {
     const { version } = await this.secretKeyAccessor.getSecret();
     return version;

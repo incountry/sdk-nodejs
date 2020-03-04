@@ -1,5 +1,6 @@
 const { validationToPromise } = require('./validation/utils');
 const { getSecretsDataIO } = require('./validation/secrets-data');
+const { SecretKeyAccessorError } = require('./errors');
 
 /**
  * @typedef {import('./validation/secrets-data').SecretsData} SecretsData
@@ -38,7 +39,14 @@ class SecretKeyAccessor {
    * @param {GetSecretCallback} getSecretCallback
    */
   constructor(getSecretCallback) {
-    this._getSecretCallback = getSecretCallback;
+    if (typeof getSecretCallback !== 'function') {
+      throw new SecretKeyAccessorError('Provide callback function for secretData');
+    }
+    this.getSecretCallback = getSecretCallback;
+  }
+
+  async initialize() {
+    await this.getSecret();
   }
 
   /**
@@ -53,14 +61,14 @@ class SecretKeyAccessor {
    */
   getSecret({ secretVersion, forCustomEncryption } = {}) {
     return Promise
-      .resolve(this._getSecretCallback())
+      .resolve(this.getSecretCallback())
       .then((v) => (typeof v === 'string' ? wrapToSecretsData(v) : validationToPromise(getSecretsDataIO(forCustomEncryption).decode(v))))
       .then((so) => {
         const version = secretVersion !== undefined ? secretVersion : so.currentVersion;
         const item = so.secrets.find((s) => s.version === version);
         return item !== undefined
           ? item
-          : Promise.reject(new Error(`Secret not found for version ${secretVersion}`));
+          : Promise.reject(new SecretKeyAccessorError(`Secret not found for version ${secretVersion}`));
       });
   }
 }
