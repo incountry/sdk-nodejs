@@ -7,9 +7,21 @@ const { expect } = chai;
 
 const COUNTRY = process.env.INT_INC_COUNTRY;
 
+let storage;
+let data;
+
 describe('Custom encryption', () => {
+  beforeEach(async () => {
+    storage = await createStorage(true, COUNTRY);
+  });
+
+  afterEach(async () => {
+    if (data && data.key) {
+      await storage.delete(COUNTRY, data.key);
+    }
+  });
+
   it('should encrypt and decrypt data', async () => {
-    const storage = await createStorage(true, COUNTRY);
     storage.setCustomEncryption([{
       encrypt: (text) => Buffer.from(text).toString('base64'),
       decrypt: (encryptedData) => Buffer.from(encryptedData, 'base64').toString('utf-8'),
@@ -17,7 +29,7 @@ describe('Custom encryption', () => {
       version: 'current',
     }]);
 
-    const data = {
+    data = {
       key: Math.random().toString(36).substr(2, 10),
       body: JSON.stringify({ name: 'PersonName' }),
     };
