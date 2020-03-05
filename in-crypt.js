@@ -201,7 +201,7 @@ class InCrypt {
   async decryptCustom(encrypted, secretVersion, version) {
     const { decrypt } = this.customEncryption[version];
     const { secret } = await this.secretKeyAccessor.getSecret({ secretVersion, forCustomEncryption: true });
-    const decrypted = decrypt(encrypted, secret, secretVersion);
+    const decrypted = await decrypt(encrypted, secret, secretVersion);
     if (typeof decrypted !== 'string') {
       throw new InCryptoError(`${CUSTOM_ENCRYPTION_ERROR_MESSAGE_DEC}. Got ${typeof decrypted}`);
     }

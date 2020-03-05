@@ -30,7 +30,7 @@ const dataRequest2 = {
   body: JSON.stringify({ name: 'PersonName2' }),
 };
 
-describe('Find records', function () {
+xdescribe('Find records', function () {
   after(async function () {
     await storage.delete(COUNTRY, dataRequest.key).catch(noop);
     await storage.delete(COUNTRY, dataRequest2.key).catch(noop);

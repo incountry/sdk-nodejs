@@ -21,7 +21,7 @@ const dataRequest = {
   body: JSON.stringify({ name: 'PersonName' }),
 };
 
-describe('Find one record', function () {
+xdescribe('Find one record', function () {
   after(async function () {
     await storage.delete(COUNTRY, dataRequest.key).catch(noop);
   });
