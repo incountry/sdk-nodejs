@@ -10,7 +10,6 @@ const { expect } = chai;
 const COUNTRY = process.env.INT_INC_COUNTRY;
 const ANOTHER_COUNTRY = COUNTRY === 'us' ? 'se' : 'us';
 
-/** @type {import('../../storage')} */
 let storage;
 
 const dataRequest = {
@@ -22,23 +21,27 @@ const dataRequest = {
   body: JSON.stringify({ name: 'PersonName' }),
 };
 
-describe('Find one record', function () {
-  before(async function () {
-    storage = createStorage(false);
-    await storage.write(COUNTRY, dataRequest);
-  });
-
+xdescribe('Find one record', function () {
   after(async function () {
     await storage.delete(COUNTRY, dataRequest.key).catch(noop);
   });
 
   [false, true].forEach((encryption) => {
     storage = createStorage(encryption);
-
     context(`${encryption ? 'with' : 'without'} encryption`, function () {
-      it.skip('Find one record by country', async function () {
+      before(async function () {
+        storage = await createStorage(encryption);
+        await storage.write(COUNTRY, dataRequest);
+      });
+      it('Find one record by country', async function () {
         const { record } = await storage.findOne(COUNTRY, {});
-        expect(record).to.have.all.keys('body', 'key', 'key2', 'key3', 'profile_key', 'range_key', 'version');
+
+        expect(record.key).to.equal(dataRequest.key);
+        expect(record.key2).to.equal(dataRequest.key2);
+        expect(record.key3).to.equal(dataRequest.key3);
+        expect(record.profile_key).to.equal(dataRequest.profile_key);
+        expect(record.range_key).to.equal(dataRequest.range_key);
+        expect(record.body).to.equal(dataRequest.body);
       });
 
       it('Find one record by key', async function () {

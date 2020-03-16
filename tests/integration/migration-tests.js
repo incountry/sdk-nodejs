@@ -2,14 +2,12 @@
 const chai = require('chai');
 const chaiAsPromised = require('chai-as-promised');
 const { createStorage, noop } = require('./common');
-const SecretKeyAccessor = require('../../secret-key-accessor');
 
 chai.use(chaiAsPromised);
 const { expect } = chai;
 
 const COUNTRY = process.env.INT_INC_COUNTRY;
 
-/** @type {import('../../storage')} */
 let storage;
 let records;
 
@@ -21,14 +19,14 @@ describe('Migrate data with different secret version to current', function () {
   });
 
   it('Migrates data', async function () {
-    const secret1 = new SecretKeyAccessor(async () => ({
+    const secret1 = async () => ({
       secrets: [
         { secret: 'supersecret123', version: 1 },
       ],
       currentVersion: 1,
-    }));
+    });
 
-    storage = createStorage(true, secret1);
+    storage = await createStorage(true, false, secret1);
 
     records = [{
       key: generateKey(),
@@ -45,15 +43,15 @@ describe('Migrate data with different secret version to current', function () {
 
     await storage.batchWrite(COUNTRY, records);
 
-    const secret2 = new SecretKeyAccessor(async () => ({
+    const secret2 = async () => ({
       secrets: [
         { secret: 'supersecret123', version: 1 },
         { secret: 'supersecret234', version: 2 },
       ],
       currentVersion: 2,
-    }));
+    });
 
-    const storage2 = createStorage(true, secret2);
+    const storage2 = await createStorage(true, false, secret2);
 
     await storage2.migrate(COUNTRY, 3, { key: keys });
 

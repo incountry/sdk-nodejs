@@ -10,18 +10,18 @@ npm install incountry --save
 
 ## Usage
 
-To access your data in InCountry using NodeJS SDK, you need to create an instance of `Storage` class.
+To access your data in InCountry using NodeJS SDK, you need to create an instance of `Storage` class using async constructor `createStorage`.
 
 ```javascript
-const Storage = require("incountry/storage");
-const storage = new Storage(
+const createStorage = require("incountry/storage");
+const storage = await createStorage(
   {
     apiKey: "", // {string} Required to be passed in, or as environment variable INC_API_KEY
     environmentId: "", // {string} Required to be passed in, or as environment variable INC_ENVIRONMENT_ID
     endpoint: "", // {string} Optional. Defines API URL
     encrypt: true // {boolean} Optional. If false, encryption is not used. If omitted is set to true.
   },
-  secretKeyAccessor // {SecretKeyAccessor} Used to fetch encryption secret
+  () => "", // {GetSecretCallback} Used to fetch encryption secret
 );
 ```
 
@@ -29,11 +29,11 @@ const storage = new Storage(
 
 #### Encryption key/secret
 
-`secretKeyAccessor` is used to pass a key or secret used for encryption.
+`GetSecretCallback` is used to pass a key or secret used for encryption.
 
 Note: even though SDK uses PBKDF2 to generate a cryptographically strong encryption key, you must make sure you provide a secret/password which follows modern security best practices and standards.
 
-`SecretKeyAccessor` class constructor allows you to pass a function that should return either a string representing your secret or a dict (we call it `SecretsData` object):
+`GetSecretCallback` is a function that should return either a string representing your secret or an object (we call it `SecretsData`) or a `Promise` which resolves to that string or object:
 
 ```javascript
 {
@@ -52,37 +52,31 @@ Note: even though SDK uses PBKDF2 to generate a cryptographically strong encrypt
 };
 ```
 
-`SecretsData` allows you to specify multiple keys/secrets which SDK will use for decryption based on the version of the key or secret used for encryption. Meanwhile SDK will encrypt only using key/secret that matches `currentVersion` provided in `SecretsData` object.
+`GetSecretCallback` allows you to specify multiple keys/secrets which SDK will use for decryption based on the version of the key or secret used for encryption. Meanwhile SDK will encrypt only using key/secret that matches `currentVersion` provided in `SecretsData` object.
 
 This enables the flexibility required to support Key Rotation policies when secrets/keys need to be changed with time. SDK will encrypt data using current secret/key while maintaining the ability to decrypt records encrypted with old keys/secrets. SDK also provides a method for data migration which allows to re-encrypt data with the newest key/secret. For details please see `migrate` method.
 
 SDK allows you to use custom encryption keys, instead of secrets. Please note that user-defined encryption key should be a 32-characters 'utf8' encoded string as it's required by AES-256 cryptographic algorithm.
 
-Here are some examples how you can use `SecretKeyAccessor`.
+Here are some examples of `GetSecretCallback`.
 
 ```javascript
-const SecretKeyAccessor = require("incountry/secret-key-accessor");
+// Synchronous 
+const getSecretSync = () => "longAndStrongPassword";
 
-// Synchronous accessor
-const secretKeyAccessor = new SecretKeyAccessor(() => {
-  return "longAndStrongPassword";
-});
-
-// Asynchronous accessor
-const secretKeyAccessor = new SecretKeyAccessor(async () => {
+// Asynchronous
+const getSecretAsync = async () => {
   const secretsData = await getSecretsDataFromSomewhere();
   return secretsData;
-});
+};
 
 // Using promises
-const secretKeyAccessor = new SecretKeyAccessor(
-  () =>
-    new Promise(resolve => {
-      getPasswordFromSomewhere(secretsData => {
-        resolve(secretsData);
-      });
-    })
-);
+const getSecretPromise = () =>
+  new Promise(resolve => {
+    getPasswordFromSomewhere(secretsData => {
+      resolve(secretsData);
+    });
+  });
 ```
 
 #### Logging
@@ -94,12 +88,12 @@ const customLogger = {
   write: (logLevel, message) => {} // Custom logger must implement `write` with two parameters - logLevel {string}, message {string}
 };
 
-const storage = new Storage(
+const storage = await createStorage(
   {
     apiKey: "",
     environmentId: ""
   },
-  secretKeyAccessor,
+  () => "",
   customLogger
 );
 ```
@@ -147,7 +141,7 @@ Use `batchWrite` method to create/replace multiple records at once
 ```javascript
 batchResponse = await storage.batchWrite(
   country, // Required country code of where to store the data
-  records // Required list of records
+  records // Required array of records
 );
 
 // `batchWrite` returns axios http response
@@ -285,9 +279,9 @@ const deleteResponse = await storage.delete(
 
 ## Data Migration and Key Rotation support
 
-Using `secretKeyAccessor` that provides `secretsData` object enables key rotation and data migration support.
+Using `GetSecretCallback` that provides `secretsData` object enables key rotation and data migration support.
 
-SDK introduces `migrate(country: str, limit: int)` method which allows you to re-encrypt data encrypted with old versions of the secret. You should specify `country` you want to conduct migration in and `limit` for precise amount of records to migrate. `migrate` return a dict which contains some information about the migration - the amount of records migrated (`migrated`) and the amount of records left to migrate (`total_left`) (which basically means the amount of records with version different from `currentVersion` provided by `secretKeyAccessor`)
+SDK introduces `migrate(country: str, limit: int)` method which allows you to re-encrypt data encrypted with old versions of the secret. You should specify `country` you want to conduct migration in and `limit` for precise amount of records to migrate. `migrate` return an object which contains some information about the migration - the amount of records migrated (`migrated`) and the amount of records left to migrate (`total_left`) (which basically means the amount of records with version different from `currentVersion` provided by `GetSecretCallback`)
 
 ```javascript
 {
@@ -297,6 +291,62 @@ SDK introduces `migrate(country: str, limit: int)` method which allows you to re
 ```
 
 For a detailed example of a migration script please see `/examples/fullMigration.js`
+
+#### Custom encryption
+
+SDK supports the ability to provide custom encryption/decryption methods if you decide to use your own algorithm instead of the default one.
+
+`storage.setCustomEncryption(configs)` allows you to pass an array of custom encryption configurations with the following schema, which enables custom encryption:
+
+```typescript
+{
+  encrypt: (text: string, secret: string, secretVersion: string) => Promise<string>,
+  decrypt: (encryptedText: string, secret: string, secretVersion: string) => Promise<string>,
+  isCurrent: boolean, // optional but at least one in array should be isCurrent: true
+  version: string
+}
+```
+They should accept raw data to encrypt/decrypt, key data and key version received from SecretKeyAccessor. 
+The resulted encrypted/decrypted data should be a string. 
+
+`version` attribute is used to differ one custom encryption from another and from the default encryption as well. 
+This way SDK will be able to successfully decrypt any old data if encryption changes with time.
+
+`isCurrent` attribute allows to specify one of the custom encryption configurations to use for encryption. 
+Only one configuration can be set as `isCurrent: true`.
+
+
+Here's an example of how you can set up SDK to use custom encryption (using XXTEA encryption algorithm):
+
+```javascript
+const xxtea = require("xxtea");
+const encrypt = async function(text, secret) {
+  return xxtea.encrypt(text, secret);
+};
+
+const decrypt = async function(encryptedText, secret) {
+  return xxtea.decrypt(encryptedText, secret);
+};
+
+const storage = await createStorage(
+  {
+    apiKey: "",
+    environmentId: "",
+    endpoint: "",
+    encrypt: true,
+  },
+  () => "longAndStrongPassword",
+);
+
+storage.setCustomEncryption([{ 
+  encrypt,
+  decrypt,
+  isCurrent: true,
+  version: "current",
+}]);
+
+await storage.write("US", { key: "<key>", body: "<body>" });
+```
 
 ### Logging
 

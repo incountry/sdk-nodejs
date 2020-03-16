@@ -5,7 +5,7 @@ const { LimitIO } = require('./limit');
 const FindOptionsIO = t.partial({
   limit: LimitIO,
   offset: PositiveInt,
-});
+}, 'FindOptions');
 
 const validateFindOptions = (options) => validateWithIO(options, FindOptionsIO);
 

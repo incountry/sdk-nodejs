@@ -8,14 +8,15 @@ const { expect } = chai;
 
 const COUNTRY = process.env.INT_INC_COUNTRY;
 
-/** @type {import('../../storage')} */
-let storage;
-
 describe('Delete data from Storage', function () {
   [false, true].forEach((encryption) => {
-    storage = createStorage(encryption);
-
     context(`${encryption ? 'with' : 'without'} encryption`, function () {
+      let storage;
+
+      before(async function () {
+        storage = await createStorage(encryption);
+      });
+
       it('Delete data', async function () {
         const data = {
           key: Math.random().toString(36).substr(2, 10),
@@ -34,7 +35,7 @@ describe('Delete data from Storage', function () {
       it('Delete not existing data', async function () {
         const key = Math.random().toString(36).substr(2, 10);
         await expect(storage.delete(COUNTRY, key))
-          .to.be.rejectedWith(Error, 'Request failed with status code 404');
+          .to.be.rejectedWith(Error, 'Not Found');
       });
     });
   });
