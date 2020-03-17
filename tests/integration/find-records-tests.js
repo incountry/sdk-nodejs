@@ -9,7 +9,6 @@ const { expect } = chai;
 const COUNTRY = process.env.INT_INC_COUNTRY;
 const ANOTHER_COUNTRY = COUNTRY === 'us' ? 'se' : 'us';
 
-/** @type {import('../../storage')} */
 let storage;
 
 const dataRequest = {

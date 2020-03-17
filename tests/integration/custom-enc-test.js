@@ -12,7 +12,7 @@ let data;
 
 describe('Custom encryption', () => {
   beforeEach(async () => {
-    storage = await createStorage(true, COUNTRY);
+    storage = await createStorage(true);
   });
 
   afterEach(async () => {

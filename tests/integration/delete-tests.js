@@ -35,7 +35,7 @@ describe('Delete data from Storage', function () {
       it('Delete not existing data', async function () {
         const key = Math.random().toString(36).substr(2, 10);
         await expect(storage.delete(COUNTRY, key))
-          .to.be.rejectedWith(Error, 'Request failed with status code 404');
+          .to.be.rejectedWith(Error, 'Not Found');
       });
     });
   });

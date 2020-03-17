@@ -8,7 +8,6 @@ const { expect } = chai;
 
 const COUNTRY = process.env.INT_INC_COUNTRY;
 
-/** @type {import('../../storage')} */
 let storage;
 let data;
 
@@ -39,7 +38,7 @@ describe('Read data from Storage', function () {
       it('Read not existing data', async function () {
         const key = Math.random().toString(36).substr(2, 10);
         await expect(storage.read(COUNTRY, key))
-          .to.be.rejectedWith(Error, 'Request failed with status code 404');
+          .to.be.rejectedWith(Error, 'Not Found');
       });
 
       it('Read data with optional keys and range', async function () {

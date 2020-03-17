@@ -8,7 +8,9 @@ dotenv.config();
  * @param {Boolean} normalizeKeys - normalizeKeys value, default false
  */
 
-async function createDefaultStorage(encryption, normalizeKeys = false) {
+const DEFAULT_SECRET = () => 'supersecret';
+
+async function createDefaultStorage(encryption, normalizeKeys = false, secret = DEFAULT_SECRET) {
   return createStorage(
     {
       apiKey: process.env.INC_API_KEY,
@@ -17,7 +19,7 @@ async function createDefaultStorage(encryption, normalizeKeys = false) {
       encrypt: encryption,
       normalizeKeys,
     },
-    () => 'supersecret',
+    secret,
   );
 }
 

@@ -59,7 +59,7 @@ class ApiClient {
    * @param {string} apiKey
    * @param {string} envId
    * @param {string} popapiHost
-   * @param {(logLevel: string, message: any) => void} loggerFn
+   * @param {(logLevel: string, message: string, data: any) => void} loggerFn
    * @param {function} countriesProviderFn - async function()
    */
   constructor(apiKey, envId, popapiHost, loggerFn, countriesProviderFn) {
@@ -90,7 +90,7 @@ class ApiClient {
       const countriesList = await this.countriesProviderFn();
       countryHasApi = countriesList.find((country) => countryRegex.test(country.id));
     } catch (err) {
-      this.loggerFn('error', err);
+      this.loggerFn('error', err.message, err);
       throw new StorageServerError(err.code, err.response ? err.response.data : {}, `Unable to retrieve countries list: ${err.message}`);
     }
 
@@ -151,7 +151,8 @@ class ApiClient {
       });
     } catch (err) {
       const popError = parsePoPError(err);
-      this.loggerFn('error', err, {
+      const errorMessage = popError.errorMessage || err.message;
+      this.loggerFn('error', `Error ${method.toUpperCase()} ${url} : ${errorMessage}`, {
         endpoint: url,
         country,
         op_result: 'error',
@@ -159,9 +160,9 @@ class ApiClient {
         operation,
         requestHeaders: popError.requestHeaders,
         responseHeaders: popError.responseHeaders,
-        message: popError.errorMessage || err.message,
+        message: errorMessage,
       });
-      throw new StorageServerError(err.code, err.response ? err.response.data : {}, `${method.toUpperCase()} ${url} ${err.message}`);
+      throw new StorageServerError(err.code, err.response ? err.response.data : {}, `${method.toUpperCase()} ${url} ${errorMessage}`);
     }
 
     this.loggerFn('info', `Finished ${method.toUpperCase()} ${url}`, {

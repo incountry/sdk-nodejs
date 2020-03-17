@@ -8,7 +8,6 @@ const { expect } = chai;
 
 const COUNTRY = process.env.INT_INC_COUNTRY;
 
-/** @type {import('../../storage')} */
 let storage;
 let data;
 
