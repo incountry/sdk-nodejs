@@ -826,8 +826,8 @@ describe('Storage', () => {
             data: [],
           });
 
-        const [bodyObj] = await Promise.all([getNockedRequestBodyObject(popAPI), encStorage.findOne(COUNTRY, { key: '' }, { limit: 100 })]);
-        expect(bodyObj.options).to.deep.equal({ limit: 1 });
+        const [bodyObj] = await Promise.all([getNockedRequestBodyObject(popAPI), encStorage.findOne(COUNTRY, { key: '' }, { limit: 100, offset: 0 })]);
+        expect(bodyObj.options).to.deep.equal({ limit: 1, offset: 0 });
       });
 
       it('should return null when no results found', async () => {
