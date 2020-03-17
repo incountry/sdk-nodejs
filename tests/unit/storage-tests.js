@@ -817,6 +817,19 @@ describe('Storage', () => {
     });
 
     describe('findOne', () => {
+      it('should enforce limit:1', async () => {
+        const popAPI = nockEndpoint(POPAPI_HOST, 'find', COUNTRY)
+          .reply(200, {
+            meta: {
+              count: 0, limit: 100, offset: 0, total: 0,
+            },
+            data: [],
+          });
+
+        const [bodyObj] = await Promise.all([getNockedRequestBodyObject(popAPI), encStorage.findOne(COUNTRY, { key: '' }, { limit: 100 })]);
+        expect(bodyObj.options).to.deep.equal({ limit: 1 });
+      });
+
       it('should return null when no results found', async () => {
         nockEndpoint(POPAPI_HOST, 'find', COUNTRY).reply(200, getDefaultFindResponse(0, []));
 

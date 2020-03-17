@@ -324,12 +324,13 @@ class Storage {
    * Find first record matching filter.
    * @param {string} countryCode - Country code.
    * @param {object} filter - The filter to apply.
-   * @param {{ limit: number, offset: number }} options - The options to pass to PoP.
+   * @param {{ offset: number }} options - The options to pass to PoP.
    * @param {object} [requestOptions]
    * @return {Promise<{ record: Record|null }>} Matching record.
    */
   async findOne(countryCode, filter, options = {}, requestOptions = {}) {
-    const result = await this.find(countryCode, filter, options, requestOptions);
+    const optionsWithLimit = { ...options, limit: 1 };
+    const result = await this.find(countryCode, filter, optionsWithLimit, requestOptions);
     const record = result.records.length ? result.records[0] : null;
     return { record };
   }
