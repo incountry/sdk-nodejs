@@ -987,7 +987,7 @@ describe('Storage', () => {
         const encryptedRecords = await Promise.all(TEST_RECORDS.map((record) => encStorage.encryptPayload(record)));
 
         const oldSecret = { secret: SECRET_KEY, version: 1 };
-        const newSecret = { secret: 'newnew', version: 2 };
+        const newSecret = { secret: 'keykey', version: 2 };
 
         const encStorage2 = await getDefaultStorage(true, false, () => ({
           secrets: [oldSecret, newSecret],
