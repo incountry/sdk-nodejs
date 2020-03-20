@@ -24,9 +24,16 @@ function validationToPromise(validation) {
 
 const PositiveInt = t.brand(
   t.Int,
-  (n) => n >= 0,
+  (n) => n > 0,
   'PositiveInt',
 );
+
+const NonNegativeInt = t.brand(
+  t.Int,
+  (n) => n >= 0,
+  'NonNegativeInt',
+);
+
 
 function nullable(type) {
   return t.union([type, t.null, t.undefined]);
@@ -40,6 +47,7 @@ function validateWithIO(obj, io) {
 module.exports = {
   validationToPromise,
   PositiveInt,
+  NonNegativeInt,
   nullable,
   validateWithIO,
   isValid,

@@ -193,6 +193,14 @@ describe('Storage', () => {
               endpoint: 'URL',
             }, () => { },
           )).to.be.rejectedWith(Error, '<SecretsData> should be SecretsData but got undefined');
+
+          await expect(createStorage(
+            {
+              apiKey: 'API_KEY',
+              environmentId: 'ENVIRONMENT_ID',
+              endpoint: 'URL',
+            }, () => ({ secrets: [{ version: -1, secret: '' }], currentVersion: -1 }),
+          )).to.be.rejectedWith(Error, '<SecretsData>.secrets.0 should be SecretOrKey but got {"version":-1,"secret":""}');
         });
 
         it('should throw an error if not a getSecretKey callback is provided', async () => {
@@ -742,16 +750,12 @@ describe('Storage', () => {
 
           const result = await encStorage.find('us', {});
 
-          expect(result).to.deep.equal({
-            meta: {
-              count: TEST_RECORDS.length + 1, total: TEST_RECORDS.length + 1, limit: 100, offset: 0,
-            },
-            records: TEST_RECORDS,
-            errors: [{
-              error: 'Invalid IV length',
-              rawData: unsupportedData,
-            }],
+          expect(result.meta).to.deep.equal({
+            count: TEST_RECORDS.length + 1, total: TEST_RECORDS.length + 1, limit: 100, offset: 0,
           });
+          expect(result.records).to.deep.equal(TEST_RECORDS);
+          expect(result.errors[0].message).to.equal('Invalid IV length');
+          expect(result.errors[0].data).to.deep.equal(unsupportedData);
         });
 
         it('find() in non-encrypted mode should not throw error if some records are encrypted', async () => {
@@ -770,16 +774,14 @@ describe('Storage', () => {
             .reply(200, getDefaultFindResponse(data.length, data));
 
           const result = await noEncStorage.find('us', {});
-          expect(result).to.deep.equal({
-            meta: {
-              count: TEST_RECORDS.length + 1, total: TEST_RECORDS.length + 1, limit: 100, offset: 0,
-            },
-            records: TEST_RECORDS,
-            errors: [{
-              error: 'No secretKeyAccessor provided. Cannot decrypt encrypted data',
-              rawData: unsupportedData,
-            }],
+
+
+          expect(result.meta).to.deep.equal({
+            count: TEST_RECORDS.length + 1, total: TEST_RECORDS.length + 1, limit: 100, offset: 0,
           });
+          expect(result.records).to.deep.equal(TEST_RECORDS);
+          expect(result.errors[0].message).to.equal('No secretKeyAccessor provided. Cannot decrypt encrypted data');
+          expect(result.errors[0].data).to.deep.equal(unsupportedData);
         });
       });
 
@@ -974,11 +976,28 @@ describe('Storage', () => {
           const popAPIFind = nockEndpoint(POPAPI_HOST, 'find', COUNTRY).reply(200, getDefaultFindResponse(encryptedRecords.length, encryptedRecords));
           const popAPIBatchWrite = nockEndpoint(POPAPI_HOST, 'batchWrite', COUNTRY).reply(200, 'OK');
 
-          const result = await encStorage2.migrate(COUNTRY, TEST_RECORDS.length);
+          const result = await encStorage2.migrate(COUNTRY, encryptedRecords.length);
           expect(result).to.deep.equal(migrateResult);
           assert.equal(popAPIFind.isDone(), true, 'find() called');
           assert.equal(popAPIBatchWrite.isDone(), true, 'batchWrite() called');
         });
+      });
+
+      it('should throw error if cannot decrypt any record', async () => {
+        const encryptedRecords = await Promise.all(TEST_RECORDS.map((record) => encStorage.encryptPayload(record)));
+
+        const oldSecret = { secret: SECRET_KEY, version: 1 };
+        const newSecret = { secret: 'newnew', version: 2 };
+
+        const encStorage2 = await getDefaultStorage(true, false, () => ({
+          secrets: [oldSecret, newSecret],
+          currentVersion: newSecret.version,
+        }));
+
+        nockEndpoint(POPAPI_HOST, 'find', COUNTRY).reply(200, getDefaultFindResponse(encryptedRecords.length, encryptedRecords));
+
+        await expect(encStorage2.migrate(COUNTRY, encryptedRecords.length))
+          .to.be.rejectedWith(Error, 'Secret not found for version 0');
       });
     });
 

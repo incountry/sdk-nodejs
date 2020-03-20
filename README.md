@@ -40,15 +40,15 @@ Note: even though SDK uses PBKDF2 to generate a cryptographically strong encrypt
   secrets: [
     {
       secret: "abc", // {string}
-      version: 0 // {number} Should be a positive integer
+      version: 0 // {number} Should be a non negative integer
     },
     {
       secret: "def", // {string}
-      version: 1, // {number} Should be a positive integer
+      version: 1, // {number} Should be a non negative integer
       isKey: false // {boolean} Should be true only for user-defined encryption key
     }
   ],
-  currentVersion: 1 // {number} Should be a positive integer
+  currentVersion: 1 // {number} Should be a non negative integer
 };
 ```
 
@@ -61,6 +61,8 @@ SDK allows you to use custom encryption keys, instead of secrets. Please note th
 Here are some examples of `GetSecretCallback`.
 
 ```javascript
+// GetSecretCallback = () => string | SecretsData | Promise<string> | Promise<SecretsData>
+
 // Synchronous 
 const getSecretSync = () => "longAndStrongPassword";
 
@@ -70,7 +72,7 @@ const getSecretAsync = async () => {
   return secretsData;
 };
 
-// Using promises
+// Using promises syntax
 const getSecretPromise = () =>
   new Promise(resolve => {
     getPasswordFromSomewhere(secretsData => {
@@ -85,7 +87,7 @@ By default SDK outputs logs into `console` in JSON format. You can override this
 
 ```javascript
 const customLogger = {
-  write: (logLevel, message) => {} // Custom logger must implement `write` with two parameters - logLevel {string}, message {string}
+  write: (logLevel, message) => {} // {(logLevel:string, message: string) => void} Custom logger must implement `write` method
 };
 
 const storage = await createStorage(
@@ -93,7 +95,7 @@ const storage = await createStorage(
     apiKey: "",
     environmentId: ""
   },
-  () => "",
+  () => "", // {GetSecretCallback}
   customLogger
 );
 ```
@@ -103,19 +105,22 @@ const storage = await createStorage(
 Use `write` method in order to create/replace (by `key`) a record.
 
 ```javascript
-const writeResponse = await storage.write(
-  country, // Required country code of where to store the data 
-  {  
-    key: "string", // Required record key
-    body: "string", // Optional payload
-    profile_key: "string", // Optional
-    range_key: integer, // Optional
-    key2: "string", // Optional
-    key3: "string" // Optional
-  }
+// Record
+const record = {  
+  key: "<key>", // {string} Record key
+  body: "<body>", // {string} Optional payload
+  profile_key: "<profile_key>", // {string} Optional
+  range_key: 0, // {number} Optional integer
+  key2: "<key2>", // {string} Optional
+  key3: "<key3>" // {string} Optional
+}
+
+const writeResult = await storage.write(
+  country, // {string} Country code of where to store the data 
+  record, // {Record}
 );
 
-// Use writeReponse.status for status code.
+// WriteResult = { record: Record }
 ```
 
 #### Encryption
@@ -139,46 +144,86 @@ Here is how data is transformed and stored in InCountry database:
 Use `batchWrite` method to create/replace multiple records at once
 
 ```javascript
-batchResponse = await storage.batchWrite(
-  country, // Required country code of where to store the data
-  records // Required array of records
+batchResult = await storage.batchWrite(
+  country, // {string} Country code of where to store the data
+  records // {Array<Record>} Array of records
 );
 
-// `batchWrite` returns axios http response
+// BatchWriteResult = { records: Array<Record> }
 ```
 
 ### Reading stored data
 
-Stored record can be read by `key` using `read` method. It accepts an object with two fields: `country` and `key`
+Stored record can be read by `key` using `read` method. It accepts an object with two fields: `country` and `key`.
+It returns a `Promise` which resolves to `{ record }`  or  `{ record: null }` if there is no record with this `key`.
 
 ```javascript
-const readResponse = await storage.read(
-  country, // Required country code
-  key // Required record key
+const readResult = await storage.read(
+  country, // {string} Country code
+  key // {string} Record key
 );
 
-// Use readResponse.status for status code, and readResponse.data for payload received.
+// ReadResult = { record: Record | null }
 ```
-
-Note that `read` returns a `Promise` which is always fulfilled. Use `status` property in order check if operation was successful or not.
 
 ### Find records
 
 It is possible to search by random keys using `find` method.
 
-```javascript
-const records = await storage.find(country, filter, options);
-```
+You can specify filter object for every record key combining different queries:
+- single value
+- several values 
+- a logical NOT operation on the specific field 
+- comparison operations (only for number fields such as `range_key` and `version`)
 
-Parameters:
-`country` - country code,
-`filter` - a filter object (see below),
-`options` - an object containing search options.
+The `options` parameter defines the `limit` - number of records to return and the `offset`- starting index. 
+It can be used to implement pagination. Note: SDK returns 100 records at most.
+
+
+```javascript
+// FilterStringValue = string | Array<string> | { $not: string | Array<string> }
+// FilterNumberValue = 
+//   | number 
+//   | Array<number> 
+//   | { $not: number | Array<number> } 
+//   | { $gt?: number, $gte?: number, $lt?: number, $lte?: number }
+  
+
+const filter = {
+  key,          // {FilterStringValue} Optional
+  key2,         // {FilterStringValue} Optional
+	key3          // {FilterStringValue} Optionals
+	profile_key,  // {FilterStringValue} Optional
+	range_key,    // {FilterNumberValue} Optional
+	version,      // {FilterNumberValue} Optional
+}
+
+const options = {
+  limit: 100, // {number} PositiveInt Optional, max 100
+  offset: 0, // {number} NonNegativeInt Optional
+};
+
+const findResult = await storage.find(
+  country, // {string} Country code
+  filter, // {Filter} Optional
+  options // {Option} Optional
+);
+
+// FindResult = {
+//  records: Array<Record>,
+// 	errors: {Array<StorageClientError> }>}, // Optional Array of errors and records which caused them
+// 	meta: {
+// 		limit: number,
+// 		offset: number,
+// 		total: number // Total records matching filter, ignoring limit
+// 	}
+// }
+```
 
 Here is the example of how `find` method can be used:
 
 ```javascript
-const records = await storage.find(
+const findResult = await storage.find(
   "us",
   {
     key2: "kitty",
@@ -191,51 +236,21 @@ const records = await storage.find(
 );
 ```
 
-This call returns all records with `key2` equals `kitty` AND `key3` equals `mew` OR `purr`. The `options` parameter defines the number of records to return and the starting index. It can be used to implement pagination. Note: SDK returns 100 records at most.
+This call returns all records with `key2` equals `kitty` AND `key3` equals `mew` OR `purr`.  
 
 The return object looks like the following:
 
 ```javascript
 {
 	records: [/* kitties */],
-	errors: [], // optional
+	errors: [],
 	meta: {
-		limit: 10,
+		limit: 10, 
 		offset: 10,
-		total: 124 // total records matching filter, ignoring limit
+		total: 124
 	}
 }
 ```
-
-You can use the following types for filter fields.
-Single value:
-
-```javascript
-{
-  key2: "kitty";
-}
-```
-
-One of the values:
-
-```javascript
-{
-  key3: ["mew", "purr"];
-}
-```
-
-`range_key` is a numeric field so you can use range filter requests, for example:
-
-```javascript
-{
-  range_key: {
-    $lt: 1000;
-  } // search for records with range_key <1000
-}
-```
-
-Available request options for `range_key`: `$lt`, `$lte`, `$gt`, `$gte`.
-You can search by any keys: `key`, `key2`, `key3`, `profile_key`, `range_key`.
 
 #### Error handling
 
@@ -244,53 +259,67 @@ For example, if one changed the encryption key while the found data is encrypted
 In such cases find() method return data will be as follows:
 
 ```javascript
+// StorageClientError = {
+//   message: string // Error message
+//   data: any // Raw record which caused error
+// }
+
 {
 	records: [/* successfully decrypted records */],
-	errors: [{
-		rawData,  // raw record which caused decryption error
-		error,    // decryption error description 
-	}, ...],
-	meta: { ... }
+	errors: [/* errors */], // {Array<StorageClientError>}
+	meta: {/* ... */}
 }
 ```
 
 ### Find one record matching filter
 
 If you need to find the first record matching filter, you can use the `findOne` method.
+If record not found, it will return `null`.
 
 ```javascript
-const record = await storage.findOne(country, filter);
-```
+const findOneResult = await storage.findOne(
+  country, // {string} Country code
+  filter // {Filter} Optional
+);
 
-If record not found, it will return `null`.
+// FindOneResult = Record | null
+```
 
 ### Delete records
 
 Use `delete` method in order to delete a record from InCountry storage. It is only possible using `key` field.
 
 ```javascript
-const deleteResponse = await storage.delete(
-  country, // Required country code
-  key // Required record key
+const deleteResult = await storage.delete(
+  country, // {string} Country code
+  key // {string} Record key
 );
 
-// Use deleteResponse.status for status code.
+// DeleteResult = { success: true }
 ```
 
 ## Data Migration and Key Rotation support
 
 Using `GetSecretCallback` that provides `secretsData` object enables key rotation and data migration support.
 
-SDK introduces `migrate(country: str, limit: int)` method which allows you to re-encrypt data encrypted with old versions of the secret. You should specify `country` you want to conduct migration in and `limit` for precise amount of records to migrate. `migrate` return an object which contains some information about the migration - the amount of records migrated (`migrated`) and the amount of records left to migrate (`total_left`) (which basically means the amount of records with version different from `currentVersion` provided by `GetSecretCallback`)
+SDK introduces `migrate` method which allows you to re-encrypt data encrypted with old versions of the secret. 
+It returns an object which contains some information about the migration - the amount of records migrated (`migrated`) and the amount of records left to migrate (`total_left`) (which basically means the amount of records with version different from `currentVersion` provided by `GetSecretCallback`).
+
+For a detailed example of a migration script please see [examples/fullMigration.js](examples/fullMigration.js)
 
 ```javascript
-{
-	"migrated": <int>
-	"total_left": <int>
-}
+const migrateResult = await storage.migrate(
+  country, // {string} Country code
+  limit // {number} PositiveInt Amount of records to migrate 
+);
+
+// MigrateResult = { 
+// 	migrated: number, // NonNegativeInt The amount of records migrated
+// 	total_left: number // NonNegativeInt The amount of records left to migrate
+// }
 ```
 
-For a detailed example of a migration script please see `/examples/fullMigration.js`
+
 
 #### Custom encryption
 
@@ -347,29 +376,6 @@ storage.setCustomEncryption([{
 
 await storage.write("US", { key: "<key>", body: "<body>" });
 ```
-
-### Logging
-
-You can specify a custom logger at any time as following:
-
-```javascript
-const logger = {
-  write: (level, message) => {
-    console.log(`[${level}] ${message}`);
-  }
-};
-
-storage.setLogger(logger);
-```
-
-Logger must be an object implementing method `write`, which has following signature:
-
-```javascript
-write(level, message);
-```
-
-- `level` (string) - message level: DEBUG, INFO, etc.
-- `message` (string) - log message
 
 ## Testing Locally
 

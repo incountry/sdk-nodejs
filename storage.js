@@ -183,10 +183,10 @@ class Storage {
   }
 
   /**
-   * @param {string} countryCode - Country code.
+   * @param {string} countryCode - Country code
    * @param {Record} record
    * @param {object} [requestOptions]
-   * @return {Promise<{ record: Record }>} Matching record.
+   * @return {Promise<{ record: Record }>} Written record
    */
   async write(countryCode, record, requestOptions = {}) {
     this.validate(
@@ -206,6 +206,7 @@ class Storage {
    * Write many records at once
    * @param {string} countryCode
    * @param {Array<Record>} records
+   * @return {Promise<{ records: Array<Record> }>} Written records
    */
   async batchWrite(countryCode, records) {
     this.validate(
@@ -242,7 +243,11 @@ class Storage {
     const currentSecretVersion = await this._crypto.getCurrentSecretVersion();
     const findFilter = { ...findFilterOptional, version: { $not: currentSecretVersion } };
     const findOptions = { limit };
-    const { records, meta } = await this.find(countryCode, findFilter, findOptions);
+    const { records, meta, errors } = await this.find(countryCode, findFilter, findOptions);
+    if (records.length === 0 && errors && errors[0]) {
+      throw errors[0];
+    }
+
     await this.batchWrite(countryCode, records);
 
     return {
@@ -259,7 +264,7 @@ class Storage {
    * @param {object} filter - The filter to apply.
    * @param {{ limit: number, offset: number }} options - The options to pass to PoP.
    * @param {object} [requestOptions]
-   * @return {Promise<{ meta: { total: number, count: number, limit: number, offset: number }, records: Array<Record> }>} Matching records.
+   * @return {Promise<{ meta: { total: number, count: number, limit: number, offset: number }, records: Array<Record>, errors?: Array<StorageClientError> }> }>} Matching records.
    */
   async find(countryCode, filter, options = {}, requestOptions = {}) {
     this.validate(
@@ -284,15 +289,12 @@ class Storage {
       result.meta = responseData.meta;
 
       const decrypted = await Promise.all(
-        responseData.data.map((item) => this.decryptPayload(item).catch((e) => ({
-          error: e.message,
-          rawData: item,
-        }))),
+        responseData.data.map((item) => this.decryptPayload(item).catch((e) => e)),
       );
 
       const errors = [];
       decrypted.forEach((item) => {
-        if (item.error) {
+        if (isError(item)) {
           errors.push(item);
         } else {
           result.records.push(item);
@@ -336,10 +338,10 @@ class Storage {
   }
 
   /**
-   * @param {string} countryCode - Country code.
+   * @param {string} countryCode Country code
    * @param {string} recordKey
    * @param {object} [requestOptions]
-   * @return {Promise<{ record: Record|null }>} Matching record.
+   * @return {Promise<{ record: Record|null }>} Matching record
    */
   async read(countryCode, recordKey, requestOptions = {}) {
     this.validate(
@@ -392,7 +394,9 @@ class Storage {
     const decrypted = await this._crypto.decrypt(
       record.body,
       record.version,
-    );
+    ).catch((e) => {
+      throw new StorageClientError(e.message, originalRecord);
+    });
     let body;
     try {
       body = JSON.parse(decrypted);
