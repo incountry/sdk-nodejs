@@ -35,17 +35,25 @@ const TEST_RECORDS = [
   {
     key: uuid(),
     version: 0,
+    key2: null,
+    key3: null,
+    profile_key: null,
   },
   {
     key: uuid(),
     body: 'test',
     version: 0,
+    key2: null,
+    key3: null,
+    profile_key: null,
   },
   {
     key: uuid(),
     body: 'test',
     key2: 'key2',
     version: 0,
+    key3: null,
+    profile_key: null,
   },
   {
     key: uuid(),
@@ -53,6 +61,7 @@ const TEST_RECORDS = [
     key2: 'key2',
     key3: 'key3',
     version: 0,
+    profile_key: null,
   },
   {
     key: uuid(),

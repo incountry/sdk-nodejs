@@ -395,6 +395,9 @@ class Storage {
     const record = {
       key: encryptedRecord.key,
       version: encryptedRecord.version,
+      profile_key: encryptedRecord.profile_key,
+      key2: encryptedRecord.key2,
+      key3: encryptedRecord.key3,
     };
 
     if (encryptedRecord.range_key !== undefined) {

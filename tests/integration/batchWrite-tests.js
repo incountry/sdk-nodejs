@@ -64,24 +64,24 @@ describe('Batch write data to Storage', function () {
 
           expect(record.key).to.equal(data.key);
           if (data.key2 === undefined) {
-            expect(record.key2).to.equal(null);
-          } else expect(record.key2).to.equal(data.key2);
+            expect(record.key2).to.equal(null, 'key2');
+          } else expect(record.key2).to.equal(data.key2, 'key2');
 
           if (data.key3 === undefined) {
-            expect(record.key3).to.equal(null);
-          } else expect(record.key3).to.equal(data.key3);
+            expect(record.key3).to.equal(null, 'key3');
+          } else expect(record.key3).to.equal(data.key3, 'key3');
 
           if (data.profile_key === undefined) {
-            expect(record.profile_key).to.equal(null);
-          } else expect(record.profile_key).to.equal(data.profile_key);
+            expect(record.profile_key).to.equal(null, 'profile_key');
+          } else expect(record.profile_key).to.equal(data.profile_key, 'profile_key');
 
           if (data.range_key === undefined) {
-            expect(record.range_key).to.equal(null);
-          } else expect(record.range_key).to.equal(data.range_key);
+            expect(record.range_key).to.equal(null, 'range_key');
+          } else expect(record.range_key).to.equal(data.range_key, 'range_key');
 
           if (data.body === undefined) {
-            expect(record.body).to.equal(undefined);
-          } else expect(record.body).to.equal(data.body);
+            expect(record.body).to.equal(undefined, 'body');
+          } else expect(record.body).to.equal(data.body, 'body');
         }
       });
     });
