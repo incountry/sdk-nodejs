@@ -29,12 +29,11 @@ const { validateCustomEncryptionConfigs } = require('./validation/custom-encrypt
  */
 
 /**
- * @typedef {import('./countries-cache')} CountriesCache
+ * @typedef {import('./validation/record').Record} Record
  */
 
 /**
- * @typedef Record
- * @property {string} key
+ * @typedef {import('./countries-cache')} CountriesCache
  */
 
 /**
@@ -245,7 +244,7 @@ class Storage {
     const findOptions = { limit };
     const { records, meta, errors } = await this.find(countryCode, findFilter, findOptions);
     if (records.length === 0 && errors && errors[0]) {
-      throw errors[0];
+      throw errors[0].error;
     }
 
     await this.batchWrite(countryCode, records);
@@ -264,7 +263,7 @@ class Storage {
    * @param {object} filter - The filter to apply.
    * @param {{ limit: number, offset: number }} options - The options to pass to PoP.
    * @param {object} [requestOptions]
-   * @return {Promise<{ meta: { total: number, count: number, limit: number, offset: number }, records: Array<Record>, errors?: Array<StorageClientError> }> }>} Matching records.
+   * @return {Promise<{ meta: { total: number, count: number, limit: number, offset: number }, records: Array<Record>, errors?: Array<{ error: InCryptoError, rawData: Record  }> }> }>} Matching records.
    */
   async find(countryCode, filter, options = {}, requestOptions = {}) {
     this.validate(
@@ -289,12 +288,12 @@ class Storage {
       result.meta = responseData.meta;
 
       const decrypted = await Promise.all(
-        responseData.data.map((item) => this.decryptPayload(item).catch((e) => e)),
+        responseData.data.map((item) => this.decryptPayload(item).catch((e) => ({ error: e, rawData: item }))),
       );
 
       const errors = [];
       decrypted.forEach((item) => {
-        if (isError(item)) {
+        if (item.error) {
           errors.push(item);
         } else {
           result.records.push(item);
@@ -387,35 +386,44 @@ class Storage {
     return record;
   }
 
-  async decryptPayload(originalRecord) {
+  /**
+   * @param {Record} encryptedRecord
+   */
+  async decryptPayload(encryptedRecord) {
     this._logger.write('debug', 'Start decrypting...');
-    this._logger.write('debug', JSON.stringify(originalRecord, null, 2));
-    const record = { ...originalRecord };
-    const decrypted = await this._crypto.decrypt(
-      record.body,
-      record.version,
-    ).catch((e) => {
-      throw new StorageClientError(e.message, originalRecord);
-    });
-    let body;
-    try {
-      body = JSON.parse(decrypted);
-    } catch (e) {
-      return {
-        ...record,
-        body: decrypted,
-      };
+    this._logger.write('debug', JSON.stringify(encryptedRecord, null, 2));
+    const record = {
+      key: encryptedRecord.key,
+      version: encryptedRecord.version,
+    };
+
+    if (encryptedRecord.range_key !== undefined) {
+      record.range_key = encryptedRecord.range_key;
     }
-    if (body.meta) {
-      Object.keys(body.meta).forEach((key) => {
-        record[key] = body.meta[key];
-      });
+
+    if (typeof encryptedRecord.body === 'string') {
+      const body = await this._crypto.decrypt(
+        encryptedRecord.body,
+        encryptedRecord.version,
+      );
+
+      try {
+        const bodyObj = JSON.parse(body);
+
+        if (bodyObj.payload !== undefined) {
+          record.body = bodyObj.payload;
+        }
+
+        if (bodyObj.meta !== undefined) {
+          Object.keys(bodyObj.meta).forEach((key) => {
+            record[key] = bodyObj.meta[key];
+          });
+        }
+      } catch (e) {
+        record.body = body;
+      }
     }
-    if (body.payload !== undefined) {
-      record.body = body.payload;
-    } else {
-      delete record.body;
-    }
+
     this._logger.write('debug', 'Finished decryption');
     this._logger.write('debug', JSON.stringify(record, null, 2));
     return record;

@@ -1,6 +1,17 @@
 const t = require('io-ts');
 const { nullable, validateWithIO } = require('./utils');
 
+/**
+ * @typedef Record
+ * @property {string} key
+ * @property {string} body
+ * @property {string} profile_key
+ * @property {string} key2
+ * @property {string} key3
+ * @property {number} range_key
+ * @property {number} version
+ */
+
 const RecordIO = t.intersection([
   t.type({
     key: t.string,

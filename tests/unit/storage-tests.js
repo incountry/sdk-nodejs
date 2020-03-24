@@ -754,8 +754,8 @@ describe('Storage', () => {
             count: TEST_RECORDS.length + 1, total: TEST_RECORDS.length + 1, limit: 100, offset: 0,
           });
           expect(result.records).to.deep.equal(TEST_RECORDS);
-          expect(result.errors[0].message).to.equal('Invalid IV length');
-          expect(result.errors[0].data).to.deep.equal(unsupportedData);
+          expect(result.errors[0].error.message).to.equal('Invalid IV length');
+          expect(result.errors[0].rawData).to.deep.equal(unsupportedData);
         });
 
         it('find() in non-encrypted mode should not throw error if some records are encrypted', async () => {
@@ -780,8 +780,8 @@ describe('Storage', () => {
             count: TEST_RECORDS.length + 1, total: TEST_RECORDS.length + 1, limit: 100, offset: 0,
           });
           expect(result.records).to.deep.equal(TEST_RECORDS);
-          expect(result.errors[0].message).to.equal('No secretKeyAccessor provided. Cannot decrypt encrypted data');
-          expect(result.errors[0].data).to.deep.equal(unsupportedData);
+          expect(result.errors[0].error.message).to.equal('No secretKeyAccessor provided. Cannot decrypt encrypted data');
+          expect(result.errors[0].rawData).to.deep.equal(unsupportedData);
         });
       });
 

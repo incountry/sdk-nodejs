@@ -16,12 +16,12 @@ To access your data in InCountry using NodeJS SDK, you need to create an instanc
 const createStorage = require("incountry/storage");
 const storage = await createStorage(
   {
-    apiKey: "", // {string} Required to be passed in, or as environment variable INC_API_KEY
+    apiKey: "",        // {string} Required to be passed in, or as environment variable INC_API_KEY
     environmentId: "", // {string} Required to be passed in, or as environment variable INC_ENVIRONMENT_ID
-    endpoint: "", // {string} Optional. Defines API URL
-    encrypt: true // {boolean} Optional. If false, encryption is not used. If omitted is set to true.
+    endpoint: "",      // {string} Optional - Defines API URL
+    encrypt: true      // {boolean} Optional - If false, encryption is not used. If omitted is set to true.
   },
-  () => "", // {GetSecretCallback} Used to fetch encryption secret
+  () => "",            // {GetSecretCallback} Used to fetch encryption secret
 );
 ```
 
@@ -40,15 +40,15 @@ Note: even though SDK uses PBKDF2 to generate a cryptographically strong encrypt
   secrets: [
     {
       secret: "abc", // {string}
-      version: 0 // {number} Should be a non negative integer
+      version: 0     // {number} Should be a non negative integer
     },
     {
       secret: "def", // {string}
-      version: 1, // {number} Should be a non negative integer
-      isKey: false // {boolean} Should be true only for user-defined encryption key
+      version: 1,    // {number} Should be a non negative integer
+      isKey: false   // {boolean} Should be true only for user-defined encryption key
     }
   ],
-  currentVersion: 1 // {number} Should be a non negative integer
+  currentVersion: 1  // {number} Should be a non negative integer
 };
 ```
 
@@ -107,12 +107,12 @@ Use `write` method in order to create/replace (by `key`) a record.
 ```javascript
 // Record
 const record = {  
-  key: "<key>", // {string} Record key
-  body: "<body>", // {string} Optional payload
+  key: "<key>",                 // {string} Record key
+  body: "<body>",               // {string} Optional payload
   profile_key: "<profile_key>", // {string} Optional
-  range_key: 0, // {number} Optional integer
-  key2: "<key2>", // {string} Optional
-  key3: "<key3>" // {string} Optional
+  range_key: 0,                 // {number} Optional integer
+  key2: "<key2>",               // {string} Optional
+  key3: "<key3>"                // {string} Optional
 }
 
 const writeResult = await storage.write(
@@ -130,12 +130,12 @@ Here is how data is transformed and stored in InCountry database:
 
 ```javascript
 {
-	key,          // hashed
-	body,         // encrypted
-	profile_key,  // hashed
-	range_key,    // plain
-	key2,         // hashed
-	key3          // hashed
+  key,          // hashed
+  body,         // encrypted
+  profile_key,  // hashed
+  range_key,    // plain
+  key2,         // hashed
+  key3          // hashed
 }
 ```
 
@@ -146,7 +146,7 @@ Use `batchWrite` method to create/replace multiple records at once
 ```javascript
 batchResult = await storage.batchWrite(
   country, // {string} Country code of where to store the data
-  records // {Array<Record>} Array of records
+  records  // {Array<Record>} Array of records
 );
 
 // BatchWriteResult = { records: Array<Record> }
@@ -160,7 +160,7 @@ It returns a `Promise` which resolves to `{ record }`  or  `{ record: null }` if
 ```javascript
 const readResult = await storage.read(
   country, // {string} Country code
-  key // {string} Record key
+  key      // {string} Record key
 );
 
 // ReadResult = { record: Record | null }
@@ -192,26 +192,26 @@ It can be used to implement pagination. Note: SDK returns 100 records at most.
 const filter = {
   key,          // {FilterStringValue} Optional
   key2,         // {FilterStringValue} Optional
-	key3          // {FilterStringValue} Optionals
-	profile_key,  // {FilterStringValue} Optional
-	range_key,    // {FilterNumberValue} Optional
-	version,      // {FilterNumberValue} Optional
+  key3          // {FilterStringValue} Optional
+  profile_key,  // {FilterStringValue} Optional
+  range_key,    // {FilterNumberValue} Optional
+  version,      // {FilterNumberValue} Optional
 }
 
 const options = {
-  limit: 100, // {number} PositiveInt Optional, max 100
-  offset: 0, // {number} NonNegativeInt Optional
+  limit: 100,  // {number} Positive Int, Optional, max 100
+  offset: 0,   // {number} Non Negative Int, Optional
 };
 
 const findResult = await storage.find(
   country, // {string} Country code
-  filter, // {Filter} Optional
-  options // {Option} Optional
+  filter,  // {Filter} Optional
+  options  // {Option} Optional
 );
 
 // FindResult = {
 //  records: Array<Record>,
-// 	errors: {Array<StorageClientError> }>}, // Optional Array of errors and records which caused them
+// 	errors: {Array<{ error: InCryptoError, rawData: Record  }>}, // Optional - Array of errors and records which caused them
 // 	meta: {
 // 		limit: number,
 // 		offset: number,
@@ -242,13 +242,13 @@ The return object looks like the following:
 
 ```javascript
 {
-	records: [/* kitties */],
-	errors: [],
-	meta: {
-		limit: 10, 
-		offset: 10,
-		total: 124
-	}
+  records: [/* kitties */],
+  errors: [],
+  meta: {
+    limit: 10, 
+    offset: 10,
+    total: 124
+  }
 }
 ```
 
@@ -261,13 +261,13 @@ In such cases find() method return data will be as follows:
 ```javascript
 // StorageClientError = {
 //   message: string // Error message
-//   data: any // Raw record which caused error
+//   data: any       // Raw record which caused error
 // }
 
 {
-	records: [/* successfully decrypted records */],
-	errors: [/* errors */], // {Array<StorageClientError>}
-	meta: {/* ... */}
+  records: [/* successfully decrypted records */],
+  errors: [/* errors */], // {Array<StorageClientError>}
+  meta: {/* ... */}
 }
 ```
 
@@ -279,7 +279,7 @@ If record not found, it will return `null`.
 ```javascript
 const findOneResult = await storage.findOne(
   country, // {string} Country code
-  filter // {Filter} Optional
+  filter   // {Filter} Optional
 );
 
 // FindOneResult = Record | null
@@ -292,7 +292,7 @@ Use `delete` method in order to delete a record from InCountry storage. It is on
 ```javascript
 const deleteResult = await storage.delete(
   country, // {string} Country code
-  key // {string} Record key
+  key      // {string} Record key
 );
 
 // DeleteResult = { success: true }
@@ -310,12 +310,12 @@ For a detailed example of a migration script please see [examples/fullMigration.
 ```javascript
 const migrateResult = await storage.migrate(
   country, // {string} Country code
-  limit // {number} PositiveInt Amount of records to migrate 
+  limit    // {number} Positive Int - Amount of records to migrate 
 );
 
 // MigrateResult = { 
-// 	migrated: number, // NonNegativeInt The amount of records migrated
-// 	total_left: number // NonNegativeInt The amount of records left to migrate
+// 	migrated: number,  // Non Negative Int - The amount of records migrated
+// 	total_left: number // Non Negative Int - The amount of records left to migrate
 // }
 ```
 
@@ -331,7 +331,7 @@ SDK supports the ability to provide custom encryption/decryption methods if you 
 {
   encrypt: (text: string, secret: string, secretVersion: string) => Promise<string>,
   decrypt: (encryptedText: string, secret: string, secretVersion: string) => Promise<string>,
-  isCurrent: boolean, // optional but at least one in array should be isCurrent: true
+  isCurrent: boolean, // Optional but at least one in array should be isCurrent: true
   version: string
 }
 ```
