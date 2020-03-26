@@ -80,7 +80,7 @@ describe('Batch write data to Storage', function () {
           } else expect(record.range_key).to.equal(data.range_key, 'range_key');
 
           if (data.body === undefined) {
-            expect(record.body).to.equal(undefined, 'body');
+            expect(record.body).to.equal(null, 'body');
           } else expect(record.body).to.equal(data.body, 'body');
         }
       });

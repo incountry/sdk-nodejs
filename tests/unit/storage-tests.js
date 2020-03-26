@@ -34,6 +34,7 @@ const sdkVersionRegExp = /^SDK-Node\.js\/\d+\.\d+\.\d+/;
 const TEST_RECORDS = [
   {
     key: uuid(),
+    body: null,
     version: 0,
     key2: null,
     key3: null,

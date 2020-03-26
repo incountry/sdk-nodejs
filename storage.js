@@ -389,32 +389,24 @@ class Storage {
   /**
    * @param {Record} encryptedRecord
    */
-  async decryptPayload(encryptedRecord) {
+  async decryptPayload(originalRecord) {
     this._logger.write('debug', 'Start decrypting...');
-    this._logger.write('debug', JSON.stringify(encryptedRecord, null, 2));
-    const record = {
-      key: encryptedRecord.key,
-      version: encryptedRecord.version,
-      profile_key: encryptedRecord.profile_key,
-      key2: encryptedRecord.key2,
-      key3: encryptedRecord.key3,
-    };
+    this._logger.write('debug', JSON.stringify(originalRecord, null, 2));
+    const record = { ...originalRecord };
 
-    if (encryptedRecord.range_key !== undefined) {
-      record.range_key = encryptedRecord.range_key;
-    }
-
-    if (typeof encryptedRecord.body === 'string') {
-      const body = await this._crypto.decrypt(
-        encryptedRecord.body,
-        encryptedRecord.version,
+    if (typeof record.body === 'string') {
+      record.body = await this._crypto.decrypt(
+        record.body,
+        record.version,
       );
 
       try {
-        const bodyObj = JSON.parse(body);
+        const bodyObj = JSON.parse(record.body);
 
         if (bodyObj.payload !== undefined) {
           record.body = bodyObj.payload;
+        } else {
+          record.body = null;
         }
 
         if (bodyObj.meta !== undefined) {
@@ -423,7 +415,6 @@ class Storage {
           });
         }
       } catch (e) {
-        record.body = body;
       }
     }
 

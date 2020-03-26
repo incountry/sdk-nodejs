@@ -84,7 +84,7 @@ describe('Read data from Storage', function () {
         const { record } = await storage.read(COUNTRY, data.key);
 
         expect(record.key).to.equal(data.key);
-        expect(record.body).to.equal(undefined);
+        expect(record.body).to.equal(null);
       });
     });
   });
