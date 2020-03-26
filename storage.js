@@ -387,7 +387,7 @@ class Storage {
   }
 
   /**
-   * @param {Record} encryptedRecord
+   * @param {Record} originalRecord
    */
   async decryptPayload(originalRecord) {
     this._logger.write('debug', 'Start decrypting...');
@@ -415,6 +415,7 @@ class Storage {
           });
         }
       } catch (e) {
+        // body was not a JSON
       }
     }
 
