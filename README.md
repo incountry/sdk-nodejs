@@ -182,13 +182,14 @@ It can be used to implement pagination. Note: SDK returns 100 records at most.
 
 
 ```javascript
-// FilterStringValue = string | Array<string> | { $not: string | Array<string> }
-// FilterNumberValue = 
-//   | number 
-//   | Array<number> 
-//   | { $not: number | Array<number> } 
-//   | { $gt?: number, $gte?: number, $lt?: number, $lte?: number }
-  
+/*
+FilterStringValue = string | Array<string> | { $not: string | Array<string> }
+FilterNumberValue = 
+  | number 
+  | Array<number> 
+  | { $not: number | Array<number> } 
+  | { $gt?: number, $gte?: number, $lt?: number, $lte?: number }
+*/
 
 const filter = {
   key: 'abc',                        // {FilterStringValue} Optional
@@ -210,15 +211,17 @@ const findResult = await storage.find(
   options  // {Option} Optional
 );
 
-// FindResult = {
-//   records: Array<Record>,
-//   errors: {Array<{ error: InCryptoError, rawData: Record  }>}, // Optional - Array of errors and records which caused them
-//   meta: {
-//     limit: number,
-//     offset: number,
-//     total: number // Total records matching filter, ignoring limit
-//   }
-// }
+/*
+FindResult = {
+  records: Array<Record>,
+  errors: {Array<{ error: InCryptoError, rawData: Record  }>}, // Optional - Array of errors and records which caused them
+  meta: {
+    limit: number,
+    offset: number,
+    total: number // Total records matching filter, ignoring limit
+  }
+}
+*/
 ```
 
 Here is the example of how `find` method can be used:
@@ -260,10 +263,12 @@ For example, if one changed the encryption key while the found data is encrypted
 In such cases find() method return data will be as follows:
 
 ```javascript
-// StorageClientError = {
-//   message: string // Error message
-//   data: any       // Raw record which caused error
-// }
+/*
+StorageClientError = {
+  message: string // Error message
+  data: any       // Raw record which caused error
+}
+*/
 
 {
   records: [/* successfully decrypted records */],
@@ -314,10 +319,12 @@ const migrateResult = await storage.migrate(
   limit    // {number} Positive Int - Amount of records to migrate 
 );
 
-// MigrateResult = { 
-//   migrated: number,  // Non Negative Int - The amount of records migrated
-//   total_left: number // Non Negative Int - The amount of records left to migrate
-// }
+/*
+MigrateResult = { 
+  migrated: number,  // Non Negative Int - The amount of records migrated
+  total_left: number // Non Negative Int - The amount of records left to migrate
+}
+*/
 ```
 
 

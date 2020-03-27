@@ -3,7 +3,7 @@ const { nullable, validateWithIO } = require('./utils');
 
 /**
  * @typedef Record
- * @property {string|null} key
+ * @property {string} key
  * @property {string|null} body
  * @property {string|null} profile_key
  * @property {string|null} key2
