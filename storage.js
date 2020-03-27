@@ -1,13 +1,12 @@
 require('dotenv').config();
 const crypto = require('crypto');
-
 const { ApiClient } = require('./api-client');
 const defaultLogger = require('./logger');
 const CountriesCache = require('./countries-cache');
 const SecretKeyAccessor = require('./secret-key-accessor');
 const { InCrypt } = require('./in-crypt');
 const { isError, StorageClientError } = require('./errors');
-
+const { isJSON } = require('./utils');
 const { validateRecord } = require('./validation/record');
 const { validateRecordsNEA } = require('./validation/records');
 const { validateCountryCode } = require('./validation/country-code');
@@ -400,7 +399,7 @@ class Storage {
         record.version,
       );
 
-      try {
+      if (isJSON(record.body)) {
         const bodyObj = JSON.parse(record.body);
 
         if (bodyObj.payload !== undefined) {
@@ -414,8 +413,6 @@ class Storage {
             record[key] = bodyObj.meta[key];
           });
         }
-      } catch (e) {
-        // body was not a JSON
       }
     }
 
