@@ -86,8 +86,9 @@ const getSecretPromise = () =>
 By default SDK outputs logs into `console` in JSON format. You can override this behavior passing logger object as a Storage constructor parameter. Logger object must look like the following:
 
 ```javascript
+// Custom logger must implement `write` method
 const customLogger = {
-  write: (logLevel, message) => {} // {(logLevel:string, message: string) => void} Custom logger must implement `write` method
+  write: (logLevel, message) => {} // {(logLevel:string, message: string) => void}
 };
 
 const storage = await createStorage(
@@ -172,9 +173,9 @@ It is possible to search by random keys using `find` method.
 
 You can specify filter object for every record key combining different queries:
 - single value
-- several values 
-- a logical NOT operation on the specific field 
-- comparison operations (only for number fields such as `range_key` and `version`)
+- several values as an array
+- a logical NOT operation on the specific field `$not`
+- comparison operations `$lt`, `$lte`, `$gt`, `$gte` (only for number fields such as `range_key` and `version`)
 
 The `options` parameter defines the `limit` - number of records to return and the `offset`- starting index. 
 It can be used to implement pagination. Note: SDK returns 100 records at most.
@@ -190,12 +191,12 @@ It can be used to implement pagination. Note: SDK returns 100 records at most.
   
 
 const filter = {
-  key,          // {FilterStringValue} Optional
-  key2,         // {FilterStringValue} Optional
-  key3          // {FilterStringValue} Optional
-  profile_key,  // {FilterStringValue} Optional
-  range_key,    // {FilterNumberValue} Optional
-  version,      // {FilterNumberValue} Optional
+  key: 'abc',                        // {FilterStringValue} Optional
+  key2: ['def', 'jkl'],              // {FilterStringValue} Optional
+  key3: { $not: 'test' }             // {FilterStringValue} Optional
+  profile_key: 'test2',              // {FilterStringValue} Optional
+  range_key: { $gte: 5, $lte: 100 }, // {FilterNumberValue} Optional
+  version: { $not: [0, 1] },         // {FilterNumberValue} Optional
 }
 
 const options = {
@@ -210,13 +211,13 @@ const findResult = await storage.find(
 );
 
 // FindResult = {
-//  records: Array<Record>,
-// 	errors: {Array<{ error: InCryptoError, rawData: Record  }>}, // Optional - Array of errors and records which caused them
-// 	meta: {
-// 		limit: number,
-// 		offset: number,
-// 		total: number // Total records matching filter, ignoring limit
-// 	}
+//   records: Array<Record>,
+//   errors: {Array<{ error: InCryptoError, rawData: Record  }>}, // Optional - Array of errors and records which caused them
+//   meta: {
+//     limit: number,
+//     offset: number,
+//     total: number // Total records matching filter, ignoring limit
+//   }
 // }
 ```
 
@@ -314,8 +315,8 @@ const migrateResult = await storage.migrate(
 );
 
 // MigrateResult = { 
-// 	migrated: number,  // Non Negative Int - The amount of records migrated
-// 	total_left: number // Non Negative Int - The amount of records left to migrate
+//   migrated: number,  // Non Negative Int - The amount of records migrated
+//   total_left: number // Non Negative Int - The amount of records left to migrate
 // }
 ```
 
