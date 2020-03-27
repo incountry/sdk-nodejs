@@ -332,7 +332,7 @@ SDK supports the ability to provide custom encryption/decryption methods if you 
 {
   encrypt: (text: string, secret: string, secretVersion: string) => Promise<string>,
   decrypt: (encryptedText: string, secret: string, secretVersion: string) => Promise<string>,
-  isCurrent: boolean, // Optional but at least one in array should be isCurrent: true
+  isCurrent: boolean, // Optional but at most one in array should be isCurrent: true
   version: string
 }
 ```
