@@ -116,12 +116,13 @@ const record = {
   key3: "<key3>"                // {string} Optional
 }
 
+
+// storage.write(country: string, record: Record) => Promise<{ record: Record }>
+
 const writeResult = await storage.write(
   country, // {string} Country code of where to store the data 
   record, // {Record}
 );
-
-// WriteResult = { record: Record }
 ```
 
 #### Encryption
@@ -145,12 +146,12 @@ Here is how data is transformed and stored in InCountry database:
 Use `batchWrite` method to create/replace multiple records at once
 
 ```javascript
+// storage.batchWrite(country: string, record: Array<Record>) => Promise<{ records: Array<Record> }>
+
 batchResult = await storage.batchWrite(
   country, // {string} Country code of where to store the data
   records  // {Array<Record>} Array of records
 );
-
-// BatchWriteResult = { records: Array<Record> }
 ```
 
 ### Reading stored data
@@ -159,12 +160,12 @@ Stored record can be read by `key` using `read` method. It accepts an object wit
 It returns a `Promise` which resolves to `{ record }`  or  `{ record: null }` if there is no record with this `key`.
 
 ```javascript
+// storage.read(country: string, key: string) => Promise<{ record: Record | null }>
+
 const readResult = await storage.read(
   country, // {string} Country code
   key      // {string} Record key
 );
-
-// ReadResult = { record: Record | null }
 ```
 
 ### Find records
@@ -205,12 +206,6 @@ const options = {
   offset: 0,   // {number} Non Negative Int, Optional
 };
 
-const findResult = await storage.find(
-  country, // {string} Country code
-  filter,  // {Filter} Optional
-  options  // {Option} Optional
-);
-
 /*
 FindResult = {
   records: Array<Record>,
@@ -222,6 +217,14 @@ FindResult = {
   }
 }
 */
+
+//storage.find(county: string, filter: Filter, options: Options) => Promise<FindResult>
+
+const findResult = await storage.find(
+  country, // {string} Country code
+  filter,  // {Filter} Optional
+  options  // {Option} Optional
+);
 ```
 
 Here is the example of how `find` method can be used:
@@ -283,12 +286,12 @@ If you need to find the first record matching filter, you can use the `findOne` 
 If record not found, it will return `null`.
 
 ```javascript
+//storage.findOne(county: string, filter: Filter) => Promise<Record | null>
+
 const findOneResult = await storage.findOne(
   country, // {string} Country code
   filter   // {Filter} Optional
 );
-
-// FindOneResult = Record | null
 ```
 
 ### Delete records
@@ -296,12 +299,12 @@ const findOneResult = await storage.findOne(
 Use `delete` method in order to delete a record from InCountry storage. It is only possible using `key` field.
 
 ```javascript
+//storage.delete(county: string, filter: Filter) => Promise<{ success: true }>
+
 const deleteResult = await storage.delete(
   country, // {string} Country code
   key      // {string} Record key
 );
-
-// DeleteResult = { success: true }
 ```
 
 ## Data Migration and Key Rotation support
@@ -314,17 +317,19 @@ It returns an object which contains some information about the migration - the a
 For a detailed example of a migration script please see [examples/fullMigration.js](examples/fullMigration.js)
 
 ```javascript
-const migrateResult = await storage.migrate(
-  country, // {string} Country code
-  limit    // {number} Positive Int - Amount of records to migrate 
-);
-
 /*
 MigrateResult = { 
   migrated: number,  // Non Negative Int - The amount of records migrated
   total_left: number // Non Negative Int - The amount of records left to migrate
 }
 */
+
+//storage.migrate(county: string, limit: number) => Promise<MigrateResult>
+
+const migrateResult = await storage.migrate(
+  country, // {string} Country code
+  limit    // {number} Positive Int - Amount of records to migrate 
+);
 ```
 
 
