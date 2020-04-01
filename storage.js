@@ -350,7 +350,8 @@ class Storage {
    * @return {Promise<{ record: Record|null }>} Matching record.
    */
   async findOne(countryCode, filter, options = {}, requestOptions = {}) {
-    const result = await this.find(countryCode, filter, options, requestOptions);
+    const optionsWithLimit = { ...options, limit: 1 };
+    const result = await this.find(countryCode, filter, optionsWithLimit, requestOptions);
     const record = result.records.length ? result.records[0] : null;
     return { record };
   }
