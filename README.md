@@ -61,7 +61,10 @@ SDK allows you to use custom encryption keys, instead of secrets. Please note th
 Here are some examples of `GetSecretCallback`.
 
 ```javascript
-// GetSecretCallback = () => string | SecretsData | Promise<string> | Promise<SecretsData>
+/**
+ * @callback GetSecretCallback
+ * @returns {string|SecretsData|Promise<string>|Promise<SecretsData>}
+ */
 
 // Synchronous 
 const getSecretSync = () => "longAndStrongPassword";
@@ -106,6 +109,31 @@ const storage = await createStorage(
 Use `write` method in order to create/replace (by `key`) a record.
 
 ```javascript
+/**
+ * @typedef Record
+ * @property {string} key
+ * @property {string|null} body
+ * @property {string|null} profile_key
+ * @property {string|null} key2
+ * @property {string|null} key3
+ * @property {number|null} range_key
+ * @property {number} version
+ */
+
+/**
+  * @param {string} countryCode - Country code
+  * @param {Record} record
+  * @param {object} [requestOptions]
+  * @return {Promise<{ record: Record }>} Written record
+  */
+async write(countryCode, record, requestOptions = {}) {
+  /* ... */
+}
+```
+
+Below is the example of how you may use `write` method:
+
+```javascript
 // Record
 const record = {  
   key: "<key>",                 // {string} Record key
@@ -116,12 +144,9 @@ const record = {
   key3: "<key3>"                // {string} Optional
 }
 
-
-// storage.write(country: string, record: Record) => Promise<{ record: Record }>
-
 const writeResult = await storage.write(
   country, // {string} Country code of where to store the data 
-  record, // {Record}
+  record,  // {Record}
 );
 ```
 
@@ -146,11 +171,21 @@ Here is how data is transformed and stored in InCountry database:
 Use `batchWrite` method to create/replace multiple records at once
 
 ```javascript
-// storage.batchWrite(country: string, record: Array<Record>) => Promise<{ records: Array<Record> }>
+/**
+ * @param {string} countryCode
+ * @param {Array<Record>} records
+ * @return {Promise<{ records: Array<Record> }>} Written records
+ */
+async batchWrite(countryCode, records) {
+  /* ... */
+}
+```
 
+Example of usage:
+```javascript
 batchResult = await storage.batchWrite(
   country, // {string} Country code of where to store the data
-  records  // {Array<Record>} Array of records
+  [record]  // {Array<Record>} Array of records
 );
 ```
 
@@ -160,8 +195,19 @@ Stored record can be read by `key` using `read` method. It accepts an object wit
 It returns a `Promise` which resolves to `{ record }`  or  `{ record: null }` if there is no record with this `key`.
 
 ```javascript
-// storage.read(country: string, key: string) => Promise<{ record: Record | null }>
+/**
+ * @param {string} countryCode Country code
+ * @param {string} recordKey
+ * @param {object} [requestOptions]
+ * @return {Promise<{ record: Record|null }>} Matching record
+ */
+async read(countryCode, recordKey, requestOptions = {}) {
+  /* ... */
+}
+```
 
+Example of usage:
+```javascript
 const readResult = await storage.read(
   country, // {string} Country code
   key      // {string} Record key
@@ -183,15 +229,41 @@ It can be used to implement pagination. Note: SDK returns 100 records at most.
 
 
 ```javascript
-/*
-FilterStringValue = string | Array<string> | { $not: string | Array<string> }
-FilterNumberValue = 
-  | number 
-  | Array<number> 
-  | { $not: number | Array<number> } 
-  | { $gt?: number, $gte?: number, $lt?: number, $lte?: number }
+/**
+ * @typedef {string | Array<string> | { $not: string | Array<string> }} FilterStringValue
 */
 
+/**
+ * @typedef { number | Array<number> | { $not: number | Array<number> } | { $gt?: number, $gte?: number, $lt?: number, $lte?: number }} FilterNumberValue
+*/
+
+/**
+ * @typedef {Object.<string,{FilterStringValue | FilterNumberValue}>} FindFilter
+*/
+
+/**
+ * @typedef FindResultsMeta
+ * @property {number} total
+ * @property {number} count
+ * @property {number} limit
+ * @property {number} offset 
+*/
+
+/**
+ * Find records matching filter.
+ * @param {string} countryCode - Country code.
+ * @param {object} filter - The filter to apply.
+ * @param {{ limit: number, offset: number }} options - The options to pass to PoP.
+ * @param {object} [requestOptions]
+ * @return {Promise<{ meta: FindResultsMeta }, records: Array<Record>, errors?: Array<{ error: InCryptoError, rawData: Record  }> } Matching records.
+ */
+async find(countryCode, filter, options = {}, requestOptions = {}) {
+  /* ... */
+}
+```
+
+Example of usage:
+```javascript
 const filter = {
   key: 'abc',                        // {FilterStringValue} Optional
   key2: ['def', 'jkl'],              // {FilterStringValue} Optional
@@ -206,20 +278,6 @@ const options = {
   offset: 0,   // {number} Non Negative Int, Optional
 };
 
-/*
-FindResult = {
-  records: Array<Record>,
-  errors: {Array<{ error: InCryptoError, rawData: Record  }>}, // Optional - Array of errors and records which caused them
-  meta: {
-    limit: number,
-    offset: number,
-    total: number // Total records matching filter, ignoring limit
-  }
-}
-*/
-
-//storage.find(county: string, filter: Filter, options: Options) => Promise<FindResult>
-
 const findResult = await storage.find(
   country, // {string} Country code
   filter,  // {Filter} Optional
@@ -227,34 +285,16 @@ const findResult = await storage.find(
 );
 ```
 
-Here is the example of how `find` method can be used:
-
-```javascript
-const findResult = await storage.find(
-  "us",
-  {
-    key2: "kitty",
-    key3: ["mew", "purr"]
-  },
-  {
-    limit: 10,
-    offset: 10
-  }
-);
-```
-
-This call returns all records with `key2` equals `kitty` AND `key3` equals `mew` OR `purr`.  
-
-The return object looks like the following:
+And the return object `findResult` looks like the following:
 
 ```javascript
 {
-  records: [/* kitties */],
+  records: [{/* record */}],
   errors: [],
   meta: {
-    limit: 10, 
-    offset: 10,
-    total: 124
+    limit: 100, 
+    offset: 0,
+    total: 24
   }
 }
 ```
@@ -266,16 +306,9 @@ For example, if one changed the encryption key while the found data is encrypted
 In such cases find() method return data will be as follows:
 
 ```javascript
-/*
-StorageClientError = {
-  message: string // Error message
-  data: any       // Raw record which caused error
-}
-*/
-
 {
   records: [/* successfully decrypted records */],
-  errors: [/* errors */], // {Array<StorageClientError>}
+  errors: [/* errors */], // {Array<{ error: InCryptoError, rawData: Record }}
   meta: {/* ... */}
 }
 ```
@@ -286,8 +319,20 @@ If you need to find the first record matching filter, you can use the `findOne` 
 If record not found, it will return `null`.
 
 ```javascript
-//storage.findOne(county: string, filter: Filter) => Promise<Record | null>
+/**
+ * @param {string} countryCode - Country code.
+ * @param {FindFilter} filter - The filter to apply.
+ * @param {{ limit: number, offset: number }} options - The options to pass to PoP.
+ * @param {object} [requestOptions]
+ * @return {Promise<{ record: Record|null }>} Matching record.
+ */
+async findOne(countryCode, filter, options = {}, requestOptions = {}) {
+  /* ... */
+}
+```
 
+Example of usage:
+```javascript
 const findOneResult = await storage.findOne(
   country, // {string} Country code
   filter   // {Filter} Optional
@@ -297,10 +342,21 @@ const findOneResult = await storage.findOne(
 ### Delete records
 
 Use `delete` method in order to delete a record from InCountry storage. It is only possible using `key` field.
-
 ```javascript
-//storage.delete(county: string, filter: Filter) => Promise<{ success: true }>
+/**
+ * Delete a record by ket.
+ * @param {string} countryCode - Country code.
+ * @param {string} recordKey
+ * @param {object} [requestOptions]
+ * @return {Promise<{ success: true }>} Operation result.
+ */
+async delete(countryCode, recordKey, requestOptions = {}) {
+  /* ... */
+}
+```
 
+Example of usage:
+```javascript
 const deleteResult = await storage.delete(
   country, // {string} Country code
   key      // {string} Record key
@@ -317,14 +373,20 @@ It returns an object which contains some information about the migration - the a
 For a detailed example of a migration script please see [examples/fullMigration.js](examples/fullMigration.js)
 
 ```javascript
-/*
-MigrateResult = { 
-  migrated: number,  // Non Negative Int - The amount of records migrated
-  total_left: number // Non Negative Int - The amount of records left to migrate
-}
+/**
+ * @typedef MigrateResultMeta
+ * @property {number} migrated Non Negative Int - The amount of records migrated
+ * @property {number} total_left Non Negative Int - The amount of records left to migrate
 */
 
-//storage.migrate(county: string, limit: number) => Promise<MigrateResult>
+/**
+ * @param {string} countryCode - Country code.
+ * @param {number} limit - Find limit
+ * @returns {Promise<{ meta: MigrateResultMeta }>}
+ */
+async migrate(countryCode, limit = FIND_LIMIT, findFilterOptional = {}) {
+  /* ... */
+}
 
 const migrateResult = await storage.migrate(
   country, // {string} Country code

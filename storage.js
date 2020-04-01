@@ -257,12 +257,32 @@ class Storage {
   }
 
   /**
+   * @typedef {string | Array<string> | { $not: string | Array<string> }} FilterStringValue
+  */
+
+  /**
+   * @typedef { number | Array<number> | { $not: number | Array<number> } | { $gt?: number, $gte?: number, $lt?: number, $lte?: number }} FilterNumberValue
+  */
+
+  /**
+   * @typedef {Object.<string,{FilterStringValue | FilterNumberValue}>} FindFilter
+  */
+
+  /**
+   * @typedef FindResultsMeta
+   * @property {number} total
+   * @property {number} count
+   * @property {number} limit
+   * @property {number} offset
+   */
+
+  /**
    * Find records matching filter.
    * @param {string} countryCode - Country code.
-   * @param {object} filter - The filter to apply.
+   * @param {FindFilter} filter - The filter to apply.
    * @param {{ limit: number, offset: number }} options - The options to pass to PoP.
    * @param {object} [requestOptions]
-   * @return {Promise<{ meta: { total: number, count: number, limit: number, offset: number }, records: Array<Record>, errors?: Array<{ error: InCryptoError, rawData: Record  }> }> }>} Matching records.
+   * @return {Promise<{ meta: FindResultsMeta }, records: Array<Record>, errors?: Array<{ error: InCryptoError, rawData: Record  }> } Matching records.
    */
   async find(countryCode, filter, options = {}, requestOptions = {}) {
     this.validate(
@@ -324,7 +344,7 @@ class Storage {
   /**
    * Find first record matching filter.
    * @param {string} countryCode - Country code.
-   * @param {object} filter - The filter to apply.
+   * @param {FindFilter} filter - The filter to apply.
    * @param {{ limit: number, offset: number }} options - The options to pass to PoP.
    * @param {object} [requestOptions]
    * @return {Promise<{ record: Record|null }>} Matching record.
@@ -454,7 +474,13 @@ class Storage {
 
     return this.write(countryCode, { ...newData }, requestOptions);
   }
-
+  /**
+   * Delete a record by ket.
+   * @param {string} countryCode - Country code.
+   * @param {string} recordKey
+   * @param {object} [requestOptions]
+   * @return {Promise<{ success: true }>} Operation result.
+   */
   async delete(countryCode, recordKey, requestOptions = {}) {
     this.validate(
       'Storage.delete()',
