@@ -144,10 +144,7 @@ const record = {
   key3: "<key3>"                // {string} Optional
 }
 
-const writeResult = await storage.write(
-  country, // {string} Country code of where to store the data 
-  record,  // {Record}
-);
+const writeResult = await storage.write(country, record);
 ```
 
 #### Encryption
@@ -183,10 +180,7 @@ async batchWrite(countryCode, records) {
 
 Example of usage:
 ```javascript
-batchResult = await storage.batchWrite(
-  country, // {string} Country code of where to store the data
-  [record]  // {Array<Record>} Array of records
-);
+batchResult = await storage.batchWrite(country, records);
 ```
 
 ### Reading stored data
@@ -208,10 +202,7 @@ async read(countryCode, recordKey, requestOptions = {}) {
 
 Example of usage:
 ```javascript
-const readResult = await storage.read(
-  country, // {string} Country code
-  key      // {string} Record key
-);
+const readResult = await storage.read(country, key);
 ```
 
 ### Find records
@@ -242,6 +233,12 @@ It can be used to implement pagination. Note: SDK returns 100 records at most.
 */
 
 /**
+ * @typedef FindOptions
+ * @property {number} limit
+ * @property {number} offset
+*/
+
+/**
  * @typedef FindResultsMeta
  * @property {number} total
  * @property {number} count
@@ -252,8 +249,8 @@ It can be used to implement pagination. Note: SDK returns 100 records at most.
 /**
  * Find records matching filter.
  * @param {string} countryCode - Country code.
- * @param {object} filter - The filter to apply.
- * @param {{ limit: number, offset: number }} options - The options to pass to PoP.
+ * @param {FindFilter} filter - The filter to apply.
+ * @param {FindOptions} options - The options to pass to PoP.
  * @param {object} [requestOptions]
  * @return {Promise<{ meta: FindResultsMeta }, records: Array<Record>, errors?: Array<{ error: InCryptoError, rawData: Record  }> } Matching records.
  */
@@ -265,24 +262,20 @@ async find(countryCode, filter, options = {}, requestOptions = {}) {
 Example of usage:
 ```javascript
 const filter = {
-  key: 'abc',                        // {FilterStringValue} Optional
-  key2: ['def', 'jkl'],              // {FilterStringValue} Optional
-  key3: { $not: 'test' }             // {FilterStringValue} Optional
-  profile_key: 'test2',              // {FilterStringValue} Optional
-  range_key: { $gte: 5, $lte: 100 }, // {FilterNumberValue} Optional
-  version: { $not: [0, 1] },         // {FilterNumberValue} Optional
+  key: 'abc',                        
+  key2: ['def', 'jkl'],              
+  key3: { $not: 'test' }             
+  profile_key: 'test2',              
+  range_key: { $gte: 5, $lte: 100 }, 
+  version: { $not: [0, 1] },
 }
 
 const options = {
-  limit: 100,  // {number} Positive Int, Optional, max 100
-  offset: 0,   // {number} Non Negative Int, Optional
+  limit: 100,  
+  offset: 0,   
 };
 
-const findResult = await storage.find(
-  country, // {string} Country code
-  filter,  // {Filter} Optional
-  options  // {Option} Optional
-);
+const findResult = await storage.find(country, filter, options);
 ```
 
 And the return object `findResult` looks like the following:
@@ -308,7 +301,7 @@ In such cases find() method return data will be as follows:
 ```javascript
 {
   records: [/* successfully decrypted records */],
-  errors: [/* errors */], // {Array<{ error: InCryptoError, rawData: Record }}
+  errors: [/* errors */],
   meta: {/* ... */}
 }
 ```
@@ -333,10 +326,7 @@ async findOne(countryCode, filter, options = {}, requestOptions = {}) {
 
 Example of usage:
 ```javascript
-const findOneResult = await storage.findOne(
-  country, // {string} Country code
-  filter   // {Filter} Optional
-);
+const findOneResult = await storage.findOne(country, filter);
 ```
 
 ### Delete records
@@ -357,10 +347,7 @@ async delete(countryCode, recordKey, requestOptions = {}) {
 
 Example of usage:
 ```javascript
-const deleteResult = await storage.delete(
-  country, // {string} Country code
-  key      // {string} Record key
-);
+const deleteResult = await storage.delete(country, key);
 ```
 
 ## Data Migration and Key Rotation support
@@ -387,11 +374,11 @@ For a detailed example of a migration script please see [examples/fullMigration.
 async migrate(countryCode, limit = FIND_LIMIT, findFilterOptional = {}) {
   /* ... */
 }
+```
 
-const migrateResult = await storage.migrate(
-  country, // {string} Country code
-  limit    // {number} Positive Int - Amount of records to migrate 
-);
+Example of usage:
+```javascript
+const migrateResult = await storage.migrate(country, limit);
 ```
 
 

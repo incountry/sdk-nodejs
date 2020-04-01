@@ -269,6 +269,12 @@ class Storage {
   */
 
   /**
+   * @typedef FindOptions
+   * @property {number} limit
+   * @property {number} offset
+  */
+
+  /**
    * @typedef FindResultsMeta
    * @property {number} total
    * @property {number} count
@@ -280,7 +286,7 @@ class Storage {
    * Find records matching filter.
    * @param {string} countryCode - Country code.
    * @param {FindFilter} filter - The filter to apply.
-   * @param {{ limit: number, offset: number }} options - The options to pass to PoP.
+   * @param {FindOptions} options - The options to pass to PoP.
    * @param {object} [requestOptions]
    * @return {Promise<{ meta: FindResultsMeta }, records: Array<Record>, errors?: Array<{ error: InCryptoError, rawData: Record  }> } Matching records.
    */
