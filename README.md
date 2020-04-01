@@ -429,7 +429,7 @@ const storage = await createStorage(
   () => "longAndStrongPassword",
 );
 
-storage.setCustomEncryption([{ 
+storage.setCustomEncryption([{
   encrypt,
   decrypt,
   isCurrent: true,

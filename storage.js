@@ -481,6 +481,7 @@ class Storage {
 
     return this.write(countryCode, { ...newData }, requestOptions);
   }
+
   /**
    * Delete a record by ket.
    * @param {string} countryCode - Country code.
