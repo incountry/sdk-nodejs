@@ -1,13 +1,12 @@
 require('dotenv').config();
 const crypto = require('crypto');
-
 const { ApiClient } = require('./api-client');
 const defaultLogger = require('./logger');
 const CountriesCache = require('./countries-cache');
 const SecretKeyAccessor = require('./secret-key-accessor');
 const { InCrypt } = require('./in-crypt');
 const { isError, StorageClientError } = require('./errors');
-
+const { isJSON } = require('./utils');
 const { validateRecord } = require('./validation/record');
 const { validateRecordsNEA } = require('./validation/records');
 const { validateCountryCode } = require('./validation/country-code');
@@ -29,12 +28,11 @@ const { validateCustomEncryptionConfigs } = require('./validation/custom-encrypt
  */
 
 /**
- * @typedef {import('./countries-cache')} CountriesCache
+ * @typedef {import('./validation/record').Record} Record
  */
 
 /**
- * @typedef Record
- * @property {string} key
+ * @typedef {import('./countries-cache')} CountriesCache
  */
 
 /**
@@ -183,10 +181,10 @@ class Storage {
   }
 
   /**
-   * @param {string} countryCode - Country code.
+   * @param {string} countryCode - Country code
    * @param {Record} record
    * @param {object} [requestOptions]
-   * @return {Promise<{ record: Record }>} Matching record.
+   * @return {Promise<{ record: Record }>} Written record
    */
   async write(countryCode, record, requestOptions = {}) {
     this.validate(
@@ -206,6 +204,7 @@ class Storage {
    * Write many records at once
    * @param {string} countryCode
    * @param {Array<Record>} records
+   * @return {Promise<{ records: Array<Record> }>} Written records
    */
   async batchWrite(countryCode, records) {
     this.validate(
@@ -242,7 +241,11 @@ class Storage {
     const currentSecretVersion = await this._crypto.getCurrentSecretVersion();
     const findFilter = { ...findFilterOptional, version: { $not: currentSecretVersion } };
     const findOptions = { limit };
-    const { records, meta } = await this.find(countryCode, findFilter, findOptions);
+    const { records, meta, errors } = await this.find(countryCode, findFilter, findOptions);
+    if (records.length === 0 && errors && errors[0]) {
+      throw errors[0].error;
+    }
+
     await this.batchWrite(countryCode, records);
 
     return {
@@ -254,12 +257,38 @@ class Storage {
   }
 
   /**
+   * @typedef {string | Array<string> | { $not: string | Array<string> }} FilterStringValue
+  */
+
+  /**
+   * @typedef { number | Array<number> | { $not: number | Array<number> } | { $gt?: number, $gte?: number, $lt?: number, $lte?: number }} FilterNumberValue
+  */
+
+  /**
+   * @typedef {Object.<string,{FilterStringValue | FilterNumberValue}>} FindFilter
+  */
+
+  /**
+   * @typedef FindOptions
+   * @property {number} limit
+   * @property {number} offset
+  */
+
+  /**
+   * @typedef FindResultsMeta
+   * @property {number} total
+   * @property {number} count
+   * @property {number} limit
+   * @property {number} offset
+   */
+
+  /**
    * Find records matching filter.
    * @param {string} countryCode - Country code.
-   * @param {object} filter - The filter to apply.
-   * @param {{ limit: number, offset: number }} options - The options to pass to PoP.
+   * @param {FindFilter} filter - The filter to apply.
+   * @param {FindOptions} options - The options to pass to PoP.
    * @param {object} [requestOptions]
-   * @return {Promise<{ meta: { total: number, count: number, limit: number, offset: number }, records: Array<Record> }>} Matching records.
+   * @return {Promise<{ meta: FindResultsMeta }, records: Array<Record>, errors?: Array<{ error: InCryptoError, rawData: Record  }> } Matching records.
    */
   async find(countryCode, filter, options = {}, requestOptions = {}) {
     this.validate(
@@ -284,10 +313,7 @@ class Storage {
       result.meta = responseData.meta;
 
       const decrypted = await Promise.all(
-        responseData.data.map((item) => this.decryptPayload(item).catch((e) => ({
-          error: e.message,
-          rawData: item,
-        }))),
+        responseData.data.map((item) => this.decryptPayload(item).catch((e) => ({ error: e, rawData: item }))),
       );
 
       const errors = [];
@@ -324,8 +350,8 @@ class Storage {
   /**
    * Find first record matching filter.
    * @param {string} countryCode - Country code.
-   * @param {object} filter - The filter to apply.
-   * @param {{ offset: number }} options - The options to pass to PoP.
+   * @param {FindFilter} filter - The filter to apply.
+   * @param {{ limit: number, offset: number }} options - The options to pass to PoP.
    * @param {object} [requestOptions]
    * @return {Promise<{ record: Record|null }>} Matching record.
    */
@@ -337,10 +363,10 @@ class Storage {
   }
 
   /**
-   * @param {string} countryCode - Country code.
+   * @param {string} countryCode Country code
    * @param {string} recordKey
    * @param {object} [requestOptions]
-   * @return {Promise<{ record: Record|null }>} Matching record.
+   * @return {Promise<{ record: Record|null }>} Matching record
    */
   async read(countryCode, recordKey, requestOptions = {}) {
     this.validate(
@@ -386,33 +412,37 @@ class Storage {
     return record;
   }
 
+  /**
+   * @param {Record} originalRecord
+   */
   async decryptPayload(originalRecord) {
     this._logger.write('debug', 'Start decrypting...');
     this._logger.write('debug', JSON.stringify(originalRecord, null, 2));
     const record = { ...originalRecord };
-    const decrypted = await this._crypto.decrypt(
-      record.body,
-      record.version,
-    );
-    let body;
-    try {
-      body = JSON.parse(decrypted);
-    } catch (e) {
-      return {
-        ...record,
-        body: decrypted,
-      };
+
+    if (typeof record.body === 'string') {
+      record.body = await this._crypto.decrypt(
+        record.body,
+        record.version,
+      );
+
+      if (isJSON(record.body)) {
+        const bodyObj = JSON.parse(record.body);
+
+        if (bodyObj.payload !== undefined) {
+          record.body = bodyObj.payload;
+        } else {
+          record.body = null;
+        }
+
+        if (bodyObj.meta !== undefined) {
+          Object.keys(bodyObj.meta).forEach((key) => {
+            record[key] = bodyObj.meta[key];
+          });
+        }
+      }
     }
-    if (body.meta) {
-      Object.keys(body.meta).forEach((key) => {
-        record[key] = body.meta[key];
-      });
-    }
-    if (body.payload !== undefined) {
-      record.body = body.payload;
-    } else {
-      delete record.body;
-    }
+
     this._logger.write('debug', 'Finished decryption');
     this._logger.write('debug', JSON.stringify(record, null, 2));
     return record;
@@ -452,6 +482,13 @@ class Storage {
     return this.write(countryCode, { ...newData }, requestOptions);
   }
 
+  /**
+   * Delete a record by ket.
+   * @param {string} countryCode - Country code.
+   * @param {string} recordKey
+   * @param {object} [requestOptions]
+   * @return {Promise<{ success: true }>} Operation result.
+   */
   async delete(countryCode, recordKey, requestOptions = {}) {
     this.validate(
       'Storage.delete()',

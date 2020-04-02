@@ -62,7 +62,7 @@ describe('Read data from Storage', function () {
         expect(record.range_key).to.equal(data.range_key);
       });
 
-      it('Read data with empty body', async function () {
+      it('Read data with null body', async function () {
         data = {
           key: Math.random().toString(36).substr(2, 10),
           body: null,
@@ -73,6 +73,18 @@ describe('Read data from Storage', function () {
 
         expect(record.key).to.equal(data.key);
         expect(record.body).to.equal(data.body);
+      });
+
+      it('Read data with empty body', async function () {
+        data = {
+          key: Math.random().toString(36).substr(2, 10),
+        };
+
+        await storage.write(COUNTRY, data);
+        const { record } = await storage.read(COUNTRY, data.key);
+
+        expect(record.key).to.equal(data.key);
+        expect(record.body).to.equal(null);
       });
     });
   });

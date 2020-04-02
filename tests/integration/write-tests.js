@@ -54,7 +54,7 @@ describe('Write data to Storage', function () {
         expect(record.body).to.equal(data.body);
       });
 
-      it('Write data with empty body', async function () {
+      it('Write data with null body', async function () {
         data = {
           key: Math.random().toString(36).substr(2, 10),
           body: null,

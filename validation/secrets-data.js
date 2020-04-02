@@ -1,4 +1,5 @@
 const t = require('io-ts');
+const { NonNegativeInt } = require('./utils');
 
 const KEY_SIZE = 32;
 
@@ -17,7 +18,7 @@ function hasSecretOfCurrentVersion(o) {
 }
 
 const SecretOrKeyCustom = t.intersection([
-  t.type({ secret: t.string, version: t.Int }),
+  t.type({ secret: t.string, version: NonNegativeInt }),
   t.partial({ isKey: t.boolean }),
 ], 'SecretOrKeyCustom');
 
@@ -45,7 +46,7 @@ const SecretOrKey = new t.Type(
 function getSecretsDataIO(forCustomEncryption = false) {
   return t.brand(
     t.type({
-      currentVersion: t.Int,
+      currentVersion: NonNegativeInt,
       secrets: t.array(forCustomEncryption ? SecretOrKeyCustom : SecretOrKey),
     }),
     (so) => hasSecretOfCurrentVersion(so),

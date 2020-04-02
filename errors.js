@@ -14,8 +14,9 @@ class StorageValidationError extends Error {
 }
 
 class StorageClientError extends Error {
-  constructor(message) {
+  constructor(message, data) {
     super(message);
+    this.data = data;
     this.name = 'StorageClientError';
     if (Error.captureStackTrace) {
       Error.captureStackTrace(this, StorageClientError);
