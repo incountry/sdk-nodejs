@@ -448,39 +448,6 @@ class Storage {
     return record;
   }
 
-  /**
-   * Update a record matching filter.
-   * @param {string} countryCode - Country code.
-   * @param {object} filter - The filter to apply.
-   * @param {object} doc - New values to be set in matching records.
-   * @param {object} options - Options object.
-   * @param {object} [requestOptions]
-   * @return {Promise<{ record: Record }>} Operation result.
-   */
-  async updateOne(countryCode, filter, doc, options = { override: false }, requestOptions = {}) {
-    this.validate(
-      'Storage.updateOne()',
-      validateCountryCode(countryCode),
-    );
-
-    if (options.override && doc.key) {
-      return this.write(countryCode, { ...doc }, requestOptions);
-    }
-
-    const result = await this.find(countryCode, filter, { limit: 1 }, requestOptions);
-    if (result.meta.total > 1) {
-      this.logAndThrowError('Multiple records found');
-    } else if (result.meta.total === 0) {
-      this.logAndThrowError('Record not found');
-    }
-
-    const newData = {
-      ...result.records[0],
-      ...doc,
-    };
-
-    return this.write(countryCode, { ...newData }, requestOptions);
-  }
 
   /**
    * Delete a record by ket.
