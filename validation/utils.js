@@ -1,25 +1,18 @@
 const t = require('io-ts');
 const { report } = require('./error-reporter');
-const { StorageValidationError } = require('../errors');
+const { StorageClientError } = require('../errors');
 
 function isValid(validation) {
   return validation._tag === 'Right';
 }
 
-function createStorageValidationError(validation) {
+const toStorageClientError = (prefix = '') => (validation) => {
   const errorMessage = report(validation);
-  return new StorageValidationError(validation, errorMessage);
+  return new StorageClientError(`${prefix}${errorMessage}`, validation);
 }
 
-function throwIfInvalid(validation) {
-  if (!isValid(validation)) {
-    throw createStorageValidationError(validation);
-  }
-  return validation.right;
-}
-
-function validationToPromise(validation) {
-  return new Promise((resolve) => resolve(throwIfInvalid(validation)));
+function validationToPromise(validation, map) {
+  return new Promise((resolve, reject) => isValid(validation) ? resolve(validation.right) : reject(map(validation)));
 }
 
 const PositiveInt = t.brand(
@@ -36,20 +29,15 @@ const NonNegativeInt = t.brand(
 
 
 function nullable(type) {
-  return t.union([type, t.null, t.undefined]);
-}
-
-function validateWithIO(obj, io) {
-  const validationResult = io.decode(obj);
-  return isValid(validationResult) ? obj : createStorageValidationError(validationResult);
+  return t.union([type, t.null]);
 }
 
 module.exports = {
   validationToPromise,
+  toStorageClientError,
   PositiveInt,
   NonNegativeInt,
   nullable,
-  validateWithIO,
   isValid,
-  createStorageValidationError,
+  getErrorMessage: report,
 };

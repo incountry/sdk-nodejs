@@ -14,15 +14,13 @@ To access your data in InCountry using NodeJS SDK, you need to create an instanc
 
 ```javascript
 const createStorage = require("incountry/storage");
-const storage = await createStorage(
-  {
-    apiKey: "",        // {string} Required to be passed in, or as environment variable INC_API_KEY
-    environmentId: "", // {string} Required to be passed in, or as environment variable INC_ENVIRONMENT_ID
-    endpoint: "",      // {string} Optional - Defines API URL
-    encrypt: true      // {boolean} Optional - If false, encryption is not used. If omitted is set to true.
-  },
-  () => "",            // {GetSecretCallback} Used to fetch encryption secret
-);
+const storage = await createStorage({
+  apiKey: "",         // {string} Required to be passed in, or as environment variable INC_API_KEY
+  environmentId: "",  // {string} Required to be passed in, or as environment variable INC_ENVIRONMENT_ID
+  endpoint: "",       // {string} Optional - Defines API URL
+  encrypt: true       // {boolean} Optional - If false, encryption is not used. If omitted is set to true.
+  getSecret: () => "" // {GetSecretCallback} Optional - Used to fetch encryption secret
+});
 ```
 
 `apiKey` and `environmentId` can be fetched from your dashboard on `Incountry` site.
@@ -39,16 +37,21 @@ Note: even though SDK uses PBKDF2 to generate a cryptographically strong encrypt
 {
   secrets: [
     {
-      secret: "abc", // {string}
-      version: 0     // {number} Should be a non negative integer
+      secret: "abc",                // {string}
+      version: 0                    // {number} Should be a non negative integer
     },
     {
-      secret: "def", // {string}
-      version: 1,    // {number} Should be a non negative integer
-      isKey: false   // {boolean} Should be true only for user-defined encryption key
+      secret: "def",                // {string}
+      version: 1,                   // {number} Should be a non negative integer
+      isKey: false                  // {boolean} Should be true only for user-defined encryption key
+    },
+    {
+      secret: "ghi",                // {string}
+      version: 2,                   // {number} Should be a non negative integer
+      isForCustomEncryption: true   // {boolean} Should be true only for custom encryption
     }
   ],
-  currentVersion: 1  // {number} Should be a non negative integer
+  currentVersion: 1                 // {number} Should be a non negative integer
 };
 ```
 
@@ -94,14 +97,12 @@ const customLogger = {
   write: (logLevel, message) => {} // {(logLevel:string, message: string) => void}
 };
 
-const storage = await createStorage(
-  {
-    apiKey: "",
-    environmentId: ""
-  },
-  () => "", // {GetSecretCallback}
-  customLogger
-);
+const storage = await createStorage({
+  apiKey: "",
+  environmentId: "",
+  getSecret: () => "", // {GetSecretCallback}
+  logger: customLogger
+});
 ```
 
 ### Writing data to Storage
@@ -315,7 +316,7 @@ If record not found, it will return `null`.
 /**
  * @param {string} countryCode - Country code.
  * @param {FindFilter} filter - The filter to apply.
- * @param {{ limit: number, offset: number }} options - The options to pass to PoP.
+ * @param {FindOptions} options - The options to pass to PoP.
  * @param {object} [requestOptions]
  * @return {Promise<{ record: Record|null }>} Matching record.
  */
@@ -419,22 +420,35 @@ const decrypt = async function(encryptedText, secret) {
   return xxtea.decrypt(encryptedText, secret);
 };
 
-const storage = await createStorage(
-  {
-    apiKey: "",
-    environmentId: "",
-    endpoint: "",
-    encrypt: true,
-  },
-  () => "longAndStrongPassword",
-);
-
-storage.setCustomEncryption([{
+const config = {
   encrypt,
   decrypt,
   isCurrent: true,
   version: "current",
-}]);
+};
+
+const getSecretCallback = () => {
+  return {
+    secrets: [
+      { 
+        secret: "longAndStrongPassword", 
+        version: 1, 
+        isForCustomEncryption: true
+      }
+    ],
+    currentVersion: 1,
+  };
+}
+
+const options = {
+  apiKey: "",
+  environmentId: "",
+  endpoint: "",
+  encrypt: true,
+  getSecret: getSecretCallback,
+}};
+
+const storage = await createStorage(options, [config]);
 
 await storage.write("US", { key: "<key>", body: "<body>" });
 ```

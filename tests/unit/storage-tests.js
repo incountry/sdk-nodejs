@@ -4,6 +4,7 @@ chai.use(require('chai-as-promised'));
 const nock = require('nock');
 const uuid = require('uuid/v4');
 const _ = require('lodash');
+const { identity } = require('../../utils');
 const createStorage = require('../../storage');
 const { StorageServerError, StorageClientError } = require('../../errors');
 const CountriesCache = require('../../countries-cache');
@@ -31,6 +32,15 @@ const PORTAL_BACKEND_COUNTRIES_LIST_PATH = '/countries';
 const REQUEST_TIMEOUT_ERROR = { code: 'ETIMEDOUT' };
 const sdkVersionRegExp = /^SDK-Node\.js\/\d+\.\d+\.\d+/;
 
+const EMPTY_RECORD = {
+  body: null,
+  version: 0,
+  key2: null,
+  key3: null,
+  profile_key: null,
+  range_key: null,
+};
+
 const TEST_RECORDS = [
   {
     key: uuid(),
@@ -39,6 +49,7 @@ const TEST_RECORDS = [
     key2: null,
     key3: null,
     profile_key: null,
+    range_key: null,
   },
   {
     key: uuid(),
@@ -47,6 +58,7 @@ const TEST_RECORDS = [
     key2: null,
     key3: null,
     profile_key: null,
+    range_key: null,
   },
   {
     key: uuid(),
@@ -54,6 +66,7 @@ const TEST_RECORDS = [
     key2: 'key2',
     version: 0,
     key3: null,
+    range_key: null,
     profile_key: null,
   },
   {
@@ -62,6 +75,7 @@ const TEST_RECORDS = [
     key2: 'key2',
     key3: 'key3',
     version: 0,
+    range_key: null,
     profile_key: null,
   },
   {
@@ -70,6 +84,7 @@ const TEST_RECORDS = [
     key2: 'key2',
     key3: 'uniqueKey3',
     profile_key: 'profile_key',
+    range_key: null,
     version: 0,
   },
   {
@@ -87,13 +102,15 @@ const LOGGER_STUB = { write: (a, b) => [a, b] };
 
 const defaultGetSecretCallback = () => SECRET_KEY;
 
-const getDefaultStorage = async (encrypt, normalizeKeys, getSecretCallback = defaultGetSecretCallback) => createStorage({
+const getDefaultStorage = async (encrypt, normalizeKeys, getSecret = defaultGetSecretCallback) => createStorage({
   apiKey: 'string',
   environmentId: 'string',
   endpoint: POPAPI_HOST,
   encrypt,
   normalizeKeys,
-}, getSecretCallback, LOGGER_STUB);
+  getSecret,
+  logger: LOGGER_STUB,
+});
 
 const getDefaultFindResponse = (count, data) => ({
   meta: {
@@ -305,42 +322,46 @@ describe('Storage', () => {
 
     describe('setCustomEncryption', () => {
       it('should throw an error when setting custom encryption configs with disabled encryption', async () => {
-        const storage = await createStorage({
+        const options = {
           apiKey: 'string',
           environmentId: 'string',
           endpoint: POPAPI_HOST,
           encrypt: false,
-        }, defaultGetSecretCallback, LOGGER_STUB);
+          logger: LOGGER_STUB,
+        };
+
+        const storage = await createStorage(options)
 
         const customEncryptionConfigs = [{ encrypt: () => { }, decrypt: () => { }, version: '' }];
 
-        expect(() => storage.setCustomEncryption(customEncryptionConfigs)).to.throw(StorageClientError, 'Cannot use custom encryption when encryption is off');
+        await expect(storage.setCustomEncryption(customEncryptionConfigs))
+          .to.be.rejectedWith(StorageClientError, 'Cannot use custom encryption when encryption is off');
       });
 
       it('should throw an error if configs object is malformed', () => {
-        ['', {}, () => { }].forEach((configs) => {
-          expect(() => encStorage.setCustomEncryption(configs)).to.throw(CUSTOM_ENCRYPTION_CONFIG_ERROR_MESSAGE_ARRAY);
-        });
+        return Promise.all(['', {}, () => { }].map(async (configs) => {
+          await expect(encStorage.setCustomEncryption(configs)).to.be.rejectedWith(CUSTOM_ENCRYPTION_CONFIG_ERROR_MESSAGE_ARRAY);
+        }));
       });
 
-      it('should throw an error if 2 configs are marked as current', () => {
+      it('should throw an error if 2 configs are marked as current', async () => {
         const configs = [{
-          encrypt: () => { }, decrypt: () => { }, isCurrent: true, version: '1',
+          encrypt: identity, decrypt: identity, isCurrent: true, version: '1',
         }, {
-          encrypt: () => { }, decrypt: () => { }, isCurrent: true, version: '2',
+          encrypt: identity, decrypt: identity, isCurrent: true, version: '2',
         }];
 
-        expect(() => encStorage.setCustomEncryption(configs)).to.throw(CUSTOM_ENCRYPTION_CONFIG_ERROR_MESSAGE_CURRENT);
+        await expect(encStorage.setCustomEncryption(configs)).to.be.rejectedWith(CUSTOM_ENCRYPTION_CONFIG_ERROR_MESSAGE_CURRENT);
       });
 
-      it('should throw an error if 2 configs have same version', () => {
+      it('should throw an error if 2 configs have same version', async () => {
         const configs = [{
-          encrypt: () => { }, decrypt: () => { }, version: '1',
+          encrypt: identity, decrypt: identity, version: '1',
         }, {
-          encrypt: () => { }, decrypt: () => { }, isCurrent: true, version: '1',
+          encrypt: identity, decrypt: identity, isCurrent: true, version: '1',
         }];
 
-        expect(() => encStorage.setCustomEncryption(configs)).to.throw(CUSTOM_ENCRYPTION_CONFIG_ERROR_MESSAGE_VERSIONS);
+        await expect(encStorage.setCustomEncryption(configs)).to.be.rejectedWith(CUSTOM_ENCRYPTION_CONFIG_ERROR_MESSAGE_VERSIONS);
       });
     });
 
@@ -402,8 +423,18 @@ describe('Storage', () => {
         TEST_RECORDS.forEach((testCase, idx) => {
           context(`with test case ${idx}`, () => {
             it('should write data into storage', async () => {
-              const storage = encStorage;
-              storage.setCustomEncryption([{
+              const storage = await getDefaultStorage(true, false, () => ({
+                secrets: [
+                  { 
+                    secret: "longAndStrongPassword", 
+                    version: 0, 
+                    isForCustomEncryption: true
+                  }
+                ],
+                currentVersion: 0,
+              }));
+              
+              await storage.setCustomEncryption([{
                 encrypt: (text) => Buffer.from(text).toString('base64'),
                 decrypt: (encryptedData) => Buffer.from(encryptedData, 'base64').toString('utf-8'),
                 version: 'customEncryption',
@@ -502,7 +533,16 @@ describe('Storage', () => {
         TEST_RECORDS.forEach((testCase, idx) => {
           context(`with test case ${idx}`, () => {
             it('should read custom encrypted record', async () => {
-              const storage = encStorage;
+              const storage = await getDefaultStorage(true, false, () => ({
+                secrets: [
+                  { 
+                    secret: "longAndStrongPassword", 
+                    version: 0, 
+                    isForCustomEncryption: true
+                  }
+                ],
+                currentVersion: 0,
+              }));
               storage.setCustomEncryption([{
                 encrypt: (text) => Buffer.from(text).toString('base64'),
                 decrypt: (encryptedData) => Buffer.from(encryptedData, 'base64').toString('utf-8'),
@@ -672,24 +712,35 @@ describe('Storage', () => {
     describe('find', () => {
       const keys = ['key', 'key2', 'key3', 'profile_key'];
 
-      describe('should validate arguments', () => {
-        describe('when country is not a string', () => {
-          it('should throw an error', async () => {
+      describe('arguments validation', () => {
+        describe('country validation', () => {
+          it('should throw an error if country is not a string', async () => {
             const wrongCountries = [undefined, null, 1, {}, []];
             await Promise.all(wrongCountries.map((country) => expect(encStorage.find(country))
               .to.be.rejectedWith(Error, COUNTRY_CODE_ERROR_MESSAGE)));
           });
         });
 
-        describe('when options.limit is not positive integer or greater than MAX_LIMIT', () => {
-          it('should throw an error', async () => {
+        describe('filter validation', () => {
+          it('should throw an error when filter is undefined', async () => {
+            await expect(encStorage.find(COUNTRY, undefined, { }))
+              .to.be.rejectedWith(Error);
+          });
+
+          it('should throw an error when filter has wrong format', async () => {
+            expect(1).to.equal(2);
+          });
+        });
+
+        describe('options validation', () => {
+          it('should throw an error when options.limit is not positive integer or greater than MAX_LIMIT', async () => {
             nock(PORTAL_BACKEND_HOST).get(PORTAL_BACKEND_COUNTRIES_LIST_PATH).reply(400);
             nockEndpoint(POPAPI_HOST, 'find', COUNTRY, 'test').reply(200, getDefaultFindResponse(0, []));
 
             const nonPositiveLimits = [-123, 123.124, 'sdsd'];
-            await Promise.all(nonPositiveLimits.map((limit) => expect(encStorage.find(COUNTRY, undefined, { limit }))
+            await Promise.all(nonPositiveLimits.map((limit) => expect(encStorage.find(COUNTRY, {}, { limit }))
               .to.be.rejectedWith(Error, LIMIT_ERROR_MESSAGE_INT)));
-            await expect(encStorage.find(COUNTRY, undefined, { limit: MAX_LIMIT + 1 }))
+            await expect(encStorage.find(COUNTRY, {}, { limit: MAX_LIMIT + 1 }))
               .to.be.rejectedWith(Error, LIMIT_ERROR_MESSAGE_MAX);
             await expect(encStorage.find(COUNTRY, {}, { limit: 10 })).not.to.be.rejected;
           });
@@ -931,11 +982,13 @@ describe('Storage', () => {
           name: 'when the records has wrong type',
           arg: 'recordzzz',
           error: 'Storage.batchWrite() Validation Error: You must pass non-empty array of records',
-        }, {
+        }, 
+        {
           name: 'when the records is empty array',
           arg: [],
           error: 'Storage.batchWrite() Validation Error: You must pass non-empty array of records',
-        }, {
+        }, 
+        {
           name: 'when any record has no key field',
           arg: [{}],
           error: 'Storage.batchWrite() Validation Error: <RecordsArray>.0.key should be string but got undefined',
@@ -948,7 +1001,7 @@ describe('Storage', () => {
         {
           name: 'when any record has wrong format',
           arg: [{ key: '1', key2: 41234512 }],
-          error: 'Storage.batchWrite() Validation Error: <RecordsArray>.0.key2 should be (string | null | undefined) but got 41234512',
+          error: 'Storage.batchWrite() Validation Error: <RecordsArray>.0.key2 should be (string | null) but got 41234512',
         }];
 
         errorCases.forEach((errCase) => {

@@ -1,6 +1,5 @@
 const t = require('io-ts');
 const { RecordResponseIO } = require('./record-response');
-const { validateWithIO } = require('../utils');
 
 const RecordsResponseIO = t.array(RecordResponseIO);
 
@@ -14,9 +13,6 @@ const FindResponseIO = t.type({
   data: RecordsResponseIO,
 }, 'FindResponse');
 
-const validateFindResponse = (responseData) => validateWithIO(responseData, FindResponseIO);
-
 module.exports = {
   FindResponseIO,
-  validateFindResponse,
 };

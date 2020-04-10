@@ -2,12 +2,17 @@ const axios = require('axios');
 const get = require('lodash.get');
 const { StorageServerError } = require('./errors');
 const pjson = require('./package.json');
-const { validateRecordResponse } = require('./validation/api-responses/record-response');
-const { validateFindResponse } = require('./validation/api-responses/find-response');
-const { validateWriteResponse } = require('./validation/api-responses/write-response');
-const { isError } = require('./errors');
+const { isValid, getErrorMessage } = require('./validation/utils');
+const { RecordResponseIO } = require('./validation/api-responses/record-response');
+const { FindResponseIO } = require('./validation/api-responses/find-response');
+const { WriteResponseIO } = require('./validation/api-responses/write-response');
 
 const SDK_VERSION = pjson.version;
+
+/**
+ * @typedef RequestOptions
+ * @property {string|undefined} headers
+ */
 
 /**
  * @typedef ApiClientAction
@@ -21,12 +26,12 @@ const ACTIONS = {
   read: {
     verb: 'get',
     path: (country, key) => `v2/storage/records/${country}/${key}`,
-    validateResponse: (responseData) => validateRecordResponse(responseData),
+    validateResponse: (responseData) => RecordResponseIO.decode(responseData),
   },
   write: {
     verb: 'post',
     path: (country) => `v2/storage/records/${country}`,
-    validateResponse: (responseData) => validateWriteResponse(responseData),
+    validateResponse: (responseData) => WriteResponseIO.decode(responseData),
   },
   delete: {
     verb: 'delete',
@@ -35,12 +40,12 @@ const ACTIONS = {
   find: {
     verb: 'post',
     path: (country) => `v2/storage/records/${country}/find`,
-    validateResponse: (responseData) => validateFindResponse(responseData),
+    validateResponse: (responseData) => FindResponseIO.decode(responseData),
   },
   batchWrite: {
     verb: 'post',
     path: (country) => `v2/storage/records/${country}/batchWrite`,
-    validateResponse: (responseData) => validateWriteResponse(responseData),
+    validateResponse: (responseData) => WriteResponseIO.decode(responseData),
   },
 };
 
@@ -91,7 +96,7 @@ class ApiClient {
       countryHasApi = countriesList.find((country) => countryRegex.test(country.id));
     } catch (err) {
       this.loggerFn('error', err.message, err);
-      throw new StorageServerError(err.code, err.response ? err.response.data : {}, `Unable to retrieve countries list: ${err.message}`);
+      throw new StorageServerError(`Unable to retrieve countries list: ${err.message}`, err.response ? err.response.data : {}, err.code);
     }
 
     return countryHasApi
@@ -100,9 +105,11 @@ class ApiClient {
   }
 
   tryValidate(validationResult) {
-    if (isError(validationResult)) {
-      this.loggerFn('error', validationResult.message);
-      throw validationResult;
+    if (!isValid(validationResult)) {
+      const validationErrorMessage = getErrorMessage(validationResult);
+      const error = new StorageServerError(`Response Validation Error: ${validationErrorMessage}`, validationResult);
+      this.loggerFn('error', error.message);
+      throw error;
     }
   }
 
@@ -111,7 +118,7 @@ class ApiClient {
    * @param {string} key
    * @param {('read'|'write'|'delete'|'find'|'batchWrite')} action
    * @param {object} data - request body
-   * @param {object} [requestOptions]
+   * @param {RequestOptions} [requestOptions]
    */
   async runQuery(country, key, action, data = undefined, requestOptions = {}) {
     const chosenAction = ACTIONS[action];
@@ -162,7 +169,7 @@ class ApiClient {
         responseHeaders: popError.responseHeaders,
         message: errorMessage,
       });
-      throw new StorageServerError(err.code, err.response ? err.response.data : {}, `${method.toUpperCase()} ${url} ${errorMessage}`);
+      throw new StorageServerError(`${method.toUpperCase()} ${url} ${errorMessage}`, err.response ? err.response.data : {}, err.code);
     }
 
     this.loggerFn('info', `Finished ${method.toUpperCase()} ${url}`, {

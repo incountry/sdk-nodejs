@@ -7,13 +7,15 @@ const SecretKeyAccessor = require('./secret-key-accessor');
 const { InCrypt } = require('./in-crypt');
 const { isError, StorageClientError } = require('./errors');
 const { isJSON } = require('./utils');
-const { validateRecord } = require('./validation/record');
-const { validateRecordsNEA } = require('./validation/records');
-const { validateCountryCode } = require('./validation/country-code');
-const { validateFindOptions } = require('./validation/find-options');
-const { validateLimit } = require('./validation/limit');
-const { validateRecordKey } = require('./validation/record-key');
-const { validateCustomEncryptionConfigs } = require('./validation/custom-encryption-configs');
+const { isValid, toStorageClientError } = require('./validation/utils');
+const { RecordIO } = require('./validation/record');
+const { RecordsNEAIO } = require('./validation/records');
+const { CountryCodeIO } = require('./validation/country-code');
+const { FindOptionsIO } = require('./validation/find-options');
+const { FindFilterIO } = require('./validation/find-filter');
+const { LimitIO } = require('./validation/limit');
+const { RecordKeyIO } = require('./validation/record-key');
+const { StorageOptionsIO } = require('./validation/storage-options');
 
 /**
  * @typedef {import('./secret-key-accessor')} SecretKeyAccessor
@@ -24,7 +26,11 @@ const { validateCustomEncryptionConfigs } = require('./validation/custom-encrypt
  */
 
 /**
- * @typedef {import('./validation/custom-encryption-data').CustomEncryption} CustomEncryption
+ * @typedef {import('./api-client').RequestOptions} RequestOptions
+ */
+
+/**
+ * @typedef {import('./validation/custom-encryption-data').CustomEncryptionConfig} CustomEncryptionConfig
  */
 
 /**
@@ -36,34 +42,27 @@ const { validateCustomEncryptionConfigs } = require('./validation/custom-encrypt
  */
 
 /**
- * @typedef StorageOptions
- * @property {string} apiKey
- * @property {string} environmentId
- * @property {string} endpoint
- * @property {boolean} encrypt
- * @property {boolean} normalizeKeys
+ * @typedef {import('./validation/storage-options').StorageOptions} StorageOptions
  */
 
 /**
-* @typedef Logger
-* @property {(logLevel: string, message: string, id?: string, timestamp?: string) => boolean} write
-*/
+ * @typedef {import('./validation/storage-options').Logger} Logger
+ */
 
 const FIND_LIMIT = 100;
 
 class Storage {
   /**
    * @param {StorageOptions} options
-   * @param {GetSecretCallback | unknown} getSecretCallback
-   * @param {Logger} logger
-   * @param {CountriesCache} countriesCache
+
    */
-  constructor(options, getSecretCallback, logger, countriesCache) {
-    if (logger) {
-      this.setLogger(logger);
-    } else {
-      this._logger = defaultLogger.withBaseLogLevel('info');
+  constructor(options) {
+    const validationResult = StorageOptionsIO.decode(options);
+    if (!isValid(validationResult)) {
+      throw toStorageClientError('Storage.constructor() Validation Error: ')(validationResult);
     }
+
+    this.setLogger(options.logger || defaultLogger.withBaseLogLevel('info'));
 
     this._apiKey = options.apiKey || process.env.INC_API_KEY;
     if (!this._apiKey) {
@@ -79,13 +78,13 @@ class Storage {
 
     if (options.encrypt !== false) {
       this._encryptionEnabled = true;
-      this._crypto = new InCrypt(new SecretKeyAccessor(getSecretCallback));
+      this._crypto = new InCrypt(new SecretKeyAccessor(options.getSecret));
     } else {
       this._encryptionEnabled = false;
       this._crypto = new InCrypt();
     }
 
-    this.setCountriesCache(countriesCache || new CountriesCache());
+    this.setCountriesCache(options.countriesCache || new CountriesCache());
 
     this.apiClient = new ApiClient(this._apiKey, this._envId, this._endpoint, (level, message) => this._logger.write(level, message), (...args) => this._countriesCache.getCountriesAsync(...args));
     this.normalizeKeys = options.normalizeKeys;
@@ -96,10 +95,10 @@ class Storage {
   }
 
   /**
-   * @param {string} s
+   * @param {string|null} s
    */
   normalizeKey(s) {
-    return this.normalizeKeys ? s.toLowerCase() : s;
+    return this.normalizeKeys && typeof s === 'string' ? s.toLowerCase() : s;
   }
 
   /**
@@ -130,19 +129,14 @@ class Storage {
   }
 
   /**
-   * @param {Array<CustomEncryption>} customEncryptionConfigs
+   * @param {Array<CustomEncryptionConfig>} customEncryptionConfigs
    */
-  setCustomEncryption(customEncryptionConfigs) {
+  async setCustomEncryption(customEncryptionConfigs) {
     if (this._encryptionEnabled !== true) {
       throw new StorageClientError('Cannot use custom encryption when encryption is off');
     }
 
-    this.validate(
-      'Storage.setCustomEncryption()',
-      validateCustomEncryptionConfigs(customEncryptionConfigs),
-    );
-
-    this._crypto.setCustomEncryption(customEncryptionConfigs);
+    await this._crypto.setCustomEncryption(customEncryptionConfigs);
   }
 
   /**
@@ -163,34 +157,30 @@ class Storage {
     this._logger.write('error', error.message);
     throw error;
   }
-
+  
   /**
    * @param {string} context
-   * @param {Array<Error|unknown>} validationResults
+   * @param {Array<unknown>} validationResults
    */
   validate(context, ...validationResults) {
     validationResults
-      .filter(isError)
+      .filter(result => !isValid(result))
       .slice(0, 1)
-      .map((error) => {
-        /* eslint-disable-next-line no-param-reassign */
-        error.message = `${context} Validation Error: ${error.message}`;
-        return error;
-      })
+      .map(toStorageClientError(`${context} Validation Error: `))
       .forEach(this.logAndThrowError, this);
   }
 
   /**
    * @param {string} countryCode - Country code
    * @param {Record} record
-   * @param {object} [requestOptions]
+   * @param {RequestOptions} [requestOptions]
    * @return {Promise<{ record: Record }>} Written record
    */
   async write(countryCode, record, requestOptions = {}) {
     this.validate(
       'Storage.write()',
-      validateCountryCode(countryCode),
-      validateRecord(record),
+      CountryCodeIO.decode(countryCode),
+      RecordIO.decode(record),
     );
 
     const data = await this.encryptPayload(record);
@@ -209,8 +199,8 @@ class Storage {
   async batchWrite(countryCode, records) {
     this.validate(
       'Storage.batchWrite()',
-      validateCountryCode(countryCode),
-      validateRecordsNEA(records),
+      CountryCodeIO.decode(countryCode),
+      RecordsNEAIO.decode(records),
     );
 
     try {
@@ -230,8 +220,8 @@ class Storage {
   async migrate(countryCode, limit = FIND_LIMIT, findFilterOptional = {}) {
     this.validate(
       'Storage.migrate()',
-      validateCountryCode(countryCode),
-      validateLimit(limit),
+      CountryCodeIO.decode(countryCode),
+      LimitIO.decode(limit),
     );
 
     if (!this._encryptionEnabled) {
@@ -287,14 +277,15 @@ class Storage {
    * @param {string} countryCode - Country code.
    * @param {FindFilter} filter - The filter to apply.
    * @param {FindOptions} options - The options to pass to PoP.
-   * @param {object} [requestOptions]
+   * @param {RequestOptions} [requestOptions]
    * @return {Promise<{ meta: FindResultsMeta }, records: Array<Record>, errors?: Array<{ error: InCryptoError, rawData: Record  }> } Matching records.
    */
   async find(countryCode, filter, options = {}, requestOptions = {}) {
     this.validate(
       'Storage.find()',
-      validateCountryCode(countryCode),
-      validateFindOptions(options),
+      CountryCodeIO.decode(countryCode),
+      FindFilterIO.decode(filter),
+      FindOptionsIO.decode(options),
     );
 
     const data = {
@@ -351,8 +342,8 @@ class Storage {
    * Find first record matching filter.
    * @param {string} countryCode - Country code.
    * @param {FindFilter} filter - The filter to apply.
-   * @param {{ limit: number, offset: number }} options - The options to pass to PoP.
-   * @param {object} [requestOptions]
+   * @param {FindOptions} options - The options to pass to PoP.
+   * @param {RequestOptions} [requestOptions]
    * @return {Promise<{ record: Record|null }>} Matching record.
    */
   async findOne(countryCode, filter, options = {}, requestOptions = {}) {
@@ -365,14 +356,14 @@ class Storage {
   /**
    * @param {string} countryCode Country code
    * @param {string} recordKey
-   * @param {object} [requestOptions]
+   * @param {RequestOptions} [requestOptions]
    * @return {Promise<{ record: Record|null }>} Matching record
    */
   async read(countryCode, recordKey, requestOptions = {}) {
     this.validate(
       'Storage.read()',
-      validateCountryCode(countryCode),
-      validateRecordKey(recordKey),
+      CountryCodeIO.decode(countryCode),
+      RecordKeyIO.decode(recordKey),
     );
 
     const key = await this.createKeyHash(this.normalizeKey(recordKey));
@@ -453,14 +444,14 @@ class Storage {
    * Delete a record by ket.
    * @param {string} countryCode - Country code.
    * @param {string} recordKey
-   * @param {object} [requestOptions]
+   * @param {RequestOptions} [requestOptions]
    * @return {Promise<{ success: true }>} Operation result.
    */
   async delete(countryCode, recordKey, requestOptions = {}) {
     this.validate(
       'Storage.delete()',
-      validateCountryCode(countryCode),
-      validateRecordKey(recordKey),
+      CountryCodeIO.decode(countryCode),
+      RecordKeyIO.decode(recordKey),
     );
 
     try {
@@ -479,14 +470,15 @@ class Storage {
 
 /**
  * @param {StorageOptions} options
- * @param {GetSecretCallback | unknown} getSecretCallback
- * @param {Logger} logger
- * @param {CountriesCache} countriesCache
+ * @param {Array<CustomEncryptionConfig>} [customEncryptionConfigs]
  * @returns {Promise<Storage>}
  */
-async function createStorage(options, getSecretCallback, logger, countriesCache) {
-  const s = new Storage(options, getSecretCallback, logger, countriesCache);
+async function createStorage(options, customEncryptionConfigs) {
+  const s = new Storage(options);
   await s.initialize();
+  if (customEncryptionConfigs) {
+    await s.setCustomEncryption(customEncryptionConfigs);
+  }
   return s;
 }
 

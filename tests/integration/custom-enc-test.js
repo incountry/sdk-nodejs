@@ -12,7 +12,16 @@ let data;
 
 describe('Custom encryption', () => {
   beforeEach(async () => {
-    storage = await createStorage(true);
+    storage = await createStorage(true, false, () => ({
+      secrets: [
+        { 
+          secret: "longAndStrongPassword", 
+          version: 1, 
+          isForCustomEncryption: true
+        }
+      ],
+      currentVersion: 1,
+    }));
   });
 
   afterEach(async () => {
@@ -22,7 +31,7 @@ describe('Custom encryption', () => {
   });
 
   it('should encrypt and decrypt data', async () => {
-    storage.setCustomEncryption([{
+    await storage.setCustomEncryption([{
       encrypt: (text) => Buffer.from(text).toString('base64'),
       decrypt: (encryptedData) => Buffer.from(encryptedData, 'base64').toString('utf-8'),
       isCurrent: true,

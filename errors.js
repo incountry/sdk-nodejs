@@ -25,10 +25,10 @@ class StorageClientError extends Error {
 }
 
 class StorageServerError extends Error {
-  constructor(code, responseData, message) {
+  constructor(message, data, code) {
     super(message);
     this.code = code;
-    this.responseData = responseData;
+    this.data = data;
     this.name = 'StorageServerError';
     if (Error.captureStackTrace) {
       Error.captureStackTrace(this, StorageServerError);

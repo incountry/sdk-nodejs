@@ -7,4 +7,9 @@ function isJSON(str) {
   }
 }
 
-module.exports = { isJSON };
+const identity = (a) => a;
+
+module.exports = { 
+  isJSON, 
+  identity 
+};

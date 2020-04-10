@@ -1,8 +1,14 @@
 const crypto = require('crypto');
 const util = require('util');
-
 const { DEFAULT_VERSION } = require('./secret-key-accessor');
 const { InCryptoError } = require('./errors');
+const { isValid, getErrorMessage } = require('./validation/utils');
+const { 
+  getCustomEncryptionConfigsIO, 
+  CUSTOM_ENCRYPTION_ERROR_MESSAGE_ENC,
+  CUSTOM_ENCRYPTION_ERROR_MESSAGE_DEC,
+} = require('./validation/custom-encryption-configs');
+
 /**
  * @typedef {import('./validation/custom-encryption-configs').CustomEncryptionConfig} CustomEncryptionConfig
  */
@@ -19,8 +25,6 @@ const PT_VERSION = 'pt';
 const CUSTOM_ENCRYPTION_VERSION_PREFIX = 'c';
 
 const CUSTOM_ENCRYPTION_ERROR_MESSAGE_NO_SKA = 'Custom encryption not supported without secretKeyAccessor provided';
-const CUSTOM_ENCRYPTION_ERROR_MESSAGE_ENC = 'Custom encryption \'encrypt\' method should return string';
-const CUSTOM_ENCRYPTION_ERROR_MESSAGE_DEC = 'Custom encryption \'decrypt\' method should return string';
 
 class InCrypt {
   /**
@@ -28,8 +32,8 @@ class InCrypt {
   */
   constructor(secretKeyAccessor) {
     this.secretKeyAccessor = secretKeyAccessor;
-    this.customEncryption = null;
-    this.customEncryptionVersion = null;
+    this.customEncryption = null; // 
+    this.currentCustomEncryptionVersion = null; // version of custom encryption marked "isCurrent" to use it instead of default encryption
   }
 
   packCustomEncryptionVersion(version) {
@@ -39,9 +43,21 @@ class InCrypt {
   /**
    *  @param {Array<CustomEncryptionConfig>} customEncryptionConfigs
    */
-  setCustomEncryption(customEncryptionConfigs) {
+  async setCustomEncryption(customEncryptionConfigs) {
     if (this.secretKeyAccessor === undefined) {
       throw new InCryptoError(CUSTOM_ENCRYPTION_ERROR_MESSAGE_NO_SKA);
+    }
+
+    const secretData = await this.secretKeyAccessor.getSecrets();
+    const secret = secretData.secrets.find(s => s.isForCustomEncryption);
+    if (!secret) {
+      throw new InCryptoError('No secret for Custom Encryption');
+    }
+
+    const validationResult = getCustomEncryptionConfigsIO(secret).decode(customEncryptionConfigs);
+    if (!isValid(validationResult)) {
+      const errorMessage = getErrorMessage(validationResult);
+      throw new InCryptoError(`Custom Encryption Validation Error: ${errorMessage}`);
     }
 
     this.customEncryption = customEncryptionConfigs.reduce((result, item) => ({
@@ -51,7 +67,7 @@ class InCrypt {
 
     const current = customEncryptionConfigs.find((c) => c.isCurrent);
     if (current) {
-      this.customEncryptionVersion = this.packCustomEncryptionVersion(current.version);
+      this.currentCustomEncryptionVersion = this.packCustomEncryptionVersion(current.version);
     }
   }
 
@@ -74,7 +90,7 @@ class InCrypt {
       };
     }
 
-    if (this.customEncryptionVersion) {
+    if (this.currentCustomEncryptionVersion) {
       return this.encryptCustom(text);
     }
 
@@ -82,16 +98,20 @@ class InCrypt {
   }
 
   async encryptCustom(text) {
-    const { encrypt } = this.customEncryption[this.customEncryptionVersion];
-    const { secret, version } = await this.secretKeyAccessor.getSecret({ forCustomEncryption: true });
-    const ciphertext = await encrypt(text, secret, version);
+    const { encrypt } = this.customEncryption[this.currentCustomEncryptionVersion];
+    const { secret, version: secretVersion, isForCustomEncryption } = await this.secretKeyAccessor.getSecret();
+    if (!isForCustomEncryption) {
+      throw new InCryptoError(`Secret with version ${secretVersion} is not marked for custom encryption`);
+    }
+
+    const ciphertext = await encrypt(text, secret, secretVersion);
     if (typeof ciphertext !== 'string') {
       throw new InCryptoError(`${CUSTOM_ENCRYPTION_ERROR_MESSAGE_ENC}. Got ${typeof ciphertext}`);
     }
 
     return {
-      message: `${this.customEncryptionVersion}:${ciphertext}`,
-      secretVersion: version,
+      message: `${this.currentCustomEncryptionVersion}:${ciphertext}`,
+      secretVersion,
     };
   }
 
@@ -200,7 +220,11 @@ class InCrypt {
    */
   async decryptCustom(encrypted, secretVersion, version) {
     const { decrypt } = this.customEncryption[version];
-    const { secret } = await this.secretKeyAccessor.getSecret({ secretVersion, forCustomEncryption: true });
+    const { secret, isForCustomEncryption } = await this.secretKeyAccessor.getSecret(secretVersion);
+    if (!isForCustomEncryption) {
+      throw new InCryptoError(`Secret with version ${secretVersion} is not marked for custom encryption`);
+    }
+
     const decrypted = await decrypt(encrypted, secret, secretVersion);
     if (typeof decrypted !== 'string') {
       throw new InCryptoError(`${CUSTOM_ENCRYPTION_ERROR_MESSAGE_DEC}. Got ${typeof decrypted}`);
@@ -212,7 +236,7 @@ class InCrypt {
     if (!this.secretKeyAccessor) {
       return { key: null, version: null };
     }
-    const { secret, isKey, version } = await this.secretKeyAccessor.getSecret({ secretVersion });
+    const { secret, isKey, version } = await this.secretKeyAccessor.getSecret(secretVersion);
 
     const key = isKey ? secret : (await pbkdf2(secret, salt, PBKDF2_ITERATIONS_COUNT, KEY_SIZE, 'sha512'));
     return { key, version };
