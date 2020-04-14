@@ -53,26 +53,26 @@ class SecretKeyAccessor {
    * @param {number|undefined} secretVersion optional, will fallback to "currentSecretVersion"
    * @return {Promise<{ secret: string, version: number }>}
    */
-  getSecret(secretVersion) {
-    return this.getSecrets()
-      .then((sd) => {
-        const version = secretVersion !== undefined ? secretVersion : sd.currentVersion;
-        const item = sd.secrets.find((s) => s.version === version);
-        return item !== undefined
-          ? item
-          : Promise.reject(new StorageCryptoError(`Secret not found for version ${secretVersion}`));
-      });
+  async getSecret(secretVersion) {
+    const secretData = await this.getSecrets();
+    const version = secretVersion !== undefined ? secretVersion : secretData.currentVersion;
+    const secret = secretData.secrets.find((s) => s.version === version);
+    if (!secret) {
+      throw new StorageCryptoError(`Secret not found for version ${secretVersion}`);
+    }
+    return secret;
   }
 
   /**
    * @returns {Promise<SecretsData>}
    */
-  getSecrets() {
-    return Promise
-      .resolve(this.getSecretCallback())
-      .then((v) => typeof v === 'string'
-        ? wrapToSecretsData(v)
-        : validationToPromise(SecretsDataIO.decode(v), toStorageClientError()));
+  async getSecrets() {
+    const secretData = await Promise.resolve(this.getSecretCallback());
+    if (typeof secretData === 'string') {
+      return wrapToSecretsData(secretData);
+    }
+
+    return validationToPromise(SecretsDataIO.decode(secretData), toStorageClientError());
   }
 }
 
