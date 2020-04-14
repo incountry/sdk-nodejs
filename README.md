@@ -386,11 +386,9 @@ const migrateResult = await storage.migrate(country, limit);
 
 #### Custom encryption
 
-SDK supports the ability to provide custom encryption/decryption methods if you decide to use your own algorithm instead of the default one.
+SDK supports the ability to provide custom encryption/decryption support if you decide to use your own algorithm instead of the default one.
 
-TODO remove setCustomEncryption
-
-`storage.setCustomEncryption(configs)` allows you to pass an array of custom encryption configurations with the following schema, which enables custom encryption:
+`createStorage(options, customEncConfigs)` allows you to pass an array of custom encryption configurations with the following schema, which enables custom encryption:
 
 ```typescript
 {
