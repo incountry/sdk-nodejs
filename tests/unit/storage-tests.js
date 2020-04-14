@@ -128,7 +128,7 @@ describe('Storage', () => {
                 .to.be.rejectedWith(StorageError, 'endpoint should be string');
             }));
 
-            await expect(createStorage({ endpoint: '', encrypt: false }))
+            await expect(createStorage({ endpoint: '', encrypt: false, apiKey: '' }))
               .not.to.be.rejectedWith();
           });
         });
