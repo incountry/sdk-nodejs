@@ -251,7 +251,7 @@ describe('Storage', () => {
       });
 
       describe('logger', () => {
-        it('should throw an error if provided logger is not object or has no "write" method or is not a function', async () => {
+        it('1234 should throw an error if provided logger is not object or has no "write" method or is not a function', async () => {
           const expectStorageConstructorThrowsError = async (wrongLogger) => expect(createStorage({ encrypt: false, endpoint: '', logger: wrongLogger }))
             .to.be.rejectedWith(StorageError, 'logger');
 
@@ -1040,9 +1040,9 @@ describe('Storage', () => {
           error: 'Storage.batchWrite() Validation Error: <RecordsArray>.0.key should be string but got undefined',
         },
         {
-          name: 'when any record has no key field',
-          arg: [{ key: '1' }, {}],
-          error: 'Storage.batchWrite() Validation Error: <RecordsArray>.1.key should be string but got undefined',
+          name: 'when any record from 4 has no key field',
+          arg: [{ key: '1' }, { key: '1' }, { key: '1' }, {}],
+          error: 'Storage.batchWrite() Validation Error: <RecordsArray>.3.key should be string but got undefined',
         },
         {
           name: 'when any record has wrong format',

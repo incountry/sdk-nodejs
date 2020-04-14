@@ -36,7 +36,18 @@ function getMessage(e) {
   const filtered = e.context
     .filter((item, index, arr) => {
       const prevItem = arr[index - 1];
-      return prevItem === undefined || (!isIntersectionType(prevItem.type) && !isUnionType(prevItem.type));
+      if (!prevItem) {
+        return true;
+      }
+      if (item.actual === prevItem.actual) {
+        return false;
+      }
+
+      if (isIntersectionType(prevItem.type) || isUnionType(prevItem.type)) {
+        return false;
+      }
+
+      return true;
     });
 
   return e.message !== undefined

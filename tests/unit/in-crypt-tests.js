@@ -125,6 +125,44 @@ describe('InCrypt', function () {
   });
 
   context('when custom encryption configs provided', () => {
+    it('should validate them', () => {
+      const secretKeyAccessor = new SecretKeyAccessor(() => ({
+        secrets: [{ version: 0, secret: 'supersecret', isForCustomEncryption: true }], currentVersion: 0,
+      }));
+
+      return Promise.all(
+        [
+          [{
+            encrypt: 'encrypt',
+            decrypt: 'decrypt',
+            isCurrent: true,
+            version: false,
+          }],
+          [{
+            encrypt: 'encrypt',
+            decrypt: 'decrypt',
+            isCurrent: '',
+            version: '',
+          }],
+          [{
+            encrypt: 'encrypt',
+            decrypt: () => {},
+            isCurrent: true,
+            version: 1,
+          }],
+          [{
+            encrypt: () => {},
+            decrypt: () => 111,
+            isCurrent: true,
+            version: 1,
+          }],
+        ].map((configs) => {
+          const incrypt = new InCrypt(secretKeyAccessor);
+          return expect(incrypt.initialize(configs)).to.be.rejectedWith(StorageClientError, '<CustomEncryptionConfigs>');
+        }),
+      );
+    });
+
     PLAINTEXTS.forEach((plain) => {
       it(`should encrypt and decrypt text "${plain}" using custom encryption`, async function () {
         const configs = [{

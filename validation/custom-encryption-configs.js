@@ -30,7 +30,7 @@ function notMoreThanOneCurrent(configs) {
   return configs.filter((c) => c.isCurrent === true).length <= 1;
 }
 
-const CustomEncryptionConfigStructIO = t.union([
+const CustomEncryptionConfigStructIO = t.intersection([
   t.type({
     encrypt: t.Function,
     decrypt: t.Function,
