@@ -80,9 +80,9 @@ const getCustomEncryptionConfigsIO = (secret) => {
 
   const CustomEncryptionConfigsIO = new t.Type(
     'CustomEncryptionConfigs',
-    (u) => CustomEncryptionConfigArrayIO.is(u) && hasUniqueVersions(u) && notMoreThanOneCurrent(u),
+    (u) => t.UnknownArray.is(u) && u.length > 0 && CustomEncryptionConfigArrayIO.is(u) && hasUniqueVersions(u) && notMoreThanOneCurrent(u),
     (u, c) => {
-      if (!t.UnknownArray.is(u)) {
+      if (!t.UnknownArray.is(u) || u.length === 0) {
         return t.failure(u, c, CUSTOM_ENCRYPTION_CONFIG_ERROR_MESSAGE_ARRAY);
       }
 
