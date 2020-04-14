@@ -1,7 +1,7 @@
 const chai = require('chai');
 const chaiAsPromised = require('chai-as-promised');
 const SecretKeyAccessor = require('../../secret-key-accessor');
-const { StorageClientError } = require('../../errors');
+const { StorageClientError, StorageCryptoError } = require('../../errors');
 
 chai.use(chaiAsPromised);
 const { expect } = chai;
@@ -88,6 +88,24 @@ describe('SecretKeyAccessor', () => {
         const secret = 'supersecret';
         const secretKeyAccessor1 = new SecretKeyAccessor(async () => ({ blabla: secret }));
         expect(secretKeyAccessor1.getSecret()).to.be.rejectedWith(StorageClientError);
+      });
+
+      it('should reject if isKey or isForCustomEncryption are set to false or are set to true both', async () => {
+        const badSecretData = [
+          { secrets: [{ version: 0, secret: '', isKey: false }], currentVersion: 0 },
+          { secrets: [{ version: 0, secret: '', isForCustomEncryption: false }], currentVersion: 0 },
+          {
+            secrets: [{
+              version: 0, secret: '', isKey: true, isForCustomEncryption: true,
+            }],
+            currentVersion: 0,
+          },
+        ];
+
+        await Promise.all(badSecretData.map((sd) => {
+          const secretKeyAccessor = new SecretKeyAccessor(() => sd);
+          return expect(secretKeyAccessor.getSecret()).to.be.rejectedWith(StorageClientError);
+        }));
       });
 
       it('should reject if there is no key of "currentVersion" in "keys"', () => {
@@ -274,17 +292,19 @@ describe('SecretKeyAccessor', () => {
         expect(secretKeyAccessor3.getSecret()).to.be.rejectedWith(StorageClientError);
       });
 
-      it('should reject if secret keys object does not contain requested version of secret key', () => {
+      it('should reject if secret keys object does not contain requested version of secret key', async () => {
         const secret = 'supersecret';
         const secretVersion = 42;
 
         const secretKeyAccessor1 = new SecretKeyAccessor(() => ({
           secrets: [
             { version: 1, secret },
-            { version: 2, secret }],
+            { version: 2, secret },
+          ],
           currentVersion: 1,
         }));
-        expect(secretKeyAccessor1.getSecret(secretVersion)).to.be.rejectedWith(Error, `Secret not found for version ${secretVersion}`);
+
+        await expect(secretKeyAccessor1.getSecret(secretVersion)).to.be.rejectedWith(StorageCryptoError, `Secret not found for version ${secretVersion}`);
       });
     });
   });

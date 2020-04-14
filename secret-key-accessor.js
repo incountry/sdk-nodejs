@@ -1,6 +1,6 @@
 const { validationToPromise, toStorageClientError } = require('./validation/utils');
 const { SecretsDataIO } = require('./validation/secrets-data');
-const { SecretKeyAccessorError } = require('./errors');
+const { StorageCryptoError, StorageClientError } = require('./errors');
 
 /**
  * @typedef {import('./validation/secrets-data').SecretsData} SecretsData
@@ -40,7 +40,7 @@ class SecretKeyAccessor {
    */
   constructor(getSecretCallback) {
     if (typeof getSecretCallback !== 'function') {
-      throw new SecretKeyAccessorError('Provide callback function for secretData');
+      throw new StorageClientError('Provide callback function for secretData');
     }
     this.getSecretCallback = getSecretCallback;
   }
@@ -60,7 +60,7 @@ class SecretKeyAccessor {
         const item = sd.secrets.find((s) => s.version === version);
         return item !== undefined
           ? item
-          : Promise.reject(new SecretKeyAccessorError(`Secret not found for version ${secretVersion}`));
+          : Promise.reject(new StorageCryptoError(`Secret not found for version ${secretVersion}`));
       });
   }
 
@@ -70,7 +70,9 @@ class SecretKeyAccessor {
   getSecrets() {
     return Promise
       .resolve(this.getSecretCallback())
-      .then((v) => (typeof v === 'string' ? wrapToSecretsData(v) : validationToPromise(SecretsDataIO.decode(v), toStorageClientError)))
+      .then((v) => typeof v === 'string'
+        ? wrapToSecretsData(v)
+        : validationToPromise(SecretsDataIO.decode(v), toStorageClientError()));
   }
 }
 

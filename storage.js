@@ -90,8 +90,15 @@ class Storage {
     this.normalizeKeys = options.normalizeKeys;
   }
 
-  async initialize() {
-    await this._crypto.initialize();
+  /**
+   * @param {Array<CustomEncryptionConfig>} customEncryptionConfigs
+   */
+  async initialize(customEncryptionConfigs) {
+    if (customEncryptionConfigs && this._encryptionEnabled !== true) {
+      throw new StorageClientError('Cannot use custom encryption when encryption is off');
+    }
+
+    await this._crypto.initialize(customEncryptionConfigs);
   }
 
   /**
@@ -129,17 +136,6 @@ class Storage {
   }
 
   /**
-   * @param {Array<CustomEncryptionConfig>} customEncryptionConfigs
-   */
-  async setCustomEncryption(customEncryptionConfigs) {
-    if (this._encryptionEnabled !== true) {
-      throw new StorageClientError('Cannot use custom encryption when encryption is off');
-    }
-
-    await this._crypto.setCustomEncryption(customEncryptionConfigs);
-  }
-
-  /**
    * @param {CountriesCache | unknown} countriesCache
    */
   setCountriesCache(countriesCache) {
@@ -157,14 +153,14 @@ class Storage {
     this._logger.write('error', error.message);
     throw error;
   }
-  
+
   /**
    * @param {string} context
    * @param {Array<unknown>} validationResults
    */
   validate(context, ...validationResults) {
     validationResults
-      .filter(result => !isValid(result))
+      .filter((result) => !isValid(result))
       .slice(0, 1)
       .map(toStorageClientError(`${context} Validation Error: `))
       .forEach(this.logAndThrowError, this);
@@ -475,10 +471,7 @@ class Storage {
  */
 async function createStorage(options, customEncryptionConfigs) {
   const s = new Storage(options);
-  await s.initialize();
-  if (customEncryptionConfigs) {
-    await s.setCustomEncryption(customEncryptionConfigs);
-  }
+  await s.initialize(customEncryptionConfigs);
   return s;
 }
 

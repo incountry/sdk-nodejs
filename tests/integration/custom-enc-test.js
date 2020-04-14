@@ -14,11 +14,11 @@ describe('Custom encryption', () => {
   beforeEach(async () => {
     storage = await createStorage(true, false, () => ({
       secrets: [
-        { 
-          secret: "longAndStrongPassword", 
-          version: 1, 
-          isForCustomEncryption: true
-        }
+        {
+          secret: 'longAndStrongPassword',
+          version: 1,
+          isForCustomEncryption: true,
+        },
       ],
       currentVersion: 1,
     }));

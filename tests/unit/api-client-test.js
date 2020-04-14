@@ -3,7 +3,7 @@ chai.use(require('chai-as-promised'));
 
 const nock = require('nock');
 const { ApiClient } = require('../../api-client');
-const { StorageServerError, StorageClientError } = require('../../errors');
+const { StorageServerError } = require('../../errors');
 const CountriesCache = require('../../countries-cache');
 const { nockEndpoint } = require('../test-helpers/popapi-nock');
 

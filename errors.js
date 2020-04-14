@@ -2,65 +2,52 @@
 
 const isError = (obj) => obj instanceof Error;
 
-class StorageValidationError extends Error {
-  constructor(validation, message) {
+class StorageError extends Error {
+  constructor(message) {
     super(message);
-    this.validation = validation;
-    this.name = 'StorageValidationError';
+    this.name = 'StorageError';
     if (Error.captureStackTrace) {
-      Error.captureStackTrace(this, StorageValidationError);
+      Error.captureStackTrace(this, StorageError);
     }
   }
 }
 
-class StorageClientError extends Error {
+class StorageClientError extends StorageError {
   constructor(message, data) {
     super(message);
-    this.data = data;
     this.name = 'StorageClientError';
+    this.data = data;
     if (Error.captureStackTrace) {
       Error.captureStackTrace(this, StorageClientError);
     }
   }
 }
 
-class StorageServerError extends Error {
+class StorageServerError extends StorageError {
   constructor(message, data, code) {
     super(message);
-    this.code = code;
-    this.data = data;
     this.name = 'StorageServerError';
+    this.data = data;
+    this.code = code;
     if (Error.captureStackTrace) {
       Error.captureStackTrace(this, StorageServerError);
     }
   }
 }
 
-class InCryptoError extends Error {
+class StorageCryptoError extends StorageError {
   constructor(message) {
     super(message);
-    this.name = 'InCryptoError';
+    this.name = 'StorageCryptoError';
     if (Error.captureStackTrace) {
-      Error.captureStackTrace(this, InCryptoError);
+      Error.captureStackTrace(this, StorageCryptoError);
     }
   }
 }
-
-class SecretKeyAccessorError extends Error {
-  constructor(message) {
-    super(message);
-    this.name = 'SecretKeyAccessorError';
-    if (Error.captureStackTrace) {
-      Error.captureStackTrace(this, SecretKeyAccessorError);
-    }
-  }
-}
-
 module.exports = {
   isError,
+  StorageError,
   StorageClientError,
   StorageServerError,
-  InCryptoError,
-  SecretKeyAccessorError,
-  StorageValidationError,
+  StorageCryptoError,
 };

@@ -45,42 +45,39 @@ const getCustomEncryptionConfigsIO = (secret) => {
   const CustomEncryptionConfigIO = new t.Type(
     'CustomEncryptionConfigIO',
     (u) => CustomEncryptionConfigStructIO.is(u),
-    (u, c) => {
-      return either.chain(value => {
-        const plaintext = 'incountry';
+    (u, c) => either.chain((value) => {
+      const plaintext = 'incountry';
+      try {
+        const enc = value.encrypt(plaintext, secret.secret, secret.version);
+        if (typeof enc !== 'string') {
+          return t.failure(u, c, `${CUSTOM_ENCRYPTION_ERROR_MESSAGE_ENC}. Got ${typeof enc}`);
+        }
+      } catch (e) {
+        return t.failure(u, c, `${e.message}`);
+      }
 
-        try {
-          const enc = value.encrypt(plaintext, secret.secret, secret.version);
-          if (typeof enc !== 'string') {
-            return t.failure(u, c, `${CUSTOM_ENCRYPTION_ERROR_MESSAGE_ENC}. Got ${typeof enc}`);
-          }
-        } catch(e) {
-          return t.failure(u, c, `${e.message}`);
+      try {
+        const enc = value.encrypt(plaintext, secret.secret, secret.version);
+        const dec = value.decrypt(enc, secret.secret, secret.version);
+
+        if (typeof dec !== 'string') {
+          return t.failure(u, c, `${CUSTOM_ENCRYPTION_ERROR_MESSAGE_DEC}. Got ${typeof dec}`);
         }
 
-        try {
-          const enc = value.encrypt(plaintext, secret.secret, secret.version);
-          const dec = value.decrypt(enc, secret.secret, secret.version);
-
-          if (typeof dec !== 'string') {
-            return t.failure(u, c, `${CUSTOM_ENCRYPTION_ERROR_MESSAGE_DEC}. Got ${typeof dec}`);
-          }
-
-          if (dec !== plaintext) {
-            return t.failure(u, c, `decrypted data doesn't match the original input`);
-          }
-        } catch(e) {
-          return t.failure(u, c, `${e.message}`);
+        if (dec !== plaintext) {
+          return t.failure(u, c, 'decrypted data doesn\'t match the original input');
         }
-        
-        return t.success(value);
-      })(CustomEncryptionConfigStructIO.validate(u, c));
-    },
-    Object
+      } catch (e) {
+        return t.failure(u, c, `${e.message}`);
+      }
+
+      return t.success(value);
+    })(CustomEncryptionConfigStructIO.validate(u, c)),
+    Object,
   );
-  
+
   const CustomEncryptionConfigArrayIO = t.array(CustomEncryptionConfigIO);
-  
+
   const CustomEncryptionConfigsIO = new t.Type(
     'CustomEncryptionConfigs',
     (u) => CustomEncryptionConfigArrayIO.is(u) && hasUniqueVersions(u) && notMoreThanOneCurrent(u),
@@ -88,16 +85,16 @@ const getCustomEncryptionConfigsIO = (secret) => {
       if (!t.UnknownArray.is(u)) {
         return t.failure(u, c, CUSTOM_ENCRYPTION_CONFIG_ERROR_MESSAGE_ARRAY);
       }
-  
-      return either.chain(value => {
+
+      return either.chain((value) => {
         if (!hasUniqueVersions(value)) {
           return t.failure(u, c, CUSTOM_ENCRYPTION_CONFIG_ERROR_MESSAGE_VERSIONS);
         }
-    
+
         if (!notMoreThanOneCurrent(value)) {
           return t.failure(u, c, CUSTOM_ENCRYPTION_CONFIG_ERROR_MESSAGE_CURRENT);
         }
-  
+
         return t.success(value);
       })(CustomEncryptionConfigArrayIO.validate(u, c));
     },
@@ -105,8 +102,7 @@ const getCustomEncryptionConfigsIO = (secret) => {
   );
 
   return CustomEncryptionConfigsIO;
-}
-
+};
 
 module.exports = {
   getCustomEncryptionConfigsIO,

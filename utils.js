@@ -9,7 +9,7 @@ function isJSON(str) {
 
 const identity = (a) => a;
 
-module.exports = { 
-  isJSON, 
-  identity 
+module.exports = {
+  isJSON,
+  identity,
 };

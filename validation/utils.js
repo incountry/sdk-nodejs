@@ -9,7 +9,7 @@ function isValid(validation) {
 const toStorageClientError = (prefix = '') => (validation) => {
   const errorMessage = report(validation);
   return new StorageClientError(`${prefix}${errorMessage}`, validation);
-}
+};
 
 function validationToPromise(validation, map) {
   return new Promise((resolve, reject) => isValid(validation) ? resolve(validation.right) : reject(map(validation)));

@@ -18,13 +18,13 @@ function hasSecretOfCurrentVersion(o) {
 }
 
 const SecretOrKeyGeneral = t.intersection([
-  t.type({ 
-    secret: t.string, 
-    version: NonNegativeInt 
+  t.type({
+    secret: t.string,
+    version: NonNegativeInt,
   }),
-  t.partial({ 
-    isKey: t.boolean, 
-    isForCustomEncryption: t.boolean 
+  t.partial({
+    isKey: t.literal(true),
+    isForCustomEncryption: t.literal(true),
   }),
 ]);
 
@@ -40,8 +40,12 @@ const SecretOrKey = new t.Type(
       return t.failure(u, c);
     }
 
-    if (u.isKey && !u.isForCustomEncryption && !isValidKey(u.secret)) {
-      return t.failure(u, c, `Key should be ${KEY_SIZE}-characters long`);
+    if (u.isForCustomEncryption && u.isKey) {
+      return t.failure(u, c, 'Secret can either be "isKey" or "isForCustomEncryption", not both');
+    }
+
+    if (u.isKey && !isValidKey(u.secret)) {
+      return t.failure(u, c, `Key should be ${KEY_SIZE}-characters long. If it's a custom key, please provide 'isForCustomEncryption' param`);
     }
 
     return t.success(u);
@@ -60,5 +64,5 @@ const SecretsDataIO = t.brand(
 );
 
 module.exports = {
-  SecretsDataIO
+  SecretsDataIO,
 };

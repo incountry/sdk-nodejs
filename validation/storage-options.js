@@ -37,4 +37,3 @@ const StorageOptionsIO = t.intersection([
 module.exports = {
   StorageOptionsIO,
 };
-  

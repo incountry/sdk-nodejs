@@ -13,13 +13,18 @@ const FilterStringQueryIO = t.union([FilterStringValueIO, t.type({ $not: FilterS
 
 const FilterNumberValueIO = t.union([t.number, t.array(t.number)]);
 const FilterNumberQueryIO = t.union([
-  FilterNumberValueIO, 
-  t.type({ $not: FilterNumberValueIO }), 
-  t.partial({ $gt: t.number, $gte: t.number, $lt: t.number, $lte: t.number })
+  FilterNumberValueIO,
+  t.type({ $not: FilterNumberValueIO }),
+  t.partial({
+    $gt: t.number,
+    $gte: t.number,
+    $lt: t.number,
+    $lte: t.number,
+  }),
 ]);
 
 const FindFilterIO = t.record(t.string, t.union([FilterStringQueryIO, FilterNumberQueryIO]), 'FindFilter');
 
 module.exports = {
- FindFilterIO,
+  FindFilterIO,
 };

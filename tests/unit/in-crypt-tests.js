@@ -16,7 +16,6 @@ chai.use(chaiAsPromised);
 const { expect } = chai;
 
 
-
 const PLAINTEXTS = [
   '',
   'Howdy', // <-- English
@@ -227,14 +226,15 @@ describe('InCrypt', function () {
         isCurrent: true,
       }];
 
-      const text = 'plain';
-
       const secretKeyAccessor = new SecretKeyAccessor(() => ({
-        secrets: [{ version: 0, secret: 'aaa', isKey: true, isForCustomEncryption: true }], currentVersion: 0,
+        secrets: [{
+          version: 0, secret: 'aaa', isKey: true, isForCustomEncryption: true,
+        }],
+        currentVersion: 0,
       }));
 
       const incrypt = new InCrypt(secretKeyAccessor);
-      
+
       await expect(incrypt.setCustomEncryption(configs)).to.not.be.rejected;
     });
   });
