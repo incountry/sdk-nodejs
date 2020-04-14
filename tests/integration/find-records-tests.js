@@ -2,6 +2,7 @@
 const chai = require('chai');
 const chaiAsPromised = require('chai-as-promised');
 const { createStorage, noop } = require('./common');
+const { StorageServerError } = require('../../errors');
 
 chai.use(chaiAsPromised);
 const { expect } = chai;
@@ -159,7 +160,7 @@ xdescribe('Find records', function () {
 
       it('Records not found by country', async function () {
         await expect(storage.findOne(ANOTHER_COUNTRY, {}))
-          .to.be.rejectedWith(Error, 'Request failed with status code 409');
+          .to.be.rejectedWith(StorageServerError, 'Request failed with status code 409');
       });
     });
   });

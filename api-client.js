@@ -1,6 +1,6 @@
 const axios = require('axios');
 const get = require('lodash.get');
-const { StorageServerError } = require('./errors');
+const { StorageServerError, StorageClientError } = require('./errors');
 const pjson = require('./package.json');
 const { isValid, getErrorMessage } = require('./validation/utils');
 const { RecordResponseIO } = require('./validation/api-responses/record-response');
@@ -52,11 +52,20 @@ const ACTIONS = {
 const DEFAULT_POPAPI_HOST = 'https://us.api.incountry.io';
 
 const parsePoPError = (e) => {
+  const responseData = get(e, 'response.data', {});
   const errors = get(e, 'response.data.errors', []);
-  const errorMessage = errors.map(({ title, source }) => `${title}: ${source}`).join(';\n');
+  const errorMessages = errors.map(({ title, source }) => `${title}: ${source}`);
+  const errorMessage = errorMessages.length ? errorMessages.join(';\n') : e.message;
   const requestHeaders = get(e, 'config.headers');
   const responseHeaders = get(e, 'response.headers');
-  return { errorMessage, requestHeaders, responseHeaders };
+  const code = get(e, 'response.status');
+  return {
+    errorMessage,
+    requestHeaders,
+    responseHeaders,
+    responseData,
+    code,
+  };
 };
 
 class ApiClient {
@@ -95,8 +104,9 @@ class ApiClient {
       const countriesList = await this.countriesProviderFn();
       countryHasApi = countriesList.find((country) => countryRegex.test(country.id));
     } catch (err) {
-      this.loggerFn('error', err.message, err);
-      throw new StorageServerError(`Unable to retrieve countries list: ${err.message}`, err.response ? err.response.data : {}, err.code);
+      const popError = parsePoPError(err);
+      this.loggerFn('error', popError.errorMessage, err);
+      throw new StorageServerError(`Unable to retrieve countries list: ${popError.errorMessage}`, popError.responseData, popError.code);
     }
 
     return countryHasApi
@@ -123,7 +133,7 @@ class ApiClient {
   async runQuery(country, key, action, data = undefined, requestOptions = {}) {
     const chosenAction = ACTIONS[action];
     if (!chosenAction) {
-      throw new Error('Invalid action passed to ApiClient.');
+      throw new StorageClientError('Invalid action passed to ApiClient.');
     }
 
     let headers = this.headers();
@@ -169,7 +179,7 @@ class ApiClient {
         responseHeaders: popError.responseHeaders,
         message: errorMessage,
       });
-      throw new StorageServerError(`${method.toUpperCase()} ${url} ${errorMessage}`, err.response ? err.response.data : {}, err.code);
+      throw new StorageServerError(`${method.toUpperCase()} ${url} ${errorMessage}`, popError.responseData, popError.code);
     }
 
     this.loggerFn('info', `Finished ${method.toUpperCase()} ${url}`, {

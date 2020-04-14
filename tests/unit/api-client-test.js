@@ -3,7 +3,7 @@ chai.use(require('chai-as-promised'));
 
 const nock = require('nock');
 const { ApiClient } = require('../../api-client');
-const { StorageServerError } = require('../../errors');
+const { StorageServerError, StorageError } = require('../../errors');
 const CountriesCache = require('../../countries-cache');
 const { nockEndpoint } = require('../test-helpers/popapi-nock');
 
@@ -144,7 +144,7 @@ describe('ApiClient', () => {
 
     describe('when called with wrong action', () => {
       it('should throw an error', async () => {
-        await expect(apiClient.runQuery(COUNTRY, undefined, 'test', {})).to.be.rejectedWith(Error, 'Invalid action passed to ApiClient.');
+        await expect(apiClient.runQuery(COUNTRY, undefined, 'test', {})).to.be.rejectedWith(StorageError, 'Invalid action passed to ApiClient.');
       });
     });
 

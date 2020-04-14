@@ -5,7 +5,7 @@ const t = require('io-ts');
 * @property {(logLevel: string, message: string, id?: string, timestamp?: string) => boolean} write
 */
 
-const LoggerIO = t.type({ write: t.Function });
+const LoggerIO = t.type({ write: t.Function }, 'Logger');
 
 /**
  * @typedef StorageOptions
@@ -36,4 +36,5 @@ const StorageOptionsIO = t.intersection([
 
 module.exports = {
   StorageOptionsIO,
+  LoggerIO,
 };

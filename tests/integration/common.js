@@ -10,7 +10,7 @@ dotenv.config();
 
 const DEFAULT_SECRET = () => 'supersecret';
 
-async function createDefaultStorage(encryption, normalizeKeys = false, getSecret = DEFAULT_SECRET) {
+async function createDefaultStorage(encryption, normalizeKeys = false, getSecret = DEFAULT_SECRET, customEncConfig) {
   return createStorage({
     apiKey: process.env.INC_API_KEY,
     environmentId: process.env.INC_ENVIRONMENT_ID,
@@ -18,7 +18,7 @@ async function createDefaultStorage(encryption, normalizeKeys = false, getSecret
     encrypt: encryption,
     normalizeKeys,
     getSecret,
-  });
+  }, customEncConfig);
 }
 
 function noop() { }

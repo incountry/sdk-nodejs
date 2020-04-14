@@ -9,7 +9,10 @@ const t = require('io-ts');
 */
 
 const FilterStringValueIO = t.union([t.string, t.array(t.string)]);
-const FilterStringQueryIO = t.union([FilterStringValueIO, t.type({ $not: FilterStringValueIO })]);
+const FilterStringQueryIO = t.union([
+  FilterStringValueIO,
+  t.type({ $not: FilterStringValueIO }),
+]);
 
 const FilterNumberValueIO = t.union([t.number, t.array(t.number)]);
 const FilterNumberQueryIO = t.union([

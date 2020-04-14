@@ -1,5 +1,8 @@
 const t = require('io-ts');
+const { withValidate } = require('io-ts-types/lib/withValidate');
+const { either } = require('fp-ts/lib/Either');
 const { nullable } = require('./utils');
+const { omitNulls } = require('../utils');
 
 /**
  * @typedef Record
@@ -26,6 +29,8 @@ const RecordIO = t.intersection([
   }),
 ], 'Record');
 
+const RecordWithoutNullsIO = withValidate(RecordIO, (u, c) => either.map(RecordIO.validate(u, c), omitNulls));
+
 module.exports = {
-  RecordIO,
+  RecordIO: RecordWithoutNullsIO,
 };

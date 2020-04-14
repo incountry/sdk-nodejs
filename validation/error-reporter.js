@@ -18,6 +18,17 @@ function formatContextPath(context) {
     .join('.');
 }
 
+function formatProps(props) {
+  const formattedProps = Object.keys(props)
+    .map((k) => `${k}: ${props[k].name}`)
+    .join(', ');
+  return `{ ${formattedProps} }`;
+}
+
+function formatType(type) {
+  return type.props ? formatProps(type.props) : type.name;
+}
+
 function isUnionType(type) { return type._tag === 'UnionType'; }
 function isIntersectionType(type) { return type._tag === 'IntersectionType'; }
 
@@ -30,11 +41,11 @@ function getMessage(e) {
 
   return e.message !== undefined
     ? e.message
-    : `${formatContextPath(filtered)} should be ${last(filtered).type.name} but got ${stringify(e.value)}`;
+    : `${formatContextPath(filtered)} should be ${formatType(last(filtered).type)} but got ${stringify(e.value)}`;
 }
 
 function failure(errors) {
-  return last(errors.map(getMessage));
+  return getMessage(last(errors));
 }
 
 function success() {

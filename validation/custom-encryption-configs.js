@@ -1,5 +1,5 @@
 const t = require('io-ts');
-const either = require('fp-ts/lib/Either');
+const { either } = require('fp-ts/lib/Either');
 
 const CUSTOM_ENCRYPTION_CONFIG_ERROR_MESSAGE_ARRAY = 'Custom encryption configs should be an array';
 const CUSTOM_ENCRYPTION_CONFIG_ERROR_MESSAGE_VERSIONS = 'Custom encryption configs should have unique versions';
@@ -45,7 +45,7 @@ const getCustomEncryptionConfigsIO = (secret) => {
   const CustomEncryptionConfigIO = new t.Type(
     'CustomEncryptionConfigIO',
     (u) => CustomEncryptionConfigStructIO.is(u),
-    (u, c) => either.chain((value) => {
+    (u, c) => either.chain(CustomEncryptionConfigStructIO.validate(u, c), (value) => {
       const plaintext = 'incountry';
       try {
         const enc = value.encrypt(plaintext, secret.secret, secret.version);
@@ -72,7 +72,7 @@ const getCustomEncryptionConfigsIO = (secret) => {
       }
 
       return t.success(value);
-    })(CustomEncryptionConfigStructIO.validate(u, c)),
+    }),
     Object,
   );
 
@@ -86,7 +86,7 @@ const getCustomEncryptionConfigsIO = (secret) => {
         return t.failure(u, c, CUSTOM_ENCRYPTION_CONFIG_ERROR_MESSAGE_ARRAY);
       }
 
-      return either.chain((value) => {
+      return either.chain(CustomEncryptionConfigArrayIO.validate(u, c), (value) => {
         if (!hasUniqueVersions(value)) {
           return t.failure(u, c, CUSTOM_ENCRYPTION_CONFIG_ERROR_MESSAGE_VERSIONS);
         }
@@ -96,7 +96,7 @@ const getCustomEncryptionConfigsIO = (secret) => {
         }
 
         return t.success(value);
-      })(CustomEncryptionConfigArrayIO.validate(u, c));
+      });
     },
     Array,
   );

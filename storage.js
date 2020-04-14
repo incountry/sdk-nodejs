@@ -15,7 +15,7 @@ const { FindOptionsIO } = require('./validation/find-options');
 const { FindFilterIO } = require('./validation/find-filter');
 const { LimitIO } = require('./validation/limit');
 const { RecordKeyIO } = require('./validation/record-key');
-const { StorageOptionsIO } = require('./validation/storage-options');
+const { StorageOptionsIO, LoggerIO } = require('./validation/storage-options');
 
 /**
  * @typedef {import('./secret-key-accessor')} SecretKeyAccessor
@@ -50,6 +50,16 @@ const { StorageOptionsIO } = require('./validation/storage-options');
  */
 
 const FIND_LIMIT = 100;
+
+const KEYS_FOR_ENCRYPTION = [
+  'key',
+  'key1',
+  'key2',
+  'key3',
+  'key4',
+  'key5',
+  'profile_key',
+];
 
 class Storage {
   /**
@@ -123,15 +133,10 @@ class Storage {
    * @param {Logger | unknown} logger
    */
   setLogger(logger) {
-    if (!logger) {
-      throw new StorageClientError('Please specify a logger');
-    }
-    if (!logger.write || typeof logger.write !== 'function') {
-      throw new StorageClientError('Logger must implement write function');
-    }
-    if (logger.write.length < 2) {
-      throw new StorageClientError('Logger.write must have at least 2 parameters');
-    }
+    this.validate(
+      'Storage.setLogger()',
+      LoggerIO.decode(logger),
+    );
     this._logger = logger;
   }
 
@@ -168,37 +173,40 @@ class Storage {
 
   /**
    * @param {string} countryCode - Country code
-   * @param {Record} record
+   * @param {Record} recordData
    * @param {RequestOptions} [requestOptions]
    * @return {Promise<{ record: Record }>} Written record
    */
-  async write(countryCode, record, requestOptions = {}) {
+  async write(countryCode, recordData, requestOptions = {}) {
+    const recordValidationResult = RecordIO.decode(recordData);
     this.validate(
       'Storage.write()',
       CountryCodeIO.decode(countryCode),
-      RecordIO.decode(record),
+      recordValidationResult,
     );
 
+    const record = recordValidationResult.right;
     const data = await this.encryptPayload(record);
-
     await this.apiClient.write(countryCode, data, requestOptions);
-
     return { record };
   }
 
   /**
    * Write many records at once
    * @param {string} countryCode
-   * @param {Array<Record>} records
+   * @param {Array<Record>} recordsData
    * @return {Promise<{ records: Array<Record> }>} Written records
    */
-  async batchWrite(countryCode, records) {
+  async batchWrite(countryCode, recordsData) {
+    const recordsValidationResult = RecordsNEAIO.decode(recordsData);
+
     this.validate(
       'Storage.batchWrite()',
       CountryCodeIO.decode(countryCode),
-      RecordsNEAIO.decode(records),
+      recordsValidationResult,
     );
 
+    const records = recordsValidationResult.right;
     try {
       const encryptedRecords = await Promise.all(records.map((r) => this.encryptPayload(r)));
       await this.apiClient.batchWrite(countryCode, { records: encryptedRecords });
@@ -379,7 +387,7 @@ class Storage {
     const body = {
       meta: {},
     };
-    ['profile_key', 'key', 'key2', 'key3'].forEach((field) => {
+    KEYS_FOR_ENCRYPTION.forEach((field) => {
       if (record[field] !== undefined) {
         body.meta[field] = record[field];
         record[field] = this.createKeyHash(this.normalizeKey(record[field]));
