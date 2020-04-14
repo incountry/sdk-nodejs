@@ -123,7 +123,7 @@ describe('Storage', () => {
       describe('options', () => {
         describe('endpoint', () => {
           it('should be provided ', async () => {
-            await Promise.all([{}, { endpoint: undefined }, { encrypt: false }].map(async (options) => {
+            await Promise.all([{}, { endpoint: undefined, apiKey: '' }, { encrypt: false, apiKey: '' }].map(async (options) => {
               await expect(createStorage(options))
                 .to.be.rejectedWith(StorageError, 'endpoint should be string');
             }));
