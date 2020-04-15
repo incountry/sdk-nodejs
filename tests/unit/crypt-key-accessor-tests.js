@@ -90,22 +90,16 @@ describe('SecretKeyAccessor', () => {
         expect(secretKeyAccessor1.getSecret()).to.be.rejectedWith(StorageClientError);
       });
 
-      it('should reject if isKey or isForCustomEncryption are set to false or are set to true both', async () => {
-        const badSecretData = [
-          { secrets: [{ version: 0, secret: '', isKey: false }], currentVersion: 0 },
-          { secrets: [{ version: 0, secret: '', isForCustomEncryption: false }], currentVersion: 0 },
-          {
-            secrets: [{
-              version: 0, secret: '', isKey: true, isForCustomEncryption: true,
-            }],
-            currentVersion: 0,
-          },
-        ];
+      it('should reject if isKey or isForCustomEncryption are set to true both', async () => {
+        const badSecretData = {
+          secrets: [{
+            version: 0, secret: '', isKey: true, isForCustomEncryption: true,
+          }],
+          currentVersion: 0,
+        };
 
-        await Promise.all(badSecretData.map((sd) => {
-          const secretKeyAccessor = new SecretKeyAccessor(() => sd);
-          return expect(secretKeyAccessor.getSecret()).to.be.rejectedWith(StorageClientError);
-        }));
+        const secretKeyAccessor = new SecretKeyAccessor(() => badSecretData);
+        return expect(secretKeyAccessor.getSecret()).to.be.rejectedWith(StorageClientError);
       });
 
       it('should reject if there is no key of "currentVersion" in "keys"', () => {
