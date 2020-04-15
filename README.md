@@ -1,6 +1,9 @@
 # InCountry Storage SDK
 
-## Installation
+
+
+Installation
+-----
 
 SDK is available via NPM:
 
@@ -8,7 +11,13 @@ SDK is available via NPM:
 npm install incountry --save
 ```
 
-## Usage
+Countries List
+----
+For a full list of supported countries and their codes please [follow this link](countries.md).
+
+
+Usage
+-----
 
 To access your data in InCountry using NodeJS SDK, you need to create an instance of `Storage` class using async constructor `createStorage`.
 
@@ -66,7 +75,7 @@ Here are some examples of `GetSecretCallback`.
  * @returns {string|SecretsData|Promise<string>|Promise<SecretsData>}
  */
 
-// Synchronous 
+// Synchronous
 const getSecretSync = () => "longAndStrongPassword";
 
 // Asynchronous
@@ -135,7 +144,7 @@ Below is the example of how you may use `write` method:
 
 ```javascript
 // Record
-const record = {  
+const record = {
   key: "<key>",                 // {string} Record key
   body: "<body>",               // {string} Optional payload
   profile_key: "<profile_key>", // {string} Optional
@@ -215,7 +224,7 @@ You can specify filter object for every record key combining different queries:
 - a logical NOT operation on the specific field `$not`
 - comparison operations `$lt`, `$lte`, `$gt`, `$gte` (only for number fields such as `range_key` and `version`)
 
-The `options` parameter defines the `limit` - number of records to return and the `offset`- starting index. 
+The `options` parameter defines the `limit` - number of records to return and the `offset`- starting index.
 It can be used to implement pagination. Note: SDK returns 100 records at most.
 
 
@@ -243,7 +252,7 @@ It can be used to implement pagination. Note: SDK returns 100 records at most.
  * @property {number} total
  * @property {number} count
  * @property {number} limit
- * @property {number} offset 
+ * @property {number} offset
 */
 
 /**
@@ -262,17 +271,17 @@ async find(countryCode, filter, options = {}, requestOptions = {}) {
 Example of usage:
 ```javascript
 const filter = {
-  key: 'abc',                        
-  key2: ['def', 'jkl'],              
-  key3: { $not: 'test' }             
-  profile_key: 'test2',              
-  range_key: { $gte: 5, $lte: 100 }, 
+  key: 'abc',
+  key2: ['def', 'jkl'],
+  key3: { $not: 'test' }
+  profile_key: 'test2',
+  range_key: { $gte: 5, $lte: 100 },
   version: { $not: [0, 1] },
 }
 
 const options = {
-  limit: 100,  
-  offset: 0,   
+  limit: 100,
+  offset: 0,
 };
 
 const findResult = await storage.find(country, filter, options);
@@ -285,7 +294,7 @@ And the return object `findResult` looks like the following:
   records: [{/* record */}],
   errors: [],
   meta: {
-    limit: 100, 
+    limit: 100,
     offset: 0,
     total: 24
   }
@@ -354,7 +363,7 @@ const deleteResult = await storage.delete(country, key);
 
 Using `GetSecretCallback` that provides `secretsData` object enables key rotation and data migration support.
 
-SDK introduces `migrate` method which allows you to re-encrypt data encrypted with old versions of the secret. 
+SDK introduces `migrate` method which allows you to re-encrypt data encrypted with old versions of the secret.
 It returns an object which contains some information about the migration - the amount of records migrated (`migrated`) and the amount of records left to migrate (`total_left`) (which basically means the amount of records with version different from `currentVersion` provided by `GetSecretCallback`).
 
 For a detailed example of a migration script please see [examples/fullMigration.js](examples/fullMigration.js)
@@ -397,13 +406,13 @@ SDK supports the ability to provide custom encryption/decryption methods if you 
   version: string
 }
 ```
-They should accept raw data to encrypt/decrypt, key data and key version received from SecretKeyAccessor. 
-The resulted encrypted/decrypted data should be a string. 
+They should accept raw data to encrypt/decrypt, key data and key version received from SecretKeyAccessor.
+The resulted encrypted/decrypted data should be a string.
 
-`version` attribute is used to differ one custom encryption from another and from the default encryption as well. 
+`version` attribute is used to differ one custom encryption from another and from the default encryption as well.
 This way SDK will be able to successfully decrypt any old data if encryption changes with time.
 
-`isCurrent` attribute allows to specify one of the custom encryption configurations to use for encryption. 
+`isCurrent` attribute allows to specify one of the custom encryption configurations to use for encryption.
 Only one configuration can be set as `isCurrent: true`.
 
 
