@@ -1,5 +1,5 @@
 const t = require('io-ts');
-const { PositiveInt, validateWithIO } = require('./utils');
+const { PositiveInt } = require('./utils');
 
 const MAX_LIMIT = 100;
 const LIMIT_ERROR_MESSAGE_INT = 'Limit should be a positive integer';
@@ -22,11 +22,8 @@ const LimitIO = new t.Type(
   Number,
 );
 
-const validateLimit = (limit) => validateWithIO(limit, LimitIO);
-
 module.exports = {
   MAX_LIMIT,
-  validateLimit,
   LimitIO,
   LIMIT_ERROR_MESSAGE_INT,
   LIMIT_ERROR_MESSAGE_MAX,

@@ -4,8 +4,9 @@ chai.use(require('chai-as-promised'));
 const nock = require('nock');
 const uuid = require('uuid/v4');
 const _ = require('lodash');
+const { identity } = require('../../utils');
 const createStorage = require('../../storage');
-const { StorageServerError, StorageClientError } = require('../../errors');
+const { StorageServerError, StorageClientError, StorageError } = require('../../errors');
 const CountriesCache = require('../../countries-cache');
 const {
   getNockedRequestBodyObject,
@@ -31,30 +32,29 @@ const PORTAL_BACKEND_COUNTRIES_LIST_PATH = '/countries';
 const REQUEST_TIMEOUT_ERROR = { code: 'ETIMEDOUT' };
 const sdkVersionRegExp = /^SDK-Node\.js\/\d+\.\d+\.\d+/;
 
+const EMPTY_RECORD = {
+  body: null,
+  key2: null,
+  key3: null,
+  profile_key: null,
+  range_key: null,
+};
+
 const TEST_RECORDS = [
   {
     key: uuid(),
-    body: null,
     version: 0,
-    key2: null,
-    key3: null,
-    profile_key: null,
   },
   {
     key: uuid(),
     body: 'test',
     version: 0,
-    key2: null,
-    key3: null,
-    profile_key: null,
   },
   {
     key: uuid(),
     body: 'test',
     key2: 'key2',
     version: 0,
-    key3: null,
-    profile_key: null,
   },
   {
     key: uuid(),
@@ -62,7 +62,6 @@ const TEST_RECORDS = [
     key2: 'key2',
     key3: 'key3',
     version: 0,
-    profile_key: null,
   },
   {
     key: uuid(),
@@ -85,15 +84,17 @@ const TEST_RECORDS = [
 
 const LOGGER_STUB = { write: (a, b) => [a, b] };
 
-const defaultGetSecretCallback = () => SECRET_KEY;
+const defaultGetSecretsCallback = () => SECRET_KEY;
 
-const getDefaultStorage = async (encrypt, normalizeKeys, getSecretCallback = defaultGetSecretCallback) => createStorage({
+const getDefaultStorage = async (encrypt, normalizeKeys, getSecrets = defaultGetSecretsCallback, customEncConfigs) => createStorage({
   apiKey: 'string',
   environmentId: 'string',
   endpoint: POPAPI_HOST,
   encrypt,
   normalizeKeys,
-}, getSecretCallback, LOGGER_STUB);
+  getSecrets,
+  logger: LOGGER_STUB,
+}, customEncConfigs);
 
 const getDefaultFindResponse = (count, data) => ({
   meta: {
@@ -120,6 +121,15 @@ describe('Storage', () => {
 
     describe('constructor arguments check', () => {
       describe('options', () => {
+        describe('endpoint', () => {
+          it('should be provided ', async () => {
+            await Promise.all([{ }, { endpoint: undefined }, { encrypt: false }].map(async (options) => {
+              await expect(createStorage(options))
+                .to.be.rejectedWith(StorageError, 'endpoint should be string');
+            }));
+          });
+        });
+
         describe('apiKey', () => {
           let envApiKey;
 
@@ -133,16 +143,21 @@ describe('Storage', () => {
           });
 
           it('should be provided via either options or environment variable', async () => {
-            await Promise.all([{}, { apiKey: undefined }].map(async (options) => {
+            await Promise.all([{ endpoint: '' }, { endpoint: '', apiKey: undefined }].map(async (options) => {
               await expect(createStorage(options))
-                .to.be.rejectedWith(Error, 'Please pass apiKey in options or set INC_API_KEY env var');
+                .to.be.rejectedWith(StorageError, 'Please pass apiKey in options or set INC_API_KEY env var');
             }));
 
-            await expect(createStorage({ apiKey: 'apiKey', environmentId: 'envId', encrypt: false })).not.to.be.rejectedWith(Error);
+            await expect(createStorage({
+              apiKey: 'apiKey',
+              environmentId: 'envId',
+              encrypt: false,
+              endpoint: '',
+            })).not.to.be.rejectedWith(StorageError);
 
             process.env.INC_API_KEY = 'apiKey';
 
-            await expect(createStorage({ environmentId: 'envId', encrypt: false })).not.to.be.rejectedWith(Error);
+            await expect(createStorage({ environmentId: 'envId', encrypt: false, endpoint: '' })).not.to.be.rejectedWith(StorageError);
           });
         });
 
@@ -159,16 +174,21 @@ describe('Storage', () => {
           });
 
           it('should be provided via either options or environment variable', async () => {
-            await Promise.all([{ apiKey: 'apiKey' }, { apiKey: 'apiKey', environmentId: undefined }].map(async (options) => {
+            await Promise.all([{ apiKey: 'apiKey', endpoint: '' }, { apiKey: 'apiKey', environmentId: undefined, endpoint: '' }].map(async (options) => {
               await expect(createStorage(options))
-                .to.be.rejectedWith(Error, 'Please pass environmentId in options or set INC_ENVIRONMENT_ID env var');
+                .to.be.rejectedWith(StorageError, 'Please pass environmentId in options or set INC_ENVIRONMENT_ID env var');
             }));
 
-            await expect(createStorage({ apiKey: 'apiKey', environmentId: 'envId', encrypt: false })).not.to.be.rejectedWith(Error);
+            await expect(createStorage({
+              apiKey: 'apiKey',
+              environmentId: 'envId',
+              encrypt: false,
+              endpoint: '',
+            })).not.to.be.rejected;
 
             process.env.INC_ENVIRONMENT_ID = 'envId';
 
-            await expect(createStorage({ apiKey: 'apiKey', encrypt: false })).not.to.be.rejectedWith(Error);
+            await expect(createStorage({ apiKey: 'apiKey', encrypt: false, endpoint: '' })).not.to.be.rejectedWith(StorageError);
           });
         });
       });
@@ -181,7 +201,7 @@ describe('Storage', () => {
               environmentId: 'ENVIRONMENT_ID',
               endpoint: 'URL',
             },
-          )).to.be.rejectedWith(Error, 'Provide callback function for secretData');
+          )).to.be.rejectedWith(StorageError, 'Provide callback function for secretData');
         });
 
         it('should not throw an error if encryption is disabled and no secretKeyAccessor provided', async () => {
@@ -192,7 +212,7 @@ describe('Storage', () => {
               endpoint: 'URL',
               encrypt: false,
             },
-          )).not.to.be.rejectedWith(Error, 'secretKeyAccessor must be an instance of SecretKeyAccessor');
+          )).not.to.be.rejected;
         });
 
         it('should throw an error if malformed secretData is provided', async () => {
@@ -201,56 +221,40 @@ describe('Storage', () => {
               apiKey: 'API_KEY',
               environmentId: 'ENVIRONMENT_ID',
               endpoint: 'URL',
-            }, () => { },
-          )).to.be.rejectedWith(Error, '<SecretsData> should be SecretsData but got undefined');
+              getSecrets: () => { },
+            },
+          )).to.be.rejectedWith(StorageError, '<SecretsData> should be SecretsData but got undefined');
 
           await expect(createStorage(
             {
               apiKey: 'API_KEY',
               environmentId: 'ENVIRONMENT_ID',
               endpoint: 'URL',
-            }, () => ({ secrets: [{ version: -1, secret: '' }], currentVersion: -1 }),
-          )).to.be.rejectedWith(Error, '<SecretsData>.secrets.0 should be SecretOrKey but got {"version":-1,"secret":""}');
+              getSecrets: () => ({ secrets: [{ version: -1, secret: '' }], currentVersion: -1 }),
+            },
+          )).to.be.rejectedWith(StorageError, '<SecretsData>.secrets.0 should be SecretOrKey but got {"version":-1,"secret":""}');
         });
 
-        it('should throw an error if not a getSecretKey callback is provided', async () => {
+        it('should throw an error if not a getSecrets callback is provided', async () => {
           await expect(createStorage(
             {
               apiKey: 'API_KEY',
               environmentId: 'ENVIRONMENT_ID',
               endpoint: 'URL',
-            }, {},
-          )).to.be.rejectedWith(Error, 'Provide callback function for secretData');
+              getSecrets: {},
+            },
+          )).to.be.rejectedWith(StorageError, 'getSecrets should be Function');
         });
       });
 
       describe('logger', () => {
         it('should throw an error if provided logger is not object or has no "write" method or is not a function', async () => {
-          const expectStorageConstructorThrowsError = async (wrongLogger) => expect(createStorage({ encrypt: false }, undefined, wrongLogger, undefined))
-            .to.be.rejectedWith(Error, 'Logger must implement write function');
+          const expectStorageConstructorThrowsError = async (wrongLogger) => expect(createStorage({ encrypt: false, endpoint: '', logger: wrongLogger }))
+            .to.be.rejectedWith(StorageError, 'logger');
 
 
           const wrongLoggers = [42, () => null, {}, { write: 'write' }, { write: {} }];
           await Promise.all(wrongLoggers.map((item) => expectStorageConstructorThrowsError(item)));
-        });
-
-        it('should throw an error if provided logger.write is a function with less than 2 arguments', async () => {
-          const expectStorageConstructorThrowsError = async (wrongLogger) => expect(createStorage({ encrypt: false }, undefined, wrongLogger, undefined))
-            .to.be.rejectedWith(Error, 'Logger.write must have at least 2 parameters');
-
-
-          const expectStorageConstructorNotThrowsError = async (correctLogger) => expect(createStorage({
-            apiKey: 'string',
-            environmentId: 'string',
-            encrypt: false,
-          }, undefined, correctLogger, undefined)).not.to.be.rejected;
-
-
-          const wrongLoggers = [{ write: () => null }, { write: (a) => a }];
-          await Promise.all(wrongLoggers.map((item) => expectStorageConstructorThrowsError(item)));
-
-          const correctLoggers = [{ write: (a, b) => [a, b] }, { write: (a, b, c) => [a, b, c] }];
-          await Promise.all(correctLoggers.map((item) => expectStorageConstructorNotThrowsError(item)));
         });
       });
     });
@@ -260,33 +264,33 @@ describe('Storage', () => {
       let storage;
 
       beforeEach(async () => {
-        storage = await createStorage({ apiKey: 'apiKey', environmentId: 'envId', encrypt: false });
+        storage = await createStorage({
+          apiKey: 'apiKey',
+          environmentId: 'envId',
+          endpoint: '',
+          encrypt: false,
+        });
       });
 
       it('should throw an error if called with falsy argument', () => {
         [null, undefined, false].forEach((logger) => {
-          expect(() => storage.setLogger(logger)).to.throw(Error, 'Please specify a logger');
+          expect(() => storage.setLogger(logger)).to.throw(StorageError, '<Logger> should be { write: Function }');
         });
       });
 
-      it('should throw an error if provided logger is not object or has no "write" method or is not a function', () => {
-        const wrongLoggers = [42, () => null, {}, { write: 'write' }, { write: {} }];
+      it('should throw an error if provided logger is not object or has no "write" method', () => {
+        const wrongLoggers = [42, () => null];
         wrongLoggers.forEach((logger) => {
           expect(() => storage.setLogger(logger))
-            .to.throw(Error, 'Logger must implement write function');
+            .to.throw(StorageError, '<Logger> should be { write: Function }');
         });
       });
 
-      it('should throw an error if provided logger.write is a function with less than 2 arguments', () => {
-        const wrongLoggers = [{ write: () => null }, { write: (a) => a }];
+      it('should throw an error if provided logger\'s "write" method is not a function', () => {
+        const wrongLoggers = [{}, { write: 'write' }, { write: {} }];
         wrongLoggers.forEach((logger) => {
           expect(() => storage.setLogger(logger))
-            .to.throw(Error, 'Logger.write must have at least 2 parameters');
-        });
-
-        const correctLoggers = [{ write: (a, b) => [a, b] }, { write: (a, b, c) => [a, b, c] }];
-        correctLoggers.forEach((logger) => {
-          expect(() => storage.setLogger(logger)).not.to.throw();
+            .to.throw(StorageError, '<Logger>.write should be Function');
         });
       });
     });
@@ -294,53 +298,78 @@ describe('Storage', () => {
     describe('setCountriesCache', () => {
       it('should throw an error if not instance of CountriesCache was passed as argument', async () => {
         /** @type {import('../../storage')} */
-        const storage = await createStorage({ apiKey: 'apiKey', environmentId: 'envId', encrypt: false });
+        const storage = await createStorage({
+          apiKey: 'apiKey',
+          environmentId: 'envId',
+          encrypt: false,
+          endpoint: '',
+        });
         const wrongCountriesCaches = [null, undefined, false, {}];
         wrongCountriesCaches.forEach((item) => {
-          expect(() => storage.setCountriesCache(item)).to.throw(Error, 'You must pass an instance of CountriesCache');
+          expect(() => storage.setCountriesCache(item)).to.throw(StorageError, 'You must pass an instance of CountriesCache');
         });
         expect(() => storage.setCountriesCache(new CountriesCache())).not.to.throw();
       });
     });
 
-    describe('setCustomEncryption', () => {
+    describe('initialize', () => {
+      let storage;
+
+      beforeEach(async () => {
+        storage = await createStorage({
+          apiKey: 'apiKey',
+          environmentId: 'envId',
+          endpoint: '',
+          getSecrets: () => ({
+            secrets: [{ secret: 'test', version: 0, isForCustomEncryption: true }],
+            currentVersion: 0,
+          }),
+        });
+      });
+
       it('should throw an error when setting custom encryption configs with disabled encryption', async () => {
-        const storage = await createStorage({
+        const options = {
           apiKey: 'string',
           environmentId: 'string',
           endpoint: POPAPI_HOST,
           encrypt: false,
-        }, defaultGetSecretCallback, LOGGER_STUB);
+          logger: LOGGER_STUB,
+        };
+
+        const storageWithoutEnc = await createStorage(options);
 
         const customEncryptionConfigs = [{ encrypt: () => { }, decrypt: () => { }, version: '' }];
 
-        expect(() => storage.setCustomEncryption(customEncryptionConfigs)).to.throw(StorageClientError, 'Cannot use custom encryption when encryption is off');
+        await expect(storageWithoutEnc.initialize(customEncryptionConfigs))
+          .to.be.rejectedWith(StorageClientError, 'Cannot use custom encryption when encryption is off');
       });
 
-      it('should throw an error if configs object is malformed', () => {
-        ['', {}, () => { }].forEach((configs) => {
-          expect(() => encStorage.setCustomEncryption(configs)).to.throw(CUSTOM_ENCRYPTION_CONFIG_ERROR_MESSAGE_ARRAY);
-        });
-      });
+      it('should throw an error if configs object is malformed', () => Promise.all(['', {}, () => { }]
+        .map(async (configs) => {
+          await expect(storage.initialize(configs))
+            .to.be.rejectedWith(CUSTOM_ENCRYPTION_CONFIG_ERROR_MESSAGE_ARRAY);
+        })));
 
-      it('should throw an error if 2 configs are marked as current', () => {
+      it('should throw an error if 2 configs are marked as current', async () => {
         const configs = [{
-          encrypt: () => { }, decrypt: () => { }, isCurrent: true, version: '1',
+          encrypt: identity, decrypt: identity, isCurrent: true, version: '1',
         }, {
-          encrypt: () => { }, decrypt: () => { }, isCurrent: true, version: '2',
+          encrypt: identity, decrypt: identity, isCurrent: true, version: '2',
         }];
 
-        expect(() => encStorage.setCustomEncryption(configs)).to.throw(CUSTOM_ENCRYPTION_CONFIG_ERROR_MESSAGE_CURRENT);
+        await expect(storage.initialize(configs))
+          .to.be.rejectedWith(CUSTOM_ENCRYPTION_CONFIG_ERROR_MESSAGE_CURRENT);
       });
 
-      it('should throw an error if 2 configs have same version', () => {
+      it('should throw an error if 2 configs have same version', async () => {
         const configs = [{
-          encrypt: () => { }, decrypt: () => { }, version: '1',
+          encrypt: identity, decrypt: identity, version: '1',
         }, {
-          encrypt: () => { }, decrypt: () => { }, isCurrent: true, version: '1',
+          encrypt: identity, decrypt: identity, isCurrent: true, version: '1',
         }];
 
-        expect(() => encStorage.setCustomEncryption(configs)).to.throw(CUSTOM_ENCRYPTION_CONFIG_ERROR_MESSAGE_VERSIONS);
+        await expect(storage.initialize(configs))
+          .to.be.rejectedWith(CUSTOM_ENCRYPTION_CONFIG_ERROR_MESSAGE_VERSIONS);
       });
     });
 
@@ -354,13 +383,15 @@ describe('Storage', () => {
       describe('should validate record', () => {
         describe('when no country provided', () => {
           it('should throw an error', async () => {
-            await expect(encStorage.write(undefined, {})).to.be.rejectedWith(Error, COUNTRY_CODE_ERROR_MESSAGE);
+            await expect(encStorage.write(undefined, {}))
+              .to.be.rejectedWith(StorageError, COUNTRY_CODE_ERROR_MESSAGE);
           });
         });
 
         describe('when the record has no key field', () => {
           it('should throw an error', async () => {
-            await expect(encStorage.write(COUNTRY, {})).to.be.rejectedWith(Error, 'Storage.write() Validation Error: <Record>.key should be string but got undefined');
+            await expect(encStorage.write(COUNTRY, {}))
+              .to.be.rejectedWith(StorageError, 'Storage.write() Validation Error: <Record>.key should be string but got undefined');
           });
         });
       });
@@ -402,13 +433,25 @@ describe('Storage', () => {
         TEST_RECORDS.forEach((testCase, idx) => {
           context(`with test case ${idx}`, () => {
             it('should write data into storage', async () => {
-              const storage = encStorage;
-              storage.setCustomEncryption([{
+              const secrets = {
+                secrets: [
+                  {
+                    secret: 'longAndStrongPassword',
+                    version: 0,
+                    isForCustomEncryption: true,
+                  },
+                ],
+                currentVersion: 0,
+              };
+
+              const customEncConfigs = [{
                 encrypt: (text) => Buffer.from(text).toString('base64'),
                 decrypt: (encryptedData) => Buffer.from(encryptedData, 'base64').toString('utf-8'),
                 version: 'customEncryption',
                 isCurrent: true,
-              }]);
+              }];
+
+              const storage = await getDefaultStorage(true, false, () => secrets, customEncConfigs);
 
               const encryptedPayload = await storage.encryptPayload(testCase);
 
@@ -457,13 +500,13 @@ describe('Storage', () => {
       describe('should validate record', () => {
         describe('when no country provided', () => {
           it('should throw an error', async () => {
-            await expect(encStorage.read(undefined, '')).to.be.rejectedWith(Error, COUNTRY_CODE_ERROR_MESSAGE);
+            await expect(encStorage.read(undefined, '')).to.be.rejectedWith(StorageError, COUNTRY_CODE_ERROR_MESSAGE);
           });
         });
 
         describe('when no key provided', () => {
           it('should throw an error', async () => {
-            await expect(encStorage.read(COUNTRY, undefined)).to.be.rejectedWith(Error, RECORD_KEY_ERROR_MESSAGE);
+            await expect(encStorage.read(COUNTRY, undefined)).to.be.rejectedWith(StorageError, RECORD_KEY_ERROR_MESSAGE);
           });
         });
       });
@@ -473,12 +516,12 @@ describe('Storage', () => {
           TEST_RECORDS.forEach((testCase, idx) => {
             context(`with test case ${idx}`, () => {
               it('should read a record and decrypt it', async () => {
-                const encryptedPayload = await encStorage.encryptPayload(testCase);
+                const encryptedPayload = await encStorage.encryptPayload({ ...EMPTY_RECORD, ...testCase });
                 nockEndpoint(POPAPI_HOST, 'read', COUNTRY, encryptedPayload.key)
                   .reply(200, encryptedPayload);
 
                 const { record } = await encStorage.read(COUNTRY, testCase.key);
-                expect(record).to.deep.equal(testCase);
+                expect(record).to.own.include(testCase);
               });
             });
           });
@@ -502,20 +545,32 @@ describe('Storage', () => {
         TEST_RECORDS.forEach((testCase, idx) => {
           context(`with test case ${idx}`, () => {
             it('should read custom encrypted record', async () => {
-              const storage = encStorage;
-              storage.setCustomEncryption([{
+              const secrets = {
+                secrets: [
+                  {
+                    secret: 'longAndStrongPassword',
+                    version: 0,
+                    isForCustomEncryption: true,
+                  },
+                ],
+                currentVersion: 0,
+              };
+
+              const customEncConfigs = [{
                 encrypt: (text) => Buffer.from(text).toString('base64'),
                 decrypt: (encryptedData) => Buffer.from(encryptedData, 'base64').toString('utf-8'),
                 version: 'customEncryption',
                 isCurrent: true,
-              }]);
+              }];
 
-              const encryptedPayload = await storage.encryptPayload(testCase);
+              const storage = await getDefaultStorage(true, false, () => secrets, customEncConfigs);
+
+              const encryptedPayload = await storage.encryptPayload({ ...EMPTY_RECORD, ...testCase });
               nockEndpoint(POPAPI_HOST, 'read', COUNTRY, encryptedPayload.key)
                 .reply(200, encryptedPayload);
 
               const { record } = await storage.read(COUNTRY, testCase.key);
-              expect(record).to.deep.equal(testCase);
+              expect(record).to.own.include(testCase);
             });
           });
         });
@@ -523,7 +578,7 @@ describe('Storage', () => {
 
       describe('request headers', () => {
         it('should set User-Agent', async () => {
-          const encryptedPayload = await encStorage.encryptPayload(TEST_RECORDS[0]);
+          const encryptedPayload = await encStorage.encryptPayload({ ...EMPTY_RECORD, ...TEST_RECORDS[0] });
           const popAPI = nockEndpoint(POPAPI_HOST, 'read', COUNTRY, encryptedPayload.key)
             .reply(200, encryptedPayload);
 
@@ -540,7 +595,7 @@ describe('Storage', () => {
         describe('when enabled', () => {
           it('should normalize', async () => {
             const storage = await getDefaultStorage(true, true);
-            const encryptedPayload = await storage.encryptPayload({ key });
+            const encryptedPayload = await storage.encryptPayload({ ...EMPTY_RECORD, key });
 
             const popAPI = nockEndpoint(POPAPI_HOST, 'read', COUNTRY, storage.createKeyHash(keyNormalized))
               .reply(200, encryptedPayload);
@@ -551,7 +606,7 @@ describe('Storage', () => {
 
           it('should return record with original keys', async () => {
             const storage = await getDefaultStorage(true, true);
-            const encryptedPayload = await storage.encryptPayload({ key });
+            const encryptedPayload = await storage.encryptPayload({ ...EMPTY_RECORD, key });
             nockEndpoint(POPAPI_HOST, 'read', COUNTRY, storage.createKeyHash(keyNormalized))
               .reply(200, encryptedPayload);
 
@@ -563,7 +618,7 @@ describe('Storage', () => {
         describe('when not enabled', () => {
           it('should not normalize', async () => {
             const storage = await getDefaultStorage(true);
-            const encryptedPayload = await storage.encryptPayload({ key });
+            const encryptedPayload = await storage.encryptPayload({ ...EMPTY_RECORD, key });
             expect(encryptedPayload.key).to.equal(storage.createKeyHash(key));
 
             const popAPI = nockEndpoint(POPAPI_HOST, 'read', COUNTRY, storage.createKeyHash(key))
@@ -581,13 +636,13 @@ describe('Storage', () => {
       describe('should validate record', () => {
         describe('when no country provided', () => {
           it('should throw an error', async () => {
-            await expect(encStorage.delete(undefined, '')).to.be.rejectedWith(Error, COUNTRY_CODE_ERROR_MESSAGE);
+            await expect(encStorage.delete(undefined, '')).to.be.rejectedWith(StorageError, COUNTRY_CODE_ERROR_MESSAGE);
           });
         });
 
         describe('when no key provided', () => {
           it('should throw an error', async () => {
-            await expect(encStorage.delete(COUNTRY, undefined)).to.be.rejectedWith(Error, RECORD_KEY_ERROR_MESSAGE);
+            await expect(encStorage.delete(COUNTRY, undefined)).to.be.rejectedWith(StorageError, RECORD_KEY_ERROR_MESSAGE);
           });
         });
       });
@@ -672,25 +727,59 @@ describe('Storage', () => {
     describe('find', () => {
       const keys = ['key', 'key2', 'key3', 'profile_key'];
 
-      describe('should validate arguments', () => {
-        describe('when country is not a string', () => {
-          it('should throw an error', async () => {
+      describe('arguments validation', () => {
+        describe('country validation', () => {
+          it('should throw an error if country is not a string', async () => {
             const wrongCountries = [undefined, null, 1, {}, []];
             await Promise.all(wrongCountries.map((country) => expect(encStorage.find(country))
-              .to.be.rejectedWith(Error, COUNTRY_CODE_ERROR_MESSAGE)));
+              .to.be.rejectedWith(StorageError, COUNTRY_CODE_ERROR_MESSAGE)));
           });
         });
 
-        describe('when options.limit is not positive integer or greater than MAX_LIMIT', () => {
-          it('should throw an error', async () => {
+        describe('filter validation', () => {
+          it('should throw an error when filter is undefined', async () => {
+            await expect(encStorage.find(COUNTRY, undefined, { }))
+              .to.be.rejectedWith(StorageError);
+          });
+
+          it('should throw an error when filter has wrong format', async () => Promise.all(
+            [
+              false,
+              '',
+              1,
+              [],
+              () => 1,
+              [{ a: 1 }],
+              { aa: () => 1 },
+            ].map((filter) => expect(encStorage.find(COUNTRY, filter))
+              .to.be.rejectedWith(StorageError, '<FindFilter>', `wrong filter format: ${JSON.stringify(filter)}`)),
+          ));
+
+          it('should  not throw an error when filter has correct format', async () => Promise.all(
+            [
+              {},
+              { aa: 1 },
+              { aa: '' },
+              { aa: [] },
+              { aa: [1] },
+              { aa: [''] },
+              { aa: { $not: 1 } },
+              { aa: { $gt: 1 } },
+            ].map((filter) => expect(encStorage.find(COUNTRY, filter))
+              .not.to.be.rejectedWith(StorageError, '<FindFilter>', `wrong filter format: ${JSON.stringify(filter)}`)),
+          ));
+        });
+
+        describe('options validation', () => {
+          it('should throw an error when options.limit is not positive integer or greater than MAX_LIMIT', async () => {
             nock(PORTAL_BACKEND_HOST).get(PORTAL_BACKEND_COUNTRIES_LIST_PATH).reply(400);
             nockEndpoint(POPAPI_HOST, 'find', COUNTRY, 'test').reply(200, getDefaultFindResponse(0, []));
 
             const nonPositiveLimits = [-123, 123.124, 'sdsd'];
-            await Promise.all(nonPositiveLimits.map((limit) => expect(encStorage.find(COUNTRY, undefined, { limit }))
-              .to.be.rejectedWith(Error, LIMIT_ERROR_MESSAGE_INT)));
-            await expect(encStorage.find(COUNTRY, undefined, { limit: MAX_LIMIT + 1 }))
-              .to.be.rejectedWith(Error, LIMIT_ERROR_MESSAGE_MAX);
+            await Promise.all(nonPositiveLimits.map((limit) => expect(encStorage.find(COUNTRY, {}, { limit }))
+              .to.be.rejectedWith(StorageError, LIMIT_ERROR_MESSAGE_INT)));
+            await expect(encStorage.find(COUNTRY, {}, { limit: MAX_LIMIT + 1 }))
+              .to.be.rejectedWith(StorageError, LIMIT_ERROR_MESSAGE_MAX);
             await expect(encStorage.find(COUNTRY, {}, { limit: 10 })).not.to.be.rejected;
           });
         });
@@ -720,7 +809,7 @@ describe('Storage', () => {
             const hashedFilter = { [key]: encStorage.createKeyHash(filter[key]) };
             let requestedFilter;
 
-            const resultRecords = TEST_RECORDS.filter((rec) => rec[key] === filter[key]);
+            const resultRecords = TEST_RECORDS.filter((rec) => rec[key] === filter[key]).map((record) => ({ ...EMPTY_RECORD, ...record }));
             const encryptedRecords = await Promise.all(resultRecords.map((record) => encStorage.encryptPayload(record)));
 
             nockEndpoint(POPAPI_HOST, 'find', COUNTRY)
@@ -730,24 +819,27 @@ describe('Storage', () => {
               });
 
             const result = await encStorage.find(COUNTRY, filter, {});
+
             expect(result.records).to.deep.equal(resultRecords);
             expect(requestedFilter).to.deep.equal(hashedFilter);
           });
         });
 
         it('should decode not encrypted records correctly', async () => {
-          const storedData = await Promise.all(TEST_RECORDS.map((record) => noEncStorage.encryptPayload(record)));
+          const storedData = await Promise.all(TEST_RECORDS.map((record) => noEncStorage.encryptPayload({ ...EMPTY_RECORD, ...record })));
 
           nockEndpoint(POPAPI_HOST, 'find', COUNTRY)
             .reply(200, getDefaultFindResponse(storedData.length, storedData));
 
           const { records } = await noEncStorage.find(COUNTRY, { key: 'key1' });
-          expect(records).to.deep.equal(TEST_RECORDS);
+
+          records.forEach((record, index) => expect(record).to.own.include(TEST_RECORDS[index]));
         });
 
         it('should not throw if some records cannot be decrypted', async () => {
-          const encryptedData = await Promise.all(TEST_RECORDS.map((record) => encStorage.encryptPayload(record)));
+          const encryptedData = await Promise.all(TEST_RECORDS.map((record) => encStorage.encryptPayload({ ...EMPTY_RECORD, ...record })));
           const unsupportedData = {
+            ...EMPTY_RECORD,
             country: 'us',
             key: 'somekey',
             body: '2:unsupported data',
@@ -763,16 +855,18 @@ describe('Storage', () => {
           expect(result.meta).to.deep.equal({
             count: TEST_RECORDS.length + 1, total: TEST_RECORDS.length + 1, limit: 100, offset: 0,
           });
-          expect(result.records).to.deep.equal(TEST_RECORDS);
+
+          result.records.forEach((record, index) => expect(record).to.own.include(TEST_RECORDS[index]));
           expect(result.errors[0].error.message).to.equal('Invalid IV length');
           expect(result.errors[0].rawData).to.deep.equal(unsupportedData);
         });
 
         it('find() in non-encrypted mode should not throw error if some records are encrypted', async () => {
           const nonEncryptedData = await Promise.all(
-            TEST_RECORDS.map((record) => noEncStorage.encryptPayload(record)),
+            TEST_RECORDS.map((record) => noEncStorage.encryptPayload({ ...EMPTY_RECORD, ...record })),
           );
           const unsupportedData = {
+            ...EMPTY_RECORD,
             country: 'us',
             key: 'somekey',
             body: '2:unsupported data',
@@ -789,7 +883,7 @@ describe('Storage', () => {
           expect(result.meta).to.deep.equal({
             count: TEST_RECORDS.length + 1, total: TEST_RECORDS.length + 1, limit: 100, offset: 0,
           });
-          expect(result.records).to.deep.equal(TEST_RECORDS);
+          result.records.forEach((record, index) => expect(record).to.own.include(TEST_RECORDS[index]));
           expect(result.errors[0].error.message).to.equal('No secretKeyAccessor provided. Cannot decrypt encrypted data');
           expect(result.errors[0].rawData).to.deep.equal(unsupportedData);
         });
@@ -852,25 +946,25 @@ describe('Storage', () => {
       it('should findOne by key3', async () => {
         const filter = { key3: TEST_RECORDS[4].key3 };
         const resultRecords = TEST_RECORDS.filter((rec) => rec.key3 === filter.key3);
-        const encryptedRecords = await Promise.all(resultRecords.map((record) => encStorage.encryptPayload(record)));
+        const encryptedRecords = await Promise.all(resultRecords.map((record) => encStorage.encryptPayload({ ...EMPTY_RECORD, ...record })));
 
         nockEndpoint(POPAPI_HOST, 'find', COUNTRY)
           .reply(200, getDefaultFindResponse(encryptedRecords.length, encryptedRecords));
         const result = await encStorage.findOne(COUNTRY, filter);
-        expect(result.record).to.deep.eql(TEST_RECORDS[4]);
+        expect(result.record).to.own.include(TEST_RECORDS[4]);
       });
     });
 
     describe('migrate', () => {
       describe('when encryption disabled', () => {
         it('should throw an error', async () => {
-          await expect(noEncStorage.migrate(COUNTRY, 10)).to.be.rejectedWith(Error, 'Migration not supported when encryption is off');
+          await expect(noEncStorage.migrate(COUNTRY, 10)).to.be.rejectedWith(StorageError, 'Migration not supported when encryption is off');
         });
       });
 
       describe('when encryption enabled', () => {
         it('should migrate data from old secret to new', async () => {
-          const encryptedRecords = await Promise.all(TEST_RECORDS.map((record) => encStorage.encryptPayload(record)));
+          const encryptedRecords = await Promise.all(TEST_RECORDS.map((record) => encStorage.encryptPayload({ ...EMPTY_RECORD, ...record })));
           const migrateResult = { meta: { migrated: encryptedRecords.length, totalLeft: 0 } };
 
           const oldSecret = { secret: SECRET_KEY, version: 0 };
@@ -892,7 +986,7 @@ describe('Storage', () => {
       });
 
       it('should throw error if cannot decrypt any record', async () => {
-        const encryptedRecords = await Promise.all(TEST_RECORDS.map((record) => encStorage.encryptPayload(record)));
+        const encryptedRecords = await Promise.all(TEST_RECORDS.map((record) => encStorage.encryptPayload({ ...EMPTY_RECORD, ...record })));
 
         const oldSecret = { secret: SECRET_KEY, version: 1 };
         const newSecret = { secret: 'keykey', version: 2 };
@@ -905,7 +999,7 @@ describe('Storage', () => {
         nockEndpoint(POPAPI_HOST, 'find', COUNTRY).reply(200, getDefaultFindResponse(encryptedRecords.length, encryptedRecords));
 
         await expect(encStorage2.migrate(COUNTRY, encryptedRecords.length))
-          .to.be.rejectedWith(Error, 'Secret not found for version 0');
+          .to.be.rejectedWith(StorageError, 'Secret not found for version 0');
       });
     });
 
@@ -921,7 +1015,7 @@ describe('Storage', () => {
           it('should throw an error', async () => {
             const wrongCountries = [undefined, null, 1, {}, []];
             await Promise.all(wrongCountries.map((country) => expect(encStorage.batchWrite(country))
-              .to.be.rejectedWith(Error, COUNTRY_CODE_ERROR_MESSAGE)));
+              .to.be.rejectedWith(StorageError, COUNTRY_CODE_ERROR_MESSAGE)));
           });
         });
       });
@@ -931,29 +1025,31 @@ describe('Storage', () => {
           name: 'when the records has wrong type',
           arg: 'recordzzz',
           error: 'Storage.batchWrite() Validation Error: You must pass non-empty array of records',
-        }, {
+        },
+        {
           name: 'when the records is empty array',
           arg: [],
           error: 'Storage.batchWrite() Validation Error: You must pass non-empty array of records',
-        }, {
+        },
+        {
           name: 'when any record has no key field',
           arg: [{}],
           error: 'Storage.batchWrite() Validation Error: <RecordsArray>.0.key should be string but got undefined',
         },
         {
-          name: 'when any record has no key field',
-          arg: [{ key: '1' }, {}],
-          error: 'Storage.batchWrite() Validation Error: <RecordsArray>.1.key should be string but got undefined',
+          name: 'when any record from 4 has no key field',
+          arg: [{ key: '1' }, { key: '1' }, { key: '1' }, {}],
+          error: 'Storage.batchWrite() Validation Error: <RecordsArray>.3.key should be string but got undefined',
         },
         {
           name: 'when any record has wrong format',
           arg: [{ key: '1', key2: 41234512 }],
-          error: 'Storage.batchWrite() Validation Error: <RecordsArray>.0.key2 should be (string | null | undefined) but got 41234512',
+          error: 'Storage.batchWrite() Validation Error: <RecordsArray>.0.key2 should be (string | null) but got 41234512',
         }];
 
         errorCases.forEach((errCase) => {
           it(`should throw an error ${errCase.name}`, async () => {
-            await expect(encStorage.batchWrite(COUNTRY, errCase.arg)).to.be.rejectedWith(Error, errCase.error);
+            await expect(encStorage.batchWrite(COUNTRY, errCase.arg)).to.be.rejectedWith(StorageError, errCase.error);
           });
         });
       });
@@ -975,7 +1071,7 @@ describe('Storage', () => {
               const storage = opt.encrypted ? encStorage : noEncStorage;
               const [bodyObj] = await Promise.all([getNockedRequestBodyObject(popAPI), storage.batchWrite(COUNTRY, TEST_RECORDS)]);
               const decryptedRecords = await Promise.all(bodyObj.records.map((encRecord) => storage.decryptPayload(encRecord)));
-              expect(decryptedRecords).to.deep.equal(TEST_RECORDS);
+              decryptedRecords.forEach((record, index) => expect(record).to.own.include(TEST_RECORDS[index]));
             });
           });
         });

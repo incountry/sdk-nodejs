@@ -23,69 +23,72 @@ To access your data in InCountry using NodeJS SDK, you need to create an instanc
 
 ```javascript
 const createStorage = require("incountry/storage");
-const storage = await createStorage(
-  {
-    apiKey: "",        // {string} Required to be passed in, or as environment variable INC_API_KEY
-    environmentId: "", // {string} Required to be passed in, or as environment variable INC_ENVIRONMENT_ID
-    endpoint: "",      // {string} Optional - Defines API URL
-    encrypt: true      // {boolean} Optional - If false, encryption is not used. If omitted is set to true.
-  },
-  () => "",            // {GetSecretCallback} Used to fetch encryption secret
-);
+const storage = await createStorage({
+  apiKey: "",         // {string} Required to be passed in, or as environment variable INC_API_KEY
+  environmentId: "",  // {string} Required to be passed in, or as environment variable INC_ENVIRONMENT_ID
+  endpoint: "",       // {string} Optional - Defines API URL
+  encrypt: true       // {boolean} Optional - If false, encryption is not used. If omitted is set to true.
+  getSecrets: () => "" // {GetSecretsCallback} Optional - Used to fetch encryption secret
+});
 ```
 
 `apiKey` and `environmentId` can be fetched from your dashboard on `Incountry` site.
 
 #### Encryption key/secret
 
-`GetSecretCallback` is used to pass a key or secret used for encryption.
+`GetSecretsCallback` is used to pass a key or secret used for encryption.
 
 Note: even though SDK uses PBKDF2 to generate a cryptographically strong encryption key, you must make sure you provide a secret/password which follows modern security best practices and standards.
 
-`GetSecretCallback` is a function that should return either a string representing your secret or an object (we call it `SecretsData`) or a `Promise` which resolves to that string or object:
+`GetSecretsCallback` is a function that should return either a string representing your secret or an object (we call it `SecretsData`) or a `Promise` which resolves to that string or object:
 
 ```javascript
 {
   secrets: [
     {
-      secret: "abc", // {string}
-      version: 0     // {number} Should be a non negative integer
+      secret: "aaa",                // {string}
+      version: 0                    // {number} Should be a non negative integer
     },
     {
-      secret: "def", // {string}
-      version: 1,    // {number} Should be a non negative integer
-      isKey: false   // {boolean} Should be true only for user-defined encryption key
+      secret: "bbbbbbbbbbbb...bbb",  // {string} Should be a 32-characters 'utf8' encoded string
+      version: 1,                   // {number} Should be a non negative integer
+      isKey: true                   // {boolean} Should be true only for user-defined encryption key
+    },
+    {
+      secret: "ccc",                // {string}
+      version: 2,                   // {number} Should be a non negative integer
+      isForCustomEncryption: true   // {boolean} Should be true only for custom encryption
     }
   ],
-  currentVersion: 1  // {number} Should be a non negative integer
+  currentVersion: 1                 // {number} Should be a non negative integer
 };
 ```
 
-`GetSecretCallback` allows you to specify multiple keys/secrets which SDK will use for decryption based on the version of the key or secret used for encryption. Meanwhile SDK will encrypt only using key/secret that matches `currentVersion` provided in `SecretsData` object.
+`GetSecretsCallback` allows you to specify multiple keys/secrets which SDK will use for decryption based on the version of the key or secret used for encryption. Meanwhile SDK will encrypt only using key/secret that matches `currentVersion` provided in `SecretsData` object.
 
 This enables the flexibility required to support Key Rotation policies when secrets/keys need to be changed with time. SDK will encrypt data using current secret/key while maintaining the ability to decrypt records encrypted with old keys/secrets. SDK also provides a method for data migration which allows to re-encrypt data with the newest key/secret. For details please see `migrate` method.
 
 SDK allows you to use custom encryption keys, instead of secrets. Please note that user-defined encryption key should be a 32-characters 'utf8' encoded string as it's required by AES-256 cryptographic algorithm.
 
-Here are some examples of `GetSecretCallback`.
+Here are some examples of `GetSecretsCallback`.
 
 ```javascript
 /**
- * @callback GetSecretCallback
+ * @callback GetSecretsCallback
  * @returns {string|SecretsData|Promise<string>|Promise<SecretsData>}
  */
 
 // Synchronous
-const getSecretSync = () => "longAndStrongPassword";
+const getSecretsSync = () => "longAndStrongPassword";
 
 // Asynchronous
-const getSecretAsync = async () => {
+const getSecretsAsync = async () => {
   const secretsData = await getSecretsDataFromSomewhere();
   return secretsData;
 };
 
 // Using promises syntax
-const getSecretPromise = () =>
+const getSecretsPromise = () =>
   new Promise(resolve => {
     getPasswordFromSomewhere(secretsData => {
       resolve(secretsData);
@@ -103,14 +106,12 @@ const customLogger = {
   write: (logLevel, message) => {} // {(logLevel:string, message: string) => void}
 };
 
-const storage = await createStorage(
-  {
-    apiKey: "",
-    environmentId: ""
-  },
-  () => "", // {GetSecretCallback}
-  customLogger
-);
+const storage = await createStorage({
+  apiKey: "",
+  environmentId: "",
+  getSecrets: () => "", // {GetSecretsCallback}
+  logger: customLogger
+});
 ```
 
 ### Writing data to Storage
@@ -324,7 +325,7 @@ If record not found, it will return `null`.
 /**
  * @param {string} countryCode - Country code.
  * @param {FindFilter} filter - The filter to apply.
- * @param {{ limit: number, offset: number }} options - The options to pass to PoP.
+ * @param {FindOptions} options - The options to pass to PoP.
  * @param {object} [requestOptions]
  * @return {Promise<{ record: Record|null }>} Matching record.
  */
@@ -364,7 +365,7 @@ const deleteResult = await storage.delete(country, key);
 Using `GetSecretCallback` that provides `secretsData` object enables key rotation and data migration support.
 
 SDK introduces `migrate` method which allows you to re-encrypt data encrypted with old versions of the secret.
-It returns an object which contains some information about the migration - the amount of records migrated (`migrated`) and the amount of records left to migrate (`total_left`) (which basically means the amount of records with version different from `currentVersion` provided by `GetSecretCallback`).
+It returns an object which contains some information about the migration - the amount of records migrated (`migrated`) and the amount of records left to migrate (`total_left`) (which basically means the amount of records with version different from `currentVersion` provided by `GetSecretsCallback`).
 
 For a detailed example of a migration script please see [examples/fullMigration.js](examples/fullMigration.js)
 
@@ -396,7 +397,7 @@ const migrateResult = await storage.migrate(country, limit);
 
 SDK supports the ability to provide custom encryption/decryption methods if you decide to use your own algorithm instead of the default one.
 
-`storage.setCustomEncryption(configs)` allows you to pass an array of custom encryption configurations with the following schema, which enables custom encryption:
+`createStorage(options, customEncConfigs)` allows you to pass an array of custom encryption configurations with the following schema, which enables custom encryption:
 
 ```typescript
 {
@@ -428,22 +429,35 @@ const decrypt = async function(encryptedText, secret) {
   return xxtea.decrypt(encryptedText, secret);
 };
 
-const storage = await createStorage(
-  {
-    apiKey: "",
-    environmentId: "",
-    endpoint: "",
-    encrypt: true,
-  },
-  () => "longAndStrongPassword",
-);
-
-storage.setCustomEncryption([{
+const config = {
   encrypt,
   decrypt,
   isCurrent: true,
   version: "current",
-}]);
+};
+
+const getSecretsCallback = () => {
+  return {
+    secrets: [
+      {
+        secret: "longAndStrongPassword",
+        version: 1,
+        isForCustomEncryption: true
+      }
+    ],
+    currentVersion: 1,
+  };
+}
+
+const options = {
+  apiKey: "",
+  environmentId: "",
+  endpoint: "",
+  encrypt: true,
+  getSecrets: getSecretsCallback,
+}};
+
+const storage = await createStorage(options, [config]);
 
 await storage.write("US", { key: "<key>", body: "<body>" });
 ```
