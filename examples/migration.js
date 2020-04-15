@@ -6,7 +6,7 @@ const COUNTRY = 'us';
 const API_KEY = 'API_KEY';
 const ENVIRONMENT_ID = 'ENVIRONMENT_ID';
 
-const getSecret = () => ({
+const getSecrets = () => ({
   currentVersion: 1,
   secrets: [
     { secret: 'password0', version: 0 },
@@ -18,7 +18,7 @@ const storage = new Storage({
   apiKey: API_KEY,
   environmentId: ENVIRONMENT_ID,
   encrypt: true,
-  getSecret,
+  getSecrets,
 });
 
 async function migrate() {

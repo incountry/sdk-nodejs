@@ -14,7 +14,7 @@ const LoggerIO = t.type({ write: t.Function }, 'Logger');
  * @property {string} [apiKey]
  * @property {string} [environmentId]
  * @property {boolean} [encrypt]
- * @property {GetSecretCallback} [getSecret]
+ * @property {GetSecretsCallback} [getSecrets]
  * @property {boolean} [normalizeKeys]
  * @property {CountriesCache} [countriesCache]
  */
@@ -29,7 +29,7 @@ const StorageOptionsIO = t.intersection([
     encrypt: t.boolean,
     normalizeKeys: t.boolean,
     logger: LoggerIO,
-    getSecret: t.Function,
+    getSecrets: t.Function,
     countriesCache: t.unknown,
   }),
 ], 'StorageOptions');

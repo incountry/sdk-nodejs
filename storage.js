@@ -22,7 +22,7 @@ const { StorageOptionsIO, LoggerIO } = require('./validation/storage-options');
  */
 
 /**
- * @typedef {import('./secret-key-accessor').GetSecretCallback} GetSecretCallback
+ * @typedef {import('./secret-key-accessor').GetSecretsCallback} GetSecretsCallback
  */
 
 /**
@@ -53,11 +53,8 @@ const FIND_LIMIT = 100;
 
 const KEYS_FOR_ENCRYPTION = [
   'key',
-  'key1',
   'key2',
   'key3',
-  'key4',
-  'key5',
   'profile_key',
 ];
 
@@ -88,7 +85,7 @@ class Storage {
 
     if (options.encrypt !== false) {
       this._encryptionEnabled = true;
-      this._crypto = new InCrypt(new SecretKeyAccessor(options.getSecret));
+      this._crypto = new InCrypt(new SecretKeyAccessor(options.getSecrets));
     } else {
       this._encryptionEnabled = false;
       this._crypto = new InCrypt();

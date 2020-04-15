@@ -30,19 +30,19 @@ function wrapToSecretsData(secret) {
  * - KeyObject with different versions of key/secret
  * - Promise<string> or Promise<KeyObject> for any async jobs
  *
- * @callback GetSecretCallback
+ * @callback GetSecretsCallback
  * @returns {string|SecretsData|Promise<string>|Promise<SecretsData>|unknown}
  */
 
 class SecretKeyAccessor {
   /**
-   * @param {GetSecretCallback} getSecretCallback
+   * @param {GetSecretsCallback} getSecretsCallback
    */
-  constructor(getSecretCallback) {
-    if (typeof getSecretCallback !== 'function') {
+  constructor(getSecretsCallback) {
+    if (typeof getSecretsCallback !== 'function') {
       throw new StorageClientError('Provide callback function for secretData');
     }
-    this.getSecretCallback = getSecretCallback;
+    this.getSecretsCallback = getSecretsCallback;
   }
 
   async initialize() {
@@ -67,7 +67,7 @@ class SecretKeyAccessor {
    * @returns {Promise<SecretsData>}
    */
   async getSecrets() {
-    const secretData = await Promise.resolve(this.getSecretCallback());
+    const secretData = await Promise.resolve(this.getSecretsCallback());
     if (typeof secretData === 'string') {
       return wrapToSecretsData(secretData);
     }

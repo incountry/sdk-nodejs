@@ -59,14 +59,14 @@ class InCrypt {
     }
 
     const secretData = await this.secretKeyAccessor.getSecrets();
-    const secret = secretData.secrets.find((s) => s.isForCustomEncryption);
-    if (!secret) {
+    const secrets = secretData.secrets.filter((s) => s.isForCustomEncryption);
+    if (secrets.length === 0) {
       throw new StorageCryptoError('No secret for Custom Encryption');
     }
 
-    const validationResult = getCustomEncryptionConfigsIO(secret).decode(customEncryptionConfigs);
-    if (!isValid(validationResult)) {
-      const errorMessage = getErrorMessage(validationResult);
+    const validationResults = secrets.map((s) => getCustomEncryptionConfigsIO(s).decode(customEncryptionConfigs));
+    if (!validationResults.some(isValid)) {
+      const errorMessage = getErrorMessage(validationResults[0]);
       throw new StorageClientError(`Custom Encryption Validation Error: ${errorMessage}`);
     }
 

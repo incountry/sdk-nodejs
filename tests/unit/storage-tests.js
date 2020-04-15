@@ -84,15 +84,15 @@ const TEST_RECORDS = [
 
 const LOGGER_STUB = { write: (a, b) => [a, b] };
 
-const defaultGetSecretCallback = () => SECRET_KEY;
+const defaultGetSecretsCallback = () => SECRET_KEY;
 
-const getDefaultStorage = async (encrypt, normalizeKeys, getSecret = defaultGetSecretCallback, customEncConfigs) => createStorage({
+const getDefaultStorage = async (encrypt, normalizeKeys, getSecrets = defaultGetSecretsCallback, customEncConfigs) => createStorage({
   apiKey: 'string',
   environmentId: 'string',
   endpoint: POPAPI_HOST,
   encrypt,
   normalizeKeys,
-  getSecret,
+  getSecrets,
   logger: LOGGER_STUB,
 }, customEncConfigs);
 
@@ -221,7 +221,7 @@ describe('Storage', () => {
               apiKey: 'API_KEY',
               environmentId: 'ENVIRONMENT_ID',
               endpoint: 'URL',
-              getSecret: () => { },
+              getSecrets: () => { },
             },
           )).to.be.rejectedWith(StorageError, '<SecretsData> should be SecretsData but got undefined');
 
@@ -230,25 +230,25 @@ describe('Storage', () => {
               apiKey: 'API_KEY',
               environmentId: 'ENVIRONMENT_ID',
               endpoint: 'URL',
-              getSecret: () => ({ secrets: [{ version: -1, secret: '' }], currentVersion: -1 }),
+              getSecrets: () => ({ secrets: [{ version: -1, secret: '' }], currentVersion: -1 }),
             },
           )).to.be.rejectedWith(StorageError, '<SecretsData>.secrets.0 should be SecretOrKey but got {"version":-1,"secret":""}');
         });
 
-        it('should throw an error if not a getSecretKey callback is provided', async () => {
+        it('should throw an error if not a getSecrets callback is provided', async () => {
           await expect(createStorage(
             {
               apiKey: 'API_KEY',
               environmentId: 'ENVIRONMENT_ID',
               endpoint: 'URL',
-              getSecret: {},
+              getSecrets: {},
             },
-          )).to.be.rejectedWith(StorageError, 'getSecret should be Function');
+          )).to.be.rejectedWith(StorageError, 'getSecrets should be Function');
         });
       });
 
       describe('logger', () => {
-        it('1234 should throw an error if provided logger is not object or has no "write" method or is not a function', async () => {
+        it('should throw an error if provided logger is not object or has no "write" method or is not a function', async () => {
           const expectStorageConstructorThrowsError = async (wrongLogger) => expect(createStorage({ encrypt: false, endpoint: '', logger: wrongLogger }))
             .to.be.rejectedWith(StorageError, 'logger');
 
@@ -320,7 +320,7 @@ describe('Storage', () => {
           apiKey: 'apiKey',
           environmentId: 'envId',
           endpoint: '',
-          getSecret: () => ({
+          getSecrets: () => ({
             secrets: [{ secret: 'test', version: 0, isForCustomEncryption: true }],
             currentVersion: 0,
           }),

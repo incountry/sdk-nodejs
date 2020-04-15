@@ -23,8 +23,8 @@ const SecretOrKeyGeneral = t.intersection([
     version: NonNegativeInt,
   }),
   t.partial({
-    isKey: t.literal(true),
-    isForCustomEncryption: t.literal(true),
+    isKey: t.boolean,
+    isForCustomEncryption: t.boolean,
   }),
 ]);
 
