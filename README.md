@@ -50,7 +50,7 @@ Note: even though SDK uses PBKDF2 to generate a cryptographically strong encrypt
       version: 0                    // {number} Should be a non negative integer
     },
     {
-      secret: "bbbbbbbbbbbb...bbb",  // {string} Should be a 32-characters 'utf8' encoded string
+      secret: "bbbbbbbbbbbb...bbb", // {string} Should be a 32-characters 'utf8' encoded string
       version: 1,                   // {number} Should be a non negative integer
       isKey: true                   // {boolean} Should be true only for user-defined encryption key
     },
