@@ -2,6 +2,7 @@
 const chai = require('chai');
 const chaiAsPromised = require('chai-as-promised');
 const { createStorage, noop } = require('./common');
+const { StorageServerError } = require('../../errors');
 
 chai.use(chaiAsPromised);
 const { expect } = chai;
@@ -37,8 +38,11 @@ describe('Read data from Storage', function () {
 
       it('Read not existing data', async function () {
         const key = Math.random().toString(36).substr(2, 10);
-        await expect(storage.read(COUNTRY, key))
-          .to.be.rejectedWith(Error, 'Not Found');
+
+        const error = await expect(storage.read(COUNTRY, key))
+          .to.be.rejectedWith(StorageServerError);
+
+        expect(error.code).to.be.equal(404);
       });
 
       it('Read data with optional keys and range', async function () {

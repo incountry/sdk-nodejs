@@ -1,5 +1,4 @@
 const t = require('io-ts');
-const { validateWithIO } = require('./utils');
 const { RecordIO } = require('./record');
 
 const RecordsIO = t.array(RecordIO);
@@ -17,9 +16,6 @@ const RecordsNEAIO = new t.Type(
   Array,
 );
 
-const validateRecordsNEA = (records) => validateWithIO(records, RecordsNEAIO);
-
 module.exports = {
   RecordsNEAIO,
-  validateRecordsNEA,
 };
