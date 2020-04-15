@@ -131,6 +131,8 @@ class ApiClient {
    * @param {RequestOptions} [requestOptions]
    */
   async runQuery(country, key, action, data = undefined, requestOptions = {}) {
+    const countryCode = country.toLowerCase();
+
     const chosenAction = ACTIONS[action];
     if (!chosenAction) {
       throw new StorageClientError('Invalid action passed to ApiClient.');
@@ -145,13 +147,13 @@ class ApiClient {
     }
 
     const operation = `${action[0].toUpperCase()}${action.slice(1)}`;
-    const path = chosenAction.path(country, key);
-    const url = await this.getEndpoint(country.toLowerCase(), path);
+    const path = chosenAction.path(countryCode, key);
+    const url = await this.getEndpoint(countryCode, path);
     const method = chosenAction.verb;
 
     this.loggerFn('info', `Sending ${method.toUpperCase()} ${url}`, {
       endpoint: url,
-      country,
+      countryCode,
       op_result: 'in_progress',
       key: key || data.key,
       operation,
@@ -171,7 +173,7 @@ class ApiClient {
       const errorMessage = popError.errorMessage || err.message;
       this.loggerFn('error', `Error ${method.toUpperCase()} ${url} : ${errorMessage}`, {
         endpoint: url,
-        country,
+        countryCode,
         op_result: 'error',
         key: key || data.key,
         operation,
@@ -184,7 +186,7 @@ class ApiClient {
 
     this.loggerFn('info', `Finished ${method.toUpperCase()} ${url}`, {
       endpoint: url,
-      country,
+      countryCode,
       op_result: 'success',
       key: key || data.key,
       operation,
