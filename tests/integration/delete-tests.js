@@ -2,6 +2,7 @@
 const chai = require('chai');
 const chaiAsPromised = require('chai-as-promised');
 const { createStorage } = require('./common');
+const { StorageServerError } = require('../../errors');
 
 chai.use(chaiAsPromised);
 const { expect } = chai;
@@ -29,13 +30,19 @@ describe('Delete data from Storage', function () {
         const deleteResult = await storage.delete(COUNTRY, data.key);
         expect(deleteResult.success).to.equal(true);
 
-        await expect(storage.read(COUNTRY, data.key)).to.be.rejected;
+        const error = await expect(storage.read(COUNTRY, data.key))
+          .to.be.rejectedWith(StorageServerError);
+
+        expect(error.code).to.be.equal(404);
       });
 
       it('Delete not existing data', async function () {
         const key = Math.random().toString(36).substr(2, 10);
-        await expect(storage.delete(COUNTRY, key))
-          .to.be.rejectedWith(Error, 'Not Found');
+
+        const error = await expect(storage.delete(COUNTRY, key))
+          .to.be.rejectedWith(StorageServerError);
+
+        expect(error.code).to.be.equal(404);
       });
     });
   });

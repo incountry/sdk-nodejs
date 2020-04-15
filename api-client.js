@@ -1,13 +1,18 @@
 const axios = require('axios');
 const get = require('lodash.get');
-const { StorageServerError } = require('./errors');
+const { StorageServerError, StorageClientError } = require('./errors');
 const pjson = require('./package.json');
-const { validateRecordResponse } = require('./validation/api-responses/record-response');
-const { validateFindResponse } = require('./validation/api-responses/find-response');
-const { validateWriteResponse } = require('./validation/api-responses/write-response');
-const { isError } = require('./errors');
+const { isValid, getErrorMessage } = require('./validation/utils');
+const { RecordResponseIO } = require('./validation/api-responses/record-response');
+const { FindResponseIO } = require('./validation/api-responses/find-response');
+const { WriteResponseIO } = require('./validation/api-responses/write-response');
 
 const SDK_VERSION = pjson.version;
+
+/**
+ * @typedef RequestOptions
+ * @property {string|undefined} headers
+ */
 
 /**
  * @typedef ApiClientAction
@@ -21,12 +26,12 @@ const ACTIONS = {
   read: {
     verb: 'get',
     path: (country, key) => `v2/storage/records/${country}/${key}`,
-    validateResponse: (responseData) => validateRecordResponse(responseData),
+    validateResponse: (responseData) => RecordResponseIO.decode(responseData),
   },
   write: {
     verb: 'post',
     path: (country) => `v2/storage/records/${country}`,
-    validateResponse: (responseData) => validateWriteResponse(responseData),
+    validateResponse: (responseData) => WriteResponseIO.decode(responseData),
   },
   delete: {
     verb: 'delete',
@@ -35,23 +40,32 @@ const ACTIONS = {
   find: {
     verb: 'post',
     path: (country) => `v2/storage/records/${country}/find`,
-    validateResponse: (responseData) => validateFindResponse(responseData),
+    validateResponse: (responseData) => FindResponseIO.decode(responseData),
   },
   batchWrite: {
     verb: 'post',
     path: (country) => `v2/storage/records/${country}/batchWrite`,
-    validateResponse: (responseData) => validateWriteResponse(responseData),
+    validateResponse: (responseData) => WriteResponseIO.decode(responseData),
   },
 };
 
 const DEFAULT_POPAPI_HOST = 'https://us.api.incountry.io';
 
 const parsePoPError = (e) => {
+  const responseData = get(e, 'response.data', {});
   const errors = get(e, 'response.data.errors', []);
-  const errorMessage = errors.map(({ title, source }) => `${title}: ${source}`).join(';\n');
+  const errorMessages = errors.map(({ title, source }) => `${title}: ${source}`);
+  const errorMessage = errorMessages.length ? errorMessages.join(';\n') : e.message;
   const requestHeaders = get(e, 'config.headers');
   const responseHeaders = get(e, 'response.headers');
-  return { errorMessage, requestHeaders, responseHeaders };
+  const code = get(e, 'response.status');
+  return {
+    errorMessage,
+    requestHeaders,
+    responseHeaders,
+    responseData,
+    code,
+  };
 };
 
 class ApiClient {
@@ -90,8 +104,9 @@ class ApiClient {
       const countriesList = await this.countriesProviderFn();
       countryHasApi = countriesList.find((country) => countryRegex.test(country.id));
     } catch (err) {
-      this.loggerFn('error', err.message, err);
-      throw new StorageServerError(err.code, err.response ? err.response.data : {}, `Unable to retrieve countries list: ${err.message}`);
+      const popError = parsePoPError(err);
+      this.loggerFn('error', popError.errorMessage, err);
+      throw new StorageServerError(`Unable to retrieve countries list: ${popError.errorMessage}`, popError.responseData, popError.code);
     }
 
     return countryHasApi
@@ -100,9 +115,11 @@ class ApiClient {
   }
 
   tryValidate(validationResult) {
-    if (isError(validationResult)) {
-      this.loggerFn('error', validationResult.message);
-      throw validationResult;
+    if (!isValid(validationResult)) {
+      const validationErrorMessage = getErrorMessage(validationResult);
+      const error = new StorageServerError(`Response Validation Error: ${validationErrorMessage}`, validationResult);
+      this.loggerFn('error', error.message);
+      throw error;
     }
   }
 
@@ -111,12 +128,14 @@ class ApiClient {
    * @param {string} key
    * @param {('read'|'write'|'delete'|'find'|'batchWrite')} action
    * @param {object} data - request body
-   * @param {object} [requestOptions]
+   * @param {RequestOptions} [requestOptions]
    */
   async runQuery(country, key, action, data = undefined, requestOptions = {}) {
+    const countryCode = country.toLowerCase();
+
     const chosenAction = ACTIONS[action];
     if (!chosenAction) {
-      throw new Error('Invalid action passed to ApiClient.');
+      throw new StorageClientError('Invalid action passed to ApiClient.');
     }
 
     let headers = this.headers();
@@ -128,13 +147,13 @@ class ApiClient {
     }
 
     const operation = `${action[0].toUpperCase()}${action.slice(1)}`;
-    const path = chosenAction.path(country, key);
-    const url = await this.getEndpoint(country.toLowerCase(), path);
+    const path = chosenAction.path(countryCode, key);
+    const url = await this.getEndpoint(countryCode, path);
     const method = chosenAction.verb;
 
     this.loggerFn('info', `Sending ${method.toUpperCase()} ${url}`, {
       endpoint: url,
-      country,
+      country: countryCode,
       op_result: 'in_progress',
       key: key || data.key,
       operation,
@@ -154,7 +173,7 @@ class ApiClient {
       const errorMessage = popError.errorMessage || err.message;
       this.loggerFn('error', `Error ${method.toUpperCase()} ${url} : ${errorMessage}`, {
         endpoint: url,
-        country,
+        country: countryCode,
         op_result: 'error',
         key: key || data.key,
         operation,
@@ -162,12 +181,12 @@ class ApiClient {
         responseHeaders: popError.responseHeaders,
         message: errorMessage,
       });
-      throw new StorageServerError(err.code, err.response ? err.response.data : {}, `${method.toUpperCase()} ${url} ${errorMessage}`);
+      throw new StorageServerError(`${method.toUpperCase()} ${url} ${errorMessage}`, popError.responseData, popError.code);
     }
 
     this.loggerFn('info', `Finished ${method.toUpperCase()} ${url}`, {
       endpoint: url,
-      country,
+      country: countryCode,
       op_result: 'success',
       key: key || data.key,
       operation,

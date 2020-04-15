@@ -1,6 +1,6 @@
-const { validationToPromise } = require('./validation/utils');
-const { getSecretsDataIO } = require('./validation/secrets-data');
-const { SecretKeyAccessorError } = require('./errors');
+const { validationToPromise, toStorageClientError } = require('./validation/utils');
+const { SecretsDataIO } = require('./validation/secrets-data');
+const { StorageClientError } = require('./errors');
 
 /**
  * @typedef {import('./validation/secrets-data').SecretsData} SecretsData
@@ -30,19 +30,19 @@ function wrapToSecretsData(secret) {
  * - KeyObject with different versions of key/secret
  * - Promise<string> or Promise<KeyObject> for any async jobs
  *
- * @callback GetSecretCallback
+ * @callback GetSecretsCallback
  * @returns {string|SecretsData|Promise<string>|Promise<SecretsData>|unknown}
  */
 
 class SecretKeyAccessor {
   /**
-   * @param {GetSecretCallback} getSecretCallback
+   * @param {GetSecretsCallback} getSecretsCallback
    */
-  constructor(getSecretCallback) {
-    if (typeof getSecretCallback !== 'function') {
-      throw new SecretKeyAccessorError('Provide callback function for secretData');
+  constructor(getSecretsCallback) {
+    if (typeof getSecretsCallback !== 'function') {
+      throw new StorageClientError('Provide callback function for secretData');
     }
-    this.getSecretCallback = getSecretCallback;
+    this.getSecretsCallback = getSecretsCallback;
   }
 
   async initialize() {
@@ -50,26 +50,29 @@ class SecretKeyAccessor {
   }
 
   /**
-   * @typedef GetSecretParams
-   * @property {number|undefined} secretVersion optional, will fallback to "currentSecretVersion"
-   * @property {boolean|undefined} forCustomEncryption optional, will ease validation
-   */
-
-  /**
-   * @param {GetSecretParams}
+   * @param {number|undefined} secretVersion optional, will fallback to "currentSecretVersion"
    * @return {Promise<{ secret: string, version: number }>}
    */
-  getSecret({ secretVersion, forCustomEncryption } = {}) {
-    return Promise
-      .resolve(this.getSecretCallback())
-      .then((v) => (typeof v === 'string' ? wrapToSecretsData(v) : validationToPromise(getSecretsDataIO(forCustomEncryption).decode(v))))
-      .then((so) => {
-        const version = secretVersion !== undefined ? secretVersion : so.currentVersion;
-        const item = so.secrets.find((s) => s.version === version);
-        return item !== undefined
-          ? item
-          : Promise.reject(new SecretKeyAccessorError(`Secret not found for version ${secretVersion}`));
-      });
+  async getSecret(secretVersion) {
+    const secretData = await this.getSecrets();
+    const version = secretVersion !== undefined ? secretVersion : secretData.currentVersion;
+    const secret = secretData.secrets.find((s) => s.version === version);
+    if (!secret) {
+      throw new StorageClientError(`Secret not found for version ${secretVersion}`);
+    }
+    return secret;
+  }
+
+  /**
+   * @returns {Promise<SecretsData>}
+   */
+  async getSecrets() {
+    const secretData = await Promise.resolve(this.getSecretsCallback());
+    if (typeof secretData === 'string') {
+      return wrapToSecretsData(secretData);
+    }
+
+    return validationToPromise(SecretsDataIO.decode(secretData), toStorageClientError());
   }
 }
 
