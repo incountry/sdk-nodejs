@@ -1,7 +1,7 @@
 const chai = require('chai');
 const chaiAsPromised = require('chai-as-promised');
 const SecretKeyAccessor = require('../../secret-key-accessor');
-const { StorageClientError, StorageCryptoError } = require('../../errors');
+const { StorageClientError } = require('../../errors');
 
 chai.use(chaiAsPromised);
 const { expect } = chai;
@@ -304,7 +304,7 @@ describe('SecretKeyAccessor', () => {
           currentVersion: 1,
         }));
 
-        await expect(secretKeyAccessor1.getSecret(secretVersion)).to.be.rejectedWith(StorageCryptoError, `Secret not found for version ${secretVersion}`);
+        await expect(secretKeyAccessor1.getSecret(secretVersion)).to.be.rejectedWith(StorageClientError, `Secret not found for version ${secretVersion}`);
       });
     });
   });

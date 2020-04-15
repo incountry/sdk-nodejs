@@ -58,7 +58,7 @@ class SecretKeyAccessor {
     const version = secretVersion !== undefined ? secretVersion : secretData.currentVersion;
     const secret = secretData.secrets.find((s) => s.version === version);
     if (!secret) {
-      throw new StorageCryptoError(`Secret not found for version ${secretVersion}`);
+      throw new StorageClientError(`Secret not found for version ${secretVersion}`);
     }
     return secret;
   }
