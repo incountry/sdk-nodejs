@@ -392,6 +392,37 @@ const migrateResult = await storage.migrate(country, limit);
 ```
 
 
+Error Handling
+-----
+
+InCountry Node SDK throws following Exceptions:
+
+- **StorageClientError** - used for various input validation errors. Can be thrown by all public methods.
+
+- **StorageServerError** - thrown if SDK failed to communicate with InCountry servers or if server response validation failed.
+
+- **StorageCryptoError** - thrown during encryption/decryption procedures (both default and custom). This may be a sign of malformed/corrupt data or a wrong encryption key provided to the SDK.
+
+- **StorageError** - general exception. Inherited by all other exceptions
+
+We suggest gracefully handling all the possible exceptions:
+
+```javascript
+try {
+  // use InCountry Storage instance here
+} catch(e) {
+  if (e instanceof StorageClientError) {
+    // some input validation error
+  } else if (e instanceof StorageServerError) {
+    // some server error
+  } else if (e instanceof StorageCryptoError) {
+    // some encryption error
+  } else {
+    // ...
+  }
+}
+```
+
 
 #### Custom encryption
 

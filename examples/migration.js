@@ -1,4 +1,5 @@
 /* eslint no-await-in-loop: "off" */
+/* eslint import/no-unresolved: "off" */
 
 const Storage = require('incountry/storage');
 
