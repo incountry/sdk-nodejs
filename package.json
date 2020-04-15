@@ -21,7 +21,7 @@
   "description": "SDK for writing, reading, and deleting records using Incountry's storage suite",
   "homepage": "https://github.com/incountry/sdk-nodejs#readme",
   "license": "MIT",
-  "main": "index.js",
+  "main": "lib/index.js",
   "name": "incountry",
   "repository": {
     "type": "git",
@@ -30,7 +30,7 @@
   "scripts": {
     "integrations": "nyc --reporter=lcov --reporter=text --report-dir=it-coverage mocha tests/integration/*.js --timeout 40000",
     "test": "nyc --reporter=lcov --reporter=text --report-dir=ut-coverage --exclude=tests/**/*.js mocha tests/unit/*.js",
-    "validate-eslint": "eslint ./*.js tests/"
+    "validate-eslint": "eslint ."
   },
   "version": "2.0.0",
   "devDependencies": {

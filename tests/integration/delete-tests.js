@@ -2,7 +2,7 @@
 const chai = require('chai');
 const chaiAsPromised = require('chai-as-promised');
 const { createStorage } = require('./common');
-const { StorageServerError } = require('../../errors');
+const { StorageServerError } = require('../../lib/errors');
 
 chai.use(chaiAsPromised);
 const { expect } = chai;

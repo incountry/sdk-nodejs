@@ -2,7 +2,7 @@ const chai = require('chai');
 chai.use(require('chai-as-promised'));
 const nock = require('nock');
 const sinon = require('sinon');
-const CountriesCache = require('../../countries-cache');
+const CountriesCache = require('../../lib/countries-cache');
 
 const { expect, assert } = chai;
 
