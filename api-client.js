@@ -153,7 +153,7 @@ class ApiClient {
 
     this.loggerFn('info', `Sending ${method.toUpperCase()} ${url}`, {
       endpoint: url,
-      countryCode,
+      country: countryCode,
       op_result: 'in_progress',
       key: key || data.key,
       operation,
@@ -173,7 +173,7 @@ class ApiClient {
       const errorMessage = popError.errorMessage || err.message;
       this.loggerFn('error', `Error ${method.toUpperCase()} ${url} : ${errorMessage}`, {
         endpoint: url,
-        countryCode,
+        country: countryCode,
         op_result: 'error',
         key: key || data.key,
         operation,
@@ -186,7 +186,7 @@ class ApiClient {
 
     this.loggerFn('info', `Finished ${method.toUpperCase()} ${url}`, {
       endpoint: url,
-      countryCode,
+      country: countryCode,
       op_result: 'success',
       key: key || data.key,
       operation,
