@@ -1,6 +1,6 @@
 const { validationToPromise, toStorageClientError } = require('./validation/utils');
 const { SecretsDataIO } = require('./validation/secrets-data');
-const { StorageCryptoError, StorageClientError } = require('./errors');
+const { StorageClientError } = require('./errors');
 
 /**
  * @typedef {import('./validation/secrets-data').SecretsData} SecretsData
