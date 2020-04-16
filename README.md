@@ -109,7 +109,7 @@ const customLogger = {
 const storage = await createStorage({
   apiKey: '',
   environmentId: '',
-  getSecrets: () => ', // {GetSecretsCallback}
+  getSecrets: () => '', // {GetSecretsCallback}
   logger: customLogger
 });
 ```
