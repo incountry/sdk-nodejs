@@ -127,7 +127,7 @@ Use `write` method in order to create/replace (by `key`) a record.
  * @property {string|null} key2
  * @property {string|null} key3
  * @property {number|null} range_key
- * @property {number} version
+ * @property {number} version - used internally by the SDK to handle record’s encryption secret version, no need to provide it manually
  */
 
 /**
@@ -146,12 +146,12 @@ Below is the example of how you may use `write` method:
 ```javascript
 // Record
 const record = {
-  key: '<key>',                 // {string} Record key
-  body: '<body>',               // {string} Optional payload
-  profile_key: '<profile_key>', // {string} Optional
-  range_key: 0,                 // {number} Optional integer
-  key2: '<key2>',               // {string} Optional
-  key3: '<key3>'                // {string} Optional
+  key: '<key>',
+  body: '<body>',
+  profile_key: '<profile_key>',
+  range_key: 0,
+  key2: '<key2>',
+  key3: '<key3>'
 }
 
 const writeResult = await storage.write(country, record);
