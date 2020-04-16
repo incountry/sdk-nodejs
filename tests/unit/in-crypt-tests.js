@@ -8,10 +8,10 @@ const {
   CUSTOM_ENCRYPTION_ERROR_MESSAGE_NO_SKA,
   CUSTOM_ENCRYPTION_ERROR_MESSAGE_ENC,
   CUSTOM_ENCRYPTION_ERROR_MESSAGE_DEC,
-} = require('../../in-crypt');
-const SecretKeyAccessor = require('../../secret-key-accessor');
-const { identity } = require('../../utils');
-const { StorageCryptoError, StorageClientError } = require('../../errors');
+} = require('../../lib/in-crypt');
+const SecretKeyAccessor = require('../../lib/secret-key-accessor');
+const { identity } = require('../../lib/utils');
+const { StorageCryptoError, StorageClientError } = require('../../lib/errors');
 
 chai.use(chaiAsPromised);
 const { expect } = chai;

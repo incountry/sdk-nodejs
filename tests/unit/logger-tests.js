@@ -1,7 +1,7 @@
 /* eslint-disable no-unused-vars */
 const { expect } = require('chai');
 const sinon = require('sinon');
-const Logger = require('../../logger');
+const Logger = require('../../lib/logger');
 
 
 describe('logger', () => {

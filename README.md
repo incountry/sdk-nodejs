@@ -22,13 +22,13 @@ Usage
 To access your data in InCountry using NodeJS SDK, you need to create an instance of `Storage` class using async constructor `createStorage`.
 
 ```javascript
-const createStorage = require("incountry/storage");
+const { createStorage } = require('incountry');
 const storage = await createStorage({
-  apiKey: "",         // {string} Required to be passed in, or as environment variable INC_API_KEY
-  environmentId: "",  // {string} Required to be passed in, or as environment variable INC_ENVIRONMENT_ID
-  endpoint: "",       // {string} Optional - Defines API URL
-  encrypt: true       // {boolean} Optional - If false, encryption is not used. If omitted is set to true.
-  getSecrets: () => "" // {GetSecretsCallback} Optional - Used to fetch encryption secret
+  apiKey: 'API_KEY',                // {string} Required to be passed in, or as environment variable INC_API_KEY
+  environmentId: 'ENVIRONMENT_ID',  // {string} Required to be passed in, or as environment variable INC_ENVIRONMENT_ID
+  endpoint: 'INC_URL',              // {string} Defines API URL
+  encrypt: true,                    // {boolean} Optional - If false, encryption is not used. If omitted is set to true.
+  getSecrets: () => '',             // {GetSecretsCallback} Optional - Used to fetch encryption secret
 });
 ```
 
@@ -46,16 +46,16 @@ Note: even though SDK uses PBKDF2 to generate a cryptographically strong encrypt
 {
   secrets: [
     {
-      secret: "aaa",                // {string}
+      secret: 'aaa',                // {string}
       version: 0                    // {number} Should be a non negative integer
     },
     {
-      secret: "bbbbbbbbbbbb...bbb",  // {string} Should be a 32-characters 'utf8' encoded string
+      secret: 'bbbbbbbbbbbb...bbb', // {string} Should be a 32-characters 'utf8' encoded string
       version: 1,                   // {number} Should be a non negative integer
       isKey: true                   // {boolean} Should be true only for user-defined encryption key
     },
     {
-      secret: "ccc",                // {string}
+      secret: 'ccc',                // {string}
       version: 2,                   // {number} Should be a non negative integer
       isForCustomEncryption: true   // {boolean} Should be true only for custom encryption
     }
@@ -79,7 +79,7 @@ Here are some examples of `GetSecretsCallback`.
  */
 
 // Synchronous
-const getSecretsSync = () => "longAndStrongPassword";
+const getSecretsSync = () => 'longAndStrongPassword';
 
 // Asynchronous
 const getSecretsAsync = async () => {
@@ -107,9 +107,9 @@ const customLogger = {
 };
 
 const storage = await createStorage({
-  apiKey: "",
-  environmentId: "",
-  getSecrets: () => "", // {GetSecretsCallback}
+  apiKey: '',
+  environmentId: '',
+  getSecrets: () => '', // {GetSecretsCallback}
   logger: customLogger
 });
 ```
@@ -146,12 +146,12 @@ Below is the example of how you may use `write` method:
 ```javascript
 // Record
 const record = {
-  key: "<key>",                 // {string} Record key
-  body: "<body>",               // {string} Optional payload
-  profile_key: "<profile_key>", // {string} Optional
+  key: '<key>',                 // {string} Record key
+  body: '<body>',               // {string} Optional payload
+  profile_key: '<profile_key>', // {string} Optional
   range_key: 0,                 // {number} Optional integer
-  key2: "<key2>",               // {string} Optional
-  key3: "<key3>"                // {string} Optional
+  key2: '<key2>',               // {string} Optional
+  key3: '<key3>'                // {string} Optional
 }
 
 const writeResult = await storage.write(country, record);
@@ -367,7 +367,7 @@ Using `GetSecretCallback` that provides `secretsData` object enables key rotatio
 SDK introduces `migrate` method which allows you to re-encrypt data encrypted with old versions of the secret.
 It returns an object which contains some information about the migration - the amount of records migrated (`migrated`) and the amount of records left to migrate (`total_left`) (which basically means the amount of records with version different from `currentVersion` provided by `GetSecretsCallback`).
 
-For a detailed example of a migration script please see [examples/fullMigration.js](examples/fullMigration.js)
+For a detailed example of a migration script please see [examples/migration.js](examples/migration.js)
 
 ```javascript
 /**
@@ -451,7 +451,7 @@ Only one configuration can be set as `isCurrent: true`.
 Here's an example of how you can set up SDK to use custom encryption (using XXTEA encryption algorithm):
 
 ```javascript
-const xxtea = require("xxtea");
+const xxtea = require('xxtea');
 const encrypt = async function(text, secret) {
   return xxtea.encrypt(text, secret);
 };
@@ -464,14 +464,14 @@ const config = {
   encrypt,
   decrypt,
   isCurrent: true,
-  version: "current",
+  version: 'current',
 };
 
 const getSecretsCallback = () => {
   return {
     secrets: [
       {
-        secret: "longAndStrongPassword",
+        secret: 'longAndStrongPassword',
         version: 1,
         isForCustomEncryption: true
       }
@@ -481,16 +481,16 @@ const getSecretsCallback = () => {
 }
 
 const options = {
-  apiKey: "",
-  environmentId: "",
-  endpoint: "",
+  apiKey: 'API_KEY',
+  environmentId: 'ENVIRONMENT_ID',
+  endpoint: 'INC_URL',
   encrypt: true,
   getSecrets: getSecretsCallback,
 }};
 
 const storage = await createStorage(options, [config]);
 
-await storage.write("US", { key: "<key>", body: "<body>" });
+await storage.write('us', { key: '<key>', body: '<body>' });
 ```
 
 ## Testing Locally

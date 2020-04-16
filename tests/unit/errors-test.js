@@ -1,6 +1,6 @@
 const chai = require('chai');
 chai.use(require('chai-as-promised'));
-const { StorageClientError, StorageServerError } = require('../../errors');
+const { StorageClientError, StorageServerError } = require('../../lib/errors');
 
 const { expect } = chai;
 

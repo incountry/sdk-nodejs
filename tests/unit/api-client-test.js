@@ -2,9 +2,9 @@ const chai = require('chai');
 chai.use(require('chai-as-promised'));
 
 const nock = require('nock');
-const { ApiClient } = require('../../api-client');
-const { StorageServerError, StorageError } = require('../../errors');
-const CountriesCache = require('../../countries-cache');
+const { ApiClient } = require('../../lib/api-client');
+const { StorageServerError, StorageError } = require('../../lib/errors');
+const CountriesCache = require('../../lib/countries-cache');
 const { nockEndpoint } = require('../test-helpers/popapi-nock');
 
 const { expect, assert } = chai;

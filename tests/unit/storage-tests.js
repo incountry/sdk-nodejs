@@ -4,23 +4,23 @@ chai.use(require('chai-as-promised'));
 const nock = require('nock');
 const uuid = require('uuid/v4');
 const _ = require('lodash');
-const { identity } = require('../../utils');
-const createStorage = require('../../storage');
-const { StorageServerError, StorageClientError, StorageError } = require('../../errors');
-const CountriesCache = require('../../countries-cache');
+const { identity } = require('../../lib/utils');
+const createStorage = require('../../lib/storage');
+const { StorageServerError, StorageClientError, StorageError } = require('../../lib/errors');
+const CountriesCache = require('../../lib/countries-cache');
 const {
   getNockedRequestBodyObject,
   getNockedRequestHeaders,
   nockEndpoint,
 } = require('../test-helpers/popapi-nock');
-const { COUNTRY_CODE_ERROR_MESSAGE } = require('../../validation/country-code');
-const { RECORD_KEY_ERROR_MESSAGE } = require('../../validation/record-key');
+const { COUNTRY_CODE_ERROR_MESSAGE } = require('../../lib/validation/country-code');
+const { RECORD_KEY_ERROR_MESSAGE } = require('../../lib/validation/record-key');
 const {
   CUSTOM_ENCRYPTION_CONFIG_ERROR_MESSAGE_CURRENT,
   CUSTOM_ENCRYPTION_CONFIG_ERROR_MESSAGE_ARRAY,
   CUSTOM_ENCRYPTION_CONFIG_ERROR_MESSAGE_VERSIONS,
-} = require('../../validation/custom-encryption-configs');
-const { MAX_LIMIT, LIMIT_ERROR_MESSAGE_INT, LIMIT_ERROR_MESSAGE_MAX } = require('../../validation/limit');
+} = require('../../lib/validation/custom-encryption-configs');
+const { MAX_LIMIT, LIMIT_ERROR_MESSAGE_INT, LIMIT_ERROR_MESSAGE_MAX } = require('../../lib/validation/limit');
 
 const { expect, assert } = chai;
 

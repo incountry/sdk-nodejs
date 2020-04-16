@@ -1,6 +1,6 @@
 const chai = require('chai');
 const t = require('io-ts');
-const { report } = require('../../validation/error-reporter');
+const { report } = require('../../lib/validation/error-reporter');
 
 const { expect } = chai;
 

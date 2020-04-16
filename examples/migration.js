@@ -1,11 +1,12 @@
 /* eslint no-await-in-loop: "off" */
 /* eslint import/no-unresolved: "off" */
 
-const Storage = require('incountry/storage');
+const { createStorage } = require('incountry');
 
 const COUNTRY = 'us';
 const API_KEY = 'API_KEY';
 const ENVIRONMENT_ID = 'ENVIRONMENT_ID';
+const ENDPOINT = 'INC_URL';
 
 const getSecrets = () => ({
   currentVersion: 1,
@@ -15,14 +16,15 @@ const getSecrets = () => ({
   ],
 });
 
-const storage = new Storage({
-  apiKey: API_KEY,
-  environmentId: ENVIRONMENT_ID,
-  encrypt: true,
-  getSecrets,
-});
-
 async function migrate() {
+  const storage = await createStorage({
+    apiKey: API_KEY,
+    environmentId: ENVIRONMENT_ID,
+    endpoint: ENDPOINT,
+    encrypt: true,
+    getSecrets,
+  });
+
   let migrationComplete = false;
   while (!migrationComplete) {
     const res = await storage.migrate(COUNTRY, 50);
