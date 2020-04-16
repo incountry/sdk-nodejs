@@ -144,7 +144,6 @@ async write(countryCode, record, requestOptions = {}) {
 Below is the example of how you may use `write` method:
 
 ```javascript
-// Record
 const record = {
   key: '<key>',
   body: '<body>',
