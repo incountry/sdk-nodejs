@@ -367,7 +367,7 @@ Using `GetSecretCallback` that provides `secretsData` object enables key rotatio
 SDK introduces `migrate` method which allows you to re-encrypt data encrypted with old versions of the secret.
 It returns an object which contains some information about the migration - the amount of records migrated (`migrated`) and the amount of records left to migrate (`total_left`) (which basically means the amount of records with version different from `currentVersion` provided by `GetSecretsCallback`).
 
-For a detailed example of a migration script please see [examples/fullMigration.js](examples/fullMigration.js)
+For a detailed example of a migration script please see [examples/fullMigration.js](examples/migration.js)
 
 ```javascript
 /**
