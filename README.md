@@ -19,7 +19,7 @@ For a full list of supported countries and their codes please [follow this link]
 Usage
 -----
 
-To access your data in InCountry using NodeJS SDK, you need to create an instance of `Storage` class using async constructor `createStorage`.
+To access your data in InCountry using NodeJS SDK, you need to create an instance of `Storage` class using async factory method `createStorage`.
 
 ```javascript
 const { createStorage } = require('incountry');
@@ -431,8 +431,8 @@ SDK supports the ability to provide custom encryption/decryption methods if you 
 
 ```typescript
 {
-  encrypt: (text: string, secret: string, secretVersion: string) => string,
-  decrypt: (encryptedText: string, secret: string, secretVersion: string) => string,
+  encrypt: (text: string, secret: string, secretVersion: string) => Promise<string> | string,
+  decrypt: (encryptedText: string, secret: string, secretVersion: string) => Promise<string> | string,
   isCurrent: boolean, // Optional but at most one in array should be isCurrent: true
   version: string
 }

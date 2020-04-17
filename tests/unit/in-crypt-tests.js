@@ -187,6 +187,29 @@ describe('InCrypt', function () {
         expect(decrypted).to.equal(plain);
       });
 
+      it(`should encrypt and decrypt text "${plain}" using custom encryption async methods`, async function () {
+        const configs = [{
+          encrypt: async (text) => Buffer.from(text).toString('base64'),
+          decrypt: async (encryptedData) => Buffer.from(encryptedData, 'base64').toString('utf-8'),
+          version: 'customEncryption',
+          isCurrent: true,
+        }];
+
+        const secretKeyAccessor = new SecretKeyAccessor(() => ({
+          secrets: [{ version: 0, secret: 'supersecret', isForCustomEncryption: true }], currentVersion: 0,
+        }));
+
+        const incrypt = new InCrypt(secretKeyAccessor);
+
+        await incrypt.initialize(configs);
+
+        const encrypted = await incrypt.encrypt(plain);
+        expect(encrypted.message.startsWith(CUSTOM_ENCRYPTION_VERSION_PREFIX)).to.equal(true, `No custom encryption prefix in '${encrypted.message.substr(0, 5)}...'`);
+
+        const decrypted = await incrypt.decrypt(encrypted.message, encrypted.secretVersion);
+        expect(decrypted).to.equal(plain);
+      });
+
       it(`should encrypt and decrypt text "${plain}" using default encryption if no current custom encryption config`, async function () {
         const configs = [{
           encrypt: (text) => Buffer.from(text).toString('base64'),
