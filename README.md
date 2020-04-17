@@ -431,8 +431,8 @@ SDK supports the ability to provide custom encryption/decryption methods if you 
 
 ```typescript
 {
-  encrypt: (text: string, secret: string, secretVersion: string) => Promise<string>,
-  decrypt: (encryptedText: string, secret: string, secretVersion: string) => Promise<string>,
+  encrypt: (text: string, secret: string, secretVersion: string) => string,
+  decrypt: (encryptedText: string, secret: string, secretVersion: string) => string,
   isCurrent: boolean, // Optional but at most one in array should be isCurrent: true
   version: string
 }
@@ -451,11 +451,11 @@ Here's an example of how you can set up SDK to use custom encryption (using XXTE
 
 ```javascript
 const xxtea = require('xxtea');
-const encrypt = async function(text, secret) {
+const encrypt = function(text, secret) {
   return xxtea.encrypt(text, secret);
 };
 
-const decrypt = async function(encryptedText, secret) {
+const decrypt = function(encryptedText, secret) {
   return xxtea.decrypt(encryptedText, secret);
 };
 
