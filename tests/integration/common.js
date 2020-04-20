@@ -1,5 +1,5 @@
 const dotenv = require('dotenv');
-const createStorage = require('../../lib/storage');
+const { createStorage } = require('../../lib/storage');
 
 dotenv.config();
 

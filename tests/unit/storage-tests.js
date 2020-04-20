@@ -5,7 +5,7 @@ const nock = require('nock');
 const uuid = require('uuid/v4');
 const _ = require('lodash');
 const { identity } = require('../../lib/utils');
-const createStorage = require('../../lib/storage');
+const { createStorage } = require('../../lib/storage');
 const { StorageServerError, StorageClientError, StorageError } = require('../../lib/errors');
 const CountriesCache = require('../../lib/countries-cache');
 const {
