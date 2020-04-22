@@ -11,6 +11,12 @@ SDK is available via NPM:
 npm install incountry --save
 ```
 
+
+Countries List
+----
+For a full list of supported countries and their codes please [follow this link](countries.md).
+
+
 Usage
 -----
 To access your data in InCountry using NodeJS SDK, you need to create an instance of `Storage` class.
@@ -176,7 +182,7 @@ In such cases find() method return data will be as follows:
 	data: [/* successfully decrypted records */],
 	errors: [{
 		rawData,  // raw record which caused decryption error
-		error,    // decryption error description 
+		error,    // decryption error description
 	}, ...],
 	meta: { ... }
 }
