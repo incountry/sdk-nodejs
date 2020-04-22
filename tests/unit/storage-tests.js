@@ -336,17 +336,23 @@ describe('Storage', () => {
           logger: LOGGER_STUB,
         };
 
-        const storageWithoutEnc = await createStorage(options);
-
         const customEncryptionConfigs = [{ encrypt: () => { }, decrypt: () => { }, version: '' }];
 
-        await expect(storageWithoutEnc.initialize(customEncryptionConfigs))
+        await expect(createStorage(options, customEncryptionConfigs))
           .to.be.rejectedWith(StorageClientError, 'Cannot use custom encryption when encryption is off');
       });
 
       it('should throw an error if configs object is malformed', () => Promise.all(['', {}, () => { }]
         .map(async (configs) => {
-          await expect(storage.initialize(configs))
+          const options = {
+            apiKey: 'string',
+            environmentId: 'string',
+            endpoint: POPAPI_HOST,
+            logger: LOGGER_STUB,
+            getSecrets: () => '',
+          };
+
+          await expect(createStorage(options, configs), `with ${JSON.stringify(configs)}`)
             .to.be.rejectedWith(CUSTOM_ENCRYPTION_CONFIG_ERROR_MESSAGE_ARRAY);
         })));
 
@@ -357,7 +363,15 @@ describe('Storage', () => {
           encrypt: identity, decrypt: identity, isCurrent: true, version: '2',
         }];
 
-        await expect(storage.initialize(configs))
+        const options = {
+          apiKey: 'string',
+          environmentId: 'string',
+          endpoint: POPAPI_HOST,
+          logger: LOGGER_STUB,
+          getSecrets: () => '',
+        };
+
+        await expect(createStorage(options, configs))
           .to.be.rejectedWith(CUSTOM_ENCRYPTION_CONFIG_ERROR_MESSAGE_CURRENT);
       });
 
@@ -368,7 +382,15 @@ describe('Storage', () => {
           encrypt: identity, decrypt: identity, isCurrent: true, version: '1',
         }];
 
-        await expect(storage.initialize(configs))
+        const options = {
+          apiKey: 'string',
+          environmentId: 'string',
+          endpoint: POPAPI_HOST,
+          logger: LOGGER_STUB,
+          getSecrets: () => '',
+        };
+
+        await expect(createStorage(options, configs))
           .to.be.rejectedWith(CUSTOM_ENCRYPTION_CONFIG_ERROR_MESSAGE_VERSIONS);
       });
     });

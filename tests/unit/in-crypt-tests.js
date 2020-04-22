@@ -133,34 +133,43 @@ describe('InCrypt', function () {
       return Promise.all(
         [
           [{
-            encrypt: 'encrypt',
-            decrypt: 'decrypt',
+            decrypt: () => {},
             isCurrent: true,
-            version: false,
-          }],
-          [{
-            encrypt: 'encrypt',
-            decrypt: 'decrypt',
-            isCurrent: '',
             version: '',
           }],
           [{
-            encrypt: 'encrypt',
+            encrypt: () => {},
+            decrypt: () => {},
+            isCurrent: 'true',
+            version: '',
+          }],
+          [{
+            encrypt: () => {},
             decrypt: () => {},
             isCurrent: true,
             version: 1,
           }],
           [{
             encrypt: () => {},
-            decrypt: () => 111,
+            decrypt: '',
             isCurrent: true,
-            version: 1,
+            version: '',
+          }],
+          [{
+            encrypt: '',
+            decrypt: () => {},
+            isCurrent: true,
+            version: '',
           }],
         ].map((configs) => {
           const incrypt = new InCrypt(secretKeyAccessor);
-          return expect(incrypt.initialize(configs)).to.be.rejectedWith(StorageClientError, '<CustomEncryptionConfigs>');
+          return expect(() => incrypt.setCustomEncryption(configs)).to.throw(StorageClientError, '<CustomEncryptionConfigs>');
         }),
       );
+    });
+
+    it('should check encrypt and decrypt', () => {
+
     });
 
     PLAINTEXTS.forEach((plain) => {
@@ -177,8 +186,7 @@ describe('InCrypt', function () {
         }));
 
         const incrypt = new InCrypt(secretKeyAccessor);
-
-        await incrypt.initialize(configs);
+        incrypt.setCustomEncryption(configs);
 
         const encrypted = await incrypt.encrypt(plain);
         expect(encrypted.message.startsWith(CUSTOM_ENCRYPTION_VERSION_PREFIX)).to.equal(true, `No custom encryption prefix in '${encrypted.message.substr(0, 5)}...'`);
@@ -200,8 +208,7 @@ describe('InCrypt', function () {
         }));
 
         const incrypt = new InCrypt(secretKeyAccessor);
-
-        await incrypt.initialize(configs);
+        incrypt.setCustomEncryption(configs);
 
         const encrypted = await incrypt.encrypt(plain);
         expect(encrypted.message.startsWith(CUSTOM_ENCRYPTION_VERSION_PREFIX)).to.equal(true, `No custom encryption prefix in '${encrypted.message.substr(0, 5)}...'`);
@@ -222,8 +229,7 @@ describe('InCrypt', function () {
         }));
 
         const incrypt = new InCrypt(secretKeyAccessor);
-
-        await incrypt.initialize(configs);
+        incrypt.setCustomEncryption(configs);
 
         const encrypted = await incrypt.encrypt(plain);
         expect(encrypted.message.startsWith(VERSION)).to.equal(true, 'No default encryption prefix');
@@ -242,8 +248,7 @@ describe('InCrypt', function () {
       }];
 
       const incrypt = new InCrypt();
-
-      await expect(incrypt.initialize(configs)).to.be.rejectedWith(StorageCryptoError, CUSTOM_ENCRYPTION_ERROR_MESSAGE_NO_SKA);
+      expect(() => incrypt.setCustomEncryption(configs)).to.throw(StorageCryptoError, CUSTOM_ENCRYPTION_ERROR_MESSAGE_NO_SKA);
     });
 
     xit('should throw an error if custom encryption "encrypt" function returns not string', async function () {
@@ -259,8 +264,9 @@ describe('InCrypt', function () {
       }));
 
       const incrypt = new InCrypt(secretKeyAccessor);
+      incrypt.setCustomEncryption(configs);
 
-      await expect(incrypt.initialize(configs)).to.be.rejectedWith(StorageClientError, CUSTOM_ENCRYPTION_ERROR_MESSAGE_ENC);
+      await expect(incrypt.validate()).to.be.rejectedWith(StorageClientError, CUSTOM_ENCRYPTION_ERROR_MESSAGE_ENC);
     });
 
     xit('should throw an error if custom encryption "decrypt" function returns not string', async function () {
@@ -276,8 +282,9 @@ describe('InCrypt', function () {
       }));
 
       const incrypt = new InCrypt(secretKeyAccessor);
+      incrypt.setCustomEncryption(configs);
 
-      await expect(incrypt.initialize(configs)).to.be.rejectedWith(StorageClientError, CUSTOM_ENCRYPTION_ERROR_MESSAGE_DEC);
+      await expect(incrypt.validate()).to.be.rejectedWith(StorageClientError, CUSTOM_ENCRYPTION_ERROR_MESSAGE_DEC);
     });
 
     it('should accept keys of any length', async function () {
@@ -296,8 +303,8 @@ describe('InCrypt', function () {
       }));
 
       const incrypt = new InCrypt(secretKeyAccessor);
-
-      await expect(incrypt.initialize(configs)).to.not.be.rejected;
+      incrypt.setCustomEncryption(configs);
+      await expect(incrypt.validate()).to.not.be.rejected;
     });
   });
 
