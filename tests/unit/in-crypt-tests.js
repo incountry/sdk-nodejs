@@ -168,9 +168,6 @@ describe('InCrypt', function () {
       );
     });
 
-    it('should check encrypt and decrypt', () => {
-
-    });
 
     PLAINTEXTS.forEach((plain) => {
       it(`should encrypt and decrypt text "${plain}" using custom encryption`, async function () {
@@ -251,7 +248,7 @@ describe('InCrypt', function () {
       expect(() => incrypt.setCustomEncryption(configs)).to.throw(StorageCryptoError, CUSTOM_ENCRYPTION_ERROR_MESSAGE_NO_SKA);
     });
 
-    xit('should throw an error if custom encryption "encrypt" function returns not string', async function () {
+    it('should throw an error if custom encryption "encrypt" function returns not string', async function () {
       const configs = [{
         encrypt: () => 100,
         decrypt: () => { },
@@ -266,10 +263,13 @@ describe('InCrypt', function () {
       const incrypt = new InCrypt(secretKeyAccessor);
       incrypt.setCustomEncryption(configs);
 
-      await expect(incrypt.validate()).to.be.rejectedWith(StorageClientError, CUSTOM_ENCRYPTION_ERROR_MESSAGE_ENC);
+      return expect(incrypt.validate()).to.be.rejected.then((errors) => {
+        expect(errors[0]).to.be.instanceOf(StorageCryptoError);
+        expect(errors[0].message).to.contain(CUSTOM_ENCRYPTION_ERROR_MESSAGE_ENC);
+      });
     });
 
-    xit('should throw an error if custom encryption "decrypt" function returns not string', async function () {
+    it('should throw an error if custom encryption "decrypt" function returns not string', async function () {
       const configs = [{
         encrypt: () => '',
         decrypt: () => 100,
@@ -284,7 +284,10 @@ describe('InCrypt', function () {
       const incrypt = new InCrypt(secretKeyAccessor);
       incrypt.setCustomEncryption(configs);
 
-      await expect(incrypt.validate()).to.be.rejectedWith(StorageClientError, CUSTOM_ENCRYPTION_ERROR_MESSAGE_DEC);
+      return expect(incrypt.validate()).to.be.rejected.then((errors) => {
+        expect(errors[0]).to.be.instanceOf(StorageCryptoError);
+        expect(errors[0].message).to.contain(CUSTOM_ENCRYPTION_ERROR_MESSAGE_DEC);
+      });
     });
 
     it('should accept keys of any length', async function () {
