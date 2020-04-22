@@ -313,20 +313,6 @@ describe('Storage', () => {
     });
 
     describe('initialize', () => {
-      let storage;
-
-      beforeEach(async () => {
-        storage = await createStorage({
-          apiKey: 'apiKey',
-          environmentId: 'envId',
-          endpoint: '',
-          getSecrets: () => ({
-            secrets: [{ secret: 'test', version: 0, isForCustomEncryption: true }],
-            currentVersion: 0,
-          }),
-        });
-      });
-
       it('should throw an error when setting custom encryption configs with disabled encryption', async () => {
         const options = {
           apiKey: 'string',
