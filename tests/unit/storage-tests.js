@@ -752,6 +752,7 @@ describe('Storage', () => {
               { aa: true },
               { aa: () => 1 },
               { aaa1: { $not: () => 1 } },
+              { aaa1: { cccccc: 1 } },
               { aaa1: { $not: { $not: 1 } } },
               { aaa3: { $gt: 'ccc' } },
               { aaa3: { $gt: [] } },
