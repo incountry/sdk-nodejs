@@ -221,8 +221,8 @@ It is possible to search by random keys using `find` method.
 You can specify filter object for every record key combining different queries:
 - single value
 - several values as an array
-- a logical NOT operation on the specific field `$not` (only for number fields such as `range_key` and `version`)
-- comparison operations `$lt`, `$lte`, `$gt`, `$gte` (only for number fields such as `range_key` and `version`)
+- `$not` a logical NOT operation on `version` field
+- comparison operations `$lt`, `$lte`, `$gt`, `$gte` for `range_key` field
 
 The `options` parameter defines the `limit` - number of records to return and the `offset`- starting index.
 It can be used to implement pagination. Note: SDK returns 100 records at most.
