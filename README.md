@@ -221,7 +221,7 @@ It is possible to search by random keys using `find` method.
 You can specify filter object for every record key combining different queries:
 - single value
 - several values as an array
-- a logical NOT operation on the specific field `$not`
+- a logical NOT operation on the specific field `$not` (only for number fields such as `range_key` and `version`)
 - comparison operations `$lt`, `$lte`, `$gt`, `$gte` (only for number fields such as `range_key` and `version`)
 
 The `options` parameter defines the `limit` - number of records to return and the `offset`- starting index.
@@ -230,7 +230,7 @@ It can be used to implement pagination. Note: SDK returns 100 records at most.
 
 ```javascript
 /**
- * @typedef {string | Array<string> | { $not: string | Array<string> }} FilterStringValue
+ * @typedef {string | Array<string>} FilterStringValue
 */
 
 /**
@@ -273,7 +273,6 @@ Example of usage:
 const filter = {
   key: 'abc',
   key2: ['def', 'jkl'],
-  key3: { $not: 'test' }
   profile_key: 'test2',
   range_key: { $gte: 5, $lte: 100 },
   version: { $not: [0, 1] },
