@@ -749,22 +749,28 @@ describe('Storage', () => {
               1,
               [],
               () => 1,
-              [{ a: 1 }],
+              { aa: true },
               { aa: () => 1 },
+              { aaa1: { $not: () => 1 } },
+              { aaa1: { $not: { $not: 1 } } },
+              { aaa3: { $gt: 'ccc' } },
+              { aaa3: { $gt: [] } },
             ].map((filter) => expect(encStorage.find(COUNTRY, filter))
               .to.be.rejectedWith(StorageError, '<FindFilter>', `wrong filter format: ${JSON.stringify(filter)}`)),
           ));
 
-          it('should  not throw an error when filter has correct format', async () => Promise.all(
+          it('should not throw an error when filter has correct format', async () => Promise.all(
             [
               {},
               { aa: 1 },
-              { aa: '' },
               { aa: [] },
               { aa: [1] },
-              { aa: [''] },
               { aa: { $not: 1 } },
+              { aa: { $not: [1] } },
               { aa: { $gt: 1 } },
+              { aa: { $lt: 1 } },
+              { aa: '' },
+              { aa: [''] },
             ].map((filter) => expect(encStorage.find(COUNTRY, filter))
               .not.to.be.rejectedWith(StorageError, '<FindFilter>', `wrong filter format: ${JSON.stringify(filter)}`)),
           ));
