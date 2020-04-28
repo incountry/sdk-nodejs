@@ -30,10 +30,20 @@ const dataRequest2 = {
   body: JSON.stringify({ name: 'PersonName2' }),
 };
 
+const dataRequest3 = {
+  key: Math.random().toString(36).substr(2, 10),
+  key2: Math.random().toString(36).substr(2, 10),
+  key3: Math.random().toString(36).substr(2, 10),
+  profile_key: Math.random().toString(36).substr(2, 10),
+  range_key: Math.floor(Math.random() * 100) + 1,
+  body: JSON.stringify({ name: 'PersonName3' }),
+};
+
 describe('Find records', function () {
   after(async function () {
     await storage.delete(COUNTRY, dataRequest.key).catch(noop);
     await storage.delete(COUNTRY, dataRequest2.key).catch(noop);
+    await storage.delete(COUNTRY, dataRequest3.key).catch(noop);
   });
 
   [false, true].forEach((encryption) => {
@@ -42,6 +52,7 @@ describe('Find records', function () {
         storage = await createStorage(encryption);
         await storage.write(COUNTRY, dataRequest);
         await storage.write(COUNTRY, dataRequest2);
+        await storage.write(COUNTRY, dataRequest3);
       });
 
       xit('Find records by country', async function () {
@@ -148,17 +159,21 @@ describe('Find records', function () {
         expect(meta.total).to.equal(2);
       });
 
-      it('Find records by filter with $not', async function () {
+      xit('Find records by filter with $not', async function () {
+        const { records: allRecords } = await storage.find(COUNTRY, {}, {});
+        expect(allRecords).to.have.lengthOf(3);
+
         const { records } = await storage.find(COUNTRY,
           { key2: dataRequest.key2 }, {});
 
         expect(records).to.have.lengthOf(1);
         expect(records[0]).to.include(dataRequest);
 
-        const { meta } = await storage.find(COUNTRY,
+        const { meta, records: recordsFound } = await storage.find(COUNTRY,
           { key2: { $not: dataRequest.key2 } }, {});
 
-        expect(meta.count).to.be.above(0);
+        expect(meta.count).to.equal(2);
+        expect(recordsFound.map((r) => r.key)).to.include.members([dataRequest2.key, dataRequest3.key]);
       });
 
       xit('Records not found by key value', async function () {
