@@ -122,6 +122,17 @@ describe('Storage', () => {
     describe('constructor arguments check', () => {
       describe('options', () => {
         describe('endpoint', () => {
+          let envApiKey;
+
+          beforeEach(() => {
+            envApiKey = process.env.INC_API_KEY;
+            delete process.env.INC_API_KEY;
+          });
+
+          afterEach(() => {
+            process.env.INC_API_KEY = envApiKey;
+          });
+
           it('should be string ', async () => {
             await Promise.all([{ endpoint: [] }, { endpoint: 123 }].map(async (options) => {
               await expect(createStorage(options))
@@ -129,7 +140,10 @@ describe('Storage', () => {
             }));
           });
 
-          it('should not throw error if endpoint missing', async () => expect(createStorage({ encrypt: false })).not.to.be.rejected);
+          it('should not throw error if endpoint missing', async () => {
+            process.env.INC_API_KEY = 'apiKey';
+            await expect(createStorage({ encrypt: false })).not.to.be.rejected;
+          });
         });
 
         describe('apiKey', () => {
