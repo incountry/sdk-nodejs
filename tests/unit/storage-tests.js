@@ -123,14 +123,19 @@ describe('Storage', () => {
       describe('options', () => {
         describe('endpoint', () => {
           let envApiKey;
+          let envEnvironmentId;
 
           beforeEach(() => {
             envApiKey = process.env.INC_API_KEY;
             delete process.env.INC_API_KEY;
+
+            envEnvironmentId = process.env.INC_ENVIRONMENT_ID;
+            delete process.env.INC_ENVIRONMENT_ID;
           });
 
           afterEach(() => {
             process.env.INC_API_KEY = envApiKey;
+            process.env.INC_ENVIRONMENT_ID = envEnvironmentId;
           });
 
           it('should be string ', async () => {
@@ -142,6 +147,7 @@ describe('Storage', () => {
 
           it('should not throw error if endpoint missing', async () => {
             process.env.INC_API_KEY = 'apiKey';
+            process.env.INC_ENVIRONMENT_ID = 'envId';
             await expect(createStorage({ encrypt: false })).not.to.be.rejected;
           });
         });
