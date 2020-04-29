@@ -50,7 +50,7 @@ const storage = new Storage({
 await storage.validate();
 ```
 
-`validate` method fetches secret data using `GetSecretsCallback` and validates it. If custom encryption configs were provided they would also be checked also with all matching secrets.
+`validate` method fetches secret data using `GetSecretsCallback` and validates it. If custom encryption configs were provided they would also be checked with all matching secrets.
 
 
 #### Encryption key/secret
