@@ -26,7 +26,7 @@ const { createStorage } = require('incountry');
 const storage = await createStorage({
   apiKey: 'API_KEY',                // {string} Required to be passed in, or as environment variable INC_API_KEY
   environmentId: 'ENVIRONMENT_ID',  // {string} Required to be passed in, or as environment variable INC_ENVIRONMENT_ID
-  endpoint: 'INC_URL',              // {string} Defines API URL
+  endpoint: 'INC_URL',              // {string} Optional - Defines API URL
   encrypt: true,                    // {boolean} Optional - If false, encryption is not used. If omitted is set to true.
   getSecrets: () => '',             // {GetSecretsCallback} Optional - Used to fetch encryption secret
 });
@@ -481,7 +481,6 @@ const getSecretsCallback = () => {
 const options = {
   apiKey: 'API_KEY',
   environmentId: 'ENVIRONMENT_ID',
-  endpoint: 'INC_URL',
   encrypt: true,
   getSecrets: getSecretsCallback,
 }};
