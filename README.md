@@ -26,7 +26,7 @@ const { createStorage } = require('incountry');
 const storage = await createStorage({
   apiKey: 'API_KEY',                // {string} Required to be passed in, or as environment variable INC_API_KEY
   environmentId: 'ENVIRONMENT_ID',  // {string} Required to be passed in, or as environment variable INC_ENVIRONMENT_ID
-  endpoint: 'INC_URL',              // {string} Defines API URL
+  endpoint: 'INC_URL',              // {string} Optional - Defines API URL
   encrypt: true,                    // {boolean} Optional - If false, encryption is not used. If omitted is set to true.
   getSecrets: () => '',             // {GetSecretsCallback} Optional - Used to fetch encryption secret
 });
@@ -221,8 +221,8 @@ It is possible to search by random keys using `find` method.
 You can specify filter object for every record key combining different queries:
 - single value
 - several values as an array
-- a logical NOT operation on the specific field `$not`
-- comparison operations `$lt`, `$lte`, `$gt`, `$gte` (only for number fields such as `range_key` and `version`)
+- a logical NOT operator for `version`
+- comparison operators for `range_key`
 
 The `options` parameter defines the `limit` - number of records to return and the `offset`- starting index.
 It can be used to implement pagination. Note: SDK returns 100 records at most.
@@ -230,7 +230,7 @@ It can be used to implement pagination. Note: SDK returns 100 records at most.
 
 ```javascript
 /**
- * @typedef {string | Array<string> | { $not: string | Array<string> }} FilterStringValue
+ * @typedef {string | Array<string>} FilterStringValue
 */
 
 /**
@@ -273,7 +273,6 @@ Example of usage:
 const filter = {
   key: 'abc',
   key2: ['def', 'jkl'],
-  key3: { $not: 'test' }
   profile_key: 'test2',
   range_key: { $gte: 5, $lte: 100 },
   version: { $not: [0, 1] },
@@ -482,7 +481,6 @@ const getSecretsCallback = () => {
 const options = {
   apiKey: 'API_KEY',
   environmentId: 'ENVIRONMENT_ID',
-  endpoint: 'INC_URL',
   encrypt: true,
   getSecrets: getSecretsCallback,
 }};
