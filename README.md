@@ -34,6 +34,25 @@ const storage = await createStorage({
 
 `apiKey` and `environmentId` can be fetched from your dashboard on `Incountry` site.
 
+
+Otherwise you can create an instance of `Storage` class and run all async checks by yourself (or not run at your own risk!)
+
+```javascript
+const { Storage } = require('incountry');
+const storage = new Storage({
+  apiKey: 'API_KEY',
+  environmentId: 'ENVIRONMENT_ID',
+  endpoint: 'INC_URL',
+  encrypt: true,
+  getSecrets: () => '',
+});
+
+await storage.validate();
+```
+
+`validate` method fetches secret data using `GetSecretsCallback` and validates it. If custom encryption configs were provided they would also be checked with all matching secrets.
+
+
 #### Encryption key/secret
 
 `GetSecretsCallback` is used to pass a key or secret used for encryption.

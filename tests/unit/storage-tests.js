@@ -5,7 +5,7 @@ const nock = require('nock');
 const uuid = require('uuid/v4');
 const _ = require('lodash');
 const { identity } = require('../../lib/utils');
-const createStorage = require('../../lib/storage');
+const { createStorage } = require('../../lib/storage');
 const { StorageServerError, StorageClientError, StorageError } = require('../../lib/errors');
 const CountriesCache = require('../../lib/countries-cache');
 const {
@@ -384,19 +384,6 @@ describe('Storage', () => {
     });
 
     describe('initialize', () => {
-      let storage;
-
-      beforeEach(async () => {
-        storage = await createStorage({
-          apiKey: 'apiKey',
-          environmentId: 'envId',
-          getSecrets: () => ({
-            secrets: [{ secret: 'test', version: 0, isForCustomEncryption: true }],
-            currentVersion: 0,
-          }),
-        });
-      });
-
       it('should throw an error when setting custom encryption configs with disabled encryption', async () => {
         const options = {
           apiKey: 'string',
@@ -406,17 +393,23 @@ describe('Storage', () => {
           logger: LOGGER_STUB,
         };
 
-        const storageWithoutEnc = await createStorage(options);
-
         const customEncryptionConfigs = [{ encrypt: () => { }, decrypt: () => { }, version: '' }];
 
-        await expect(storageWithoutEnc.initialize(customEncryptionConfigs))
+        await expect(createStorage(options, customEncryptionConfigs))
           .to.be.rejectedWith(StorageClientError, 'Cannot use custom encryption when encryption is off');
       });
 
       it('should throw an error if configs object is malformed', () => Promise.all(['', {}, () => { }]
         .map(async (configs) => {
-          await expect(storage.initialize(configs))
+          const options = {
+            apiKey: 'string',
+            environmentId: 'string',
+            endpoint: POPAPI_HOST,
+            logger: LOGGER_STUB,
+            getSecrets: () => '',
+          };
+
+          await expect(createStorage(options, configs), `with ${JSON.stringify(configs)}`)
             .to.be.rejectedWith(CUSTOM_ENCRYPTION_CONFIG_ERROR_MESSAGE_ARRAY);
         })));
 
@@ -427,7 +420,15 @@ describe('Storage', () => {
           encrypt: identity, decrypt: identity, isCurrent: true, version: '2',
         }];
 
-        await expect(storage.initialize(configs))
+        const options = {
+          apiKey: 'string',
+          environmentId: 'string',
+          endpoint: POPAPI_HOST,
+          logger: LOGGER_STUB,
+          getSecrets: () => '',
+        };
+
+        await expect(createStorage(options, configs))
           .to.be.rejectedWith(CUSTOM_ENCRYPTION_CONFIG_ERROR_MESSAGE_CURRENT);
       });
 
@@ -438,7 +439,15 @@ describe('Storage', () => {
           encrypt: identity, decrypt: identity, isCurrent: true, version: '1',
         }];
 
-        await expect(storage.initialize(configs))
+        const options = {
+          apiKey: 'string',
+          environmentId: 'string',
+          endpoint: POPAPI_HOST,
+          logger: LOGGER_STUB,
+          getSecrets: () => '',
+        };
+
+        await expect(createStorage(options, configs))
           .to.be.rejectedWith(CUSTOM_ENCRYPTION_CONFIG_ERROR_MESSAGE_VERSIONS);
       });
     });

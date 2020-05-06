@@ -252,7 +252,7 @@ describe('SecretKeyAccessor', () => {
         await expect(secretKeyAccessor1.getSecret()).to.be.rejectedWith(StorageClientError);
 
         const secretKeyAccessor2 = new SecretKeyAccessor(() => ({ blabla: secret }));
-        await expect(secretKeyAccessor2.initialize()).to.be.rejectedWith(StorageClientError);
+        await expect(secretKeyAccessor2.validate()).to.be.rejectedWith(StorageClientError);
       });
 
       it('should reject if there is no key of "currentVersion"', () => {
