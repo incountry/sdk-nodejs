@@ -122,11 +122,33 @@ describe('Storage', () => {
     describe('constructor arguments check', () => {
       describe('options', () => {
         describe('endpoint', () => {
-          it('should be provided ', async () => {
-            await Promise.all([{ }, { endpoint: undefined }, { encrypt: false }].map(async (options) => {
+          let envApiKey;
+          let envEnvironmentId;
+
+          beforeEach(() => {
+            envApiKey = process.env.INC_API_KEY;
+            delete process.env.INC_API_KEY;
+
+            envEnvironmentId = process.env.INC_ENVIRONMENT_ID;
+            delete process.env.INC_ENVIRONMENT_ID;
+          });
+
+          afterEach(() => {
+            process.env.INC_API_KEY = envApiKey;
+            process.env.INC_ENVIRONMENT_ID = envEnvironmentId;
+          });
+
+          it('should be string ', async () => {
+            await Promise.all([{ endpoint: [] }, { endpoint: 123 }].map(async (options) => {
               await expect(createStorage(options))
                 .to.be.rejectedWith(StorageError, 'endpoint should be string');
             }));
+          });
+
+          it('should not throw error if endpoint missing', async () => {
+            process.env.INC_API_KEY = 'apiKey';
+            process.env.INC_ENVIRONMENT_ID = 'envId';
+            await expect(createStorage({ encrypt: false })).not.to.be.rejected;
           });
         });
 
@@ -143,7 +165,7 @@ describe('Storage', () => {
           });
 
           it('should be provided via either options or environment variable', async () => {
-            await Promise.all([{ endpoint: '' }, { endpoint: '', apiKey: undefined }].map(async (options) => {
+            await Promise.all([{ }, { apiKey: undefined }].map(async (options) => {
               await expect(createStorage(options))
                 .to.be.rejectedWith(StorageError, 'Please pass apiKey in options or set INC_API_KEY env var');
             }));
@@ -152,12 +174,11 @@ describe('Storage', () => {
               apiKey: 'apiKey',
               environmentId: 'envId',
               encrypt: false,
-              endpoint: '',
             })).not.to.be.rejectedWith(StorageError);
 
             process.env.INC_API_KEY = 'apiKey';
 
-            await expect(createStorage({ environmentId: 'envId', encrypt: false, endpoint: '' })).not.to.be.rejectedWith(StorageError);
+            await expect(createStorage({ environmentId: 'envId', encrypt: false })).not.to.be.rejectedWith(StorageError);
           });
         });
 
@@ -174,7 +195,7 @@ describe('Storage', () => {
           });
 
           it('should be provided via either options or environment variable', async () => {
-            await Promise.all([{ apiKey: 'apiKey', endpoint: '' }, { apiKey: 'apiKey', environmentId: undefined, endpoint: '' }].map(async (options) => {
+            await Promise.all([{ apiKey: 'apiKey' }, { apiKey: 'apiKey', environmentId: undefined }].map(async (options) => {
               await expect(createStorage(options))
                 .to.be.rejectedWith(StorageError, 'Please pass environmentId in options or set INC_ENVIRONMENT_ID env var');
             }));
@@ -183,12 +204,64 @@ describe('Storage', () => {
               apiKey: 'apiKey',
               environmentId: 'envId',
               encrypt: false,
-              endpoint: '',
+
             })).not.to.be.rejected;
 
             process.env.INC_ENVIRONMENT_ID = 'envId';
 
-            await expect(createStorage({ apiKey: 'apiKey', encrypt: false, endpoint: '' })).not.to.be.rejectedWith(StorageError);
+            await expect(createStorage({ apiKey: 'apiKey', encrypt: false })).not.to.be.rejectedWith(StorageError);
+          });
+        });
+
+        describe('oauth', () => {
+          const baseOptions = {
+            apiKey: 'apiKey', environmentId: 'envId', encrypt: false, oauth: {},
+          };
+
+          describe('clientId', () => {
+            let clientId;
+
+            beforeEach(() => {
+              clientId = process.env.INC_CLIENT_ID;
+              delete process.env.INC_CLIENT_ID;
+            });
+
+            afterEach(() => {
+              process.env.INC_CLIENT_ID = clientId;
+            });
+
+            it('should be provided via either options or environment variable', async () => {
+              await Promise.all([baseOptions, { ...baseOptions, oauth: { clientId: undefined } }].map(async (options) => {
+                await expect(createStorage(options))
+                  .to.be.rejectedWith(StorageClientError, 'Please pass clientId in options or set INC_CLIENT_ID env var');
+              }));
+              await expect(createStorage({ ...baseOptions, oauth: { clientId: 'clientId', clientSecret: 'clientSecret' } })).not.to.be.rejected;
+              process.env.INC_CLIENT_ID = 'clientId';
+              await expect(createStorage({ ...baseOptions, oauth: { clientSecret: 'clientSecret' } })).not.to.be.rejected;
+            });
+          });
+
+          describe('clientSecret', () => {
+            let clientSecret;
+
+            beforeEach(() => {
+              clientSecret = process.env.INC_CLIENT_SECRET;
+              delete process.env.INC_CLIENT_SECRET;
+            });
+
+            afterEach(() => {
+              process.env.INC_CLIENT_SECRET = clientSecret;
+            });
+
+            it('should be provided via either options or environment variable', async () => {
+              await Promise.all([baseOptions, { ...baseOptions, oauth: { clientId: 'clientId', clientSecret: undefined } }].map(async (options) => {
+                await expect(createStorage(options))
+                  .to.be.rejectedWith(StorageClientError, 'Please pass clientSecret in options or set INC_CLIENT_SECRET env var');
+              }));
+              await expect(createStorage({ ...baseOptions, oauth: { clientId: 'clientId', clientSecret: 'clientSecret' } })).not.to.be.rejected;
+              process.env.INC_CLIENT_SECRET = 'clientSecret';
+              await expect(createStorage({ ...baseOptions, oauth: { clientId: 'clientId' } })).not.to.be.rejected;
+            });
           });
         });
       });
@@ -249,7 +322,7 @@ describe('Storage', () => {
 
       describe('logger', () => {
         it('should throw an error if provided logger is not object or has no "write" method or is not a function', async () => {
-          const expectStorageConstructorThrowsError = async (wrongLogger) => expect(createStorage({ encrypt: false, endpoint: '', logger: wrongLogger }))
+          const expectStorageConstructorThrowsError = async (wrongLogger) => expect(createStorage({ encrypt: false, logger: wrongLogger }))
             .to.be.rejectedWith(StorageError, 'logger');
 
 
@@ -267,7 +340,6 @@ describe('Storage', () => {
         storage = await createStorage({
           apiKey: 'apiKey',
           environmentId: 'envId',
-          endpoint: '',
           encrypt: false,
         });
       });
@@ -302,7 +374,6 @@ describe('Storage', () => {
           apiKey: 'apiKey',
           environmentId: 'envId',
           encrypt: false,
-          endpoint: '',
         });
         const wrongCountriesCaches = [null, undefined, false, {}];
         wrongCountriesCaches.forEach((item) => {
@@ -757,22 +828,29 @@ describe('Storage', () => {
               1,
               [],
               () => 1,
-              [{ a: 1 }],
+              { aa: true },
               { aa: () => 1 },
+              { aaa1: { $not: () => 1 } },
+              { aaa1: { cccccc: 1 } },
+              { aaa1: { $not: { $not: 1 } } },
+              { aaa3: { $gt: 'ccc' } },
+              { aaa3: { $gt: [] } },
             ].map((filter) => expect(encStorage.find(COUNTRY, filter))
               .to.be.rejectedWith(StorageError, '<FindFilter>', `wrong filter format: ${JSON.stringify(filter)}`)),
           ));
 
-          it('should  not throw an error when filter has correct format', async () => Promise.all(
+          it('should not throw an error when filter has correct format', async () => Promise.all(
             [
               {},
               { aa: 1 },
-              { aa: '' },
               { aa: [] },
               { aa: [1] },
-              { aa: [''] },
               { aa: { $not: 1 } },
+              { aa: { $not: [1] } },
               { aa: { $gt: 1 } },
+              { aa: { $lt: 1 } },
+              { aa: '' },
+              { aa: [''] },
             ].map((filter) => expect(encStorage.find(COUNTRY, filter))
               .not.to.be.rejectedWith(StorageError, '<FindFilter>', `wrong filter format: ${JSON.stringify(filter)}`)),
           ));

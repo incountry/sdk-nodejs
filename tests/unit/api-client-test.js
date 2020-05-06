@@ -3,9 +3,11 @@ chai.use(require('chai-as-promised'));
 
 const nock = require('nock');
 const { ApiClient } = require('../../lib/api-client');
+const { AuthClient, getApiKeyAuthClient } = require('../../lib/auth-client');
 const { StorageServerError, StorageError } = require('../../lib/errors');
 const CountriesCache = require('../../lib/countries-cache');
-const { nockEndpoint } = require('../test-helpers/popapi-nock');
+const { accessTokenResponse, nockDefaultAuth } = require('../test-helpers/auth-nock');
+const { getNockedRequestHeaders, nockEndpoint } = require('../test-helpers/popapi-nock');
 
 const { expect, assert } = chai;
 
@@ -22,12 +24,13 @@ function createFakeCountriesCache(countries) {
   return countriesCache;
 }
 
-const getApiClient = (host = undefined, cache = undefined) => {
+const getApiClient = (host = undefined, cache = undefined, useApiKey = true) => {
   const apiKey = 'string';
   const environmentId = 'string';
   const loggerFn = (a, b) => [a, b];
+  const authClient = useApiKey ? getApiKeyAuthClient(apiKey) : new AuthClient('clientId', 'clientSecret');
 
-  return new ApiClient(apiKey, environmentId, host, loggerFn, cache ? cache.getCountriesAsync.bind(cache) : cache);
+  return new ApiClient(authClient, environmentId, host, loggerFn, cache ? cache.getCountriesAsync.bind(cache) : cache);
 };
 
 describe('ApiClient', () => {
@@ -159,6 +162,23 @@ describe('ApiClient', () => {
         await expect(apiClient.runQuery(COUNTRY, undefined, 'find', filter)).to.be.rejectedWith(StorageServerError);
         assert.equal(wrongPopAPI.isDone(), true, 'Nock scope is done');
       });
+    });
+  });
+
+  describe('authorization', () => {
+    let apiClient;
+
+    beforeEach(() => {
+      apiClient = getApiClient(POPAPI_HOST, undefined, false);
+      nockDefaultAuth().reply(200, accessTokenResponse());
+    });
+
+    it('should send access_token in Authorization header', async () => {
+      const popAPI = nockEndpoint(POPAPI_HOST, 'write', COUNTRY).reply(200, 'OK');
+      const [headers] = await Promise.all([getNockedRequestHeaders(popAPI), apiClient.runQuery(COUNTRY, undefined, 'write', {})]);
+      const { authorization } = headers;
+      expect(authorization).to.eq('Bearer access_token');
+      assert.equal(popAPI.isDone(), true, 'Nock scope is done');
     });
   });
 });
