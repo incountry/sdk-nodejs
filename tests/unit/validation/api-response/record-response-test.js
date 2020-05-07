@@ -26,7 +26,7 @@ describe('Validation', () => {
       ].map((data) => {
         const result = RecordResponseIO.decode(data);
         return expect(isValid(result))
-          .to.equal(true, `got error: ${getErrorMessage(result)} with correct record data: ${JSON.stringify(data)}`);
+          .to.equal(true, `${getErrorMessage(result)} with correct record data: ${JSON.stringify(data)}`);
       });
     });
 
@@ -39,6 +39,9 @@ describe('Validation', () => {
         { ...EMPTY_RECORD_FIELDS, version: 111.111 },
         { ...EMPTY_RECORD_FIELDS, version: -111.111 },
         { ...EMPTY_RECORD_FIELDS, version: 'aaaa' },
+        { ...EMPTY_RECORD_FIELDS, key: undefined },
+        { ...EMPTY_RECORD_FIELDS, body: undefined },
+        { ...EMPTY_RECORD_FIELDS, version: undefined },
       ].map((data) => expect(isValid(RecordResponseIO.decode(data)))
         .to.equal(false, `is valid with wrong record data: ${JSON.stringify(data)}`));
     });
