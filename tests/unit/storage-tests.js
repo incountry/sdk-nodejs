@@ -4,6 +4,7 @@ chai.use(require('chai-as-promised'));
 const nock = require('nock');
 const uuid = require('uuid/v4');
 const _ = require('lodash');
+const crypto = require('crypto');
 const { identity } = require('../../lib/utils');
 const createStorage = require('../../lib/storage');
 const { StorageServerError, StorageClientError, StorageError } = require('../../lib/errors');
@@ -26,6 +27,7 @@ const { expect, assert } = chai;
 
 const COUNTRY = 'us';
 const SECRET_KEY = 'password';
+const ENVIRONMENT_ID = uuid();
 const POPAPI_HOST = `https://${COUNTRY}.api.incountry.io`;
 const PORTAL_BACKEND_HOST = 'portal-backend.incountry.com';
 const PORTAL_BACKEND_COUNTRIES_LIST_PATH = '/countries';
@@ -88,7 +90,7 @@ const defaultGetSecretsCallback = () => SECRET_KEY;
 
 const getDefaultStorage = async (encrypt, normalizeKeys, getSecrets = defaultGetSecretsCallback, customEncConfigs) => createStorage({
   apiKey: 'string',
-  environmentId: 'string',
+  environmentId: ENVIRONMENT_ID,
   endpoint: POPAPI_HOST,
   encrypt,
   normalizeKeys,
@@ -388,6 +390,55 @@ describe('Storage', () => {
 
         await expect(storage.initialize(configs))
           .to.be.rejectedWith(CUSTOM_ENCRYPTION_CONFIG_ERROR_MESSAGE_VERSIONS);
+      });
+    });
+
+    describe('createKeyHash', () => {
+      it('should make hashes with constant salt', () => {
+        const key = uuid();
+        const hash1 = encStorage.createKeyHash(key);
+        const hash2 = encStorage.createKeyHash(key);
+        expect(hash1).to.equal(hash2);
+      });
+
+      it('should make different hashes of the same key in different Storages', async () => {
+        const key = uuid();
+        const storage2 = await createStorage({
+          apiKey: 'apiKey',
+          environmentId: uuid(),
+          encrypt: false,
+        });
+        const hash1 = encStorage.createKeyHash(key);
+        const hash2 = storage2.createKeyHash(key);
+        expect(hash1).to.not.equal(hash2);
+      });
+
+      it('should make equal hashes of the same key in different Storages with the same environmentId', async () => {
+        const key = uuid();
+        const storage2 = await createStorage({
+          apiKey: 'apiKey',
+          environmentId: ENVIRONMENT_ID,
+          encrypt: false,
+        });
+        const hash1 = encStorage.createKeyHash(key);
+        const hash2 = storage2.createKeyHash(key);
+        expect(hash1).to.equal(hash2);
+      });
+
+      it('should concatenate key with environmentId before hashing', () => {
+        const key = uuid();
+        const keyWithEnvId = `${key}:${ENVIRONMENT_ID}`;
+        const makeHash = (str) => crypto.createHash('sha256').update(str, 'utf8').digest('hex');
+
+        const storageKeyHash = encStorage.createKeyHash(key);
+        const correctKeyHash = makeHash(keyWithEnvId);
+        const incorrectKeyHash = makeHash(`${key}:`);
+        const incorrectKeyHash2 = makeHash(`${key}:undefined`);
+
+        expect(incorrectKeyHash).to.not.equal(correctKeyHash, 'Unsalted hash is equal to salted. Check envId!');
+        expect(storageKeyHash).to.not.equal(incorrectKeyHash, 'Storage.createKeyHash produced unsalted hash. envId is empty!');
+        expect(storageKeyHash).to.not.equal(incorrectKeyHash2, 'Storage.createKeyHash produced unsalted hash');
+        expect(storageKeyHash).to.equal(correctKeyHash, 'Storage.createKeyHash produced incorrect hash');
       });
     });
 
