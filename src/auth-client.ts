@@ -1,7 +1,7 @@
 import axios from 'axios';
 import Querystring from 'querystring';
 import * as t from 'io-ts';
-import { StorageServerError } from './errors';
+import { StorageClientError, StorageServerError } from './errors';
 import { toStorageServerError, isInvalid } from './validation/utils';
 
 const DEFAULT_AUTH_URL = 'http://localhost:4444/oauth2/token';
@@ -64,7 +64,7 @@ const parseTokenData = (tokenData: unknown): TokenData => {
 };
 
 interface AuthClient {
-  getToken: () => Promise<string>;
+  getToken: (host: string, envId: string) => Promise<string>;
 }
 
 const getApiKeyAuthClient = (apiKey: string): AuthClient => ({
@@ -72,8 +72,7 @@ const getApiKeyAuthClient = (apiKey: string): AuthClient => ({
 });
 
 class OAuthClient implements AuthClient {
-  private token: string | null = null;
-  private tokenExpiresAt: Date | null = null;
+  private tokens: { [key: string]: TokenData } = {};
 
   constructor(
     private readonly clientId: string,
@@ -82,21 +81,27 @@ class OAuthClient implements AuthClient {
   ) {
   }
 
-  async getToken(): Promise<string> {
-    if (this.tokenExpiresAt === null || new Date() >= this.tokenExpiresAt) {
+  async getToken(host: string, envId: string): Promise<string> {
+    if (!host) {
+      throw new StorageClientError('Invalid host provided to AuthClient.getToken()');
+    }
+    if (!envId) {
+      throw new StorageClientError('Invalid envId provided to AuthClient.getToken()');
+    }
+    const token = this.tokens[host];
+
+    if (!token || new Date() >= token.expires) {
       const headers = {
         ...DEFAULT_HEADERS,
         Authorization: makeAuthHeader(this.clientId, this.clientSecret),
       };
-      const body = { scope: '', grant_type: 'client_credentials' };
+      const body = { scope: envId, grant_type: 'client_credentials', audience: host };
 
       const tokenData = await this.requestToken(this.accessTokenUri, headers, body);
-      const { accessToken, expires } = parseTokenData(tokenData);
-      this.token = accessToken;
-      this.tokenExpiresAt = expires;
+      this.tokens[host] = parseTokenData(tokenData);
     }
 
-    return this.token !== null ? this.token : Promise.reject();
+    return this.tokens[host] ? this.tokens[host].accessToken : Promise.reject();
   }
 
   private async requestToken(url: string, headers: {}, body: {}) {

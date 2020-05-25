@@ -35,6 +35,11 @@ type FindResponse = {
   data: StorageRecord[];
 }
 
+type EndpointData = {
+  endpoint: string;
+  host: string;
+};
+
 const DEFAULT_POPAPI_HOST = 'https://us.api.incountry.io';
 
 const PoPErrorArray = t.array(t.partial({
@@ -71,8 +76,8 @@ class ApiClient {
   ) {
   }
 
-  async headers() {
-    const token = await this.authClient.getToken();
+  async headers(host: string) {
+    const token = await this.authClient.getToken(host, this.envId);
     return {
       Authorization: `Bearer ${token}`,
       'x-env-id': this.envId,
@@ -81,9 +86,9 @@ class ApiClient {
     };
   }
 
-  async getEndpoint(countryCode: string, path: string): Promise<string> {
+  async getHost(countryCode: string): Promise<string> {
     if (this.host) {
-      return `${this.host}/${path}`;
+      return this.host;
     }
 
     const countryRegex = new RegExp(countryCode, 'i');
@@ -98,8 +103,13 @@ class ApiClient {
     }
 
     return countryHasApi
-      ? `https://${countryCode}.api.incountry.io/${path}`
-      : `${DEFAULT_POPAPI_HOST}/${path}`;
+      ? `https://${countryCode}.api.incountry.io`
+      : DEFAULT_POPAPI_HOST;
+  }
+
+  async getEndpoint(countryCode: string, path: string): Promise<EndpointData> {
+    const host = await this.getHost(countryCode);
+    return { endpoint: `${host}/${path}`, host };
   }
 
   logError(validationFailedResult: Left<t.Errors>): StorageServerError {
@@ -110,9 +120,9 @@ class ApiClient {
   }
 
   async request<A, B>(countryCode: string, path: string, requestOptions: BasicRequestOptions<A> = { method: 'get' }, codec: Codec<B>, loggingMeta: {} = {}): Promise<B> {
-    const url = await this.getEndpoint(countryCode, path);
+    const { endpoint: url, host } = await this.getEndpoint(countryCode, path);
     const method = requestOptions.method.toUpperCase() as Method;
-    const defaultHeaders = await this.headers();
+    const defaultHeaders = await this.headers(host);
     const headers = {
       ...defaultHeaders,
       ...requestOptions.headers,
@@ -217,4 +227,5 @@ export {
   FindResponseMeta,
   FindResponse,
   ApiClient,
+  DEFAULT_POPAPI_HOST,
 };

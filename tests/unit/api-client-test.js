@@ -55,7 +55,10 @@ describe('ApiClient', () => {
       const testPath = 'testPath';
       const res = await apiClient.getEndpoint(country, testPath);
       assert.equal(nockPB.isDone(), false, 'PB was not called');
-      expect(res).to.eq(`${host}/${testPath}`);
+      expect(res).to.be.an('object');
+      expect(res).to.have.keys(['endpoint', 'host']);
+      expect(res.host).to.eq(host);
+      expect(res.endpoint).to.eq(`${host}/${testPath}`);
     };
 
     beforeEach(() => {
