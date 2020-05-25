@@ -85,6 +85,26 @@ const TEST_RECORDS = [
   },
 ];
 
+
+const PREPARED_PAYLOAD_STORED = {
+  key: '976143aa1fd12b9ad7449fd9d3a6d25347d71b890b49d4fb5c738e798238865f',
+  body: '2:IGJNCmV+RXZydaPxDjjhZ80/6aZ2vcEUZ2GuOzKgVSSdM6gYf5RPgFbyLqv+7ihz0CpYFQQWf9xkIyD/u3VYky8dWLq+NXcE2xYL4/U7LqUZmJPQzgcQCABYQ/8vOvUEcrfOAwzGjR6etTp1ki+79JmCEZFSNqcDP1GZXNLFdLoSUp1X2wVlH9ukhJ4jrE0cKDrpJllswRSOz0BhS8PA/73KNKwo718t7fPWpUm7RkyILwYTd/LpPvpXMS6JypEns8fviOpbCLQPpZNBe6zpwbFf3C0qElHlbCyPbDyUiMzVKOwWlYFpozFcRyWegjJ42T8v52+GuRY5',
+  key2: 'abcb2ad9e9e0b1787f262b014f517ad1136f868e7a015b1d5aa545b2f575640d',
+  key3: '1102ae53e55f0ce1d802cc8bb66397e7ea749fd8d05bd2d4d0f697cedaf138e3',
+  profile_key: 'f5b5ae4914972ace070fa51b410789324abe063dbe2bb09801410d9ab54bf833',
+  range_key: 100500,
+  version: 0,
+};
+
+const PREPARED_PAYLOAD_DECRYPTED = {
+  key: 'InCountryKey',
+  key2: 'InCountryKey2',
+  key3: 'InCountryKey3',
+  profile_key: 'InCountryPK',
+  body: '{"data": "InCountryBody"}',
+  range_key: 100500,
+};
+
 const LOGGER_STUB = { write: (a, b) => [a, b] };
 
 const defaultGetSecretsCallback = () => SECRET_KEY;
@@ -1326,6 +1346,62 @@ describe('Storage', () => {
 
           nockEndpoint(POPAPI_HOST, 'batchWrite', country).reply(200, 'OK');
           await storage.batchWrite('US', [{ key: '123' }]);
+        });
+      });
+    });
+
+    describe('compatibility', async () => {
+      const storage = await createStorage({
+        apiKey: 'string',
+        environmentId: 'InCountry',
+        endpoint: POPAPI_HOST,
+        encrypt: true,
+        normalizeKeys: false,
+        getSecrets: defaultGetSecretsCallback,
+        logger: LOGGER_STUB,
+      });
+
+      context('with prepared payload', () => {
+        it('should encrypt and match result', async () => {
+          const encrypted = await storage.encryptPayload(PREPARED_PAYLOAD_DECRYPTED);
+          expect(_.omit(encrypted, 'body')).to.deep.equal(_.omit(PREPARED_PAYLOAD_STORED, 'body'));
+        });
+
+        it('should decrypt and match result', async () => {
+          const decrypted = await storage.decryptPayload(PREPARED_PAYLOAD_STORED);
+          expect(_.omit(decrypted, 'version')).to.deep.equal(PREPARED_PAYLOAD_DECRYPTED);
+        });
+      });
+
+
+      context('with different envs', () => {
+        it('should encrypt differently', async () => {
+          const storage1 = await createStorage({
+            apiKey: 'string',
+            environmentId: 'env1',
+            endpoint: POPAPI_HOST,
+            encrypt: true,
+            normalizeKeys: false,
+            getSecrets: defaultGetSecretsCallback,
+            logger: LOGGER_STUB,
+          });
+
+          const storage2 = await createStorage({
+            apiKey: 'string',
+            environmentId: 'env2',
+            endpoint: POPAPI_HOST,
+            encrypt: true,
+            normalizeKeys: false,
+            getSecrets: defaultGetSecretsCallback,
+            logger: LOGGER_STUB,
+          });
+
+          const encrypted1 = await storage1.encryptPayload(PREPARED_PAYLOAD_DECRYPTED);
+          const encrypted2 = await storage2.encryptPayload(PREPARED_PAYLOAD_DECRYPTED);
+          const keys = ['key', 'key2', 'key3', 'profile_key'];
+          keys.forEach((key) => {
+            expect(encrypted1[key]).to.not.equal(encrypted2[key]);
+          });
         });
       });
     });
