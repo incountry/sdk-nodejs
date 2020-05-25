@@ -1,18 +1,48 @@
 {
+  "plugins": [
+    "promise",
+    "@typescript-eslint",
+    "import"
+  ],
+  "parser": "@typescript-eslint/parser",
+  "parserOptions": {
+    "project": "./tsconfig.json"
+  },
+  "root": true,
   "env": {
     "node": true,
     "mocha": true
   },
-  "extends": "airbnb-base",
-  "plugins": [
-    "promise"
+  "settings": {
+    "import/extensions":  [".js", ".ts"],
+    "import/parsers": {
+      "@typescript-eslint/parser": [".ts"]
+    },
+    "import/resolver": {
+      "node": {
+        "extensions": [".js", ".ts"]
+      }
+    }
+  },
+  "extends": [
+    "airbnb-base",
+    "plugin:@typescript-eslint/eslint-recommended",
+    "plugin:@typescript-eslint/recommended"
   ],
   "rules": {
-    "no-underscore-dangle": 0,
-    "no-console": 0,
-    "max-len": 0,
-    "class-methods-use-this": 0,
+    "no-underscore-dangle": "warn",
+    "no-console": "warn",
+    "max-len": "off",
+    "class-methods-use-this": "off",
     "eol-last": ["error", "always"],
+    "lines-between-class-members": ["error", "always", { "exceptAfterSingleLine": true }],
     "no-confusing-arrow": "off",
+    "import/group-exports": "error",
+    "import/exports-last": "error",
+    "import/prefer-default-export": "off",
+    "@typescript-eslint/camelcase": "warn",
+    "no-useless-constructor": "off",
+    "@typescript-eslint/no-useless-constructor": "error",
+    "@typescript-eslint/await-thenable": "warn"
   }
 }

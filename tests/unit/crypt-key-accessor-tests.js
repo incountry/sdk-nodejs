@@ -1,6 +1,6 @@
 const chai = require('chai');
 const chaiAsPromised = require('chai-as-promised');
-const SecretKeyAccessor = require('../../lib/secret-key-accessor');
+const { SecretKeyAccessor } = require('../../lib/secret-key-accessor');
 const { StorageClientError } = require('../../lib/errors');
 
 chai.use(chaiAsPromised);

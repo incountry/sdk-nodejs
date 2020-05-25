@@ -1,9 +1,12 @@
 const chai = require('chai');
-chai.use(require('chai-as-promised'));
+const sinonChai = require('sinon-chai');
+const chaiAsPromised = require('chai-as-promised');
 const nock = require('nock');
 const sinon = require('sinon');
-const CountriesCache = require('../../lib/countries-cache');
+const { CountriesCache } = require('../../lib/countries-cache');
 
+chai.use(chaiAsPromised);
+chai.use(sinonChai);
 const { expect, assert } = chai;
 
 const PORTAL_BACKEND_HOST = 'portal-backend.incountry.com';
@@ -41,7 +44,7 @@ describe('Countries cache', () => {
       const pbCountriesAPI = nockPBCountriesAPI(PORTAL_BACKEND_HOST, DIRECT_COUNTRIES_PB_RESPONSE);
 
       const cache = new CountriesCache();
-      await cache.getCountriesAsync();
+      await cache.getCountries();
 
       assert.equal(pbCountriesAPI.isDone(), true, 'CountriesAPI scope is done');
     });
@@ -51,13 +54,13 @@ describe('Countries cache', () => {
       const pbCountriesAPI = nockPBCountriesAPI(customHost, DIRECT_COUNTRIES_PB_RESPONSE);
 
       const cache = new CountriesCache(customHost);
-      await cache.getCountriesAsync();
+      await cache.getCountries();
 
       assert.equal(pbCountriesAPI.isDone(), true, 'CountriesAPI scope is done');
     });
   });
 
-  describe('getCountriesAsync()', () => {
+  describe('getCountries()', () => {
     describe('if called first time', () => {
       beforeEach(() => {
         nockPBCountriesAPI(PORTAL_BACKEND_HOST, DIRECT_COUNTRIES_PB_RESPONSE);
@@ -65,14 +68,14 @@ describe('Countries cache', () => {
 
       it('should fetch countries', async () => {
         const cache = new CountriesCache();
-        const countries = await cache.getCountriesAsync();
+        const countries = await cache.getCountries();
         expect(countries).to.deep.equal(DIRECT_COUNTRIES_PB_RESPONSE.countries);
       });
 
       it('should fetch countries even if an arbitrary timestamp was provided', async () => {
         const yesterdayTS = Date.now() - 24 * 60 * 60 * 1000; // -1 day
         const cache = new CountriesCache();
-        const countries = await cache.getCountriesAsync(yesterdayTS);
+        const countries = await cache.getCountries(yesterdayTS);
         expect(countries).to.deep.equal(DIRECT_COUNTRIES_PB_RESPONSE.countries);
       });
     });
@@ -106,7 +109,7 @@ describe('Countries cache', () => {
 
           for (let i = 0; i < apiMaxCalls; i += 1) {
             /* eslint-disable no-await-in-loop */
-            const countries = await cache.getCountriesAsync();
+            const countries = await cache.getCountries();
             expect(countries).to.deep.equal(countriesResponses[0].countries);
           }
         });
@@ -118,12 +121,12 @@ describe('Countries cache', () => {
 
           const cache = new CountriesCache();
 
-          const countries0 = await cache.getCountriesAsync();
+          const countries0 = await cache.getCountries();
           expect(countries0).to.deep.equal(countriesResponses[0].countries);
 
           clock.tick(60 * 1000);
 
-          const countries1 = await cache.getCountriesAsync();
+          const countries1 = await cache.getCountries();
           expect(countries1).to.deep.equal(countriesResponses[1].countries);
 
           clock.restore();
@@ -139,10 +142,10 @@ describe('Countries cache', () => {
           const tomorrowTS = Date.now() + 24 * 60 * 60 * 1000; // +1 day
           const cache = new CountriesCache(undefined, oneHour);
 
-          const countries1 = await cache.getCountriesAsync();
+          const countries1 = await cache.getCountries();
           expect(countries1).to.deep.equal(countriesResponses[0].countries);
 
-          const countries2 = await cache.getCountriesAsync(tomorrowTS);
+          const countries2 = await cache.getCountries(tomorrowTS);
           expect(countries2).to.deep.equal(countriesResponses[1].countries);
         });
 
@@ -152,13 +155,13 @@ describe('Countries cache', () => {
           const yesterdayTS = Date.now() - 24 * 60 * 60 * 1000; // -1 day
           const cache = new CountriesCache(undefined, oneHour);
 
-          const countries1 = await cache.getCountriesAsync();
+          const countries1 = await cache.getCountries();
           expect(countries1).to.deep.equal(countriesResponses[0].countries);
 
-          const countries2 = await cache.getCountriesAsync(Date.now());
+          const countries2 = await cache.getCountries(Date.now());
           expect(countries2).to.deep.equal(countriesResponses[0].countries);
 
-          const countries3 = await cache.getCountriesAsync(yesterdayTS);
+          const countries3 = await cache.getCountries(yesterdayTS);
           expect(countries3).to.deep.equal(countriesResponses[0].countries);
         });
       });
@@ -171,7 +174,7 @@ describe('Countries cache', () => {
 
       it('only countries which are direct', async () => {
         const cache = new CountriesCache();
-        const countries = await cache.getCountriesAsync();
+        const countries = await cache.getCountries();
         expect(countries).to.deep.equal(MIXED_COUNTRIES_PB_RESPONSE.countries.filter((item) => item.direct));
       });
     });
@@ -184,7 +187,7 @@ describe('Countries cache', () => {
           nockPBCountriesAPINoData();
 
           const cache = new CountriesCache();
-          const countries = await cache.getCountriesAsync();
+          const countries = await cache.getCountries();
           expect(countries).to.be.an('array');
           expect(countries.length).to.equal(0);
         });
@@ -201,12 +204,13 @@ describe('Countries cache', () => {
           const cache = new CountriesCache(undefined, undefined, undefined, loggerStub);
 
           try {
-            await cache.getCountriesAsync();
+            await cache.getCountries();
           } catch (e) {
             expect(e).to.deep.equal(REQUEST_TIMEOUT_ERROR);
             return;
           }
-          chai.assert.fail('Countries request did not failed');
+
+          assert.fail('Countries request did not failed');
         });
 
         it('should log error', async () => {
@@ -216,12 +220,14 @@ describe('Countries cache', () => {
           const cache = new CountriesCache(undefined, undefined, undefined, loggerStub);
 
           try {
-            await cache.getCountriesAsync();
+            await cache.getCountries();
           } catch (e) {
-            expect(spy.calledWith('error', REQUEST_TIMEOUT_ERROR)).to.equal(true);
+            expect(spy).to.be.calledWithMatch('error');
+            expect(spy.args[0][2]).to.deep.equal(REQUEST_TIMEOUT_ERROR);
             return;
           }
-          chai.assert.fail('Countries request did not failed');
+
+          assert.fail('Countries request did not failed');
         });
       });
     });

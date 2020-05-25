@@ -1,16 +1,18 @@
+/* eslint-disable no-unused-expressions */
 /* eslint-disable no-unused-vars */
-const { expect } = require('chai');
+const chai = require('chai');
 const sinon = require('sinon');
+const sinonChai = require('sinon-chai');
+
+chai.use(sinonChai);
+const { expect } = chai;
+
 const Logger = require('../../lib/logger');
 
-
 describe('logger', () => {
-  const timestamp = new Date().toISOString();
   const message = 'test message';
-  const prefix = 'testPrefix';
-  const createExpected = (level) => `${timestamp} [${level}] ${message}`;
-  const createExpectedTrace = (level, id) => `${timestamp} [${level}] ${prefix}${message}`;
-  let spy;
+  const createExpected = (level) => `[${level}] ${message}`;
+
   const levels = [
     'debug',
     'info',
@@ -20,48 +22,48 @@ describe('logger', () => {
   ];
 
   beforeEach(() => {
-    spy = sinon.spy(console, 'log');
+    sinon.spy(console, 'log');
   });
 
   afterEach(() => {
     console.log.restore();
   });
 
-  levels.forEach((baseLogLevel, idx, array) => {
-    context(`with ${baseLogLevel} log level`, () => {
+  levels.forEach((baseLogLevel, idx) => {
+    context(`with "${baseLogLevel}" log level`, () => {
       const logger = Logger.withBaseLogLevel(baseLogLevel);
       const validLevels = levels.slice(idx);
       const invalidLevels = levels.slice(0, idx);
+
       invalidLevels.forEach((level) => {
-        it(`should not print ${level} message`, () => {
-          logger.write(level, message, null, timestamp);
-          expect(spy.notCalled).equal(true);
-        });
-        it(`should not print ${level} message from trace`, () => {
-          const testTraceWithPrefix = logger.trace('test trace id').withPrefix('testPrefix', timestamp);
-          testTraceWithPrefix[level](message, timestamp);
-          expect(spy.notCalled).equal(true);
+        it(`should not print "${level}" message`, () => {
+          logger.write(level, message);
+          expect(console.log).to.not.been.called;
         });
       });
+
       validLevels.forEach((level) => {
-        it(`should print ${level} message`, () => {
-          logger.write(level, message, null, timestamp);
+        it(`should print "${level}" message`, () => {
+          logger.write(level, message);
           const expected = createExpected(level);
-          expect(spy.calledWith(expected)).equal(true);
-        });
-        it(`should print ${level} message from trace`, () => {
-          const expected = createExpectedTrace(level, 'test trace id');
-          const testTraceWithPrefix = logger.trace('test trace id').withPrefix(prefix, timestamp);
-          testTraceWithPrefix[level](message, timestamp);
-          expect(spy.calledWith(expected)).equal(true);
+          expect(console.log).to.be.calledWithMatch(expected);
         });
       });
     });
   });
 
   it('should use current time when the timestamp is not specified', () => {
-    const logger = Logger.withBaseLogLevel('debug');
-    logger.write('debug', message, null);
-    expect(spy.calledWith(sinon.match(/^.+ \[debug\] test message/))).equal(true);
+    const level = 'debug';
+    const logger = Logger.withBaseLogLevel(level);
+    logger.write(level, message);
+    expect(console.log).to.be.calledWithMatch(/\d{4}-\d{2}-\d{2}/);
+  });
+
+  it('should use specified time', () => {
+    const level = 'debug';
+    const logger = Logger.withBaseLogLevel(level);
+    const timestamp = new Date().toISOString();
+    logger.write(level, message, { timestamp });
+    expect(console.log).to.be.calledWithMatch(timestamp);
   });
 });

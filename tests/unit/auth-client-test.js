@@ -3,7 +3,7 @@ chai.use(require('chai-as-promised'));
 
 const nock = require('nock');
 const sinon = require('sinon');
-const { AuthClient } = require('../../lib/auth-client');
+const { OAuthClient } = require('../../lib/auth-client');
 const { StorageServerError } = require('../../lib/errors');
 
 const {
@@ -30,14 +30,14 @@ describe('AuthClient', () => {
   describe('Auth server url', () => {
     it('should use default auth server url by default', async () => {
       const authNock = nockDefaultAuth().reply(200, accessTokenResponse());
-      const authClient = new AuthClient('clientId', 'clientSecret');
+      const authClient = new OAuthClient('clientId', 'clientSecret');
       await authClient.getToken();
       assert.equal(authNock.isDone(), true, 'Requested token using default url');
     });
 
     it('should use custom auth server url if specified', async () => {
       const authNock = nockCustomAuth().reply(200, accessTokenResponse());
-      const authClient = new AuthClient('clientId', 'clientSecret', `${CUSTOM_AUTH_HOST}${CUSTOM_AUTH_PATH}`);
+      const authClient = new OAuthClient('clientId', 'clientSecret', `${CUSTOM_AUTH_HOST}${CUSTOM_AUTH_PATH}`);
       await authClient.getToken();
       assert.equal(authNock.isDone(), true, 'Requested token using custom url');
     });
@@ -46,7 +46,7 @@ describe('AuthClient', () => {
   describe('Access token acquiring', () => {
     let authClient;
     beforeEach(() => {
-      authClient = new AuthClient('clientId', 'clientSecret');
+      authClient = new OAuthClient('clientId', 'clientSecret');
     });
 
     it('getToken() should return access_token', async () => {

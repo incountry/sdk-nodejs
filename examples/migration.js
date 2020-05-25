@@ -1,6 +1,3 @@
-/* eslint no-await-in-loop: "off" */
-/* eslint import/no-unresolved: "off" */
-
 const { createStorage } = require('incountry');
 
 const COUNTRY = 'us';
