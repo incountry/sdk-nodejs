@@ -1,6 +1,7 @@
 /* eslint-disable prefer-arrow-callback,func-names */
 const chai = require('chai');
 const chaiAsPromised = require('chai-as-promised');
+const { identity } = require('fp-ts/lib/function');
 const {
   InCrypt,
   CUSTOM_ENCRYPTION_VERSION_PREFIX,
@@ -9,8 +10,7 @@ const {
   CUSTOM_ENCRYPTION_ERROR_MESSAGE_ENC,
   CUSTOM_ENCRYPTION_ERROR_MESSAGE_DEC,
 } = require('../../lib/in-crypt');
-const SecretKeyAccessor = require('../../lib/secret-key-accessor');
-const { identity } = require('../../lib/utils');
+const { SecretKeyAccessor } = require('../../lib/secret-key-accessor');
 const { StorageCryptoError, StorageClientError } = require('../../lib/errors');
 
 chai.use(chaiAsPromised);
@@ -125,7 +125,7 @@ describe('InCrypt', function () {
   });
 
   context('when custom encryption configs provided', () => {
-    it('should validate them', () => {
+    it('should validate config object form', () => {
       const secretKeyAccessor = new SecretKeyAccessor(() => ({
         secrets: [{ version: 0, secret: 'supersecret', isForCustomEncryption: true }], currentVersion: 0,
       }));
@@ -168,12 +168,11 @@ describe('InCrypt', function () {
       );
     });
 
-
     PLAINTEXTS.forEach((plain) => {
       it(`should encrypt and decrypt text "${plain}" using custom encryption`, async function () {
         const configs = [{
-          encrypt: (text) => Buffer.from(text).toString('base64'),
-          decrypt: (encryptedData) => Buffer.from(encryptedData, 'base64').toString('utf-8'),
+          encrypt: (text) => Promise.resolve(Buffer.from(text).toString('base64')),
+          decrypt: (encryptedData) => Promise.resolve(Buffer.from(encryptedData, 'base64').toString('utf-8')),
           version: 'customEncryption',
           isCurrent: true,
         }];
@@ -250,7 +249,7 @@ describe('InCrypt', function () {
 
     it('should throw an error if custom encryption "encrypt" function returns not string', async function () {
       const configs = [{
-        encrypt: () => 100,
+        encrypt: () => Promise.resolve(100),
         decrypt: () => { },
         version: 'customEncryption',
         isCurrent: true,
@@ -333,10 +332,8 @@ describe('InCrypt', function () {
     expect(currentVersion).to.equal(version);
   });
 
-  it('getEncryptionKey should return nulls if _secretKeyAccessor is not defined', async () => {
+  it('should not return current secret version and throw error if secretKeyAccessor is not defined', async () => {
     const incrypt = new InCrypt();
-    const { key, version } = await incrypt.getEncryptionKey('test');
-    expect(key).to.equal(null);
-    expect(version).to.equal(null);
+    await expect(incrypt.getCurrentSecretVersion()).to.be.rejectedWith(StorageCryptoError);
   });
 });

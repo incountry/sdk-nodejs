@@ -33,8 +33,8 @@ describe('Custom encryption', () => {
     };
 
     const customEncConfigs = [{
-      encrypt: (text) => Buffer.from(text).toString('base64'),
-      decrypt: (encryptedData) => Buffer.from(encryptedData, 'base64').toString('utf-8'),
+      encrypt: (text) => Promise.resolve(Buffer.from(text).toString('base64')),
+      decrypt: (encryptedData) => Promise.resolve(Buffer.from(encryptedData, 'base64').toString('utf-8')),
       isCurrent: true,
       version: 'current',
     }];
