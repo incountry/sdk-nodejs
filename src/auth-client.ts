@@ -64,7 +64,7 @@ const parseTokenData = (tokenData: unknown): TokenData => {
 };
 
 interface AuthClient {
-  getToken: (host: string, envId: string) => Promise<string>;
+  getToken: (host: string, envId: string, forceRenew?: boolean) => Promise<string>;
 }
 
 const getApiKeyAuthClient = (apiKey: string): AuthClient => ({
@@ -81,7 +81,7 @@ class OAuthClient implements AuthClient {
   ) {
   }
 
-  async getToken(host: string, envId: string): Promise<string> {
+  async getToken(host: string, envId: string, forceRenew = false): Promise<string> {
     if (!host) {
       throw new StorageClientError('Invalid host provided to AuthClient.getToken()');
     }
@@ -90,7 +90,7 @@ class OAuthClient implements AuthClient {
     }
     const token = this.tokens[host];
 
-    if (!token || new Date() >= token.expires) {
+    if (!token || new Date() >= token.expires || forceRenew) {
       const headers = {
         ...DEFAULT_HEADERS,
         Authorization: makeAuthHeader(this.clientId, this.clientSecret),

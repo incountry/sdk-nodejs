@@ -119,7 +119,7 @@ class ApiClient {
     return error;
   }
 
-  async request<A, B>(countryCode: string, path: string, requestOptions: BasicRequestOptions<A> = { method: 'get' }, codec: Codec<B>, loggingMeta: {} = {}): Promise<B> {
+  async request<A, B>(countryCode: string, path: string, requestOptions: BasicRequestOptions<A> = { method: 'get' }, codec: Codec<B>, loggingMeta: {} = {}, retryCount = 1): Promise<B> {
     const { endpoint: url, host } = await this.getEndpoint(countryCode, path);
     const method = requestOptions.method.toUpperCase() as Method;
     const defaultHeaders = await this.headers(host);
@@ -146,6 +146,12 @@ class ApiClient {
         data: requestOptions.data,
       });
     } catch (err) {
+      if (get(err, 'response.status') === 401 && retryCount === 1) {
+        await this.authClient.getToken(host, this.envId, true);
+
+        return this.request(countryCode, path, requestOptions, codec, loggingMeta, 0);
+      }
+
       const popError = parsePoPError(err);
       this.loggerFn('error', `Error ${method} ${url} : ${popError.errorMessage}`, {
         ...meta,

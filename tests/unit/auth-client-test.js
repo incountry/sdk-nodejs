@@ -111,6 +111,16 @@ describe('AuthClient', () => {
         accessToken = await authClient.getToken(DEFAULT_POPAPI_HOST, ENV_ID);
         expect(accessToken).to.eq('access_token2');
       });
+
+      it('getToken() should request new access_token during its lifetime period if forceRenew is true', async () => {
+        let accessToken = await authClient.getToken(DEFAULT_POPAPI_HOST, ENV_ID);
+        expect(accessToken).to.eq('access_token1');
+
+        clock.tick(1 * 1000);
+
+        accessToken = await authClient.getToken(DEFAULT_POPAPI_HOST, ENV_ID, true);
+        expect(accessToken).to.eq('access_token2');
+      });
     });
 
     describe('tokens caching for multiple destination hosts', () => {
