@@ -193,7 +193,7 @@ describe('ApiClient', () => {
     beforeEach(() => {
       authHeaders = [];
       apiClient = getApiClient(POPAPI_HOST, undefined, false);
-      nockDefaultAuthMultiple(2, 3599);
+      nockDefaultAuthMultiple(3, 3599);
     });
 
     it('should renew token and repeat request once in case of single 401 error', async () => {
@@ -215,14 +215,14 @@ describe('ApiClient', () => {
       const writePath = `/v2/storage/records/${COUNTRY}`;
       const popAPI = nock(POPAPI_HOST)
         .post(writePath)
-        .times(2)
+        .times(3)
         .reply(401);
 
       collectAuthHeaders(popAPI);
 
       await expect(apiClient.write(COUNTRY, {})).to.be.rejectedWith(StorageServerError);
       expect(authHeaders).to.deep.equal(['Bearer access_token1', 'Bearer access_token2']);
-      assert.equal(popAPI.isDone(), true, 'Nock scope is done');
+      assert.equal(popAPI.pendingMocks().length, 1, 'Nock scope is done');
     });
   });
 });

@@ -119,7 +119,7 @@ class ApiClient {
     return error;
   }
 
-  async request<A, B>(countryCode: string, path: string, requestOptions: BasicRequestOptions<A> = { method: 'get' }, codec: Codec<B>, loggingMeta: {} = {}, retryCount = 1): Promise<B> {
+  async request<A, B>(countryCode: string, path: string, requestOptions: BasicRequestOptions<A> = { method: 'get' }, codec: Codec<B>, loggingMeta: {} = {}, retry = false): Promise<B> {
     const { endpoint: url, host } = await this.getEndpoint(countryCode, path);
     const method = requestOptions.method.toUpperCase() as Method;
     const defaultHeaders = await this.headers(host);
@@ -146,10 +146,10 @@ class ApiClient {
         data: requestOptions.data,
       });
     } catch (err) {
-      if (get(err, 'response.status') === 401 && retryCount === 1) {
+      if (get(err, 'response.status') === 401 && retry) {
         await this.authClient.getToken(host, this.envId, true);
 
-        return this.request(countryCode, path, requestOptions, codec, loggingMeta, 0);
+        return this.request(countryCode, path, requestOptions, codec, loggingMeta, false);
       }
 
       const popError = parsePoPError(err);
@@ -184,6 +184,7 @@ class ApiClient {
       { ...requestOptions, method: 'get' },
       RecordResponseIO,
       { key, operation: 'read' },
+      true,
     );
   }
 
@@ -194,6 +195,7 @@ class ApiClient {
       { ...requestOptions, method: 'post', data },
       WriteResponseIO,
       { key: data.key, operation: 'write' },
+      true,
     );
   }
 
@@ -204,6 +206,7 @@ class ApiClient {
       { ...requestOptions, method: 'delete' },
       t.UnknownRecord,
       { key, operation: 'delete' },
+      true,
     );
   }
 
@@ -214,6 +217,7 @@ class ApiClient {
       { ...requestOptions, method: 'post', data },
       FindResponseIO,
       { operation: 'find' },
+      true,
     );
   }
 
@@ -224,6 +228,7 @@ class ApiClient {
       { ...requestOptions, method: 'post', data },
       WriteResponseIO,
       { operation: 'batchWrite' },
+      true,
     );
   }
 }
