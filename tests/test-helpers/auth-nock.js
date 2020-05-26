@@ -15,11 +15,11 @@ const accessTokenResponse = (expires_in = 3599, access_token = 'access_token') =
   token_type: 'bearer',
 });
 
-const nockDefaultAuthMultiple = () => {
+const nockDefaultAuthMultiple = (times = 2, tokenTtl = 2) => {
   let requestCount = 0;
-  nockDefaultAuth().times(2).reply(200, () => {
+  nockDefaultAuth().times(times).reply(200, () => {
     requestCount += 1;
-    return accessTokenResponse(2, `access_token${requestCount}`);
+    return accessTokenResponse(tokenTtl, `access_token${requestCount}`);
   });
 };
 
