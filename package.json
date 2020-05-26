@@ -30,8 +30,8 @@
     "url": "git+https://github.com/incountry/sdk-nodejs.git"
   },
   "scripts": {
-    "integrations": "npm run build && nyc --reporter=lcov --reporter=text --report-dir=it-coverage mocha tests/integration/*.js --timeout 40000",
-    "test": "npm run build && nyc --reporter=lcov --reporter=text --report-dir=ut-coverage --exclude=tests/**/*.js mocha tests/unit/*.js",
+    "integrations": "npm run build && nyc --reporter=lcov --reporter=text --report-dir=it-coverage --extension=ts mocha tests/integration/*.js --timeout 40000",
+    "test": "npm run build && nyc --reporter=lcov --reporter=text --report-dir=ut-coverage --exclude=tests/**/*.js --extension=ts mocha tests/unit/*.js",
     "validate-eslint": "eslint . --ext .js,.ts --ignore-path .gitignore",
     "build": "tsc -p ./tsconfig.build.json",
     "watch": "tsc -p ./tsconfig.build.json --watch",

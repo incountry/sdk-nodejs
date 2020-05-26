@@ -6,7 +6,7 @@
     "rootDir": "./src",
     "module": "commonjs",
     "declaration": true,
-    "sourceMap": false,
+    "sourceMap": true,
     "esModuleInterop": true,
   },
   "exclude": [
