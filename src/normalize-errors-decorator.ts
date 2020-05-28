@@ -3,7 +3,7 @@ import 'reflect-metadata';
 import * as t from 'io-ts';
 import { StorageError } from './errors';
 
-function normalizeErrors(errorMessagePrefix = 'Error during ') {
+function normalizeErrors(errorMessagePrefix = 'Error in ') {
   return function wrap(_target: object, propertyKey: string, descriptor: TypedPropertyDescriptor<any>): TypedPropertyDescriptor<any> {
     const method = descriptor.value;
     if (!t.Function.is(method)) {
