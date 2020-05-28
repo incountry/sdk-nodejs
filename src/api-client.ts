@@ -40,6 +40,7 @@ const DEFAULT_POPAPI_HOST = 'https://us.api.incountry.io';
 const PoPErrorArray = t.array(t.partial({
   title: t.string,
   source: t.string,
+  detail: t.string,
 }));
 
 const parsePoPError = (e: Error) => {
@@ -49,7 +50,7 @@ const parsePoPError = (e: Error) => {
   const code = get(e, 'response.status');
   const errors = get(e, 'response.data.errors', []);
   const errorMessages = PoPErrorArray.is(errors)
-    ? errors.map((error) => `${error.title}: ${error.source}`)
+    ? errors.map((error) => `${code} ${error.title}: ${error.source} ${error.detail}`)
     : [];
   const errorMessage = errorMessages.length > 0 ? errorMessages.join(';\n') : e.message;
   return {
@@ -102,7 +103,7 @@ class ApiClient {
       : `${DEFAULT_POPAPI_HOST}/${path}`;
   }
 
-  logError(validationFailedResult: Left<t.Errors>): StorageServerError {
+  prepareValidationError(validationFailedResult: Left<t.Errors>): StorageServerError {
     const validationErrorMessage = getErrorMessage(validationFailedResult);
     const error = new StorageServerError(`Response Validation Error: ${validationErrorMessage}`, validationFailedResult);
     this.loggerFn('error', error.message);
@@ -155,7 +156,7 @@ class ApiClient {
 
     const responseData = codec.decode(response.data);
     if (isInvalid(responseData)) {
-      throw this.logError(responseData);
+      throw this.prepareValidationError(responseData);
     }
 
     return responseData.right;

@@ -8,7 +8,7 @@ const nock = require('nock');
 const uuid = require('uuid/v4');
 const _ = require('lodash');
 const { identity } = require('fp-ts/lib/function');
-const { createStorage } = require('../../lib/storage');
+const { createStorage, Storage } = require('../../lib/storage');
 const { StorageServerError, StorageClientError, StorageError } = require('../../lib/errors');
 const { CountriesCache } = require('../../lib/countries-cache');
 const {
@@ -634,6 +634,35 @@ describe('Storage', () => {
 
           nockEndpoint(POPAPI_HOST, 'write', country).reply(200, 'OK');
           await storage.write('US', { key: '123' });
+        });
+      });
+
+      describe('normalized errors', () => {
+        it('should wrap any error into StorageError', async () => {
+          nock(POPAPI_HOST);
+
+          const secrets = {
+            secrets: [
+              {
+                secret: 'longAndStrongPassword',
+                version: 0,
+                isForCustomEncryption: true,
+              },
+            ],
+            currentVersion: 0,
+          };
+
+          const key = '123';
+
+          const customEncConfigs = [{
+            encrypt: () => { throw new Error('blabla'); },
+            decrypt: () => {},
+            version: 'customEncryption',
+            isCurrent: true,
+          }];
+
+          const storage = new Storage({ encrypt: true, getSecrets: () => secrets }, customEncConfigs);
+          await expect(storage.write(COUNTRY, { ...EMPTY_RECORD, key })).to.be.rejectedWith(StorageError);
         });
       });
     });

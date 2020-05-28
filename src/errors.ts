@@ -1,7 +1,5 @@
 /* eslint max-classes-per-file: "off" */
 
-const isError = (obj: unknown): obj is Error => obj instanceof Error;
-
 class StorageError extends Error {
   constructor(message: string) {
     super(message);
@@ -47,7 +45,6 @@ class StorageCryptoError extends StorageError {
 }
 
 export {
-  isError,
   StorageError,
   StorageClientError,
   StorageServerError,
