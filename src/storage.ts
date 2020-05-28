@@ -28,6 +28,8 @@ import { normalizeErrors } from './normalize-errors-decorator';
 
 const FIND_LIMIT = 100;
 
+const STORAGE_METHOD_ERROR = 'Error during Storage.';
+
 type KEY_FOR_ENCRYPTION = 'key' | 'key2' | 'key3' | 'profile_key';
 const KEYS_FOR_ENCRYPTION: KEY_FOR_ENCRYPTION[] = [
   'key',
@@ -154,7 +156,7 @@ class Storage {
   }
 
   @validate(CountryCodeIO, RecordKeyIO)
-  @normalizeErrors()
+  @normalizeErrors(STORAGE_METHOD_ERROR)
   async read(countryCode: string, recordKey: string, requestOptions: RequestOptions = {}): Promise<ReadResult> {
     const key = this.createKeyHash(this.normalizeKey(recordKey));
     const responseData = await this.apiClient.read(countryCode, key, requestOptions);
@@ -163,7 +165,7 @@ class Storage {
   }
 
   @validate(CountryCodeIO, StorageRecordIO)
-  @normalizeErrors()
+  @normalizeErrors(STORAGE_METHOD_ERROR)
   async write(countryCode: string, record: StorageRecord, requestOptions: RequestOptions = {}): Promise<WriteResult> {
     const data = await this.encryptPayload(record);
     await this.apiClient.write(countryCode, data, requestOptions);
@@ -171,7 +173,7 @@ class Storage {
   }
 
   @validate(CountryCodeIO, StorageRecordsNEAIO)
-  @normalizeErrors()
+  @normalizeErrors(STORAGE_METHOD_ERROR)
   async batchWrite(countryCode: string, records: Array<StorageRecord>): Promise<BatchWriteResult> {
     const encryptedRecords = await Promise.all(records.map((r) => this.encryptPayload(r)));
     await this.apiClient.batchWrite(countryCode, { records: encryptedRecords });
@@ -179,7 +181,7 @@ class Storage {
   }
 
   @validate(CountryCodeIO, withDefault(FindFilterIO, {}), withDefault(FindOptionsIO, {}))
-  @normalizeErrors()
+  @normalizeErrors(STORAGE_METHOD_ERROR)
   async find(countryCode: string, filter: FindFilter = {}, options: FindOptions = {}, requestOptions: RequestOptions = {}): Promise<FindResult> {
     const data = {
       filter: this.hashFilterKeys(filter, ['profile_key', 'key', 'key2', 'key3']),
@@ -221,7 +223,7 @@ class Storage {
   }
 
   @validate(CountryCodeIO, RecordKeyIO)
-  @normalizeErrors()
+  @normalizeErrors(STORAGE_METHOD_ERROR)
   async delete(countryCode: string, recordKey: string, requestOptions: RequestOptions = {}): Promise<DeleteResult> {
     try {
       const key = this.createKeyHash(this.normalizeKey(recordKey));
@@ -236,7 +238,7 @@ class Storage {
   }
 
   @validate(CountryCodeIO, withDefault(LimitIO, FIND_LIMIT), withDefault(FindFilterIO, {}))
-  @normalizeErrors()
+  @normalizeErrors(STORAGE_METHOD_ERROR)
   async migrate(countryCode: string, limit = FIND_LIMIT, _findFilter: FindFilter = {}): Promise<MigrateResult> {
     if (!this.encryptionEnabled) {
       throw new StorageClientError('Migration not supported when encryption is off');
