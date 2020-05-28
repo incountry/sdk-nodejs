@@ -28,7 +28,7 @@ import { normalizeErrors } from './normalize-errors-decorator';
 
 const FIND_LIMIT = 100;
 
-const STORAGE_METHOD_ERROR = 'Error in Storage.';
+const STORAGE_METHOD_ERROR = 'Error during Storage.';
 
 type KEY_FOR_ENCRYPTION = 'key' | 'key2' | 'key3' | 'profile_key';
 const KEYS_FOR_ENCRYPTION: KEY_FOR_ENCRYPTION[] = [
