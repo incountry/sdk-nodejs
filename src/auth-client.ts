@@ -45,7 +45,7 @@ const makeAuthHeader = (clientId: string, clientSecret: string) => {
   return `Basic ${authString}`;
 };
 
-const TokenDataIO = t.type({ access_token: t.string, expires_in: t.number });
+const TokenDataIO = t.type({ access_token: t.string, expires_in: t.number }, 'TokenData');
 type TokenData = {
   accessToken: string;
   expires: Date;
@@ -54,7 +54,7 @@ type TokenData = {
 const parseTokenData = (tokenData: unknown): TokenData => {
   const tokenDecoded = TokenDataIO.decode(tokenData);
   if (isInvalid(tokenDecoded)) {
-    throw toStorageServerError('AuthClient')(tokenDecoded);
+    throw toStorageServerError('AuthClient ')(tokenDecoded);
   }
 
   const { access_token: accessToken, expires_in } = tokenDecoded.right;

@@ -18,6 +18,15 @@ const PORTAL_BACKEND_COUNTRIES_LIST_PATH = '/countries';
 const PORTAL_BACKEND_HOST = 'portal-backend.incountry.com';
 const REQUEST_TIMEOUT_ERROR = { code: 'ETIMEDOUT' };
 
+const EMPTY_RECORD = {
+  body: '',
+  key2: null,
+  key3: null,
+  profile_key: null,
+  range_key: null,
+  version: 0,
+};
+
 function createFakeCountriesCache(countries) {
   const countriesCache = new CountriesCache();
   countriesCache.getCountries = async () => countries;
@@ -127,16 +136,28 @@ describe('ApiClient', () => {
     });
 
     describe('errors handling', () => {
-      const errorCases = [{
-        name: 'on 404',
-        respond: (popAPI) => popAPI.reply(404),
-      }, {
-        name: 'on 500',
-        respond: (popAPI) => popAPI.reply(500),
-      }, {
-        name: 'in case of network error',
-        respond: (popAPI) => popAPI.replyWithError(REQUEST_TIMEOUT_ERROR),
-      }];
+      const errorCases = [
+        {
+          name: 'on 404',
+          respond: (popAPI) => popAPI.reply(404),
+        },
+        {
+          name: 'on 500',
+          respond: (popAPI) => popAPI.reply(500),
+        },
+        {
+          name: 'on 500 with error data',
+          respond: (popAPI) => popAPI.reply(500, { errors: '' }),
+        },
+        {
+          name: 'on 500 with error data',
+          respond: (popAPI) => popAPI.reply(500, { errors: [{ message: 'b' }] }),
+        },
+        {
+          name: 'in case of network error',
+          respond: (popAPI) => popAPI.replyWithError(REQUEST_TIMEOUT_ERROR),
+        },
+      ];
 
       errorCases.forEach((errCase) => {
         it(`should throw StorageServerError ${errCase.name}`, async () => {
@@ -157,6 +178,72 @@ describe('ApiClient', () => {
         const wrongPopAPI = nockEndpoint(POPAPI_HOST, 'find', COUNTRY).reply(200, wrongFindResponse);
         await expect(apiClient.find(COUNTRY, { filter })).to.be.rejectedWith(StorageServerError);
         assert.equal(wrongPopAPI.isDone(), true, 'Nock scope is done');
+      });
+    });
+
+    describe('methods', () => {
+      describe('read', () => {
+        it('should not throw error with correct data', async () => {
+          const key = '123';
+          const record = {
+            ...EMPTY_RECORD,
+            key,
+          };
+          const popAPI = nockEndpoint(POPAPI_HOST, 'read', COUNTRY, key).reply(200, record);
+          const result = await apiClient.read(COUNTRY, key);
+          await expect(result).to.deep.equal(record);
+          assert.equal(popAPI.isDone(), true, 'Nock scope is done');
+        });
+      });
+
+      describe('write', () => {
+        it('should not throw error with correct data', async () => {
+          const key = '123';
+          const record = {
+            ...EMPTY_RECORD,
+            key,
+          };
+          const popAPI = nockEndpoint(POPAPI_HOST, 'write', COUNTRY).reply(200);
+          await apiClient.write(COUNTRY, record);
+          assert.equal(popAPI.isDone(), true, 'Nock scope is done');
+        });
+      });
+
+      describe('delete', () => {
+        it('should not throw error with correct data', async () => {
+          const key = '123';
+          const popAPI = nockEndpoint(POPAPI_HOST, 'delete', COUNTRY, key).reply(200);
+          await apiClient.delete(COUNTRY, key);
+          assert.equal(popAPI.isDone(), true, 'Nock scope is done');
+        });
+      });
+
+      describe('find', () => {
+        it('should not throw error with correct data', async () => {
+          const filter = { key: ['test'] };
+          const response = {
+            meta: {
+              total: 0, limit: 100, offset: 0, count: 0,
+            },
+            data: [],
+          };
+          const popAPI = nockEndpoint(POPAPI_HOST, 'find', COUNTRY).reply(200, response);
+          await apiClient.find(COUNTRY, filter);
+          assert.equal(popAPI.isDone(), true, 'Nock scope is done');
+        });
+      });
+
+      describe('batchWrite', () => {
+        it('should not throw error with correct data', async () => {
+          const key = '123';
+          const record = {
+            ...EMPTY_RECORD,
+            key,
+          };
+          const popAPI = nockEndpoint(POPAPI_HOST, 'batchWrite', COUNTRY).reply(200);
+          await apiClient.batchWrite(COUNTRY, { data: { records: [record] } });
+          assert.equal(popAPI.isDone(), true, 'Nock scope is done');
+        });
       });
     });
   });
