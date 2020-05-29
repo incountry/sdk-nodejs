@@ -15,10 +15,12 @@ function normalizeErrors(errorMessagePrefix = 'Error during ') {
         const result = await method.apply(this, args);
         return result;
       } catch (e) {
+        const message = `${errorMessagePrefix}${propertyKey}() call: ${e.message}`;
         if (e instanceof StorageError) {
+          e.message = message;
           throw e;
         } else {
-          throw new StorageError(`${errorMessagePrefix}${propertyKey}() call: ${e.message}`);
+          throw new StorageError(message);
         }
       }
     };
