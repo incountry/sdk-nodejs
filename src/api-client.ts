@@ -35,11 +35,17 @@ type FindResponse = {
   data: StorageRecord[];
 }
 
+type EndpointData = {
+  endpoint: string;
+  host: string;
+};
+
 const DEFAULT_POPAPI_HOST = 'https://us.api.incountry.io';
 
 const PoPErrorArray = t.array(t.partial({
   title: t.string,
   source: t.string,
+  detail: t.string,
 }));
 
 const parsePoPError = (e: Error) => {
@@ -49,7 +55,7 @@ const parsePoPError = (e: Error) => {
   const code = get(e, 'response.status');
   const errors = get(e, 'response.data.errors', []);
   const errorMessages = PoPErrorArray.is(errors)
-    ? errors.map((error) => `${error.title}: ${error.source}`)
+    ? errors.map((error) => `${code} ${error.title}: ${error.source} ${error.detail}`)
     : [];
   const errorMessage = errorMessages.length > 0 ? errorMessages.join(';\n') : e.message;
   return {
@@ -71,8 +77,8 @@ class ApiClient {
   ) {
   }
 
-  async headers() {
-    const token = await this.authClient.getToken();
+  async headers(host: string) {
+    const token = await this.authClient.getToken(host, this.envId);
     return {
       Authorization: `Bearer ${token}`,
       'x-env-id': this.envId,
@@ -81,9 +87,9 @@ class ApiClient {
     };
   }
 
-  async getEndpoint(countryCode: string, path: string): Promise<string> {
+  async getHost(countryCode: string): Promise<string> {
     if (this.host) {
-      return `${this.host}/${path}`;
+      return this.host;
     }
 
     const countryRegex = new RegExp(countryCode, 'i');
@@ -98,21 +104,26 @@ class ApiClient {
     }
 
     return countryHasApi
-      ? `https://${countryCode}.api.incountry.io/${path}`
-      : `${DEFAULT_POPAPI_HOST}/${path}`;
+      ? `https://${countryCode}.api.incountry.io`
+      : DEFAULT_POPAPI_HOST;
   }
 
-  logError(validationFailedResult: Left<t.Errors>): StorageServerError {
+  async getEndpoint(countryCode: string, path: string): Promise<EndpointData> {
+    const host = await this.getHost(countryCode);
+    return { endpoint: `${host}/${path}`, host };
+  }
+
+  prepareValidationError(validationFailedResult: Left<t.Errors>): StorageServerError {
     const validationErrorMessage = getErrorMessage(validationFailedResult);
     const error = new StorageServerError(`Response Validation Error: ${validationErrorMessage}`, validationFailedResult);
     this.loggerFn('error', error.message);
     return error;
   }
 
-  private async request<A, B>(countryCode: string, path: string, requestOptions: BasicRequestOptions<A> = { method: 'get' }, codec: Codec<B>, loggingMeta: {} = {}): Promise<B> {
-    const url = await this.getEndpoint(countryCode, path);
+  private async request<A, B>(countryCode: string, path: string, requestOptions: BasicRequestOptions<A> = { method: 'get' }, codec: Codec<B>, loggingMeta: {} = {}, retry = false): Promise<B> {
+    const { endpoint: url, host } = await this.getEndpoint(countryCode, path);
     const method = requestOptions.method.toUpperCase() as Method;
-    const defaultHeaders = await this.headers();
+    const defaultHeaders = await this.headers(host);
     const headers = {
       ...defaultHeaders,
       ...requestOptions.headers,
@@ -136,6 +147,12 @@ class ApiClient {
         data: requestOptions.data,
       });
     } catch (err) {
+      if (get(err, 'response.status') === 401 && retry) {
+        await this.authClient.getToken(host, this.envId, true);
+
+        return this.request(countryCode, path, requestOptions, codec, loggingMeta, false);
+      }
+
       const popError = parsePoPError(err);
       this.loggerFn('error', `Error ${method} ${url} : ${popError.errorMessage}`, {
         ...meta,
@@ -155,7 +172,7 @@ class ApiClient {
 
     const responseData = codec.decode(response.data);
     if (isInvalid(responseData)) {
-      throw this.logError(responseData);
+      throw this.prepareValidationError(responseData);
     }
 
     return responseData.right;
@@ -168,6 +185,7 @@ class ApiClient {
       { ...requestOptions, method: 'get' },
       RecordResponseIO,
       { key, operation: 'read' },
+      true,
     );
   }
 
@@ -178,6 +196,7 @@ class ApiClient {
       { ...requestOptions, method: 'post', data },
       WriteResponseIO,
       { key: data.key, operation: 'write' },
+      true,
     );
   }
 
@@ -188,6 +207,7 @@ class ApiClient {
       { ...requestOptions, method: 'delete' },
       t.unknown,
       { key, operation: 'delete' },
+      true,
     );
   }
 
@@ -198,6 +218,7 @@ class ApiClient {
       { ...requestOptions, method: 'post', data },
       FindResponseIO,
       { operation: 'find' },
+      true,
     );
   }
 
@@ -208,6 +229,7 @@ class ApiClient {
       { ...requestOptions, method: 'post', data },
       WriteResponseIO,
       { operation: 'batchWrite' },
+      true,
     );
   }
 }
@@ -217,4 +239,5 @@ export {
   FindResponseMeta,
   FindResponse,
   ApiClient,
+  DEFAULT_POPAPI_HOST,
 };

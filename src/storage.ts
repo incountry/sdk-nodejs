@@ -5,7 +5,7 @@ import * as defaultLogger from './logger';
 import { CountriesCache } from './countries-cache';
 import { SecretKeyAccessor } from './secret-key-accessor';
 import { InCrypt } from './in-crypt';
-import { isError, StorageClientError, StorageCryptoError } from './errors';
+import { StorageClientError, StorageCryptoError } from './errors';
 import { isJSON } from './utils';
 import { isValid, toStorageClientError, withDefault } from './validation/utils';
 import { StorageRecordIO, StorageRecord } from './validation/record';
@@ -21,9 +21,10 @@ import {
   StorageOptionsIO, StorageOptions,
 } from './validation/storage-options';
 import { CustomEncryptionConfig } from './validation/custom-encryption-configs';
-import { validate } from './validation/validateDecorator';
+import { validate } from './validation/validate-decorator';
 import { LoggerIO } from './validation/logger';
 import { AuthClient, getApiKeyAuthClient, OAuthClient } from './auth-client';
+import { normalizeErrors } from './normalize-errors-decorator';
 
 const FIND_LIMIT = 100;
 
@@ -153,6 +154,7 @@ class Storage {
   }
 
   @validate(CountryCodeIO, RecordKeyIO)
+  @normalizeErrors()
   async read(countryCode: string, recordKey: string, requestOptions: RequestOptions = {}): Promise<ReadResult> {
     const key = this.createKeyHash(this.normalizeKey(recordKey));
     const responseData = await this.apiClient.read(countryCode, key, requestOptions);
@@ -161,6 +163,7 @@ class Storage {
   }
 
   @validate(CountryCodeIO, StorageRecordIO)
+  @normalizeErrors()
   async write(countryCode: string, record: StorageRecord, requestOptions: RequestOptions = {}): Promise<WriteResult> {
     const data = await this.encryptPayload(record);
     await this.apiClient.write(countryCode, data, requestOptions);
@@ -168,17 +171,15 @@ class Storage {
   }
 
   @validate(CountryCodeIO, StorageRecordsNEAIO)
+  @normalizeErrors()
   async batchWrite(countryCode: string, records: Array<StorageRecord>): Promise<BatchWriteResult> {
-    try {
-      const encryptedRecords = await Promise.all(records.map((r) => this.encryptPayload(r)));
-      await this.apiClient.batchWrite(countryCode, { records: encryptedRecords });
-    } catch (err) {
-      this.logAndThrowError(err);
-    }
+    const encryptedRecords = await Promise.all(records.map((r) => this.encryptPayload(r)));
+    await this.apiClient.batchWrite(countryCode, { records: encryptedRecords });
     return { records };
   }
 
   @validate(CountryCodeIO, withDefault(FindFilterIO, {}), withDefault(FindOptionsIO, {}))
+  @normalizeErrors()
   async find(countryCode: string, filter: FindFilter = {}, options: FindOptions = {}, requestOptions: RequestOptions = {}): Promise<FindResult> {
     const data = {
       filter: this.hashFilterKeys(filter, ['profile_key', 'key', 'key2', 'key3']),
@@ -220,6 +221,7 @@ class Storage {
   }
 
   @validate(CountryCodeIO, RecordKeyIO)
+  @normalizeErrors()
   async delete(countryCode: string, recordKey: string, requestOptions: RequestOptions = {}): Promise<DeleteResult> {
     try {
       const key = this.createKeyHash(this.normalizeKey(recordKey));
@@ -234,6 +236,7 @@ class Storage {
   }
 
   @validate(CountryCodeIO, withDefault(LimitIO, FIND_LIMIT), withDefault(FindFilterIO, {}))
+  @normalizeErrors()
   async migrate(countryCode: string, limit = FIND_LIMIT, _findFilter: FindFilter = {}): Promise<MigrateResult> {
     if (!this.encryptionEnabled) {
       throw new StorageClientError('Migration not supported when encryption is off');
@@ -261,7 +264,7 @@ class Storage {
     await this.crypto.validate();
   }
 
-  normalizeKey(key: string | number): string {
+  private normalizeKey(key: string | number): string {
     return this.normalizeKeys ? String(key).toLowerCase() : String(key);
   }
 
@@ -273,21 +276,14 @@ class Storage {
       .digest('hex');
   }
 
-
-  logAndThrowError(errorOrMessage: Error|string): void {
-    const error = isError(errorOrMessage) ? errorOrMessage : new StorageClientError(errorOrMessage);
-    this.logger.write('error', error.message);
-    throw error;
-  }
-
-  hashFilterKey(filterKeyValue: FilterStringValue): FilterStringValue {
+  private hashFilterKey(filterKeyValue: FilterStringValue): FilterStringValue {
     if (Array.isArray(filterKeyValue)) {
       return filterKeyValue.map((v) => this.createKeyHash(this.normalizeKey(v)));
     }
     return this.createKeyHash(this.normalizeKey(filterKeyValue));
   }
 
-  hashFilterKeys(filter: FindFilter, keys: Array<keyof FindFilter>): FindFilter {
+  private hashFilterKeys(filter: FindFilter, keys: Array<keyof FindFilter>): FindFilter {
     const hashedFilter = { ...filter };
     keys.forEach((key: keyof FindFilter) => {
       const value = hashedFilter[key];
@@ -376,7 +372,7 @@ class Storage {
   }
 }
 
-async function createStorage(options: StorageOptions, customEncryptionConfigs: CustomEncryptionConfig[]): Promise<Storage> {
+async function createStorage(options: StorageOptions, customEncryptionConfigs?: CustomEncryptionConfig[]): Promise<Storage> {
   const s = new Storage(options, customEncryptionConfigs);
   await s.validate();
   return s;
