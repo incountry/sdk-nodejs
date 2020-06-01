@@ -638,7 +638,7 @@ describe('Storage', () => {
       });
 
       describe('normalized errors', () => {
-        it('should wrap any error into StorageError', async () => {
+        it('should wrap any error into StorageError and add method info', async () => {
           nock(POPAPI_HOST);
 
           const secrets = {
@@ -662,7 +662,7 @@ describe('Storage', () => {
           }];
 
           const storage = new Storage({ encrypt: true, getSecrets: () => secrets }, customEncConfigs);
-          await expect(storage.write(COUNTRY, { ...EMPTY_RECORD, key })).to.be.rejectedWith(StorageError);
+          await expect(storage.write(COUNTRY, { ...EMPTY_RECORD, key })).to.be.rejectedWith(StorageError, 'Storage.write()');
         });
       });
     });
