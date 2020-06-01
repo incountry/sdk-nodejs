@@ -9,26 +9,23 @@ import { isInvalid, toStorageClientError } from './utils';
 const foldValidation = fold(() => '', identity);
 
 function validate(...codecs: t.Mixed[]) {
-  return function wrap(target: any, propertyKey: string, descriptor: TypedPropertyDescriptor<any>): TypedPropertyDescriptor<any> {
+  return function wrap(target: object, propertyKey: string, descriptor: TypedPropertyDescriptor<any>): TypedPropertyDescriptor<any> {
     const method = descriptor.value;
-    if (!method) {
+    if (!t.Function.is(method)) {
       return descriptor;
     }
 
     const toError = toStorageClientError(`${propertyKey}() Validation Error: `);
 
     const type: { name: string } | undefined = Reflect.getMetadata('design:returntype', target, propertyKey);
-    let typeName = '';
-    if (type) {
-      typeName = type.name;
-    }
+    const isPromise = type && type.name === 'Promise';
 
     descriptor.value = function value(...args: any[]) {
       const results = codecs.map((codec, index) => codec.decode(args[index]));
       const invalid = results.find(isInvalid);
 
       if (invalid) {
-        if (typeName === 'Promise') {
+        if (isPromise) {
           return Promise.reject(toError(invalid));
         }
         throw toError(invalid);
