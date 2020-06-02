@@ -247,7 +247,25 @@ describe('InCrypt', function () {
       expect(() => incrypt.setCustomEncryption(configs)).to.throw(StorageCryptoError, CUSTOM_ENCRYPTION_ERROR_MESSAGE_NO_SKA);
     });
 
-    describe('custom encryption validation', () => {
+    describe('custom encryption deep validation', () => {
+      it('should throw an error if SecretKeyAccessor provides no key for custom encryption', async () => {
+        const configs = [{
+          encrypt: identity,
+          decrypt: identity,
+          version: 'customEncryption',
+          isCurrent: true,
+        }];
+
+        const secretKeyAccessor = new SecretKeyAccessor(() => ({
+          secrets: [{ version: 0, secret: 'supersecret' }], currentVersion: 0,
+        }));
+
+        const incrypt = new InCrypt(secretKeyAccessor);
+        incrypt.setCustomEncryption(configs);
+
+        return expect(incrypt.validate()).to.be.rejectedWith(StorageCryptoError, 'No secret for Custom Encryption');
+      });
+
       it('should throw an error if custom encryption "encrypt" function returns not string', async function () {
         const configs = [{
           encrypt: () => Promise.resolve(100),
@@ -287,6 +305,27 @@ describe('InCrypt', function () {
         return expect(incrypt.validate()).to.be.rejected.then((errors) => {
           expect(errors[0]).to.be.instanceOf(StorageCryptoError);
           expect(errors[0].message).to.contain(CUSTOM_ENCRYPTION_ERROR_MESSAGE_DEC);
+        });
+      });
+
+      it('should throw an error if custom encryption "decrypt" function returns bad string', async function () {
+        const configs = [{
+          encrypt: () => '',
+          decrypt: () => 'asas',
+          version: 'customEncryption',
+          isCurrent: true,
+        }];
+
+        const secretKeyAccessor = new SecretKeyAccessor(() => ({
+          secrets: [{ version: 0, secret: 'supersecret', isForCustomEncryption: true }], currentVersion: 0,
+        }));
+
+        const incrypt = new InCrypt(secretKeyAccessor);
+        incrypt.setCustomEncryption(configs);
+
+        return expect(incrypt.validate()).to.be.rejected.then((errors) => {
+          expect(errors[0]).to.be.instanceOf(StorageCryptoError);
+          expect(errors[0].message).to.contain('decrypted data doesn\'t match the original input');
         });
       });
     });

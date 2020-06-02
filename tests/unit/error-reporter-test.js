@@ -1,33 +1,33 @@
 const chai = require('chai');
 const t = require('io-ts');
-const { report } = require('../../lib/validation/error-reporter');
+const { getErrorMessage } = require('../../lib/validation/get-error-message');
 
 const { expect } = chai;
 
 describe('Error reporter', () => {
   describe('simple types', () => {
     it('should convert validation to human readable error message', () => {
-      expect(report(t.string.decode(123))).to.eq('<string> should be string but got 123');
+      expect(getErrorMessage(t.string.decode(123))).to.eq('<string> should be string but got 123');
     });
   });
 
   describe('union types', () => {
     it('should convert validation to human readable error message', () => {
       const unionType = t.union([t.string, t.undefined]);
-      expect(report(unionType.decode(123))).to.eq('<(string | undefined)> should be (string | undefined) but got 123');
+      expect(getErrorMessage(unionType.decode(123))).to.eq('<(string | undefined)> should be (string | undefined) but got 123');
 
       const unionTypeWithName = t.union([t.string, t.undefined], 'TestUnion');
-      expect(report(unionTypeWithName.decode(123))).to.eq('<TestUnion> should be TestUnion but got 123');
+      expect(getErrorMessage(unionTypeWithName.decode(123))).to.eq('<TestUnion> should be TestUnion but got 123');
     });
   });
 
   describe('intersection types', () => {
     it('should convert validation to human readable error message', () => {
       const intersectionType = t.intersection([t.string, t.number]);
-      expect(report(intersectionType.decode(123))).to.eq('<(string & number)> should be (string & number) but got 123');
+      expect(getErrorMessage(intersectionType.decode(123))).to.eq('<(string & number)> should be (string & number) but got 123');
 
       const intersectionTypeWithName = t.intersection([t.type({ a: t.string }), t.type({ b: t.number })], 'TestIntersection2');
-      expect(report(intersectionTypeWithName.decode({ a: 123 }))).to.eq('<TestIntersection2>.b should be number but got undefined');
+      expect(getErrorMessage(intersectionTypeWithName.decode({ a: 123 }))).to.eq('<TestIntersection2>.b should be number but got undefined');
     });
   });
 
@@ -42,10 +42,10 @@ describe('Error reporter', () => {
         }),
       ], 'Record');
 
-      expect(report(RecordIO.decode(123))).to.eq('<Record> should be Record but got 123');
-      expect(report(RecordIO.decode({}))).to.eq('<Record>.key should be string but got undefined');
-      expect(report(RecordIO.decode({ key: 123 }))).to.eq('<Record>.key should be string but got 123');
-      expect(report(RecordIO.decode({ key: 123, body: {} }))).to.eq('<Record>.body should be (string | null) but got {}');
+      expect(getErrorMessage(RecordIO.decode(123))).to.eq('<Record> should be Record but got 123');
+      expect(getErrorMessage(RecordIO.decode({}))).to.eq('<Record>.key should be string but got undefined');
+      expect(getErrorMessage(RecordIO.decode({ key: 123 }))).to.eq('<Record>.key should be string but got 123');
+      expect(getErrorMessage(RecordIO.decode({ key: 123, body: {} }))).to.eq('<Record>.body should be (string | null) but got {}');
     });
   });
 });

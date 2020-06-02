@@ -668,7 +668,7 @@ describe('Storage', () => {
     });
 
     describe('read', () => {
-      describe('should validate record', () => {
+      describe('should validate arguments', () => {
         describe('when no country provided', () => {
           it('should throw an error', async () => {
             await expect(encStorage.read(undefined, '')).to.be.rejectedWith(StorageError, COUNTRY_CODE_ERROR_MESSAGE);

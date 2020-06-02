@@ -217,7 +217,7 @@ describe('AuthClient', () => {
 
       it('should throw error if token data has wrong format', async () => {
         nockDefaultAuth().reply(200, { aaa: 111 });
-        await expect(authClient.getToken()).to.be.rejectedWith(StorageServerError, 'AuthClient <TokenData>');
+        await expect(authClient.getToken(DEFAULT_POPAPI_HOST, ENV_ID)).to.be.rejectedWith(StorageServerError, 'AuthClient <TokenData>');
       });
     });
   });
