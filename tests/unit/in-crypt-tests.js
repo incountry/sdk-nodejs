@@ -363,7 +363,7 @@ describe('InCrypt', function () {
       const incrypt = new InCrypt(secretKeyAccessor);
       incrypt.setCustomEncryption(configs);
 
-      const encrypted = { message: 'cY3VzdG9tRW5jcnlwdGlvbg==:aaa', secretVersion: 0 };
+      const encrypted = { message: 'cY3VzdG9tRW5jcnlwdGlvbg==:aaa', secretVersion: 0 }; // "cY3VzdG9tRW5jcnlwdGlvbg==" is packed custom encryption version "customEncryption"
       return expect(incrypt.decrypt(encrypted.message, encrypted.secretVersion)).to.be.rejectedWith(StorageCryptoError, 'is not marked for custom encryption');
     });
 
@@ -400,7 +400,7 @@ describe('InCrypt', function () {
       const incrypt = new InCrypt(secretKeyAccessor);
       incrypt.setCustomEncryption(configs);
 
-      const encrypted = { message: 'cY3VzdG9tRW5jcnlwdGlvbg==:aaa', secretVersion: 0 };
+      const encrypted = { message: 'cY3VzdG9tRW5jcnlwdGlvbg==:aaa', secretVersion: 0 }; // "cY3VzdG9tRW5jcnlwdGlvbg==" is packed custom encryption version "customEncryption"
       return expect(incrypt.decrypt(encrypted.message, encrypted.secretVersion)).to.be.rejectedWith(StorageCryptoError, CUSTOM_ENCRYPTION_ERROR_MESSAGE_DEC);
     });
 
