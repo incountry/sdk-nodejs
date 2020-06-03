@@ -16,18 +16,20 @@ jobs:
       name: "Unit tests"
       script:
         - if [[ ($TRAVIS_BRANCH == "master") && ($TRAVIS_EVENT_TYPE == "cron") ]]; then snyk monitor --org=incountry; fi
+        - git fetch --no-tags https://github.com/incountry/sdk-nodejs.git +refs/heads/develop:refs/remotes/origin/develop
+        - git fetch --no-tags https://github.com/incountry/sdk-nodejs.git +refs/heads/master:refs/remotes/origin/master
         - npm run test
         - sonar-scanner
     - stage: tests
       name: "Integration test"
       before_script:
         - |
-            if [[ $TRAVIS_BRANCH == "master" ]]; then 
+            if [[ $TRAVIS_BRANCH == "master" ]]; then
               export ENV=PRD
-            elif [[ $TRAVIS_BRANCH == "develop" ]]; then 
-              export ENV=QA; 
-            elif [[ $TRAVIS_BRANCH =~ ^RC_.*$ ]]; then 
-              export ENV=STG;   
+            elif [[ $TRAVIS_BRANCH == "develop" ]]; then
+              export ENV=QA;
+            elif [[ $TRAVIS_BRANCH =~ ^RC_.*$ ]]; then
+              export ENV=STG;
             else
               export ENV=QA
             fi
