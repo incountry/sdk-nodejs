@@ -1,16 +1,16 @@
 import * as t from 'io-ts';
 import { clone } from 'io-ts-types/lib/clone';
 import { isLeft, isRight, Left } from 'fp-ts/lib/Either';
-import { report } from './error-reporter';
+import { getErrorMessage } from './get-error-message';
 import { StorageClientError, StorageServerError } from '../errors';
 
 const toStorageClientError = (prefix = '') => (failedValidation: Left<t.Errors>): StorageClientError => {
-  const errorMessage = report(failedValidation);
+  const errorMessage = getErrorMessage(failedValidation);
   return new StorageClientError(`${prefix}${errorMessage}`, failedValidation);
 };
 
 const toStorageServerError = (prefix = '') => (failedValidation: Left<t.Errors>): StorageServerError => {
-  const errorMessage = report(failedValidation);
+  const errorMessage = getErrorMessage(failedValidation);
   return new StorageServerError(`${prefix}${errorMessage}`, failedValidation);
 };
 
@@ -73,7 +73,7 @@ export {
   NonNegativeInt,
   nullable,
   withDefault,
-  report as getErrorMessage,
+  getErrorMessage,
   isLeft as isInvalid,
   isRight as isValid,
 };

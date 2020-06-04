@@ -120,7 +120,7 @@ class ApiClient {
     return error;
   }
 
-  async request<A, B>(countryCode: string, path: string, requestOptions: BasicRequestOptions<A> = { method: 'get' }, codec: Codec<B>, loggingMeta: {} = {}, retry = false): Promise<B> {
+  private async request<A, B>(countryCode: string, path: string, requestOptions: BasicRequestOptions<A> = { method: 'get' }, codec: Codec<B>, loggingMeta: {} = {}, retry = false): Promise<B> {
     const { endpoint: url, host } = await this.getEndpoint(countryCode, path);
     const method = requestOptions.method.toUpperCase() as Method;
     const defaultHeaders = await this.headers(host);
@@ -200,12 +200,12 @@ class ApiClient {
     );
   }
 
-  delete(countryCode: string, key: string, requestOptions = {}): Promise<{}> {
+  delete(countryCode: string, key: string, requestOptions = {}): Promise<unknown> {
     return this.request(
       countryCode,
       `v2/storage/records/${countryCode}/${key}`,
       { ...requestOptions, method: 'delete' },
-      t.UnknownRecord,
+      t.unknown,
       { key, operation: 'delete' },
       true,
     );

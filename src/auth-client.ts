@@ -45,7 +45,7 @@ const makeAuthHeader = (clientId: string, clientSecret: string) => {
   return `Basic ${authString}`;
 };
 
-const TokenDataIO = t.type({ access_token: t.string, expires_in: t.number });
+const TokenDataIO = t.type({ access_token: t.string, expires_in: t.number }, 'TokenData');
 type TokenData = {
   accessToken: string;
   expires: Date;
@@ -54,7 +54,7 @@ type TokenData = {
 const parseTokenData = (tokenData: unknown): TokenData => {
   const tokenDecoded = TokenDataIO.decode(tokenData);
   if (isInvalid(tokenDecoded)) {
-    throw toStorageServerError('AuthClient')(tokenDecoded);
+    throw toStorageServerError('AuthClient ')(tokenDecoded);
   }
 
   const { access_token: accessToken, expires_in } = tokenDecoded.right;
@@ -72,7 +72,7 @@ const getApiKeyAuthClient = (apiKey: string): AuthClient => ({
 });
 
 class OAuthClient implements AuthClient {
-  private tokens: { [key: string]: TokenData } = {};
+  private tokens: { [key: string]: TokenData | undefined } = {};
 
   constructor(
     private readonly clientId: string,
@@ -88,20 +88,20 @@ class OAuthClient implements AuthClient {
     if (!envId) {
       throw new StorageClientError('Invalid envId provided to AuthClient.getToken()');
     }
-    const token = this.tokens[host];
 
+    let token = this.tokens[host];
     if (!token || new Date() >= token.expires || forceRenew) {
       const headers = {
         ...DEFAULT_HEADERS,
         Authorization: makeAuthHeader(this.clientId, this.clientSecret),
       };
       const body = { scope: envId, grant_type: 'client_credentials', audience: host };
-
       const tokenData = await this.requestToken(this.accessTokenUri, headers, body);
-      this.tokens[host] = parseTokenData(tokenData);
+      token = parseTokenData(tokenData);
+      this.tokens[host] = token;
     }
 
-    return this.tokens[host] ? this.tokens[host].accessToken : Promise.reject();
+    return token.accessToken;
   }
 
   private async requestToken(url: string, headers: {}, body: {}) {

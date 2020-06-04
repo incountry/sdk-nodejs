@@ -1,7 +1,7 @@
 import {
   getFunctionName, Props, Context, ValidationError, Errors, InterfaceType, Decoder,
 } from 'io-ts';
-import { fold } from 'fp-ts/lib/Either';
+import { Left } from 'fp-ts/lib/Either';
 
 function stringify(v: unknown): string {
   if (typeof v === 'function') {
@@ -60,17 +60,12 @@ function getMessage(e: ValidationError): string {
     : `${formatContextPath(filtered)} should be ${desiredType} but got ${stringify(e.value)}`;
 }
 
-function failure(errors: Errors): string {
-  const error = last(errors);
+
+function getErrorMessage(validation: Left<Errors>): string {
+  const error = last(validation.left);
   return error ? getMessage(error) : '';
 }
 
-function success(): string {
-  return 'No errors!';
-}
-
-const report = fold<Errors, any, string>(failure, success);
-
 export {
-  report,
+  getErrorMessage,
 };

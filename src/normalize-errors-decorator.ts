@@ -1,15 +1,16 @@
 /* eslint no-param-reassign: "warn" */
-import * as t from 'io-ts';
 import { StorageError } from './errors';
 
+type AsyncFunction<A> = (...args: any[]) => Promise<A>;
+
 function normalizeErrors() {
-  return function wrap(target: object, propertyKey: string, descriptor: TypedPropertyDescriptor<any>): TypedPropertyDescriptor<any> {
+  return function wrap<A>(target: object, propertyKey: string, descriptor: TypedPropertyDescriptor<AsyncFunction<A>>): TypedPropertyDescriptor<AsyncFunction<A>> {
     const method = descriptor.value;
-    if (!t.Function.is(method)) {
+    if (!method) {
       return descriptor;
     }
 
-    descriptor.value = async function value(...args: unknown[]) {
+    descriptor.value = async function value(...args) {
       try {
         const result = await method.apply(this, args);
         return result;
