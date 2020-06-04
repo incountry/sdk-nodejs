@@ -6,6 +6,11 @@ language: node_js
 node_js:
   - 11
 
+before_install:
+#  for sonar test coverage metric
+  - git fetch --no-tags https://github.com/incountry/sdk-nodejs.git +refs/heads/develop:refs/remotes/origin/develop
+  - git fetch --no-tags https://github.com/incountry/sdk-nodejs.git +refs/heads/master:refs/remotes/origin/master
+
 jobs:
   include:
     - stage: tests
@@ -37,7 +42,6 @@ jobs:
       script:
         - if [[ ($TRAVIS_BRANCH == "master") && ($TRAVIS_EVENT_TYPE == "cron") ]]; then snyk monitor --org=incountry; fi
         - npm run integrations
-        - sonar-scanner
       after_script:
         - rm -f .env.value
         - rm -f .env
@@ -45,9 +49,6 @@ jobs:
     - stage: install
       name: "Build"
       script:
-        #  for sonar test coverage metric
-        - git fetch --no-tags https://github.com/incountry/sdk-nodejs.git +refs/heads/develop:refs/remotes/origin/develop
-        - git fetch --no-tags https://github.com/incountry/sdk-nodejs.git +refs/heads/master:refs/remotes/origin/master
         - npm install
         - if [[ ($TRAVIS_BRANCH == "master") && ($TRAVIS_EVENT_TYPE == "cron") ]]; then npm install -g snyk; fi
 
