@@ -72,7 +72,7 @@ const getApiKeyAuthClient = (apiKey: string): AuthClient => ({
 });
 
 class OAuthClient implements AuthClient {
-  private tokens: { [key: string]: TokenData } = {};
+  private tokens: { [key: string]: TokenData | undefined } = {};
 
   constructor(
     private readonly clientId: string,
@@ -88,20 +88,20 @@ class OAuthClient implements AuthClient {
     if (!envId) {
       throw new StorageClientError('Invalid envId provided to AuthClient.getToken()');
     }
-    const token = this.tokens[host];
 
+    let token = this.tokens[host];
     if (!token || new Date() >= token.expires || forceRenew) {
       const headers = {
         ...DEFAULT_HEADERS,
         Authorization: makeAuthHeader(this.clientId, this.clientSecret),
       };
       const body = { scope: envId, grant_type: 'client_credentials', audience: host };
-
       const tokenData = await this.requestToken(this.accessTokenUri, headers, body);
-      this.tokens[host] = parseTokenData(tokenData);
+      token = parseTokenData(tokenData);
+      this.tokens[host] = token;
     }
 
-    return this.tokens[host] ? this.tokens[host].accessToken : Promise.reject();
+    return token.accessToken;
   }
 
   private async requestToken(url: string, headers: {}, body: {}) {
