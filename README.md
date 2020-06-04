@@ -1,5 +1,7 @@
 # InCountry Storage SDK
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=incountry_sdk-nodejs&metric=alert_status)](https://sonarcloud.io/dashboard?id=incountry_sdk-nodejs)
 
+[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=incountry_sdk-nodejs&metric=coverage)](https://sonarcloud.io/dashboard?id=incountry_sdk-nodejs)
 
 
 Installation
