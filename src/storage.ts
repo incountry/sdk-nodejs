@@ -155,7 +155,7 @@ class Storage {
 
   @validate(CountryCodeIO, RecordKeyIO)
   @normalizeErrors()
-  async read(countryCode: string, recordKey: string, requestOptions: RequestOptions = {}): Promise<ReadResult> {
+  async read(countryCode: string, recordKey: string, requestOptions?: RequestOptions): Promise<ReadResult> {
     const key = this.createKeyHash(this.normalizeKey(recordKey));
     const responseData = await this.apiClient.read(countryCode, key, requestOptions);
     const recordData = await this.decryptPayload(responseData);
@@ -164,7 +164,7 @@ class Storage {
 
   @validate(CountryCodeIO, StorageRecordIO)
   @normalizeErrors()
-  async write(countryCode: string, record: StorageRecord, requestOptions: RequestOptions = {}): Promise<WriteResult> {
+  async write(countryCode: string, record: StorageRecord, requestOptions?: RequestOptions): Promise<WriteResult> {
     const data = await this.encryptPayload(record);
     await this.apiClient.write(countryCode, data, requestOptions);
     return { record };
@@ -180,7 +180,7 @@ class Storage {
 
   @validate(CountryCodeIO, withDefault(FindFilterIO, {}), withDefault(FindOptionsIO, {}))
   @normalizeErrors()
-  async find(countryCode: string, filter: FindFilter = {}, options: FindOptions = {}, requestOptions: RequestOptions = {}): Promise<FindResult> {
+  async find(countryCode: string, filter: FindFilter = {}, options: FindOptions = {}, requestOptions?: RequestOptions): Promise<FindResult> {
     const data = {
       filter: this.hashFilterKeys(filter, ['profile_key', 'key', 'key2', 'key3']),
       options: { limit: FIND_LIMIT, offset: 0, ...options },
@@ -213,7 +213,7 @@ class Storage {
     return result;
   }
 
-  async findOne(countryCode: string, filter: FindFilter, options: FindOptions = {}, requestOptions: RequestOptions = {}): Promise<FindOneResult> {
+  async findOne(countryCode: string, filter: FindFilter, options: FindOptions = {}, requestOptions?: RequestOptions): Promise<FindOneResult> {
     const optionsWithLimit = { ...options, limit: 1 };
     const result = await this.find(countryCode, filter, optionsWithLimit, requestOptions);
     const record = result.records.length ? result.records[0] : null;
@@ -222,7 +222,7 @@ class Storage {
 
   @validate(CountryCodeIO, RecordKeyIO)
   @normalizeErrors()
-  async delete(countryCode: string, recordKey: string, requestOptions: RequestOptions = {}): Promise<DeleteResult> {
+  async delete(countryCode: string, recordKey: string, requestOptions?: RequestOptions): Promise<DeleteResult> {
     try {
       const key = this.createKeyHash(this.normalizeKey(recordKey));
 
@@ -341,7 +341,7 @@ class Storage {
     this.logger.write('debug', JSON.stringify(originalRecord, null, 2));
     const record = { ...originalRecord };
 
-    if (typeof record.body === 'string' && typeof record.version === 'number') {
+    if (typeof record.body === 'string') {
       record.body = await this.crypto.decrypt(
         record.body,
         record.version,
