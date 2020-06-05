@@ -37,7 +37,7 @@ type FindResponse = {
 
 type EndpointData = {
   endpoint: string;
-  host: string;
+  audience: string;
 };
 
 const DEFAULT_POPAPI_HOST = 'https://us.api.incountry.io';
@@ -77,14 +77,18 @@ class ApiClient {
   ) {
   }
 
-  async headers(host: string) {
-    const token = await this.authClient.getToken(host, this.envId);
+  async headers(tokenAudience: string) {
+    const token = await this.authClient.getToken(tokenAudience, this.envId);
     return {
       Authorization: `Bearer ${token}`,
       'x-env-id': this.envId,
       'Content-Type': 'application/json',
       'User-Agent': `SDK-Node.js/${SDK_VERSION}`,
     };
+  }
+
+  buildHostName(countryCode: string): string {
+    return `https://${countryCode}.api.incountry.io`;
   }
 
   async getHost(countryCode: string): Promise<string> {
@@ -104,13 +108,15 @@ class ApiClient {
     }
 
     return countryHasApi
-      ? `https://${countryCode}.api.incountry.io`
+      ? this.buildHostName(countryCode)
       : DEFAULT_POPAPI_HOST;
   }
 
   async getEndpoint(countryCode: string, path: string): Promise<EndpointData> {
     const host = await this.getHost(countryCode);
-    return { endpoint: `${host}/${path}`, host };
+    const countryHost = this.buildHostName(countryCode);
+    const audience = host === countryHost ? host : `${host} ${countryHost}`;
+    return { endpoint: `${host}/${path}`, audience };
   }
 
   prepareValidationError(validationFailedResult: Left<t.Errors>): StorageServerError {
@@ -121,9 +127,9 @@ class ApiClient {
   }
 
   private async request<A, B>(countryCode: string, path: string, requestOptions: BasicRequestOptions<A>, codec: Codec<B>, loggingMeta: {} = {}, retry = false): Promise<B> {
-    const { endpoint: url, host } = await this.getEndpoint(countryCode, path);
+    const { endpoint: url, audience } = await this.getEndpoint(countryCode, path);
     const method = requestOptions.method.toUpperCase() as Method;
-    const defaultHeaders = await this.headers(host);
+    const defaultHeaders = await this.headers(audience);
     const headers = {
       ...defaultHeaders,
       ...requestOptions.headers,
@@ -148,7 +154,7 @@ class ApiClient {
       });
     } catch (err) {
       if (get(err, 'response.status') === 401 && retry) {
-        await this.authClient.getToken(host, this.envId, true);
+        await this.authClient.getToken(audience, this.envId, true);
 
         return this.request(countryCode, path, requestOptions, codec, loggingMeta);
       }
