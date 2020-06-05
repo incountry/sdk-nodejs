@@ -142,7 +142,7 @@ class InCrypt {
     };
   }
 
-  async decrypt(s: string, secretVersion: number): Promise<string> {
+  async decrypt(s: string, secretVersion?: number): Promise<string> {
     const parts = s.split(':');
     if (parts.length !== 2) {
       throw new StorageCryptoError('Invalid ciphertext');

@@ -20,6 +20,9 @@
   },
   "deprecated": false,
   "description": "SDK for writing, reading, and deleting records using Incountry's storage suite",
+  "engines": {
+    "node" : ">=8.0.0"
+  },
   "homepage": "https://github.com/incountry/sdk-nodejs#readme",
   "license": "MIT",
   "main": "lib/index.js",
