@@ -352,6 +352,8 @@ class Storage {
 
         if (bodyObj.payload !== undefined) {
           record.body = bodyObj.payload;
+        } else {
+          record.body = null;
         }
 
         if (bodyObj.meta !== undefined) {

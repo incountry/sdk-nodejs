@@ -106,34 +106,8 @@ const PREPARED_PAYLOAD = [
       range_key: 100500,
     },
   ],
-  [
-    {
-      body: 'pt:SW5Db3VudHJ5Qm9keQ==',
-      version: 0,
-    },
-    {
-      body: 'InCountryBody',
-    },
-  ],
-  [
-    {
-      body: 'pt:eyJkYXRhIjogIkluQ291bnRyeUJvZHkifQ==',
-      version: 0,
-    },
-    {
-      body: '{"data": "InCountryBody"}',
-    },
-  ],
-  [
-    {
-      body: null,
-      version: 0,
-    },
-    {
-      body: null,
-    },
-  ],
 ];
+
 
 const LOGGER_STUB = { write: (a, b) => [a, b] };
 
