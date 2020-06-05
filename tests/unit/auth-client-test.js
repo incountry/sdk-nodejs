@@ -55,13 +55,13 @@ describe('AuthClient', () => {
     });
 
     describe('getToken() should throw an error when called with bad parameters', () => {
-      const badHosts = [undefined, null, ''];
+      const badAudiences = [undefined, null, ''];
       const badEnvIds = [undefined, null, ''];
 
-      badHosts.forEach((host) => {
-        it(`getToken() should throw an error when called with host="${host}"`, async () => {
+      badAudiences.forEach((audience) => {
+        it(`getToken() should throw an error when called with audience="${audience}"`, async () => {
           nockDefaultAuth().reply(200, accessTokenResponse());
-          await expect(authClient.getToken(host)).to.be.rejectedWith(StorageClientError, 'Invalid host provided to AuthClient.getToken()');
+          await expect(authClient.getToken(audience)).to.be.rejectedWith(StorageClientError, 'Invalid audience provided to AuthClient.getToken()');
         });
       });
 
@@ -123,9 +123,10 @@ describe('AuthClient', () => {
       });
     });
 
-    describe('tokens caching for multiple destination hosts', () => {
-      const popapiHost2 = 'https://se.api.incountry.io';
-      const popapiHost3 = 'https://ae.api.incountry.io';
+    describe('tokens caching for multiple destination audiences', () => {
+      const popapiAudience2 = 'https://se.api.incountry.io';
+      const popapiAudience3 = 'https://ae.api.incountry.io';
+      const popapiAudience4 = 'https://us.api.incountry.io https://es.api.incountry.io';
 
       let clock;
       beforeEach(() => {
@@ -137,13 +138,13 @@ describe('AuthClient', () => {
         clock.restore();
       });
 
-      it('getToken() should request new access_token for each new host', async () => {
+      it('getToken() should request new access_token for each new audience', async () => {
         let accessToken = await authClient.getToken(DEFAULT_POPAPI_HOST, ENV_ID);
         expect(accessToken).to.eq('access_token1');
         accessToken = await authClient.getToken(DEFAULT_POPAPI_HOST, ENV_ID);
         expect(accessToken).to.eq('access_token1');
 
-        let accessToken2 = await authClient.getToken(popapiHost2, ENV_ID);
+        let accessToken2 = await authClient.getToken(popapiAudience2, ENV_ID);
         expect(accessToken2).to.eq('access_token2');
 
         clock.tick(1 * 1000);
@@ -151,18 +152,21 @@ describe('AuthClient', () => {
         accessToken = await authClient.getToken(DEFAULT_POPAPI_HOST, ENV_ID);
         expect(accessToken).to.eq('access_token1');
 
-        accessToken2 = await authClient.getToken(popapiHost2, ENV_ID);
+        accessToken2 = await authClient.getToken(popapiAudience2, ENV_ID);
         expect(accessToken2).to.eq('access_token2');
 
-        const accessToken3 = await authClient.getToken(popapiHost3, ENV_ID);
+        const accessToken3 = await authClient.getToken(popapiAudience3, ENV_ID);
         expect(accessToken3).to.eq('access_token3');
+
+        const accessToken4 = await authClient.getToken(popapiAudience4, ENV_ID);
+        expect(accessToken4).to.eq('access_token4');
       });
 
-      it('getToken() should request new access_token for each new host when it is expired', async () => {
+      it('getToken() should request new access_token for each new audience when it is expired', async () => {
         let accessToken = await authClient.getToken(DEFAULT_POPAPI_HOST, ENV_ID);
         expect(accessToken).to.eq('access_token1');
 
-        let accessToken2 = await authClient.getToken(popapiHost2, ENV_ID);
+        let accessToken2 = await authClient.getToken(popapiAudience2, ENV_ID);
         expect(accessToken2).to.eq('access_token2');
 
         clock.tick(2 * 1000);
@@ -170,10 +174,10 @@ describe('AuthClient', () => {
         accessToken = await authClient.getToken(DEFAULT_POPAPI_HOST, ENV_ID);
         expect(accessToken).to.eq('access_token1');
 
-        accessToken2 = await authClient.getToken(popapiHost2, ENV_ID);
+        accessToken2 = await authClient.getToken(popapiAudience2, ENV_ID);
         expect(accessToken2).to.eq('access_token2');
 
-        let accessToken3 = await authClient.getToken(popapiHost3, ENV_ID);
+        let accessToken3 = await authClient.getToken(popapiAudience3, ENV_ID);
         expect(accessToken3).to.eq('access_token3');
 
         clock.tick(4 * 1000);
@@ -181,15 +185,15 @@ describe('AuthClient', () => {
         accessToken = await authClient.getToken(DEFAULT_POPAPI_HOST, ENV_ID);
         expect(accessToken).to.eq('access_token4');
 
-        accessToken2 = await authClient.getToken(popapiHost2, ENV_ID);
+        accessToken2 = await authClient.getToken(popapiAudience2, ENV_ID);
         expect(accessToken2).to.eq('access_token5');
 
-        accessToken3 = await authClient.getToken(popapiHost3, ENV_ID);
+        accessToken3 = await authClient.getToken(popapiAudience3, ENV_ID);
         expect(accessToken3).to.eq('access_token3');
 
         clock.tick(2 * 1000);
 
-        accessToken3 = await authClient.getToken(popapiHost3, ENV_ID);
+        accessToken3 = await authClient.getToken(popapiAudience3, ENV_ID);
         expect(accessToken3).to.eq('access_token6');
       });
     });
