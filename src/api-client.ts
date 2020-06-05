@@ -129,7 +129,7 @@ class ApiClient {
     return error;
   }
 
-  private async request<A, B>(countryCode: string, path: string, requestOptions: BasicRequestOptions<A>, codec: Codec<B>, loggingMeta: {} = {}, retry = false): Promise<B> {
+  private async request<A, B>(countryCode: string, path: string, requestOptions: BasicRequestOptions<A>, codec: Codec<B>, loggingMeta: {}, retry = false): Promise<B> {
     const { endpoint: url, audience } = await this.getEndpoint(countryCode, path);
     const method = requestOptions.method.toUpperCase() as Method;
     const defaultHeaders = await this.headers(audience);
