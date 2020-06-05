@@ -5,7 +5,6 @@ const nock = require('nock');
 const sinon = require('sinon');
 const uuid = require('uuid/v4');
 const { OAuthClient } = require('../../lib/auth-client');
-const { DEFAULT_POPAPI_HOST } = require('../../lib/api-client');
 const { StorageClientError, StorageServerError } = require('../../lib/errors');
 
 const {
@@ -18,6 +17,7 @@ const {
 } = require('../test-helpers/auth-nock');
 
 const { expect, assert } = chai;
+const DEFAULT_POPAPI_HOST = 'https://us.api.incountry.io';
 
 describe('AuthClient', () => {
   let ENV_ID;

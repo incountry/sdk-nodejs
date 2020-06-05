@@ -137,6 +137,7 @@ class Storage {
       options.endpoint,
       (level, message, meta) => this.logger.write(level, message, meta),
       () => this.countriesCache.getCountries(),
+      options.endpointMask,
     );
     this.normalizeKeys = Boolean(options.normalizeKeys);
   }

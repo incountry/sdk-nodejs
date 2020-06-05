@@ -40,7 +40,8 @@ type EndpointData = {
   audience: string;
 };
 
-const DEFAULT_POPAPI_HOST = 'https://us.api.incountry.io';
+const DEFAULT_ENDPOINT_COUNTRY = 'us';
+const DEFAULT_ENDPOINT_SUFFIX = 'api.incountry.io';
 
 const PoPErrorArray = t.array(t.partial({
   title: t.string,
@@ -74,6 +75,7 @@ class ApiClient {
     readonly host: string | undefined,
     readonly loggerFn: (level: LogLevel, message: string, meta?: {}) => void,
     readonly countriesProviderFn: () => Promise<Country[]>,
+    readonly endpointMask?: string,
   ) {
   }
 
@@ -88,7 +90,8 @@ class ApiClient {
   }
 
   buildHostName(countryCode: string): string {
-    return `https://${countryCode}.api.incountry.io`;
+    const suffix = this.endpointMask || DEFAULT_ENDPOINT_SUFFIX;
+    return `https://${countryCode}.${suffix}`;
   }
 
   async getHost(countryCode: string): Promise<string> {
@@ -109,7 +112,7 @@ class ApiClient {
 
     return countryHasApi
       ? this.buildHostName(countryCode)
-      : DEFAULT_POPAPI_HOST;
+      : this.buildHostName(DEFAULT_ENDPOINT_COUNTRY);
   }
 
   async getEndpoint(countryCode: string, path: string): Promise<EndpointData> {
@@ -245,5 +248,4 @@ export {
   FindResponseMeta,
   FindResponse,
   ApiClient,
-  DEFAULT_POPAPI_HOST,
 };
