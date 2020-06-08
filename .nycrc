@@ -1,5 +1,5 @@
 {
   "reporter": ["lcov", "text"],
   "extension": [".ts"],
-  "exclude": ["tests"]
+  "exclude": ["tests", "tests-ts"]
 }
