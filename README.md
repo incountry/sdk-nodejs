@@ -36,6 +36,7 @@ const storage = await createStorage({
   endpoint: 'INC_URL',              // {string} Optional - Defines API URL
   encrypt: true,                    // {boolean} Optional - If false, encryption is not used. If omitted is set to true.
   getSecrets: () => '',             // {GetSecretsCallback} Optional - Used to fetch encryption secret
+  endpointMask: '',                 // {string} Optional - Defines API base hostname part to use. If set, all requests will be sent to https://${country}.${endpointMask} host instead of the default one (https://${country}.api.incountry.io)
 });
 ```
 

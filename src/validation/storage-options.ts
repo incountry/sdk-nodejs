@@ -25,6 +25,7 @@ type StorageOptions = {
   normalizeKeys?: boolean;
   countriesCache?: CountriesCache;
   oauth?: OAuthOptions;
+  endpointMask?: string;
 };
 
 type StorageOptionsValidated = Override<StorageOptions, {
@@ -42,6 +43,7 @@ const StorageOptionsIO: t.Type<StorageOptionsValidated> = t.partial({
   getSecrets: t.Function,
   countriesCache: t.object,
   oauth: OAuthOptionsIO,
+  endpointMask: t.string,
 }, 'StorageOptions');
 
 export {

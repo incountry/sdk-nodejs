@@ -37,10 +37,11 @@ type FindResponse = {
 
 type EndpointData = {
   endpoint: string;
-  host: string;
+  audience: string;
 };
 
-const DEFAULT_POPAPI_HOST = 'https://us.api.incountry.io';
+const DEFAULT_ENDPOINT_COUNTRY = 'us';
+const DEFAULT_ENDPOINT_SUFFIX = 'api.incountry.io';
 
 const PoPErrorArray = t.array(t.partial({
   title: t.string,
@@ -74,17 +75,23 @@ class ApiClient {
     readonly host: string | undefined,
     readonly loggerFn: (level: LogLevel, message: string, meta?: {}) => void,
     readonly countriesProviderFn: () => Promise<Country[]>,
+    readonly endpointMask?: string,
   ) {
   }
 
-  async headers(host: string) {
-    const token = await this.authClient.getToken(host, this.envId);
+  async headers(tokenAudience: string) {
+    const token = await this.authClient.getToken(tokenAudience, this.envId);
     return {
       Authorization: `Bearer ${token}`,
       'x-env-id': this.envId,
       'Content-Type': 'application/json',
       'User-Agent': `SDK-Node.js/${SDK_VERSION}`,
     };
+  }
+
+  buildHostName(countryCode: string): string {
+    const suffix = this.endpointMask || DEFAULT_ENDPOINT_SUFFIX;
+    return `https://${countryCode}.${suffix}`;
   }
 
   async getHost(countryCode: string): Promise<string> {
@@ -104,13 +111,15 @@ class ApiClient {
     }
 
     return countryHasApi
-      ? `https://${countryCode}.api.incountry.io`
-      : DEFAULT_POPAPI_HOST;
+      ? this.buildHostName(countryCode)
+      : this.buildHostName(DEFAULT_ENDPOINT_COUNTRY);
   }
 
   async getEndpoint(countryCode: string, path: string): Promise<EndpointData> {
     const host = await this.getHost(countryCode);
-    return { endpoint: `${host}/${path}`, host };
+    const countryHost = this.buildHostName(countryCode);
+    const audience = host === countryHost ? host : `${host} ${countryHost}`;
+    return { endpoint: `${host}/${path}`, audience };
   }
 
   prepareValidationError(validationFailedResult: Left<t.Errors>): StorageServerError {
@@ -120,10 +129,10 @@ class ApiClient {
     return error;
   }
 
-  private async request<A, B>(countryCode: string, path: string, requestOptions: BasicRequestOptions<A>, codec: Codec<B>, loggingMeta: {} = {}, retry = false): Promise<B> {
-    const { endpoint: url, host } = await this.getEndpoint(countryCode, path);
+  private async request<A, B>(countryCode: string, path: string, requestOptions: BasicRequestOptions<A>, codec: Codec<B>, loggingMeta: {}, retry = false): Promise<B> {
+    const { endpoint: url, audience } = await this.getEndpoint(countryCode, path);
     const method = requestOptions.method.toUpperCase() as Method;
-    const defaultHeaders = await this.headers(host);
+    const defaultHeaders = await this.headers(audience);
     const headers = {
       ...defaultHeaders,
       ...requestOptions.headers,
@@ -148,7 +157,7 @@ class ApiClient {
       });
     } catch (err) {
       if (get(err, 'response.status') === 401 && retry) {
-        await this.authClient.getToken(host, this.envId, true);
+        await this.authClient.getToken(audience, this.envId, true);
 
         return this.request(countryCode, path, requestOptions, codec, loggingMeta);
       }
@@ -239,5 +248,4 @@ export {
   FindResponseMeta,
   FindResponse,
   ApiClient,
-  DEFAULT_POPAPI_HOST,
 };
