@@ -117,8 +117,11 @@ class ApiClient {
 
   async getEndpoint(countryCode: string, path: string): Promise<EndpointData> {
     const host = await this.getHost(countryCode);
-    const countryHost = this.buildHostName(countryCode);
-    const audience = host === countryHost ? host : `${host} ${countryHost}`;
+    let audience = host;
+    if (!this.host) {
+      const countryHost = this.buildHostName(countryCode);
+      audience = host === countryHost ? host : `${host} ${countryHost}`;
+    }
     return { endpoint: `${host}/${path}`, audience };
   }
 
