@@ -37,6 +37,7 @@ const storage = await createStorage({
   encrypt: true,                    // {boolean} Optional - If false, encryption is not used. If omitted is set to true.
   getSecrets: () => '',             // {GetSecretsCallback} Optional - Used to fetch encryption secret
   endpointMask: '',                 // {string} Optional - Defines API base hostname part to use. If set, all requests will be sent to https://${country}.${endpointMask} host instead of the default one (https://${country}.api.incountry.io)
+  countriesEndpoint: '',            // {string} Optional - If your PoPAPI configuration relies on a custom PoPAPI server (rather than the default one) use `countriesEndpoint` option to specify the endpoint responsible for fetching supported countries list 
 });
 ```
 
