@@ -100,12 +100,13 @@ describe('ApiClient', () => {
       });
 
       describe("when the endpointMask was provided to ApiClient and provided host doesn't match endpointMask", () => {
-        it('should use requested host as audience', async () => {
+        it('should add requested minipop host to audience', async () => {
           const country = 'zz';
           const endpointMask = 'test.example.com';
           const customPOPAPIHost = 'https://custom.popapi.host';
+          const audience = `${customPOPAPIHost} https://${country}.${endpointMask}`;
           const apiClient = getApiClient(customPOPAPIHost, undefined, false, endpointMask);
-          await expectCorrectURLReturned(apiClient, country, customPOPAPIHost, customPOPAPIHost);
+          await expectCorrectURLReturned(apiClient, country, customPOPAPIHost, audience);
         });
       });
 
