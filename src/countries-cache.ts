@@ -8,22 +8,20 @@ type Country = {
 }
 
 const COUNTRIES_CACHE_TIMEOUT = 60 * 1000;
-const PORTAL_HOST = 'portal-backend.incountry.com';
+const DEFAULT_COUNTRIES_ENDPOINT = 'https://portal-backend.incountry.com/countries';
 
 class CountriesCache {
-  url: string;
   expiresOn: number;
   logger: defaultLogger.Logger;
   countries: Array<Country> = [];
   hasFetched = false;
 
   constructor(
-    host: string = PORTAL_HOST,
+    readonly endpoint: string = DEFAULT_COUNTRIES_ENDPOINT,
     readonly timeout: number = COUNTRIES_CACHE_TIMEOUT,
     expiresOn?: number,
     logger?: defaultLogger.Logger,
   ) {
-    this.url = `https://${host}/countries`;
     this.expiresOn = typeof expiresOn === 'number' ? expiresOn : Date.now() + this.timeout;
     this.logger = logger !== undefined ? logger : defaultLogger.withBaseLogLevel('error');
   }
@@ -40,7 +38,7 @@ class CountriesCache {
 
   private async updateCountries(): Promise<void> {
     try {
-      const response = await axios.get(this.url);
+      const response = await axios.get(this.endpoint);
       if (response.data) {
         this.countries = response.data.countries.filter((country: Country) => country.direct);
       } else {

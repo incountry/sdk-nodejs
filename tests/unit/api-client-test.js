@@ -193,13 +193,14 @@ describe('ApiClient', () => {
     describe('when countries list provider responds with server error', () => {
       let countriesProviderNock;
       const countriesProviderHost = 'test.example';
+      const countriesProviderEndpoint = `https://${countriesProviderHost}${PORTAL_BACKEND_COUNTRIES_LIST_PATH}`;
 
       beforeEach(() => {
         countriesProviderNock = nock(`https://${countriesProviderHost}`).get(PORTAL_BACKEND_COUNTRIES_LIST_PATH).reply(500, { error: 'Oh no!' });
       });
 
       it('should throw StorageServerError', async () => {
-        const workingCache = new CountriesCache(countriesProviderHost, 1000, Date.now() + 1000);
+        const workingCache = new CountriesCache(countriesProviderEndpoint, 1000, Date.now() + 1000);
         const country = 'ae';
         const apiClient = getApiClient(undefined, workingCache);
         await expect(apiClient.getEndpoint(country, 'testPath')).to.be.rejectedWith(StorageServerError, 'Unable to retrieve countries list: Request failed with status code 500');
