@@ -4,7 +4,7 @@ import * as t from 'io-ts';
 import { StorageClientError, StorageServerError } from './errors';
 import { toStorageServerError, isInvalid } from './validation/utils';
 
-const DEFAULT_AUTH_URL = 'http://localhost:4444/oauth2/token';
+const DEFAULT_AUTH_URL = 'https://auth.incountry.com/oauth2/token';
 
 const DEFAULT_HEADERS = {
   Accept: 'application/json, application/x-www-form-urlencoded',

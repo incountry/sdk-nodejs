@@ -1,6 +1,6 @@
 const nock = require('nock');
 
-const DEFAULT_AUTH_HOST = 'http://localhost:4444';
+const DEFAULT_AUTH_HOST = 'https://auth.incountry.com';
 const DEFAULT_AUTH_PATH = '/oauth2/token';
 const CUSTOM_AUTH_HOST = 'http://test.example';
 const CUSTOM_AUTH_PATH = '/get/token';
