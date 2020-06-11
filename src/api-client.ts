@@ -94,11 +94,7 @@ class ApiClient {
     return `https://${countryCode}.${suffix}`;
   }
 
-  async getHost(countryCode: string): Promise<string> {
-    if (this.host) {
-      return this.host;
-    }
-
+  async isMidpopCountry(countryCode: string): Promise<boolean> {
     const countryRegex = new RegExp(countryCode, 'i');
     let countryHasApi;
     try {
@@ -110,15 +106,30 @@ class ApiClient {
       throw new StorageServerError(`Unable to retrieve countries list: ${popError.errorMessage}`, popError.responseData, popError.code);
     }
 
-    return countryHasApi
-      ? this.buildHostName(countryCode)
-      : this.buildHostName(DEFAULT_ENDPOINT_COUNTRY);
+    return !!countryHasApi;
   }
 
   async getEndpoint(countryCode: string, path: string): Promise<EndpointData> {
-    const host = await this.getHost(countryCode);
+    let host;
+    let audience;
     const countryHost = this.buildHostName(countryCode);
-    const audience = host === countryHost ? host : `${host} ${countryHost}`;
+    if (this.host) {
+      host = this.host;
+      audience = host;
+      if (this.endpointMask && countryHost !== host) {
+        audience = `${host} ${countryHost}`;
+      }
+    } else {
+      const isMidpop = await this.isMidpopCountry(countryCode);
+      if (isMidpop) {
+        host = countryHost;
+        audience = host;
+      } else {
+        host = this.buildHostName(DEFAULT_ENDPOINT_COUNTRY);
+        audience = `${host} ${countryHost}`;
+      }
+    }
+
     return { endpoint: `${host}/${path}`, audience };
   }
 

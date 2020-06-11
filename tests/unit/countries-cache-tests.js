@@ -27,7 +27,7 @@ const MIXED_COUNTRIES_PB_RESPONSE = {
   ],
 };
 
-const nockPBCountriesAPI = (host, response) => nock(`https://${host}`).get(PORTAL_BACKEND_PATH).reply(200, response);
+const nockPBCountriesAPI = (host, response, path = PORTAL_BACKEND_PATH) => nock(`https://${host}`).get(path).reply(200, response);
 
 describe('Countries cache', () => {
   beforeEach(() => {
@@ -39,8 +39,8 @@ describe('Countries cache', () => {
     nock.enableNetConnect();
   });
 
-  describe('host usage check', () => {
-    it('should use correct portalHost by default', async () => {
+  describe('endpoint usage check', () => {
+    it('should use correct endpoint by default', async () => {
       const pbCountriesAPI = nockPBCountriesAPI(PORTAL_BACKEND_HOST, DIRECT_COUNTRIES_PB_RESPONSE);
 
       const cache = new CountriesCache();
@@ -49,11 +49,13 @@ describe('Countries cache', () => {
       assert.equal(pbCountriesAPI.isDone(), true, 'CountriesAPI scope is done');
     });
 
-    it('should use correct portalHost if custom host is provided', async () => {
+    it('should use correct endpoint if custom endpoint is provided', async () => {
       const customHost = 'portal.backend.host.example';
-      const pbCountriesAPI = nockPBCountriesAPI(customHost, DIRECT_COUNTRIES_PB_RESPONSE);
+      const customPath = '/1234567';
+      const customEndpoint = `https://${customHost}${customPath}`;
+      const pbCountriesAPI = nockPBCountriesAPI(customHost, DIRECT_COUNTRIES_PB_RESPONSE, customPath);
 
-      const cache = new CountriesCache(customHost);
+      const cache = new CountriesCache(customEndpoint);
       await cache.getCountries();
 
       assert.equal(pbCountriesAPI.isDone(), true, 'CountriesAPI scope is done');
