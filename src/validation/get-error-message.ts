@@ -1,7 +1,7 @@
 import {
-  getFunctionName, Props, Context, ValidationError, Errors, InterfaceType, Decoder,
+  getFunctionName, Props, Context, ValidationError, InterfaceType, Decoder, Validation,
 } from 'io-ts';
-import { Left } from 'fp-ts/lib/Either';
+import { isRight } from 'fp-ts/lib/Either';
 
 function stringify(v: unknown): string {
   if (typeof v === 'function') {
@@ -61,11 +61,17 @@ function getMessage(e: ValidationError): string {
 }
 
 
-function getErrorMessage(validation: Left<Errors>): string {
+const NO_ERRORS = 'No errors';
+
+function getErrorMessage(validation: Validation<unknown>): string {
+  if (isRight(validation)) {
+    return NO_ERRORS;
+  }
   const error = last(validation.left);
-  return error ? getMessage(error) : '';
+  return error ? getMessage(error) : NO_ERRORS;
 }
 
 export {
   getErrorMessage,
+  NO_ERRORS,
 };

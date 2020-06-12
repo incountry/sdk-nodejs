@@ -44,6 +44,6 @@
     "no-useless-constructor": "off",
     "@typescript-eslint/no-useless-constructor": "error",
     "@typescript-eslint/await-thenable": "warn",
-    "import/no-extraneous-dependencies": ["error", {"devDependencies": ["tests-ts/**/*.ts", "**/*.spec.js"]}]
+    "import/no-extraneous-dependencies": ["error", {"devDependencies": ["tests/**/*.ts", "**/*.spec.js"]}]
   }
 }

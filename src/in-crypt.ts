@@ -2,7 +2,9 @@ import crypto from 'crypto';
 import util from 'util';
 import { SecretKeyAccessor } from './secret-key-accessor';
 import { StorageCryptoError, StorageClientError } from './errors';
-import { isValid, getErrorMessage } from './validation/utils';
+import {
+  isValid, getErrorMessage, NonNegativeInt,
+} from './validation/utils';
 import {
   CustomEncryptionConfigsIO,
   CUSTOM_ENCRYPTION_ERROR_MESSAGE_ENC,
@@ -16,12 +18,12 @@ const pbkdf2 = util.promisify(crypto.pbkdf2);
 
 type Encrypted = {
   message: string;
-  secretVersion: number;
+  secretVersion: NonNegativeInt;
 };
 
 type Key = {
   key: string | Buffer;
-  version: number;
+  version: NonNegativeInt;
 }
 
 const IV_SIZE = 12;

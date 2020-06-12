@@ -1,20 +1,22 @@
 import * as t from 'io-ts';
 import { clone } from 'io-ts-types/lib/clone';
-import { isLeft, isRight, Left } from 'fp-ts/lib/Either';
+import { isLeft, isRight } from 'fp-ts/lib/Either';
 import { getErrorMessage } from './get-error-message';
 import { StorageClientError, StorageServerError } from '../errors';
+import { isJSON } from '../utils';
 
-const toStorageClientError = (prefix = '') => (failedValidation: Left<t.Errors>): StorageClientError => {
-  const errorMessage = getErrorMessage(failedValidation);
-  return new StorageClientError(`${prefix}${errorMessage}`, failedValidation);
+
+const toStorageClientError = (prefix = '') => (validation: t.Validation<unknown>): StorageClientError => {
+  const errorMessage = getErrorMessage(validation);
+  return new StorageClientError(`${prefix}${errorMessage}`, validation);
 };
 
-const toStorageServerError = (prefix = '') => (failedValidation: Left<t.Errors>): StorageServerError => {
-  const errorMessage = getErrorMessage(failedValidation);
-  return new StorageServerError(`${prefix}${errorMessage}`, failedValidation);
+const toStorageServerError = (prefix = '') => (validation: t.Validation<unknown>): StorageServerError => {
+  const errorMessage = getErrorMessage(validation);
+  return new StorageServerError(`${prefix}${errorMessage}`, validation);
 };
 
-function validationToPromise<A, B>(validation: t.Validation<A>, prepareError?: (failedValidation: Left<t.Errors>) => B): Promise<A> {
+function validationToPromise<A, B>(validation: t.Validation<A>, prepareError?: (validation: t.Validation<A>) => B): Promise<A> {
   return new Promise<A>((resolve, reject) => {
     if (isRight(validation)) {
       return resolve(validation.right);
@@ -24,34 +26,29 @@ function validationToPromise<A, B>(validation: t.Validation<A>, prepareError?: (
   });
 }
 
-type PositiveIntBrand = {
-  readonly PositiveInt: unique symbol;
-}
+// type PositiveIntBrand = {
+//   readonly PositiveInt: unique symbol;
+// }
 
 const PositiveInt = t.refinement(
   t.Int,
-  (n): n is t.Branded<t.Int, PositiveIntBrand> => n > 0,
+  (n) => n > 0,
   'PositiveInt',
 );
 
 type PositiveInt = t.TypeOf<typeof PositiveInt>
 
-
-interface NonNegativeIntBrand {
-  readonly NonNegativeInt: unique symbol;
-}
+// interface NonNegativeIntBrand {
+//   readonly NonNegativeInt: unique symbol;
+// }
 
 const NonNegativeInt = t.refinement(
   t.Int,
-  (n): n is t.Branded<t.Int, NonNegativeIntBrand> => n >= 0,
+  (n) => n >= 0,
   'NonNegativeInt',
 );
 
 type NonNegativeInt = t.TypeOf<typeof NonNegativeInt>
-
-function nullable(type: t.Mixed) {
-  return t.union([type, t.null]);
-}
 
 function withDefault<C extends t.Any>(codec: C, defaultValue: any): C {
   const r: any = clone(codec);
@@ -62,18 +59,37 @@ function withDefault<C extends t.Any>(codec: C, defaultValue: any): C {
   return r;
 }
 
+type JSONObject = { [key: string]: JSON }
+type JSONArray = Array<JSON>
+type JSON = undefined | null | string | number | boolean | JSONArray | JSONObject
+
+const JSONIO = new t.Type<JSON, string, string>(
+  'JSONDecoder',
+  (o): o is JSON => isJSON(o),
+  (s, c) => {
+    try {
+      return t.success(JSON.parse(s));
+    } catch (e) {
+      return t.failure(s, c);
+    }
+  },
+  String,
+);
+
 type Codec<A> = t.Type<A, unknown>;
+type Int = t.Int;
 
 export {
   Codec,
   toStorageClientError,
   toStorageServerError,
   validationToPromise,
+  JSONIO,
   PositiveInt,
   NonNegativeInt,
-  nullable,
   withDefault,
   getErrorMessage,
   isLeft as isInvalid,
   isRight as isValid,
+  Int,
 };

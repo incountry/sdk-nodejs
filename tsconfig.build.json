@@ -12,6 +12,7 @@
   "include": ["src"],
   "exclude": [
     "node_modules",
-    "package.json"
+    "package.json",
+    "tests"
   ],
 }

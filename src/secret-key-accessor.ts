@@ -1,8 +1,8 @@
-import { validationToPromise, toStorageClientError } from './validation/utils';
+import { validationToPromise, toStorageClientError, NonNegativeInt } from './validation/utils';
 import { SecretsDataIO, SecretsData, SecretOrKey } from './validation/secrets-data';
 import { StorageClientError } from './errors';
 
-const DEFAULT_VERSION = 0;
+const DEFAULT_VERSION = 0 as NonNegativeInt;
 
 function wrapToSecretsData(secret: string): SecretsData {
   return {
@@ -20,7 +20,7 @@ class SecretKeyAccessor {
   static DEFAULT_VERSION = DEFAULT_VERSION;
   getSecretsCallback: Function;
 
-  constructor(getSecretsCallback?: Function) {
+  constructor(getSecretsCallback: Function) {
     if (typeof getSecretsCallback !== 'function') {
       throw new StorageClientError('Provide callback function for secretData');
     }
