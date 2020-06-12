@@ -158,7 +158,7 @@ class Storage {
       this.crypto = new InCrypt();
     }
 
-    this.setCountriesCache(options.countriesCache || new CountriesCache());
+    this.setCountriesCache(options.countriesCache || new CountriesCache(options.countriesEndpoint));
 
     this.apiClient = new ApiClient(
       this.authClient,
