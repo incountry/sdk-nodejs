@@ -1,3 +1,4 @@
+import 'mocha';
 import * as chai from 'chai';
 import chaiAsPromised from 'chai-as-promised';
 import { createStorage, COUNTRY, noop } from './common';
@@ -55,7 +56,7 @@ describe('Find records', () => {
         await storage.write(COUNTRY, dataRequest3);
       });
 
-      xit('Find records by country', async () => {
+      it.skip('Find records by country', async () => {
         const { records, meta } = await storage.find(COUNTRY, {}, {});
 
         expect(records).to.have.lengthOf(2);
@@ -67,7 +68,7 @@ describe('Find records', () => {
         expect(meta.limit).to.equal(100);
       });
 
-      xit('Find records by key', async () => {
+      it.skip('Find records by key', async () => {
         const { records, meta } = await storage.find(COUNTRY, { key: dataRequest.key }, {});
 
         expect(records).to.have.lengthOf(1);
@@ -80,7 +81,7 @@ describe('Find records', () => {
         expect(meta.limit).to.equal(100);
       });
 
-      xit('Find records by key2', async () => {
+      it.skip('Find records by key2', async () => {
         const { records, meta } = await storage.find(COUNTRY, { key2: dataRequest.key2 }, {});
 
         expect(records).to.have.lengthOf(1);
@@ -94,7 +95,7 @@ describe('Find records', () => {
         expect(meta.limit).to.equal(100);
       });
 
-      xit('Find records by key3', async () => {
+      it.skip('Find records by key3', async () => {
         const { records, meta } = await storage.find(COUNTRY, { key3: dataRequest.key3 }, {});
 
         expect(records).to.have.lengthOf(1);
@@ -106,7 +107,7 @@ describe('Find records', () => {
         expect(meta.limit).to.equal(100);
       });
 
-      xit('Find records by profile_key', async () => {
+      it.skip('Find records by profile_key', async () => {
         const { records, meta } = await storage.find(COUNTRY, { profile_key: dataRequest.profile_key }, {});
 
         expect(records).to.have.lengthOf(1);
@@ -118,7 +119,7 @@ describe('Find records', () => {
         expect(meta.limit).to.equal(100);
       });
 
-      xit('Find record list of keys', async () => {
+      it.skip('Find record list of keys', async () => {
         const { records, meta } = await storage.find(COUNTRY, { key2: [dataRequest.key2, dataRequest2.key2] }, {});
 
         expect(records).to.have.lengthOf(2);
@@ -129,7 +130,7 @@ describe('Find records', () => {
         expect(meta.limit).to.equal(100);
       });
 
-      xit('Find records with pagination', async () => {
+      it.skip('Find records with pagination', async () => {
         const limit = 10;
         const offset = 1;
         const { records, meta } = await storage.find(COUNTRY, { range_key: { $lt: 100 } },
@@ -147,7 +148,7 @@ describe('Find records', () => {
         expect(meta.limit).to.equal(limit);
       });
 
-      xit('Find records by filter with range_key', async () => {
+      it.skip('Find records by filter with range_key', async () => {
         const { records, meta } = await storage.find(COUNTRY,
           { range_key: { $lt: 100 } }, {});
 
@@ -159,7 +160,7 @@ describe('Find records', () => {
         expect(meta.total).to.equal(2);
       });
 
-      xit('Find records by filter with $not', async () => {
+      it.skip('Find records by filter with $not', async () => {
         const { records: allRecords } = await storage.find(COUNTRY, {}, {});
         expect(allRecords).to.have.lengthOf(3);
 
@@ -176,7 +177,7 @@ describe('Find records', () => {
         expect(recordsFound.map((r) => r.key)).to.include.members([dataRequest2.key, dataRequest3.key]);
       });
 
-      xit('Records not found by key value', async () => {
+      it.skip('Records not found by key value', async () => {
         const { records, meta } = await storage.find(COUNTRY, { key2: Math.random().toString(36).substr(2, 10) }, {});
 
         expect(records).to.have.lengthOf(0);
@@ -186,7 +187,7 @@ describe('Find records', () => {
         expect(meta.limit).to.equal(100);
       });
 
-      xit('Records not found by country', async () => {
+      it.skip('Records not found by country', async () => {
         await expect(storage.findOne(ANOTHER_COUNTRY, {}))
           .to.be.rejectedWith(StorageServerError, 'Request failed with status code 409');
       });

@@ -4,7 +4,7 @@ import { CustomEncryptionConfig } from '../../src/validation/custom-encryption-c
 
 dotenv.config();
 
-const COUNTRY = process.env.INT_INC_COUNTRY || 'US';
+const COUNTRY = process.env.INT_INC_COUNTRY || 'us';
 
 const DEFAULT_SECRET = () => 'supersecret';
 
