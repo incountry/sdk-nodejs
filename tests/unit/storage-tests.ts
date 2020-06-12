@@ -368,22 +368,25 @@ describe('Storage', () => {
 
       describe('endpointMask', () => {
         it('should throw an error if provided endpointMask is not string', async () => {
-          const expectStorageConstructorThrowsError = async (wrongMask) => expect(createStorage({ encrypt: false, endpointMask: wrongMask }))
+          const expectStorageConstructorThrowsError = async (wrongMask: string) => expect(createStorage({ encrypt: false, endpointMask: wrongMask }))
             .to.be.rejectedWith(StorageError, 'endpointMask');
 
 
           const wrongEndpointMasks = [42, () => null, {}, [], null];
+          // @ts-ignore
           await Promise.all(wrongEndpointMasks.map((item) => expectStorageConstructorThrowsError(item)));
         });
       });
 
       describe('countriesEndpoint', () => {
         it('should throw an error if provided countriesEndpoint is not string', async () => {
-          const expectStorageConstructorThrowsError = async (wrongCountriesEndpoint) => expect(createStorage({ encrypt: false, countriesEndpoint: wrongCountriesEndpoint }))
+          // @ts-ignore
+          const expectStorageConstructorThrowsError = async (wrongCountriesEndpoint: string) => expect(createStorage({ encrypt: false, countriesEndpoint: wrongCountriesEndpoint }))
             .to.be.rejectedWith(StorageError, 'countriesEndpoint');
 
 
           const wrongCountriesEndpoint = [42, () => null, {}, [], null];
+          // @ts-ignore
           await Promise.all(wrongCountriesEndpoint.map((item) => expectStorageConstructorThrowsError(item)));
         });
       });
