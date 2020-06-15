@@ -5,7 +5,6 @@ import { getErrorMessage } from './get-error-message';
 import { StorageClientError, StorageServerError } from '../errors';
 import { isJSON } from '../utils';
 
-
 const toStorageClientError = (prefix = '') => (validation: t.Validation<unknown>): StorageClientError => {
   const errorMessage = getErrorMessage(validation);
   return new StorageClientError(`${prefix}${errorMessage}`, validation);
@@ -26,10 +25,6 @@ function validationToPromise<A, B>(validation: t.Validation<A>, prepareError?: (
   });
 }
 
-// type PositiveIntBrand = {
-//   readonly PositiveInt: unique symbol;
-// }
-
 const PositiveInt = t.refinement(
   t.Int,
   (n) => n > 0,
@@ -37,10 +32,6 @@ const PositiveInt = t.refinement(
 );
 
 type PositiveInt = t.TypeOf<typeof PositiveInt>
-
-// interface NonNegativeIntBrand {
-//   readonly NonNegativeInt: unique symbol;
-// }
 
 const NonNegativeInt = t.refinement(
   t.Int,
