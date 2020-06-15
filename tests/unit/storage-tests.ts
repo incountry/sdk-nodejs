@@ -1468,6 +1468,12 @@ describe('Storage', () => {
             expect(_.omit(decrypted, 'version')).to.deep.equal(data.dec);
           });
         });
+
+        it('should throw error with wrong body format', async () => {
+          const { message: emptyBody } = await storage.crypto.encrypt(JSON.stringify({}));
+          const wrongData = { ...data.enc, body: emptyBody };
+          await expect(storage.decryptPayload(wrongData)).to.be.rejectedWith('Invalid record body');
+        });
       });
 
       context('with different envs', () => {

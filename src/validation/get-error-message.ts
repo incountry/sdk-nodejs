@@ -68,7 +68,7 @@ function getErrorMessage(validation: Validation<unknown>): string {
     return NO_ERRORS;
   }
   const error = last(validation.left);
-  return error ? getMessage(error) : NO_ERRORS;
+  return error ? getMessage(error) : '';
 }
 
 export {
