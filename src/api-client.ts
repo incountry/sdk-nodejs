@@ -32,6 +32,7 @@ type RecordData = { key: string } & Partial<Omit<ApiRecord, 'key' | 'version'>>
 type EndpointData = {
   endpoint: string;
   audience: string;
+  region: string;
 };
 
 const DEFAULT_ENDPOINT_COUNTRY = 'us';
@@ -73,8 +74,8 @@ class ApiClient {
   ) {
   }
 
-  async headers(tokenAudience: string) {
-    const token = await this.authClient.getToken(tokenAudience, this.envId);
+  async headers(tokenAudience: string, region: string) {
+    const token = await this.authClient.getToken(tokenAudience, this.envId, region);
     return {
       Authorization: `Bearer ${token}`,
       'x-env-id': this.envId,
@@ -88,24 +89,25 @@ class ApiClient {
     return `https://${countryCode}.${suffix}`;
   }
 
-  async isMidpopCountry(countryCode: string): Promise<boolean> {
+  async findMidPOPCountry(countryCode: string): Promise<Country | undefined> {
     const countryRegex = new RegExp(countryCode, 'i');
-    let countryHasApi;
+    let midpop;
     try {
       const countriesList = await this.countriesProviderFn();
-      countryHasApi = countriesList.find((country) => countryRegex.test(country.id));
+      midpop = countriesList.find((country) => countryRegex.test(country.id));
     } catch (err) {
       const popError = parsePoPError(err);
       this.loggerFn('error', popError.errorMessage, err);
       throw new StorageServerError(`Unable to retrieve countries list: ${popError.errorMessage}`, popError.responseData, popError.code);
     }
 
-    return !!countryHasApi;
+    return midpop;
   }
 
   async getEndpoint(countryCode: string, path: string): Promise<EndpointData> {
     let host;
     let audience;
+    let region = 'EMEA';
     const countryHost = this.buildHostName(countryCode);
     if (this.host) {
       host = this.host;
@@ -114,17 +116,18 @@ class ApiClient {
         audience = `${host} ${countryHost}`;
       }
     } else {
-      const isMidpop = await this.isMidpopCountry(countryCode);
-      if (isMidpop) {
+      const midpop = await this.findMidPOPCountry(countryCode);
+      if (midpop) {
         host = countryHost;
         audience = host;
+        region = midpop.region;
       } else {
         host = this.buildHostName(DEFAULT_ENDPOINT_COUNTRY);
         audience = `${host} ${countryHost}`;
       }
     }
 
-    return { endpoint: `${host}/${path}`, audience };
+    return { endpoint: `${host}/${path}`, audience, region };
   }
 
   prepareValidationError(validationFailedResult: Left<t.Errors>): StorageServerError {
@@ -135,9 +138,9 @@ class ApiClient {
   }
 
   private async request<A, B>(countryCode: string, path: string, requestOptions: BasicRequestOptions<A>, codec: Codec<B>, loggingMeta: {}, retry = false): Promise<B> {
-    const { endpoint: url, audience } = await this.getEndpoint(countryCode, path);
+    const { endpoint: url, audience, region } = await this.getEndpoint(countryCode, path);
     const method = requestOptions.method.toUpperCase() as Method;
-    const defaultHeaders = await this.headers(audience);
+    const defaultHeaders = await this.headers(audience, region);
     const headers = {
       ...defaultHeaders,
       ...requestOptions.headers,
@@ -162,7 +165,7 @@ class ApiClient {
       });
     } catch (err) {
       if (get(err, 'response.status') === 401 && retry) {
-        await this.authClient.getToken(audience, this.envId, true);
+        await this.authClient.getToken(audience, this.envId, region, true);
 
         return this.request(countryCode, path, requestOptions, codec, loggingMeta);
       }

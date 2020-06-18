@@ -5,6 +5,7 @@ type Country = {
   id: string;
   name: string;
   direct?: boolean;
+  region: string;
 }
 
 const COUNTRIES_CACHE_TIMEOUT = 60 * 1000;

@@ -127,7 +127,7 @@ class Storage {
 
       const authUrl = options.oauth.authUrl || process.env.INC_AUTH_URL;
 
-      this.authClient = new OAuthClient(clientId, clientSecret, authUrl);
+      this.authClient = new OAuthClient(clientId, clientSecret, authUrl, options.endpointMask);
     } else {
       if (!apiKey) {
         throw new StorageClientError('Please pass apiKey in options or set INC_API_KEY env var');

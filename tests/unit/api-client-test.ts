@@ -46,8 +46,15 @@ const getApiClient = (host?: string, cache?: CountriesCache, useApiKey = true, e
 
 describe('ApiClient', () => {
   const countriesCache = createFakeCountriesCache([
-    { id: 'BE', name: 'Belgium', direct: true },
-    { id: 'HU', name: 'Hungary', direct: true },
+    {
+      id: 'BE', name: 'Belgium', direct: true, region: 'EMEA',
+    },
+    {
+      id: 'HU', name: 'Hungary', direct: true, region: 'EMEA',
+    },
+    {
+      id: 'IN', name: 'India', direct: true, region: 'APAC',
+    },
   ]);
 
   beforeEach(() => {
@@ -62,17 +69,20 @@ describe('ApiClient', () => {
   describe('getEndpoint', () => {
     let nockPB: nock.Scope;
 
-    const expectCorrectURLReturned = async (apiClient: ApiClient, country: string, host: string, audience?: string) => {
+    const expectCorrectURLReturned = async (apiClient: ApiClient, country: string, host: string, audience?: string, region?: string) => {
       const testPath = 'testPath';
       const res = await apiClient.getEndpoint(country, testPath);
       assert.equal(nockPB.isDone(), false, 'PB was not called');
       expect(res).to.be.an('object');
-      expect(res).to.have.keys(['endpoint', 'audience']);
+      expect(res).to.have.keys(['endpoint', 'audience', 'region']);
       expect(res.audience).to.include(host);
       if (audience) {
         expect(res.audience).to.eq(audience);
       }
       expect(res.endpoint).to.eq(`${host}/${testPath}`);
+      if (region) {
+        expect(res.region).to.eq(region);
+      }
     };
 
     beforeEach(() => {
@@ -83,6 +93,11 @@ describe('ApiClient', () => {
       it('should use the provided host', async () => {
         const apiClient = getApiClient(CUSTOM_POPAPI_HOST);
         await expectCorrectURLReturned(apiClient, COUNTRY, CUSTOM_POPAPI_HOST);
+      });
+
+      it('should use EMEA region', async () => {
+        const apiClient = getApiClient(CUSTOM_POPAPI_HOST);
+        await expectCorrectURLReturned(apiClient, COUNTRY, CUSTOM_POPAPI_HOST, undefined, 'EMEA');
       });
 
       describe('when the provided host is not equal to country (minipop) host', () => {
@@ -140,6 +155,15 @@ describe('ApiClient', () => {
           await expectCorrectURLReturned(apiClient, country, customPOPAPIHost);
         });
 
+        it('should use midpop region', async () => {
+          const countryEmea = 'hu';
+          const countryApac = 'in';
+          const huPOPAPIHost = `https://${countryEmea}.api.incountry.io`;
+          const inPOPAPIHost = `https://${countryApac}.api.incountry.io`;
+          await expectCorrectURLReturned(apiClient, countryEmea, huPOPAPIHost, undefined, 'EMEA');
+          await expectCorrectURLReturned(apiClient, countryApac, inPOPAPIHost, undefined, 'APAC');
+        });
+
         it('should return audience equal to the requested host', async () => {
           const country = 'hu';
           const customPOPAPIHost = `https://${country}.api.incountry.io`;
@@ -159,6 +183,11 @@ describe('ApiClient', () => {
         it('should use the default host otherwise', async () => {
           const country = 'ae';
           await expectCorrectURLReturned(apiClient, country, POPAPI_HOST);
+        });
+
+        it('should use EMEA region for minipops', async () => {
+          const country = 'zz';
+          await expectCorrectURLReturned(apiClient, country, POPAPI_HOST, undefined, 'EMEA');
         });
 
         it('should add requested country (minipop) host to audience', async () => {
