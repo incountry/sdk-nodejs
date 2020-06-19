@@ -1,7 +1,7 @@
 /* eslint-disable no-unused-vars */
 const { expect } = require('chai');
 const sinon = require('sinon');
-const Logger = require('../../logger');
+const Logger = require('../../lib/logger');
 
 
 describe('logger', () => {
@@ -57,5 +57,11 @@ describe('logger', () => {
         });
       });
     });
+  });
+
+  it('should use current time when the timestamp is not specified', () => {
+    const logger = Logger.withBaseLogLevel('debug');
+    logger.write('debug', message, null);
+    expect(spy.calledWith(sinon.match(/^.+ \[debug\] test message/))).equal(true);
   });
 });

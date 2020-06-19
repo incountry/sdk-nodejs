@@ -1,16 +1,19 @@
 {
   "author": {
-    "name": "Joel Bruce",
-    "email": "joel@incountry.com",
+    "name": "InCountry",
+    "email": "sdks@incountry.com",
     "url": "https://incountry.com/"
   },
   "bugs": {
     "url": "https://github.com/incountry/sdk-nodejs/issues"
   },
-  "bundleDependencies": false,
+  "bundleDependencies": [],
   "dependencies": {
     "axios": "0.19.0",
-    "dotenv": "8.0.0",
+    "dotenv": "8.2.0",
+    "fp-ts": "2.1.2",
+    "io-ts": "2.0.1",
+    "io-ts-types": "0.5.6",
     "lodash.get": "4.4.2",
     "utf8": "3.0.0"
   },
@@ -18,31 +21,30 @@
   "description": "SDK for writing, reading, and deleting records using Incountry's storage suite",
   "homepage": "https://github.com/incountry/sdk-nodejs#readme",
   "license": "MIT",
-  "main": "index.js",
+  "main": "lib/index.js",
   "name": "incountry",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/incountry/sdk-nodejs.git"
   },
   "scripts": {
-    "integrations": "nyc --reporter=lcov --reporter=text --report-dir=it-coverage mocha tests/integration/*.js --timeout 20000",
-    "test": "nyc --reporter=lcov --reporter=text --report-dir=ut-coverage mocha tests/unit/*.js",
-    "validate-eslint": "eslint ./*.js tests/"
+    "integrations": "nyc --reporter=lcov --reporter=text --report-dir=it-coverage mocha tests/integration/*.js --timeout 40000",
+    "test": "nyc --reporter=lcov --reporter=text --report-dir=ut-coverage --exclude=tests/**/*.js mocha tests/unit/**/*.js",
+    "validate-eslint": "eslint ."
   },
-  "version": "1.1.1",
+  "version": "2.0.0",
   "devDependencies": {
     "chai": "4.2.0",
     "chai-as-promised": "7.1.1",
     "chai-nock": "1.2.0",
-    "lodash": "4.17.15",
     "eslint": "6.5.1",
     "eslint-config-airbnb-base": "14.0.0",
     "eslint-plugin-import": "2.18.2",
     "eslint-plugin-promise": "4.2.1",
-    "mocha": "6.1.4",
+    "lodash": "4.17.15",
+    "mocha": "7.1.1",
     "nock": "11.4.0",
     "nyc": "14.1.1",
-    "proxyquire": "2.1.3",
     "sinon": "7.4.2",
     "uuid": "3.3.3"
   }

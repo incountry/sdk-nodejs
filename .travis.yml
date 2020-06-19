@@ -6,12 +6,48 @@ language: node_js
 node_js:
   - 11
 
-install:
-  - npm install
-  - if [[ ($TRAVIS_BRANCH == "master") && ($TRAVIS_EVENT_TYPE == "cron") ]]; then npm install -g snyk; fi
+jobs:
+  include:
+    - stage: tests
+      name: "ESLint validation"
+      script:
+        - npm run validate-eslint
+    - stage: tests
+      name: "Unit tests"
+      script:
+        - if [[ ($TRAVIS_BRANCH == "master") && ($TRAVIS_EVENT_TYPE == "cron") ]]; then snyk monitor --org=incountry; fi
+        - npm run test
+        - sonar-scanner
+    - stage: tests
+      name: "Integration test"
+      before_script:
+        - |
+            if [[ $TRAVIS_BRANCH == "master" ]]; then 
+              export ENV=PRD
+            elif [[ $TRAVIS_BRANCH == "develop" ]]; then 
+              export ENV=QA; 
+            elif [[ $TRAVIS_BRANCH =~ ^RC_.*$ ]]; then 
+              export ENV=STG;   
+            else
+              export ENV=QA
+            fi
+        - echo $ENV
+        - envsubst < .env.template > .env.value
+        - envsubst < .env.value > .env
+      script:
+        - if [[ ($TRAVIS_BRANCH == "master") && ($TRAVIS_EVENT_TYPE == "cron") ]]; then snyk monitor --org=incountry; fi
+        - npm run integrations
+        - sonar-scanner
+      after_script:
+        - rm -f .env.value
+        - rm -f .env
 
-script:
-  - if [[ ($TRAVIS_BRANCH == "master") && ($TRAVIS_EVENT_TYPE == "cron") ]]; then snyk monitor --org=incountry; fi
-  - npm run validate-eslint
-  - npm run test
-  - sonar-scanner
+    - stage: install
+      name: "Build"
+      script:
+        - npm install
+        - if [[ ($TRAVIS_BRANCH == "master") && ($TRAVIS_EVENT_TYPE == "cron") ]]; then npm install -g snyk; fi
+
+stages:
+  - name: install
+  - name: tests

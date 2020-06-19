@@ -1,338 +1,1187 @@
-/* eslint-disable prefer-arrow-callback,func-names */
 const chai = require('chai');
+chai.use(require('chai-as-promised'));
+
 const nock = require('nock');
 const uuid = require('uuid/v4');
 const _ = require('lodash');
-const Storage = require('../../storage');
-const SecretKeyAccessor = require('../../secret-key-accessor');
+const crypto = require('crypto');
+const { identity } = require('../../lib/utils');
+const createStorage = require('../../lib/storage');
+const { StorageServerError, StorageClientError, StorageError } = require('../../lib/errors');
+const CountriesCache = require('../../lib/countries-cache');
+const {
+  getNockedRequestBodyObject,
+  getNockedRequestHeaders,
+  nockEndpoint,
+} = require('../test-helpers/popapi-nock');
+const { COUNTRY_CODE_ERROR_MESSAGE } = require('../../lib/validation/country-code');
+const { RECORD_KEY_ERROR_MESSAGE } = require('../../lib/validation/record-key');
+const {
+  CUSTOM_ENCRYPTION_CONFIG_ERROR_MESSAGE_CURRENT,
+  CUSTOM_ENCRYPTION_CONFIG_ERROR_MESSAGE_ARRAY,
+  CUSTOM_ENCRYPTION_CONFIG_ERROR_MESSAGE_VERSIONS,
+} = require('../../lib/validation/custom-encryption-configs');
+const { MAX_LIMIT, LIMIT_ERROR_MESSAGE_INT, LIMIT_ERROR_MESSAGE_MAX } = require('../../lib/validation/limit');
 
-const { expect } = chai;
+const { expect, assert } = chai;
 
 const COUNTRY = 'us';
 const SECRET_KEY = 'password';
+const ENVIRONMENT_ID = uuid();
+const POPAPI_HOST = `https://${COUNTRY}.api.incountry.io`;
+const PORTAL_BACKEND_HOST = 'portal-backend.incountry.com';
+const PORTAL_BACKEND_COUNTRIES_LIST_PATH = '/countries';
+const REQUEST_TIMEOUT_ERROR = { code: 'ETIMEDOUT' };
+const sdkVersionRegExp = /^SDK-Node\.js\/\d+\.\d+\.\d+/;
 
+const EMPTY_RECORD = {
+  body: null,
+  key2: null,
+  key3: null,
+  profile_key: null,
+  range_key: null,
+};
 
 const TEST_RECORDS = [
-  { country: COUNTRY, key: uuid() },
-  { country: COUNTRY, key: uuid(), body: 'test' },
   {
-    country: COUNTRY, key: uuid(), body: 'test', key2: 'key2',
+    key: uuid(),
+    version: 0,
   },
   {
-    country: COUNTRY, key: uuid(), body: 'test', key2: 'key2', key3: 'key3',
+    key: uuid(),
+    body: 'test',
+    version: 0,
   },
   {
-    country: COUNTRY,
+    key: uuid(),
+    body: 'test',
+    key2: 'key2',
+    version: 0,
+  },
+  {
+    key: uuid(),
+    body: 'test',
+    key2: 'key2',
+    key3: 'key3',
+    version: 0,
+  },
+  {
     key: uuid(),
     body: 'test',
     key2: 'key2',
     key3: 'uniqueKey3',
     profile_key: 'profile_key',
+    version: 0,
   },
   {
-    country: COUNTRY,
     key: uuid(),
     body: 'test',
     key2: 'key2',
     key3: 'key3',
     profile_key: 'profile_key',
     range_key: 1,
+    version: 0,
   },
 ];
 
-describe('Storage', function () {
-  let storage;
-  beforeEach(function () {
-    storage = new Storage({
-      apiKey: 'string',
-      environmentId: 'string',
-      endpoint: 'https://us.api.incountry.io',
-    },
-    new SecretKeyAccessor(() => SECRET_KEY));
-  });
-  TEST_RECORDS.forEach((testCase, idx) => {
-    context(`with test case ${idx}`, function () {
-      it('should write a record', function (done) {
-        const scope = nock('https://us.api.incountry.io')
-          .post('/v2/storage/records/us')
-          .reply(200);
-        storage.writeAsync(testCase);
-        scope.on('request', async (req, interceptor, body) => {
-          try {
-            const encrypted = await storage._encryptPayload(testCase);
-            const bodyObj = JSON.parse(body);
-            expect(_.omit(bodyObj, ['body'])).to.deep.equal(_.omit(encrypted, ['body']));
-            done();
-          } catch (e) {
-            done(e);
-          }
+const LOGGER_STUB = { write: (a, b) => [a, b] };
+
+const defaultGetSecretsCallback = () => SECRET_KEY;
+
+const getDefaultStorage = async (encrypt, normalizeKeys, getSecrets = defaultGetSecretsCallback, customEncConfigs) => createStorage({
+  apiKey: 'string',
+  environmentId: ENVIRONMENT_ID,
+  endpoint: POPAPI_HOST,
+  encrypt,
+  normalizeKeys,
+  getSecrets,
+  logger: LOGGER_STUB,
+}, customEncConfigs);
+
+const getDefaultFindResponse = (count, data) => ({
+  meta: {
+    total: count, count, limit: 100, offset: 0,
+  },
+  data,
+});
+
+describe('Storage', () => {
+  describe('interface methods', () => {
+    let encStorage;
+    let noEncStorage;
+
+    beforeEach(async () => {
+      nock.disableNetConnect();
+      encStorage = await getDefaultStorage(true);
+      noEncStorage = await getDefaultStorage(false);
+    });
+
+    afterEach(() => {
+      nock.cleanAll();
+      nock.enableNetConnect();
+    });
+
+    describe('constructor arguments check', () => {
+      describe('options', () => {
+        describe('endpoint', () => {
+          let envApiKey;
+          let envEnvironmentId;
+
+          beforeEach(() => {
+            envApiKey = process.env.INC_API_KEY;
+            delete process.env.INC_API_KEY;
+
+            envEnvironmentId = process.env.INC_ENVIRONMENT_ID;
+            delete process.env.INC_ENVIRONMENT_ID;
+          });
+
+          afterEach(() => {
+            process.env.INC_API_KEY = envApiKey;
+            process.env.INC_ENVIRONMENT_ID = envEnvironmentId;
+          });
+
+          it('should be string ', async () => {
+            await Promise.all([{ endpoint: [] }, { endpoint: 123 }].map(async (options) => {
+              await expect(createStorage(options))
+                .to.be.rejectedWith(StorageError, 'endpoint should be string');
+            }));
+          });
+
+          it('should not throw error if endpoint missing', async () => {
+            process.env.INC_API_KEY = 'apiKey';
+            process.env.INC_ENVIRONMENT_ID = 'envId';
+            await expect(createStorage({ encrypt: false })).not.to.be.rejected;
+          });
+        });
+
+        describe('apiKey', () => {
+          let envApiKey;
+
+          beforeEach(() => {
+            envApiKey = process.env.INC_API_KEY;
+            delete process.env.INC_API_KEY;
+          });
+
+          afterEach(() => {
+            process.env.INC_API_KEY = envApiKey;
+          });
+
+          it('should be provided via either options or environment variable', async () => {
+            await Promise.all([{ }, { apiKey: undefined }].map(async (options) => {
+              await expect(createStorage(options))
+                .to.be.rejectedWith(StorageError, 'Please pass apiKey in options or set INC_API_KEY env var');
+            }));
+
+            await expect(createStorage({
+              apiKey: 'apiKey',
+              environmentId: 'envId',
+              encrypt: false,
+            })).not.to.be.rejectedWith(StorageError);
+
+            process.env.INC_API_KEY = 'apiKey';
+
+            await expect(createStorage({ environmentId: 'envId', encrypt: false })).not.to.be.rejectedWith(StorageError);
+          });
+        });
+
+        describe('environmentId', () => {
+          let envEnvironmentId;
+
+          beforeEach(() => {
+            envEnvironmentId = process.env.INC_ENVIRONMENT_ID;
+            delete process.env.INC_ENVIRONMENT_ID;
+          });
+
+          afterEach(() => {
+            process.env.INC_ENVIRONMENT_ID = envEnvironmentId;
+          });
+
+          it('should be provided via either options or environment variable', async () => {
+            await Promise.all([{ apiKey: 'apiKey' }, { apiKey: 'apiKey', environmentId: undefined }].map(async (options) => {
+              await expect(createStorage(options))
+                .to.be.rejectedWith(StorageError, 'Please pass environmentId in options or set INC_ENVIRONMENT_ID env var');
+            }));
+
+            await expect(createStorage({
+              apiKey: 'apiKey',
+              environmentId: 'envId',
+              encrypt: false,
+
+            })).not.to.be.rejected;
+
+            process.env.INC_ENVIRONMENT_ID = 'envId';
+
+            await expect(createStorage({ apiKey: 'apiKey', encrypt: false })).not.to.be.rejectedWith(StorageError);
+          });
         });
       });
-      it('should read a record', async function () {
-        const encrypted = await storage._encryptPayload(testCase);
-        nock('https://us.api.incountry.io')
-          .get(`/v2/storage/records/us/${encrypted.key}`)
-          .reply(200, encrypted);
-        const { data } = await storage.readAsync(testCase);
-        const expected = _.pick(testCase, ['key', 'body']);
-        expect(data).to.deep.include(expected);
-      });
-      it('should delete a record', function (done) {
-        storage._encryptPayload(testCase).then((encrypted) => {
-          const scope = nock('https://us.api.incountry.io')
-            .delete(`/v2/storage/records/us/${encrypted.key}`)
-            .reply(200);
-          storage.deleteAsync(testCase);
-          scope.on('error', done);
-          scope.on('request', () => done());
-        }).catch(done);
-      });
-    });
-  });
-  it('should find by random key', async function () {
-    const filter = { profile_key: TEST_RECORDS[4].profile_key };
-    const options = { limit: 1, offset: 1 };
-    const encryptedRecords = await Promise.all(TEST_RECORDS.map((record) => storage._encryptPayload(record)));
-    nock('https://us.api.incountry.io')
-      .post('/v2/storage/records/us/find')
-      .reply(200, (uri, requestBody) => {
-        const filterKeys = Object.keys(requestBody.filter);
-        const records = encryptedRecords.filter((rec) => {
-          for (let i = 0; i < filterKeys.length; i += 1) {
-            if (rec[filterKeys[i]] !== requestBody.filter[filterKeys[i]]) {
-              return false;
-            }
-          }
-          return true;
+
+      describe('secretKeyAccessor', () => {
+        it('should throw an error if encryption is enabled and no secretKeyAccessor provided', async () => {
+          await expect(createStorage(
+            {
+              apiKey: 'API_KEY',
+              environmentId: 'ENVIRONMENT_ID',
+              endpoint: 'URL',
+            },
+          )).to.be.rejectedWith(StorageError, 'Provide callback function for secretData');
         });
-        return { meta: { total: records.length }, data: records };
-      });
-    const rec = await storage.find('us', filter, options);
-    expect(rec.data.length).to.eql(2);
-  });
-  it('should findOne by random key', async function () {
-    const filter = { key3: TEST_RECORDS[4].key3 };
-    const options = { limit: 1, offset: 1 };
-    const encryptedRecords = await Promise.all(TEST_RECORDS.map((record) => storage._encryptPayload(record)));
-    nock('https://us.api.incountry.io')
-      .post('/v2/storage/records/us/find')
-      .reply(200, (uri, requestBody) => {
-        const filterKeys = Object.keys(requestBody.filter);
-        const records = encryptedRecords.filter((rec) => {
-          for (let i = 0; i < filterKeys.length; i += 1) {
-            if (rec[filterKeys[i]] !== requestBody.filter[filterKeys[i]]) {
-              return false;
-            }
-          }
-          return true;
+
+        it('should not throw an error if encryption is disabled and no secretKeyAccessor provided', async () => {
+          await expect(createStorage(
+            {
+              apiKey: 'API_KEY',
+              environmentId: 'ENVIRONMENT_ID',
+              endpoint: 'URL',
+              encrypt: false,
+            },
+          )).not.to.be.rejected;
         });
-        return { meta: { total: records.length }, data: records };
+
+        it('should throw an error if malformed secretData is provided', async () => {
+          await expect(createStorage(
+            {
+              apiKey: 'API_KEY',
+              environmentId: 'ENVIRONMENT_ID',
+              endpoint: 'URL',
+              getSecrets: () => { },
+            },
+          )).to.be.rejectedWith(StorageError, '<SecretsData> should be SecretsData but got undefined');
+
+          await expect(createStorage(
+            {
+              apiKey: 'API_KEY',
+              environmentId: 'ENVIRONMENT_ID',
+              endpoint: 'URL',
+              getSecrets: () => ({ secrets: [{ version: -1, secret: '' }], currentVersion: -1 }),
+            },
+          )).to.be.rejectedWith(StorageError, '<SecretsData>.secrets.0 should be SecretOrKey but got {"version":-1,"secret":""}');
+        });
+
+        it('should throw an error if not a getSecrets callback is provided', async () => {
+          await expect(createStorage(
+            {
+              apiKey: 'API_KEY',
+              environmentId: 'ENVIRONMENT_ID',
+              endpoint: 'URL',
+              getSecrets: {},
+            },
+          )).to.be.rejectedWith(StorageError, 'getSecrets should be Function');
+        });
       });
-    const rec = await storage.findOne('us', filter, options);
-    expect(rec).to.eql(TEST_RECORDS[4]);
-  });
-  it('should find an encrypted records', async function () {
-    const encryptedStorage = new Storage({
-      apiKey: 'string',
-      environmentId: 'string',
-      encrypt: true,
-      endpoint: 'https://us.api.incountry.io',
-    },
-    new SecretKeyAccessor(() => SECRET_KEY));
 
-    const storedData = await Promise.all(
-      TEST_RECORDS.map((record) => encryptedStorage._encryptPayload(record)),
-    );
+      describe('logger', () => {
+        it('should throw an error if provided logger is not object or has no "write" method or is not a function', async () => {
+          const expectStorageConstructorThrowsError = async (wrongLogger) => expect(createStorage({ encrypt: false, logger: wrongLogger }))
+            .to.be.rejectedWith(StorageError, 'logger');
 
-    nock('https://us.api.incountry.io')
-      .post('/v2/storage/records/us/find')
-      .reply(200, { meta: { total: storedData.length }, data: storedData });
 
-    const responseEncrypted = await encryptedStorage.find('us', { key: 'key1' });
-
-    responseEncrypted.data.forEach((record, idx) => {
-      ['body', 'key', 'key2', 'key3', 'profile_key'].forEach((key) => {
-        if (record[key]) {
-          expect(record[key]).to.eql(TEST_RECORDS[idx][key]);
-        }
-      });
-    });
-  });
-  it('should find not encrypted records', async function () {
-    const notEncryptedStorage = new Storage({
-      apiKey: 'string',
-      environmentId: 'string',
-      encrypt: false,
-      endpoint: 'https://us.api.incountry.io',
-    },
-    null);
-    const storedData = await Promise.all(
-      TEST_RECORDS.map((record) => notEncryptedStorage._encryptPayload(record)),
-    );
-
-    nock('https://us.api.incountry.io')
-      .post('/v2/storage/records/us/find')
-      .reply(200, { meta: { total: storedData.length }, data: storedData });
-
-    const responseNotEncrypted = await notEncryptedStorage.find('us', { key: 'key1' });
-
-    responseNotEncrypted.data.forEach((record, idx) => {
-      ['body', 'key', 'key2', 'key3', 'profile_key'].forEach((key) => {
-        if (record[key]) {
-          expect(record[key]).to.eql(TEST_RECORDS[idx][key]);
-        }
+          const wrongLoggers = [42, () => null, {}, { write: 'write' }, { write: {} }];
+          await Promise.all(wrongLoggers.map((item) => expectStorageConstructorThrowsError(item)));
+        });
       });
     });
-  });
-  it('should not throw if some records cannot be decrypted', async function () {
-    const encryptedStorage = new Storage({
-      apiKey: 'string',
-      environmentId: 'string',
-      encrypt: true,
-      endpoint: 'https://us.api.incountry.io',
-    },
-    new SecretKeyAccessor(() => SECRET_KEY));
 
-    const encryptedData = await Promise.all(
-      TEST_RECORDS.map((record) => encryptedStorage._encryptPayload(record)),
-    );
+    describe('setLogger', () => {
+      /** @type {import('../../storage')} */
+      let storage;
 
-    const unsupportedData = {
-      country: 'us',
-      key: 'somekey',
-      body: '2:unsupported data',
-    };
+      beforeEach(async () => {
+        storage = await createStorage({
+          apiKey: 'apiKey',
+          environmentId: 'envId',
+          encrypt: false,
+        });
+      });
 
-    const data = [...encryptedData, unsupportedData];
-    nock('https://us.api.incountry.io')
-      .post('/v2/storage/records/us/find')
-      .reply(200, { meta: { total: data.length }, data });
+      it('should throw an error if called with falsy argument', () => {
+        [null, undefined, false].forEach((logger) => {
+          expect(() => storage.setLogger(logger)).to.throw(StorageError, '<Logger> should be { write: Function }');
+        });
+      });
 
-    const response = await encryptedStorage.find('us', {});
-    response.data.forEach((record, idx) => {
-      ['body', 'key', 'key2', 'key3', 'profile_key'].forEach((key) => {
-        if (record[key]) {
-          expect(record[key]).to.eql(TEST_RECORDS[idx][key]);
-        }
+      it('should throw an error if provided logger is not object or has no "write" method', () => {
+        const wrongLoggers = [42, () => null];
+        wrongLoggers.forEach((logger) => {
+          expect(() => storage.setLogger(logger))
+            .to.throw(StorageError, '<Logger> should be { write: Function }');
+        });
+      });
+
+      it('should throw an error if provided logger\'s "write" method is not a function', () => {
+        const wrongLoggers = [{}, { write: 'write' }, { write: {} }];
+        wrongLoggers.forEach((logger) => {
+          expect(() => storage.setLogger(logger))
+            .to.throw(StorageError, '<Logger>.write should be Function');
+        });
       });
     });
-    expect(response).to.have.property('errors');
-    expect(response.errors.length).to.eql(1);
-    expect(response.errors[0]).to.have.property('error');
-    expect(response.errors[0]).to.have.property('rawData');
-    expect(response.errors[0].rawData).to.eql(unsupportedData);
-  });
 
-  it('find() in non-encrypted mode should not throw error if some records are encrypted', async () => {
-    const nonEncryptedStorage = new Storage({
-      apiKey: 'string',
-      environmentId: 'string',
-      encrypt: false,
-      endpoint: 'https://us.api.incountry.io',
-    },
-    new SecretKeyAccessor(() => SECRET_KEY));
-
-    const nonEncryptedData = await Promise.all(
-      TEST_RECORDS.map((record) => nonEncryptedStorage._encryptPayload(record)),
-    );
-
-    const unsupportedData = {
-      country: 'us',
-      key: 'somekey',
-      body: '2:unsupported data',
-    };
-
-    const data = [...nonEncryptedData, unsupportedData];
-    nock('https://us.api.incountry.io')
-      .post('/v2/storage/records/us/find')
-      .reply(200, { meta: { total: data.length }, data });
-
-    const response = await nonEncryptedStorage.find('us', {});
-    response.data.forEach((record, idx) => {
-      ['body', 'key', 'key2', 'key3', 'profile_key'].forEach((key) => {
-        if (record[key]) {
-          expect(record[key]).to.eql(TEST_RECORDS[idx][key]);
-        }
+    describe('setCountriesCache', () => {
+      it('should throw an error if not instance of CountriesCache was passed as argument', async () => {
+        /** @type {import('../../storage')} */
+        const storage = await createStorage({
+          apiKey: 'apiKey',
+          environmentId: 'envId',
+          encrypt: false,
+        });
+        const wrongCountriesCaches = [null, undefined, false, {}];
+        wrongCountriesCaches.forEach((item) => {
+          expect(() => storage.setCountriesCache(item)).to.throw(StorageError, 'You must pass an instance of CountriesCache');
+        });
+        expect(() => storage.setCountriesCache(new CountriesCache())).not.to.throw();
       });
     });
-    expect(response).to.have.property('errors');
-    expect(response.errors.length).to.eql(1);
-    expect(response.errors[0]).to.have.property('error');
-    expect(response.errors[0]).to.have.property('rawData');
-    expect(response.errors[0].rawData).to.eql(unsupportedData);
-    expect(response.errors[0].error).to.eql('No secretKeyAccessor provided. Cannot decrypt encrypted data');
-  });
 
-  it('should update one by profile key', function (done) {
-    const payload = { profile_key: 'updatedProfileKey' };
-    storage._encryptPayload(TEST_RECORDS[4]).then((encrypted) => {
-      nock('https://us.api.incountry.io')
-        .post('/v2/storage/records/us/find')
-        .reply(200, { data: [encrypted], meta: { total: 1 } });
-      const writeNock = nock('https://us.api.incountry.io')
-        .post('/v2/storage/records/us')
-        .reply(200, { data: [encrypted], meta: { total: 1 } });
-      writeNock.on('request', (req, interceptor, body) => {
-        const expectedPlain = {
-          ...TEST_RECORDS[4],
-          ...payload,
+    describe('initialize', () => {
+      let storage;
+
+      beforeEach(async () => {
+        storage = await createStorage({
+          apiKey: 'apiKey',
+          environmentId: 'envId',
+          getSecrets: () => ({
+            secrets: [{ secret: 'test', version: 0, isForCustomEncryption: true }],
+            currentVersion: 0,
+          }),
+        });
+      });
+
+      it('should throw an error when setting custom encryption configs with disabled encryption', async () => {
+        const options = {
+          apiKey: 'string',
+          environmentId: 'string',
+          endpoint: POPAPI_HOST,
+          encrypt: false,
+          logger: LOGGER_STUB,
         };
-        storage._decryptPayload(JSON.parse(body)).then((decrypted) => {
-          try {
-            expect(decrypted).to.eql(expectedPlain);
-            done();
-          } catch (e) {
-            done(e);
-          }
+
+        const storageWithoutEnc = await createStorage(options);
+
+        const customEncryptionConfigs = [{ encrypt: () => { }, decrypt: () => { }, version: '' }];
+
+        await expect(storageWithoutEnc.initialize(customEncryptionConfigs))
+          .to.be.rejectedWith(StorageClientError, 'Cannot use custom encryption when encryption is off');
+      });
+
+      it('should throw an error if configs object is malformed', () => Promise.all(['', {}, () => { }]
+        .map(async (configs) => {
+          await expect(storage.initialize(configs))
+            .to.be.rejectedWith(CUSTOM_ENCRYPTION_CONFIG_ERROR_MESSAGE_ARRAY);
+        })));
+
+      it('should throw an error if 2 configs are marked as current', async () => {
+        const configs = [{
+          encrypt: identity, decrypt: identity, isCurrent: true, version: '1',
+        }, {
+          encrypt: identity, decrypt: identity, isCurrent: true, version: '2',
+        }];
+
+        await expect(storage.initialize(configs))
+          .to.be.rejectedWith(CUSTOM_ENCRYPTION_CONFIG_ERROR_MESSAGE_CURRENT);
+      });
+
+      it('should throw an error if 2 configs have same version', async () => {
+        const configs = [{
+          encrypt: identity, decrypt: identity, version: '1',
+        }, {
+          encrypt: identity, decrypt: identity, isCurrent: true, version: '1',
+        }];
+
+        await expect(storage.initialize(configs))
+          .to.be.rejectedWith(CUSTOM_ENCRYPTION_CONFIG_ERROR_MESSAGE_VERSIONS);
+      });
+    });
+
+    describe('createKeyHash', () => {
+      it('should make hashes with constant salt', () => {
+        const key = uuid();
+        const hash1 = encStorage.createKeyHash(key);
+        const hash2 = encStorage.createKeyHash(key);
+        expect(hash1).to.equal(hash2);
+      });
+
+      it('should make different hashes of the same key in different Storages', async () => {
+        const key = uuid();
+        const storage2 = await createStorage({
+          apiKey: 'apiKey',
+          environmentId: uuid(),
+          encrypt: false,
+        });
+        const hash1 = encStorage.createKeyHash(key);
+        const hash2 = storage2.createKeyHash(key);
+        expect(hash1).to.not.equal(hash2);
+      });
+
+      it('should make equal hashes of the same key in different Storages with the same environmentId', async () => {
+        const key = uuid();
+        const storage2 = await createStorage({
+          apiKey: 'apiKey',
+          environmentId: ENVIRONMENT_ID,
+          encrypt: false,
+        });
+        const hash1 = encStorage.createKeyHash(key);
+        const hash2 = storage2.createKeyHash(key);
+        expect(hash1).to.equal(hash2);
+      });
+
+      it('should concatenate key with environmentId before hashing', () => {
+        const key = uuid();
+        const keyWithEnvId = `${key}:${ENVIRONMENT_ID}`;
+        const makeHash = (str) => crypto.createHash('sha256').update(str, 'utf8').digest('hex');
+
+        const storageKeyHash = encStorage.createKeyHash(key);
+        const correctKeyHash = makeHash(keyWithEnvId);
+        const incorrectKeyHash = makeHash(`${key}:`);
+        const incorrectKeyHash2 = makeHash(`${key}:undefined`);
+
+        expect(incorrectKeyHash).to.not.equal(correctKeyHash, 'Unsalted hash is equal to salted. Check envId!');
+        expect(storageKeyHash).to.not.equal(incorrectKeyHash, 'Storage.createKeyHash produced unsalted hash. envId is empty!');
+        expect(storageKeyHash).to.not.equal(incorrectKeyHash2, 'Storage.createKeyHash produced unsalted hash');
+        expect(storageKeyHash).to.equal(correctKeyHash, 'Storage.createKeyHash produced incorrect hash');
+      });
+    });
+
+    describe('write', () => {
+      let popAPI;
+
+      beforeEach(() => {
+        popAPI = nockEndpoint(POPAPI_HOST, 'write', COUNTRY).reply(200, 'OK');
+      });
+
+      describe('should validate record', () => {
+        describe('when no country provided', () => {
+          it('should throw an error', async () => {
+            await expect(encStorage.write(undefined, {}))
+              .to.be.rejectedWith(StorageError, COUNTRY_CODE_ERROR_MESSAGE);
+          });
+        });
+
+        describe('when the record has no key field', () => {
+          it('should throw an error', async () => {
+            await expect(encStorage.write(COUNTRY, {}))
+              .to.be.rejectedWith(StorageError, 'Storage.write() Validation Error: <Record>.key should be string but got undefined');
+          });
         });
       });
-      storage.updateOne('us', { profileKey: TEST_RECORDS[4].profileKey }, payload);
+
+      describe('encryption', () => {
+        const encryptionOptions = [{
+          status: 'disabled',
+          encrypted: false,
+          bodyRegExp: /^pt:.+/,
+          bodyDescr: 'body as base64',
+        }, {
+          status: 'enabled',
+          encrypted: true,
+          bodyRegExp: /^2:.+/,
+          bodyDescr: 'encrypted body',
+        }];
+
+        encryptionOptions.forEach((opt) => {
+          describe(`when ${opt.status}`, () => {
+            TEST_RECORDS.forEach((testCase, idx) => {
+              context(`with test case ${idx}`, () => {
+                it(`should hash keys and send ${opt.bodyDescr}`, async () => {
+                  const storage = opt.encrypted ? encStorage : noEncStorage;
+                  const encrypted = await storage.encryptPayload(testCase);
+
+                  const [bodyObj, result] = await Promise.all([getNockedRequestBodyObject(popAPI), storage.write(COUNTRY, testCase)]);
+
+                  expect(_.omit(bodyObj, ['body'])).to.deep.equal(_.omit(encrypted, ['body']));
+                  expect(bodyObj.body).to.match(opt.bodyRegExp);
+                  expect(result.record).to.deep.equal(testCase);
+                });
+              });
+            });
+          });
+        });
+      });
+
+      describe('custom encryption', () => {
+        TEST_RECORDS.forEach((testCase, idx) => {
+          context(`with test case ${idx}`, () => {
+            it('should write data into storage', async () => {
+              const secrets = {
+                secrets: [
+                  {
+                    secret: 'longAndStrongPassword',
+                    version: 0,
+                    isForCustomEncryption: true,
+                  },
+                ],
+                currentVersion: 0,
+              };
+
+              const customEncConfigs = [{
+                encrypt: (text) => Buffer.from(text).toString('base64'),
+                decrypt: (encryptedData) => Buffer.from(encryptedData, 'base64').toString('utf-8'),
+                version: 'customEncryption',
+                isCurrent: true,
+              }];
+
+              const storage = await getDefaultStorage(true, false, () => secrets, customEncConfigs);
+
+              const encryptedPayload = await storage.encryptPayload(testCase);
+
+              const [bodyObj, result] = await Promise.all([getNockedRequestBodyObject(popAPI), storage.write(COUNTRY, testCase)]);
+              expect(bodyObj.body).to.equal(encryptedPayload.body);
+              expect(result.record).to.deep.equal(testCase);
+            });
+          });
+        });
+      });
+
+      describe('request headers', () => {
+        it('should set User-Agent', async () => {
+          const [headers] = await Promise.all([getNockedRequestHeaders(popAPI), encStorage.write(COUNTRY, TEST_RECORDS[0])]);
+          const userAgent = headers['user-agent'];
+          expect(userAgent).to.match(sdkVersionRegExp);
+        });
+      });
+
+      describe('normalize keys option', () => {
+        const key = 'aAbB';
+        const keyNormalized = 'aabb';
+
+        describe('when enabled', () => {
+          it('should normalize', async () => {
+            const storage = await getDefaultStorage(true, true);
+            const record = { key };
+            const [bodyObj] = await Promise.all([getNockedRequestBodyObject(popAPI), storage.write(COUNTRY, record)]);
+            expect(bodyObj.key).to.equal(storage.createKeyHash(keyNormalized));
+          });
+        });
+
+
+        describe('when not enabled', () => {
+          it('should not normalize', async () => {
+            const storage = await getDefaultStorage(true);
+            const record = { key };
+            const [bodyObj] = await Promise.all([getNockedRequestBodyObject(popAPI), storage.write(COUNTRY, record)]);
+            expect(bodyObj.key).to.equal(storage.createKeyHash(key));
+          });
+        });
+      });
     });
-  });
-  context('exceptions', function () {
-    context('updateOne', function () {
-      it('should reject if too many records found', function (done) {
-        nock('https://us.api.incountry.io')
-          .post('/v2/storage/records/us/find')
-          .reply(200, { data: [], meta: { total: 2 } });
-        storage.updateOne('us', {}, {}).then(() => done('Should reject')).catch(() => done());
+
+    describe('read', () => {
+      describe('should validate record', () => {
+        describe('when no country provided', () => {
+          it('should throw an error', async () => {
+            await expect(encStorage.read(undefined, '')).to.be.rejectedWith(StorageError, COUNTRY_CODE_ERROR_MESSAGE);
+          });
+        });
+
+        describe('when no key provided', () => {
+          it('should throw an error', async () => {
+            await expect(encStorage.read(COUNTRY, undefined)).to.be.rejectedWith(StorageError, RECORD_KEY_ERROR_MESSAGE);
+          });
+        });
       });
-      it('should reject if no records found', function (done) {
-        nock('https://us.api.incountry.io')
-          .post('/v2/storage/records/us/find')
-          .reply(200, { data: [], meta: { total: 0 } });
-        storage.updateOne('us', {}, {}).then(() => done('Should reject')).catch(() => done());
+
+      describe('encryption', () => {
+        describe('when enabled', () => {
+          TEST_RECORDS.forEach((testCase, idx) => {
+            context(`with test case ${idx}`, () => {
+              it('should read a record and decrypt it', async () => {
+                const encryptedPayload = await encStorage.encryptPayload({ ...EMPTY_RECORD, ...testCase });
+                nockEndpoint(POPAPI_HOST, 'read', COUNTRY, encryptedPayload.key)
+                  .reply(200, encryptedPayload);
+
+                const { record } = await encStorage.read(COUNTRY, testCase.key);
+                expect(record).to.own.include(testCase);
+              });
+            });
+          });
+        });
+
+        describe('when disabled', () => {
+          it('should read a record', async () => {
+            const recordData = TEST_RECORDS[TEST_RECORDS.length - 1];
+            const encryptedPayload = await noEncStorage.encryptPayload(recordData);
+            expect(encryptedPayload.body).to.match(/^pt:.+/);
+            nockEndpoint(POPAPI_HOST, 'read', COUNTRY, encryptedPayload.key)
+              .reply(200, encryptedPayload);
+
+            const { record } = await noEncStorage.read(COUNTRY, recordData.key);
+            expect(record).to.deep.include(recordData);
+          });
+        });
+      });
+
+      describe('custom encryption', () => {
+        TEST_RECORDS.forEach((testCase, idx) => {
+          context(`with test case ${idx}`, () => {
+            it('should read custom encrypted record', async () => {
+              const secrets = {
+                secrets: [
+                  {
+                    secret: 'longAndStrongPassword',
+                    version: 0,
+                    isForCustomEncryption: true,
+                  },
+                ],
+                currentVersion: 0,
+              };
+
+              const customEncConfigs = [{
+                encrypt: (text) => Buffer.from(text).toString('base64'),
+                decrypt: (encryptedData) => Buffer.from(encryptedData, 'base64').toString('utf-8'),
+                version: 'customEncryption',
+                isCurrent: true,
+              }];
+
+              const storage = await getDefaultStorage(true, false, () => secrets, customEncConfigs);
+
+              const encryptedPayload = await storage.encryptPayload({ ...EMPTY_RECORD, ...testCase });
+              nockEndpoint(POPAPI_HOST, 'read', COUNTRY, encryptedPayload.key)
+                .reply(200, encryptedPayload);
+
+              const { record } = await storage.read(COUNTRY, testCase.key);
+              expect(record).to.own.include(testCase);
+            });
+          });
+        });
+      });
+
+      describe('request headers', () => {
+        it('should set User-Agent', async () => {
+          const encryptedPayload = await encStorage.encryptPayload({ ...EMPTY_RECORD, ...TEST_RECORDS[0] });
+          const popAPI = nockEndpoint(POPAPI_HOST, 'read', COUNTRY, encryptedPayload.key)
+            .reply(200, encryptedPayload);
+
+          const [headers] = await Promise.all([getNockedRequestHeaders(popAPI), encStorage.read(COUNTRY, TEST_RECORDS[0].key)]);
+          const userAgent = headers['user-agent'];
+          expect(userAgent).to.match(sdkVersionRegExp);
+        });
+      });
+
+      describe('normalize keys option', () => {
+        const key = 'aAbB';
+        const keyNormalized = 'aabb';
+
+        describe('when enabled', () => {
+          it('should normalize', async () => {
+            const storage = await getDefaultStorage(true, true);
+            const encryptedPayload = await storage.encryptPayload({ ...EMPTY_RECORD, key });
+
+            const popAPI = nockEndpoint(POPAPI_HOST, 'read', COUNTRY, storage.createKeyHash(keyNormalized))
+              .reply(200, encryptedPayload);
+
+            await storage.read(COUNTRY, key);
+            assert.equal(popAPI.isDone(), true, 'Requested record using normalized key');
+          });
+
+          it('should return record with original keys', async () => {
+            const storage = await getDefaultStorage(true, true);
+            const encryptedPayload = await storage.encryptPayload({ ...EMPTY_RECORD, key });
+            nockEndpoint(POPAPI_HOST, 'read', COUNTRY, storage.createKeyHash(keyNormalized))
+              .reply(200, encryptedPayload);
+
+            const { record } = await storage.read(COUNTRY, key);
+            expect(record.key).to.equal(key);
+          });
+        });
+
+        describe('when not enabled', () => {
+          it('should not normalize', async () => {
+            const storage = await getDefaultStorage(true);
+            const encryptedPayload = await storage.encryptPayload({ ...EMPTY_RECORD, key });
+            expect(encryptedPayload.key).to.equal(storage.createKeyHash(key));
+
+            const popAPI = nockEndpoint(POPAPI_HOST, 'read', COUNTRY, storage.createKeyHash(key))
+              .reply(200, encryptedPayload);
+
+            const { record } = await storage.read(COUNTRY, key);
+            expect(record.key).to.equal(key);
+            assert.equal(popAPI.isDone(), true, 'Requested record using not normalized key');
+          });
+        });
       });
     });
-    context('delete', function () {
-      it('should throw when invalid url', function (done) {
-        const INVALID_KEY = 'invalid';
-        nock('https://us.api.incountry.io')
-          .delete(`/v2/storage/records/us/${storage.createKeyHash(INVALID_KEY)}`)
-          .reply(404);
-        storage.deleteAsync({ country: 'us', key: INVALID_KEY }).then(() => done('should be rejected')).catch(() => done());
+
+    describe('delete', () => {
+      describe('should validate record', () => {
+        describe('when no country provided', () => {
+          it('should throw an error', async () => {
+            await expect(encStorage.delete(undefined, '')).to.be.rejectedWith(StorageError, COUNTRY_CODE_ERROR_MESSAGE);
+          });
+        });
+
+        describe('when no key provided', () => {
+          it('should throw an error', async () => {
+            await expect(encStorage.delete(COUNTRY, undefined)).to.be.rejectedWith(StorageError, RECORD_KEY_ERROR_MESSAGE);
+          });
+        });
+      });
+
+      describe('encryption', () => {
+        const key = 'test';
+
+        it('should hash key regardless of enabled/disabled encryption', async () => {
+          const encryptedKey = encStorage.createKeyHash(key);
+          const popAPI = nockEndpoint(POPAPI_HOST, 'delete', COUNTRY, encryptedKey)
+            .times(2)
+            .reply(200, { success: true });
+
+          await encStorage.delete(COUNTRY, key);
+          await noEncStorage.delete(COUNTRY, key);
+          assert.equal(popAPI.isDone(), true, 'nock is done');
+        });
+
+        TEST_RECORDS.forEach((testCase, idx) => {
+          context(`with test case ${idx}`, () => {
+            it('should delete a record', async () => {
+              const encryptedPayload = await encStorage.encryptPayload(testCase);
+              const popAPI = nockEndpoint(POPAPI_HOST, 'delete', COUNTRY, encryptedPayload.key).reply(200, { success: true });
+
+              const result = await encStorage.delete(COUNTRY, testCase.key);
+              expect(result).to.deep.equal({ success: true });
+              assert.equal(popAPI.isDone(), true, 'nock is done');
+            });
+          });
+        });
+      });
+
+      describe('errors handling', () => {
+        it('should throw an error when record not found', async () => {
+          const key = 'invalid';
+          const scope = nockEndpoint(POPAPI_HOST, 'delete', COUNTRY, encStorage.createKeyHash(key)).reply(404);
+
+          await expect(encStorage.delete(COUNTRY, key)).to.be.rejectedWith(StorageServerError);
+          assert.equal(scope.isDone(), true, 'Nock scope is done');
+        });
+      });
+
+      describe('request headers', () => {
+        it('should set User-Agent', async () => {
+          const encryptedPayload = await encStorage.encryptPayload(TEST_RECORDS[0]);
+          const popAPI = nockEndpoint(POPAPI_HOST, 'delete', COUNTRY, encryptedPayload.key).reply(200, { success: true });
+
+          const [headers] = await Promise.all([getNockedRequestHeaders(popAPI), encStorage.delete(COUNTRY, TEST_RECORDS[0].key)]);
+          const userAgent = headers['user-agent'];
+          expect(userAgent).to.match(sdkVersionRegExp);
+        });
+      });
+
+      describe('normalize keys option', () => {
+        const key = 'aAbB';
+        const keyNormalized = 'aabb';
+
+        describe('when enabled', () => {
+          it('should normalize', async () => {
+            const storage = await getDefaultStorage(true, true);
+            const popAPI = nockEndpoint(POPAPI_HOST, 'delete', COUNTRY, storage.createKeyHash(keyNormalized))
+              .reply(200);
+
+            await storage.delete(COUNTRY, key);
+            assert.equal(popAPI.isDone(), true, 'Requested record using normalized key');
+          });
+        });
+
+        describe('when not enabled', () => {
+          it('should not normalize', async () => {
+            const storage = await getDefaultStorage(true);
+            const popAPI = nockEndpoint(POPAPI_HOST, 'delete', COUNTRY, storage.createKeyHash(key))
+              .reply(200);
+
+            await storage.delete(COUNTRY, key);
+            assert.equal(popAPI.isDone(), true, 'Requested record using not normalized key');
+          });
+        });
       });
     });
-    context('read', function () {
-      it('should return error when not found', function (done) {
-        const INVALID_KEY = 'invalid';
-        const scope = nock('https://us.api.incountry.io')
-          .get(`/v2/storage/records/us/${storage.createKeyHash(INVALID_KEY)}`)
-          .reply(404);
-        scope.on('error', done);
-        storage.readAsync({ country: 'us', key: INVALID_KEY })
-          .then((res) => (res.error ? done() : done('Should return error')))
-          .catch(done);
+
+    describe('find', () => {
+      const keys = ['key', 'key2', 'key3', 'profile_key'];
+
+      describe('arguments validation', () => {
+        describe('country validation', () => {
+          it('should throw an error if country is not a string', async () => {
+            const wrongCountries = [undefined, null, 1, {}, []];
+            await Promise.all(wrongCountries.map((country) => expect(encStorage.find(country))
+              .to.be.rejectedWith(StorageError, COUNTRY_CODE_ERROR_MESSAGE)));
+          });
+        });
+
+        describe('filter validation', () => {
+          it('should throw an error when filter is undefined', async () => {
+            await expect(encStorage.find(COUNTRY, undefined, { }))
+              .to.be.rejectedWith(StorageError);
+          });
+
+          it('should throw an error when filter has wrong format', async () => Promise.all(
+            [
+              false,
+              '',
+              1,
+              [],
+              () => 1,
+              [{ a: 1 }],
+              { aa: () => 1 },
+            ].map((filter) => expect(encStorage.find(COUNTRY, filter))
+              .to.be.rejectedWith(StorageError, '<FindFilter>', `wrong filter format: ${JSON.stringify(filter)}`)),
+          ));
+
+          it('should  not throw an error when filter has correct format', async () => Promise.all(
+            [
+              {},
+              { aa: 1 },
+              { aa: '' },
+              { aa: [] },
+              { aa: [1] },
+              { aa: [''] },
+              { aa: { $not: 1 } },
+              { aa: { $gt: 1 } },
+            ].map((filter) => expect(encStorage.find(COUNTRY, filter))
+              .not.to.be.rejectedWith(StorageError, '<FindFilter>', `wrong filter format: ${JSON.stringify(filter)}`)),
+          ));
+        });
+
+        describe('options validation', () => {
+          it('should throw an error when options.limit is not positive integer or greater than MAX_LIMIT', async () => {
+            nock(PORTAL_BACKEND_HOST).get(PORTAL_BACKEND_COUNTRIES_LIST_PATH).reply(400);
+            nockEndpoint(POPAPI_HOST, 'find', COUNTRY, 'test').reply(200, getDefaultFindResponse(0, []));
+
+            const nonPositiveLimits = [-123, 123.124, 'sdsd'];
+            await Promise.all(nonPositiveLimits.map((limit) => expect(encStorage.find(COUNTRY, {}, { limit }))
+              .to.be.rejectedWith(StorageError, LIMIT_ERROR_MESSAGE_INT)));
+            await expect(encStorage.find(COUNTRY, {}, { limit: MAX_LIMIT + 1 }))
+              .to.be.rejectedWith(StorageError, LIMIT_ERROR_MESSAGE_MAX);
+            await expect(encStorage.find(COUNTRY, {}, { limit: 10 })).not.to.be.rejected;
+          });
+        });
       });
-      it('should return error when server error', function (done) {
-        const INVALID_KEY = 'invalid';
-        const scope = nock('https://us.api.incountry.io')
-          .get(`/v2/storage/records/us/${storage.createKeyHash(INVALID_KEY)}`)
-          .reply(500);
-        scope.on('error', done);
-        storage.readAsync({ country: 'us', key: INVALID_KEY })
-          .then(() => done('Should return error'))
-          .catch(() => done());
+
+      describe('encryption', () => {
+        it('should hash filters regardless of enabled/disabled encryption', async () => {
+          const filter = { key: [uuid(), uuid()] };
+          const hashedFilter = { key: filter.key.map((el) => encStorage.createKeyHash(el)) };
+
+          const popAPI = nockEndpoint(POPAPI_HOST, 'find', COUNTRY)
+            .times(2)
+            .reply(200, getDefaultFindResponse(0, []));
+
+          let [bodyObj] = await Promise.all([getNockedRequestBodyObject(popAPI), encStorage.find(COUNTRY, filter)]);
+          expect(bodyObj.filter).to.deep.equal(hashedFilter);
+
+          [bodyObj] = await Promise.all([getNockedRequestBodyObject(popAPI), noEncStorage.find(COUNTRY, filter)]);
+          expect(bodyObj.filter).to.deep.equal(hashedFilter);
+
+          assert.equal(popAPI.isDone(), true, 'nock is done');
+        });
+
+        keys.forEach((key) => {
+          it(`should hash ${key} in filters request and decrypt returned data correctly`, async () => {
+            const filter = { [key]: TEST_RECORDS[4][key] };
+            const hashedFilter = { [key]: encStorage.createKeyHash(filter[key]) };
+            let requestedFilter;
+
+            const resultRecords = TEST_RECORDS.filter((rec) => rec[key] === filter[key]).map((record) => ({ ...EMPTY_RECORD, ...record }));
+            const encryptedRecords = await Promise.all(resultRecords.map((record) => encStorage.encryptPayload(record)));
+
+            nockEndpoint(POPAPI_HOST, 'find', COUNTRY)
+              .reply(200, (uri, requestBody) => {
+                requestedFilter = requestBody.filter;
+                return getDefaultFindResponse(encryptedRecords.length, encryptedRecords);
+              });
+
+            const result = await encStorage.find(COUNTRY, filter, {});
+
+            expect(result.records).to.deep.equal(resultRecords);
+            expect(requestedFilter).to.deep.equal(hashedFilter);
+          });
+        });
+
+        it('should decode not encrypted records correctly', async () => {
+          const storedData = await Promise.all(TEST_RECORDS.map((record) => noEncStorage.encryptPayload({ ...EMPTY_RECORD, ...record })));
+
+          nockEndpoint(POPAPI_HOST, 'find', COUNTRY)
+            .reply(200, getDefaultFindResponse(storedData.length, storedData));
+
+          const { records } = await noEncStorage.find(COUNTRY, { key: 'key1' });
+
+          records.forEach((record, index) => expect(record).to.own.include(TEST_RECORDS[index]));
+        });
+
+        it('should not throw if some records cannot be decrypted', async () => {
+          const encryptedData = await Promise.all(TEST_RECORDS.map((record) => encStorage.encryptPayload({ ...EMPTY_RECORD, ...record })));
+          const unsupportedData = {
+            ...EMPTY_RECORD,
+            country: 'us',
+            key: 'somekey',
+            body: '2:unsupported data',
+            version: 0,
+          };
+          const data = [...encryptedData, unsupportedData];
+
+          nockEndpoint(POPAPI_HOST, 'find', COUNTRY)
+            .reply(200, getDefaultFindResponse(data.length, data));
+
+          const result = await encStorage.find('us', {});
+
+          expect(result.meta).to.deep.equal({
+            count: TEST_RECORDS.length + 1, total: TEST_RECORDS.length + 1, limit: 100, offset: 0,
+          });
+
+          result.records.forEach((record, index) => expect(record).to.own.include(TEST_RECORDS[index]));
+          expect(result.errors[0].error.message).to.equal('Invalid IV length');
+          expect(result.errors[0].rawData).to.deep.equal(unsupportedData);
+        });
+
+        it('find() in non-encrypted mode should not throw error if some records are encrypted', async () => {
+          const nonEncryptedData = await Promise.all(
+            TEST_RECORDS.map((record) => noEncStorage.encryptPayload({ ...EMPTY_RECORD, ...record })),
+          );
+          const unsupportedData = {
+            ...EMPTY_RECORD,
+            country: 'us',
+            key: 'somekey',
+            body: '2:unsupported data',
+            version: 0,
+          };
+          const data = [...nonEncryptedData, unsupportedData];
+
+          nockEndpoint(POPAPI_HOST, 'find', COUNTRY)
+            .reply(200, getDefaultFindResponse(data.length, data));
+
+          const result = await noEncStorage.find('us', {});
+
+
+          expect(result.meta).to.deep.equal({
+            count: TEST_RECORDS.length + 1, total: TEST_RECORDS.length + 1, limit: 100, offset: 0,
+          });
+          result.records.forEach((record, index) => expect(record).to.own.include(TEST_RECORDS[index]));
+          expect(result.errors[0].error.message).to.equal('No secretKeyAccessor provided. Cannot decrypt encrypted data');
+          expect(result.errors[0].rawData).to.deep.equal(unsupportedData);
+        });
+      });
+
+      describe('normalize keys option', () => {
+        const key = 'aAbB';
+        const keyNormalized = 'aabb';
+
+        let popAPI;
+        beforeEach(() => {
+          popAPI = nockEndpoint(POPAPI_HOST, 'find', COUNTRY)
+            .reply(200, {
+              meta: {
+                count: 0, limit: 100, offset: 0, total: 0,
+              },
+              data: [],
+            });
+        });
+
+        describe('when enabled', () => {
+          it('should normalize filter object', async () => {
+            const storage = await getDefaultStorage(true, true);
+            const [bodyObj] = await Promise.all([getNockedRequestBodyObject(popAPI), storage.find(COUNTRY, { key })]);
+            expect(bodyObj.filter.key).to.equal(storage.createKeyHash(keyNormalized));
+          });
+        });
+
+        describe('when not enabled', () => {
+          it('should not normalize filter object', async () => {
+            const storage = await getDefaultStorage(true);
+            const [bodyObj] = await Promise.all([getNockedRequestBodyObject(popAPI), storage.find(COUNTRY, { key })]);
+            expect(bodyObj.filter.key).to.equal(storage.createKeyHash(key));
+          });
+        });
+      });
+    });
+
+    describe('findOne', () => {
+      it('should enforce limit:1', async () => {
+        const popAPI = nockEndpoint(POPAPI_HOST, 'find', COUNTRY)
+          .reply(200, {
+            meta: {
+              count: 0, limit: 100, offset: 0, total: 0,
+            },
+            data: [],
+          });
+
+        const [bodyObj] = await Promise.all([getNockedRequestBodyObject(popAPI), encStorage.findOne(COUNTRY, { key: '' }, { limit: 100, offset: 0 })]);
+        expect(bodyObj.options).to.deep.equal({ limit: 1, offset: 0 });
+      });
+
+      it('should return null when no results found', async () => {
+        nockEndpoint(POPAPI_HOST, 'find', COUNTRY).reply(200, getDefaultFindResponse(0, []));
+
+        const result = await encStorage.findOne(COUNTRY, {});
+        expect(result.record).to.equal(null);
+      });
+
+      it('should findOne by key3', async () => {
+        const filter = { key3: TEST_RECORDS[4].key3 };
+        const resultRecords = TEST_RECORDS.filter((rec) => rec.key3 === filter.key3);
+        const encryptedRecords = await Promise.all(resultRecords.map((record) => encStorage.encryptPayload({ ...EMPTY_RECORD, ...record })));
+
+        nockEndpoint(POPAPI_HOST, 'find', COUNTRY)
+          .reply(200, getDefaultFindResponse(encryptedRecords.length, encryptedRecords));
+        const result = await encStorage.findOne(COUNTRY, filter);
+        expect(result.record).to.own.include(TEST_RECORDS[4]);
+      });
+    });
+
+    describe('migrate', () => {
+      describe('when encryption disabled', () => {
+        it('should throw an error', async () => {
+          await expect(noEncStorage.migrate(COUNTRY, 10)).to.be.rejectedWith(StorageError, 'Migration not supported when encryption is off');
+        });
+      });
+
+      describe('when encryption enabled', () => {
+        it('should migrate data from old secret to new', async () => {
+          const encryptedRecords = await Promise.all(TEST_RECORDS.map((record) => encStorage.encryptPayload({ ...EMPTY_RECORD, ...record })));
+          const migrateResult = { meta: { migrated: encryptedRecords.length, totalLeft: 0 } };
+
+          const oldSecret = { secret: SECRET_KEY, version: 0 };
+          const newSecret = { secret: 'newnew', version: 1 };
+
+          const encStorage2 = await getDefaultStorage(true, false, () => ({
+            secrets: [oldSecret, newSecret],
+            currentVersion: newSecret.version,
+          }));
+
+          const popAPIFind = nockEndpoint(POPAPI_HOST, 'find', COUNTRY).reply(200, getDefaultFindResponse(encryptedRecords.length, encryptedRecords));
+          const popAPIBatchWrite = nockEndpoint(POPAPI_HOST, 'batchWrite', COUNTRY).reply(200, 'OK');
+
+          const result = await encStorage2.migrate(COUNTRY, encryptedRecords.length);
+          expect(result).to.deep.equal(migrateResult);
+          assert.equal(popAPIFind.isDone(), true, 'find() called');
+          assert.equal(popAPIBatchWrite.isDone(), true, 'batchWrite() called');
+        });
+      });
+
+      it('should throw error if cannot decrypt any record', async () => {
+        const encryptedRecords = await Promise.all(TEST_RECORDS.map((record) => encStorage.encryptPayload({ ...EMPTY_RECORD, ...record })));
+
+        const oldSecret = { secret: SECRET_KEY, version: 1 };
+        const newSecret = { secret: 'keykey', version: 2 };
+
+        const encStorage2 = await getDefaultStorage(true, false, () => ({
+          secrets: [oldSecret, newSecret],
+          currentVersion: newSecret.version,
+        }));
+
+        nockEndpoint(POPAPI_HOST, 'find', COUNTRY).reply(200, getDefaultFindResponse(encryptedRecords.length, encryptedRecords));
+
+        await expect(encStorage2.migrate(COUNTRY, encryptedRecords.length))
+          .to.be.rejectedWith(StorageError, 'Secret not found for version 0');
+      });
+    });
+
+    describe('batchWrite', () => {
+      let popAPI;
+
+      beforeEach(() => {
+        popAPI = nockEndpoint(POPAPI_HOST, 'batchWrite', COUNTRY).reply(200, 'OK');
+      });
+
+      describe('should validate arguments', () => {
+        describe('when country is not a string', () => {
+          it('should throw an error', async () => {
+            const wrongCountries = [undefined, null, 1, {}, []];
+            await Promise.all(wrongCountries.map((country) => expect(encStorage.batchWrite(country))
+              .to.be.rejectedWith(StorageError, COUNTRY_CODE_ERROR_MESSAGE)));
+          });
+        });
+      });
+
+      describe('should validate records', () => {
+        const errorCases = [{
+          name: 'when the records has wrong type',
+          arg: 'recordzzz',
+          error: 'Storage.batchWrite() Validation Error: You must pass non-empty array of records',
+        },
+        {
+          name: 'when the records is empty array',
+          arg: [],
+          error: 'Storage.batchWrite() Validation Error: You must pass non-empty array of records',
+        },
+        {
+          name: 'when any record has no key field',
+          arg: [{}],
+          error: 'Storage.batchWrite() Validation Error: <RecordsArray>.0.key should be string but got undefined',
+        },
+        {
+          name: 'when any record from 4 has no key field',
+          arg: [{ key: '1' }, { key: '1' }, { key: '1' }, {}],
+          error: 'Storage.batchWrite() Validation Error: <RecordsArray>.3.key should be string but got undefined',
+        },
+        {
+          name: 'when any record has wrong format',
+          arg: [{ key: '1', key2: 41234512 }],
+          error: 'Storage.batchWrite() Validation Error: <RecordsArray>.0.key2 should be (string | null) but got 41234512',
+        }];
+
+        errorCases.forEach((errCase) => {
+          it(`should throw an error ${errCase.name}`, async () => {
+            await expect(encStorage.batchWrite(COUNTRY, errCase.arg)).to.be.rejectedWith(StorageError, errCase.error);
+          });
+        });
+      });
+
+      describe('encryption', () => {
+        const encryptionOptions = [{
+          status: 'disabled',
+          encrypted: false,
+          testCaseName: 'encoded records',
+        }, {
+          status: 'enabled',
+          encrypted: true,
+          testCaseName: 'encrypted records',
+        }];
+
+        encryptionOptions.forEach((opt) => {
+          describe(`when ${opt.status}`, () => {
+            it(`should batch write ${opt.testCaseName}`, async () => {
+              const storage = opt.encrypted ? encStorage : noEncStorage;
+              const [bodyObj] = await Promise.all([getNockedRequestBodyObject(popAPI), storage.batchWrite(COUNTRY, TEST_RECORDS)]);
+              const decryptedRecords = await Promise.all(bodyObj.records.map((encRecord) => storage.decryptPayload(encRecord)));
+              decryptedRecords.forEach((record, index) => expect(record).to.own.include(TEST_RECORDS[index]));
+            });
+          });
+        });
+      });
+
+      describe('in case of network error', () => {
+        it('should throw an error', async () => {
+          nock.cleanAll();
+          const scope = nockEndpoint(POPAPI_HOST, 'batchWrite', COUNTRY)
+            .replyWithError(REQUEST_TIMEOUT_ERROR);
+
+          await expect(encStorage.batchWrite(COUNTRY, TEST_RECORDS)).to.be.rejectedWith(StorageServerError);
+          assert.equal(scope.isDone(), true, 'Nock scope is done');
+        });
+      });
+
+      describe('normalize keys option', () => {
+        const key1 = 'aAbB';
+        const key1Normalized = 'aabb';
+        const key2 = 'cCdD';
+        const key2Normalized = 'ccdd';
+
+        describe('when enabled', () => {
+          it('should normalize', async () => {
+            const storage = await getDefaultStorage(true, true);
+            const records = [{ key: key1 }, { key: key2 }];
+            const [bodyObj] = await Promise.all([getNockedRequestBodyObject(popAPI), storage.batchWrite(COUNTRY, records)]);
+            expect(bodyObj.records[0].key).to.equal(storage.createKeyHash(key1Normalized));
+            expect(bodyObj.records[1].key).to.equal(storage.createKeyHash(key2Normalized));
+          });
+        });
+
+        describe('when not enabled', () => {
+          it('should not normalize', async () => {
+            const storage = await getDefaultStorage(true);
+            const records = [{ key: key1 }, { key: key2 }];
+            const [bodyObj] = await Promise.all([getNockedRequestBodyObject(popAPI), storage.batchWrite(COUNTRY, records)]);
+            expect(bodyObj.records[0].key).to.equal(storage.createKeyHash(key1));
+            expect(bodyObj.records[1].key).to.equal(storage.createKeyHash(key2));
+          });
+        });
       });
     });
   });

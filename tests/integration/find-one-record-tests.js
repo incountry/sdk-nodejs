@@ -1,0 +1,101 @@
+/* eslint-disable prefer-arrow-callback,func-names */
+const chai = require('chai');
+const chaiAsPromised = require('chai-as-promised');
+const { createStorage, noop } = require('./common');
+const { StorageServerError } = require('../../lib/errors');
+
+chai.use(chaiAsPromised);
+const { expect } = chai;
+
+const COUNTRY = process.env.INT_INC_COUNTRY;
+const ANOTHER_COUNTRY = COUNTRY === 'us' ? 'se' : 'us';
+
+let storage;
+
+const dataRequest = {
+  key: Math.random().toString(36).substr(2, 10),
+  key2: Math.random().toString(36).substr(2, 10),
+  key3: Math.random().toString(36).substr(2, 10),
+  profile_key: Math.random().toString(36).substr(2, 10),
+  range_key: Math.floor(Math.random() * 100) + 1,
+  body: JSON.stringify({ name: 'PersonName' }),
+};
+
+xdescribe('Find one record', function () {
+  after(async function () {
+    await storage.delete(COUNTRY, dataRequest.key).catch(noop);
+  });
+
+  [false, true].forEach((encryption) => {
+    storage = createStorage(encryption);
+    context(`${encryption ? 'with' : 'without'} encryption`, function () {
+      before(async function () {
+        storage = await createStorage(encryption);
+        await storage.write(COUNTRY, dataRequest);
+      });
+      it('Find one record by country', async function () {
+        const { record } = await storage.findOne(COUNTRY, {});
+
+        expect(record.key).to.equal(dataRequest.key);
+        expect(record.key2).to.equal(dataRequest.key2);
+        expect(record.key3).to.equal(dataRequest.key3);
+        expect(record.profile_key).to.equal(dataRequest.profile_key);
+        expect(record.range_key).to.equal(dataRequest.range_key);
+        expect(record.body).to.equal(dataRequest.body);
+      });
+
+      it('Find one record by key', async function () {
+        const { record } = await storage.findOne(COUNTRY, { key: dataRequest.key });
+
+        expect(record.key).to.equal(dataRequest.key);
+        expect(record.key2).to.equal(dataRequest.key2);
+        expect(record.key3).to.equal(dataRequest.key3);
+        expect(record.profile_key).to.equal(dataRequest.profile_key);
+        expect(record.range_key).to.equal(dataRequest.range_key);
+        expect(record.body).to.equal(dataRequest.body);
+      });
+
+      it('Find one record by key2', async function () {
+        const { record } = await storage.findOne(COUNTRY, { key2: dataRequest.key2 });
+
+        expect(record.key).to.equal(dataRequest.key);
+        expect(record.key2).to.equal(dataRequest.key2);
+        expect(record.key3).to.equal(dataRequest.key3);
+        expect(record.profile_key).to.equal(dataRequest.profile_key);
+        expect(record.range_key).to.equal(dataRequest.range_key);
+        expect(record.body).to.equal(dataRequest.body);
+      });
+
+      it('Find one record by key3', async function () {
+        const { record } = await storage.findOne(COUNTRY, { key3: dataRequest.key3 });
+
+        expect(record.key).to.equal(dataRequest.key);
+        expect(record.key2).to.equal(dataRequest.key2);
+        expect(record.key3).to.equal(dataRequest.key3);
+        expect(record.profile_key).to.equal(dataRequest.profile_key);
+        expect(record.range_key).to.equal(dataRequest.range_key);
+        expect(record.body).to.equal(dataRequest.body);
+      });
+
+      it('Find one record by profile_key', async function () {
+        const { record } = await storage.findOne(COUNTRY, { profile_key: dataRequest.profile_key });
+
+        expect(record.key).to.equal(dataRequest.key);
+        expect(record.key2).to.equal(dataRequest.key2);
+        expect(record.key3).to.equal(dataRequest.key3);
+        expect(record.profile_key).to.equal(dataRequest.profile_key);
+        expect(record.range_key).to.equal(dataRequest.range_key);
+        expect(record.body).to.equal(dataRequest.body);
+      });
+
+      it('Record not found by key value', async function () {
+        const { record } = await storage.findOne(COUNTRY, { key: Math.random().toString(36).substr(2, 10) });
+        expect(record).to.equal(null);
+      });
+
+      it('Record not found by country', async function () {
+        await expect(storage.findOne(ANOTHER_COUNTRY, {})).to.be.rejectedWith(StorageServerError, 'Request failed with status code 409');
+      });
+    });
+  });
+});
