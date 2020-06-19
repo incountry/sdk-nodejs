@@ -5,13 +5,13 @@ const KEY_SIZE = 32;
 
 type SecretOrKey = {
   secret: string;
-  version: number;
+  version: NonNegativeInt;
   isKey?: boolean;
   isForCustomEncryption?: boolean;
 };
 
 type SecretsData = {
-  currentVersion: number;
+  currentVersion: NonNegativeInt;
   secrets: Array<SecretOrKey>;
 }
 

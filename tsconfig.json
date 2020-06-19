@@ -10,10 +10,12 @@
     "noFallthroughCasesInSwitch": true,
     "forceConsistentCasingInFileNames": true,
     "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
     "experimentalDecorators": true,
     "emitDecoratorMetadata":true,
     "target": "ES2015",
+    "sourceMap": true,
   },
-  "include": ["src"],
+  "include": ["src", "tests"],
   "exclude": [],
 }

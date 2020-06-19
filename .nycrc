@@ -1,5 +1,6 @@
 {
-  "reporter": ["lcov", "text"],
+  "extends": "@istanbuljs/nyc-config-typescript",
   "extension": [".ts"],
-  "exclude": ["tests"]
+  "reporter": ["lcov", "text"],
+  "include": ["src"]
 }

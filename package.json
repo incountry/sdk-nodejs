@@ -21,7 +21,7 @@
   "deprecated": false,
   "description": "SDK for writing, reading, and deleting records using Incountry's storage suite",
   "engines": {
-    "node" : ">=8.0.0"
+    "node": ">=8.0.0"
   },
   "homepage": "https://github.com/incountry/sdk-nodejs#readme",
   "license": "MIT",
@@ -33,8 +33,8 @@
     "url": "git+https://github.com/incountry/sdk-nodejs.git"
   },
   "scripts": {
-    "integrations": "npm run build && nyc --report-dir=it-coverage mocha 'tests/integration/**/*.js' --timeout 40000",
-    "test": "npm run build && nyc --report-dir=ut-coverage mocha 'tests/unit/**/*.js'",
+    "test": "nyc --report-dir=ut-coverage mocha 'tests/unit/**/*.ts'",
+    "integrations": "nyc --report-dir=it-coverage mocha --timeout 40000 'tests/integration/**/*.ts'",
     "validate-eslint": "eslint . --ext .js,.ts --ignore-path .gitignore",
     "build": "tsc -p ./tsconfig.build.json",
     "watch": "tsc -p ./tsconfig.build.json --watch",
@@ -42,8 +42,15 @@
   },
   "version": "2.0.0",
   "devDependencies": {
+    "@istanbuljs/nyc-config-typescript": "1.0.1",
+    "@types/chai": "4.2.11",
+    "@types/chai-as-promised": "7.1.2",
     "@types/lodash.get": "4.4.6",
+    "@types/mocha": "7.0.2",
     "@types/node": "13.13.4",
+    "@types/sinon": "9.0.4",
+    "@types/sinon-chai": "3.2.4",
+    "@types/uuid": "8.0.0",
     "@typescript-eslint/eslint-plugin": "2.30.0",
     "@typescript-eslint/parser": "2.30.0",
     "chai": "4.2.0",
@@ -60,6 +67,8 @@
     "nyc": "14.1.1",
     "sinon": "7.4.2",
     "sinon-chai": "3.5.0",
+    "source-map-support": "0.5.19",
+    "ts-node": "8.10.2",
     "typescript": "3.8.3",
     "uuid": "3.3.3"
   }

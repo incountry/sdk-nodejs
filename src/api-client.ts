@@ -2,19 +2,23 @@
 
 import axios, { Method } from 'axios';
 import get from 'lodash.get';
+
 import * as t from 'io-ts';
 import { Left } from 'fp-ts/lib/Either';
 import { StorageServerError } from './errors';
 import { getErrorMessage, isInvalid, Codec } from './validation/utils';
-import { RecordResponseIO } from './validation/api-responses/record-response';
-import { FindResponseIO } from './validation/api-responses/find-response';
-import { WriteResponseIO } from './validation/api-responses/write-response';
-import { StorageRecord } from './validation/record';
+import { RecordResponseIO, RecordResponse } from './validation/api-responses/record-response';
+import { FindResponseIO, FindResponse } from './validation/api-responses/find-response';
+import { WriteResponseIO, WriteResponse } from './validation/api-responses/write-response';
+import { BatchWriteResponseIO, BatchWriteResponse } from './validation/api-responses/batch-write-response';
 import { FindFilter } from './validation/find-filter';
 import { FindOptions } from './validation/find-options';
 import { Country } from './countries-cache';
 import { LogLevel } from './logger';
 import { AuthClient } from './auth-client';
+import { DeleteResponseIO, DeleteResponse } from './validation/api-responses/delete-response';
+import { ApiRecord } from './validation/api-responses/api-record';
+
 
 const pjson = require('../package.json');
 
@@ -23,17 +27,7 @@ const SDK_VERSION = pjson.version as string;
 type BasicRequestOptions<A> = { method: Method; data?: A; path?: string; headers?: {} }
 type RequestOptions = { headers?: {} };
 
-type FindResponseMeta = {
-  total: number;
-  count: number;
-  limit: number;
-  offset: number;
-}
-
-type FindResponse = {
-  meta: FindResponseMeta;
-  data: StorageRecord[];
-}
+type RecordData = { key: string } & Partial<Omit<ApiRecord, 'key' | 'version'>>
 
 type EndpointData = {
   endpoint: string;
@@ -198,7 +192,7 @@ class ApiClient {
     return responseData.right;
   }
 
-  async read(countryCode: string, key: string, requestOptions = {}): Promise<StorageRecord> {
+  async read(countryCode: string, key: string, requestOptions = {}): Promise<RecordResponse> {
     return this.request(
       countryCode,
       `v2/storage/records/${countryCode}/${key}`,
@@ -209,7 +203,7 @@ class ApiClient {
     );
   }
 
-  write(countryCode: string, data: StorageRecord, requestOptions = {}): Promise<unknown> {
+  write(countryCode: string, data: RecordData, requestOptions = {}): Promise<WriteResponse> {
     return this.request(
       countryCode,
       `v2/storage/records/${countryCode}`,
@@ -220,12 +214,12 @@ class ApiClient {
     );
   }
 
-  delete(countryCode: string, key: string, requestOptions = {}): Promise<unknown> {
+  delete(countryCode: string, key: string, requestOptions = {}): Promise<DeleteResponse> {
     return this.request(
       countryCode,
       `v2/storage/records/${countryCode}/${key}`,
       { ...requestOptions, method: 'delete' },
-      t.unknown,
+      DeleteResponseIO,
       { key, operation: 'delete' },
       true,
     );
@@ -242,12 +236,12 @@ class ApiClient {
     );
   }
 
-  batchWrite(countryCode: string, data: { records: StorageRecord[] }, requestOptions = {}): Promise<unknown> {
+  batchWrite(countryCode: string, data: { records: RecordData[] }, requestOptions = {}): Promise<BatchWriteResponse> {
     return this.request(
       countryCode,
       `v2/storage/records/${countryCode}/batchWrite`,
       { ...requestOptions, method: 'post', data },
-      WriteResponseIO,
+      BatchWriteResponseIO,
       { operation: 'batchWrite' },
       true,
     );
@@ -255,8 +249,7 @@ class ApiClient {
 }
 
 export {
+  RecordData,
   RequestOptions,
-  FindResponseMeta,
-  FindResponse,
   ApiClient,
 };

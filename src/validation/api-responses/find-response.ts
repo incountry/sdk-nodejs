@@ -1,5 +1,17 @@
 import * as t from 'io-ts';
-import { RecordResponseIO } from './record-response';
+import { ApiRecordIO, ApiRecord } from './api-record';
+
+type FindResponseMeta = {
+  total: number;
+  count: number;
+  limit: number;
+  offset: number;
+}
+
+type FindResponse = {
+  meta: FindResponseMeta;
+  data: ApiRecord[];
+}
 
 const FindResponseIO = t.type({
   meta: t.type({
@@ -8,9 +20,11 @@ const FindResponseIO = t.type({
     offset: t.Int,
     total: t.Int,
   }),
-  data: t.array(RecordResponseIO),
+  data: t.array(ApiRecordIO),
 }, 'FindResponse');
 
 export {
   FindResponseIO,
+  FindResponse,
+  FindResponseMeta,
 };

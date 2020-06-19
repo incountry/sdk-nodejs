@@ -1,5 +1,5 @@
 import axios from 'axios';
-import Querystring from 'querystring';
+import * as Querystring from 'querystring';
 import * as t from 'io-ts';
 import { StorageClientError, StorageServerError } from './errors';
 import { toStorageServerError, isInvalid } from './validation/utils';
@@ -104,7 +104,7 @@ class OAuthClient implements AuthClient {
     return token.accessToken;
   }
 
-  private async requestToken(url: string, headers: {}, body: {}) {
+  private async requestToken(url: string, headers: {}, body: {}): Promise<unknown> {
     const data = Querystring.stringify(body);
 
     let res;

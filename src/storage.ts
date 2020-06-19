@@ -1,15 +1,16 @@
 import 'dotenv/config';
 import crypto from 'crypto';
-import { ApiClient, RequestOptions, FindResponseMeta } from './api-client';
+import { ApiClient, RequestOptions } from './api-client';
 import * as defaultLogger from './logger';
 import { CountriesCache } from './countries-cache';
 import { SecretKeyAccessor } from './secret-key-accessor';
 import { InCrypt } from './in-crypt';
-import { StorageClientError, StorageCryptoError } from './errors';
-import { isJSON } from './utils';
-import { isValid, toStorageClientError, withDefault } from './validation/utils';
-import { StorageRecordIO, StorageRecord } from './validation/record';
-import { StorageRecordsNEAIO } from './validation/records';
+import { StorageClientError, StorageCryptoError, StorageServerError } from './errors';
+import {
+  isValid, toStorageClientError, withDefault, Int, getErrorMessage,
+} from './validation/utils';
+import { StorageRecordDataIO, StorageRecordData } from './validation/storage-record-data';
+import { StorageRecordDataArrayIO } from './validation/storage-record-data-array';
 import { CountryCodeIO } from './validation/country-code';
 import { FindOptionsIO, FindOptions } from './validation/find-options';
 import {
@@ -25,6 +26,8 @@ import { validate } from './validation/validate-decorator';
 import { LoggerIO } from './validation/logger';
 import { AuthClient, getApiKeyAuthClient, OAuthClient } from './auth-client';
 import { normalizeErrors } from './normalize-errors-decorator';
+import { FindResponseMeta } from './validation/api-responses/find-response';
+import { ApiRecord, ApiRecordBodyIO } from './validation/api-responses/api-record';
 
 const FIND_LIMIT = 100;
 
@@ -36,12 +39,35 @@ const KEYS_FOR_ENCRYPTION: KEY_FOR_ENCRYPTION[] = [
   'profile_key',
 ];
 
+type BodyForEncryption = {
+  meta: Record<string, unknown>;
+  payload?: string | null;
+};
+
+const EMPTY_API_RECORD = {
+  key2: null,
+  key3: null,
+  profile_key: null,
+  range_key: null,
+  version: 0 as Int,
+};
+
+type StorageRecord = {
+  body: string | null;
+  key: string;
+  version: Int;
+  profile_key: string | null;
+  range_key: Int | null;
+  key2: string | null;
+  key3: string | null;
+}
+
 type WriteResult = {
-  record: StorageRecord;
+  record: StorageRecordData;
 };
 
 type BatchWriteResult = {
-  records: Array<StorageRecord>;
+  records: Array<StorageRecordData>;
 };
 
 type MigrateResult = {
@@ -54,7 +80,7 @@ type MigrateResult = {
 type FindResult = {
   meta: FindResponseMeta;
   records: Array<StorageRecord>;
-  errors?: Array<{ error: StorageCryptoError; rawData: StorageRecord }>;
+  errors?: Array<{ error: StorageCryptoError; rawData: ApiRecord }>;
 };
 
 type FindOneResult = {
@@ -62,7 +88,7 @@ type FindOneResult = {
 };
 
 type ReadResult = {
-  record: StorageRecord | null;
+  record: StorageRecord;
 };
 
 type DeleteResult = {
@@ -116,6 +142,9 @@ class Storage {
     this.envId = envId;
 
     if (options.encrypt !== false) {
+      if (options.getSecrets === undefined) {
+        throw new StorageClientError('Provide callback function for secretData');
+      }
       this.encryptionEnabled = true;
       this.crypto = new InCrypt(new SecretKeyAccessor(options.getSecrets));
       if (customEncryptionConfigs !== undefined) {
@@ -159,21 +188,21 @@ class Storage {
   async read(countryCode: string, recordKey: string, requestOptions?: RequestOptions): Promise<ReadResult> {
     const key = this.createKeyHash(this.normalizeKey(recordKey));
     const responseData = await this.apiClient.read(countryCode, key, requestOptions);
-    const recordData = await this.decryptPayload(responseData);
-    return { record: recordData };
-  }
-
-  @validate(CountryCodeIO, StorageRecordIO)
-  @normalizeErrors()
-  async write(countryCode: string, record: StorageRecord, requestOptions?: RequestOptions): Promise<WriteResult> {
-    const data = await this.encryptPayload(record);
-    await this.apiClient.write(countryCode, data, requestOptions);
+    const record = await this.decryptPayload(responseData);
     return { record };
   }
 
-  @validate(CountryCodeIO, StorageRecordsNEAIO)
+  @validate(CountryCodeIO, StorageRecordDataIO)
   @normalizeErrors()
-  async batchWrite(countryCode: string, records: Array<StorageRecord>): Promise<BatchWriteResult> {
+  async write(countryCode: string, recordData: StorageRecordData, requestOptions?: RequestOptions): Promise<WriteResult> {
+    const data = await this.encryptPayload(recordData);
+    await this.apiClient.write(countryCode, data, requestOptions);
+    return { record: recordData };
+  }
+
+  @validate(CountryCodeIO, StorageRecordDataArrayIO)
+  @normalizeErrors()
+  async batchWrite(countryCode: string, records: Array<StorageRecordData>): Promise<BatchWriteResult> {
     const encryptedRecords = await Promise.all(records.map((r) => this.encryptPayload(r)));
     await this.apiClient.batchWrite(countryCode, { records: encryptedRecords });
     return { records };
@@ -195,7 +224,7 @@ class Storage {
     };
 
     const decrypted = await Promise.all(
-      responseData.data.map((item: StorageRecord) => this.decryptPayload(item).catch((e) => ({ error: e, rawData: item }))),
+      responseData.data.map((item) => this.decryptPayload(item).catch((e) => ({ error: e, rawData: item }))),
     );
 
     const errors: FindResult['errors'] = [];
@@ -298,74 +327,68 @@ class Storage {
     return hashedFilter;
   }
 
-  async encryptPayload(originalRecord: StorageRecord): Promise<StorageRecord> {
+  async encryptPayload(recordData: StorageRecordData): Promise<ApiRecord> {
     this.logger.write('debug', 'Encrypting...');
-    this.logger.write('debug', JSON.stringify(originalRecord, null, 2));
+    this.logger.write('debug', JSON.stringify(recordData, null, 2));
 
-    const record = { ...originalRecord };
-
-    type EncryptedBody = {
-      meta: Record<string, unknown>;
-      payload?: string | null;
+    const record: ApiRecord = {
+      ...EMPTY_API_RECORD,
+      ...recordData,
+      body: '',
     };
 
-    const body: EncryptedBody = {
+    const body: BodyForEncryption = {
       meta: {},
+      payload: null,
     };
 
     KEYS_FOR_ENCRYPTION.forEach((field) => {
-      const value = record[field];
+      const value = recordData[field];
       if (value !== undefined) {
         body.meta[field] = value;
-        if (typeof value === 'string') {
+        if (value !== null) {
           record[field] = this.createKeyHash(this.normalizeKey(value));
         }
       }
     });
 
-    if (record.body !== undefined) {
-      body.payload = record.body;
+    if (typeof recordData.body === 'string') {
+      body.payload = recordData.body;
     }
 
-    const { message, secretVersion } = await this.crypto.encrypt(
-      JSON.stringify(body),
-    );
+    const { message, secretVersion } = await this.crypto.encrypt(JSON.stringify(body));
     record.body = message;
     record.version = secretVersion;
+
     this.logger.write('debug', 'Finished encryption');
     this.logger.write('debug', JSON.stringify(record, null, 2));
     return record;
   }
 
-  async decryptPayload(originalRecord: StorageRecord): Promise<StorageRecord> {
+  async decryptPayload(originalRecord: ApiRecord): Promise<StorageRecord> {
     this.logger.write('debug', 'Start decrypting...');
     this.logger.write('debug', JSON.stringify(originalRecord, null, 2));
-    const record = { ...originalRecord };
 
-    if (typeof record.body === 'string') {
-      record.body = await this.crypto.decrypt(
-        record.body,
-        record.version,
-      );
+    const decryptedBody = await this.crypto.decrypt(originalRecord.body, originalRecord.version);
 
-      if (isJSON(record.body)) {
-        const bodyObj = JSON.parse(record.body);
-
-        if (bodyObj.payload !== undefined) {
-          record.body = bodyObj.payload;
-        } else {
-          record.body = null;
-        }
-
-        if (bodyObj.meta !== undefined) {
-          KEYS_FOR_ENCRYPTION.forEach((field) => {
-            if (bodyObj.meta[field] !== undefined) {
-              record[field] = bodyObj.meta[field];
-            }
-          });
-        }
-      }
+    const bodyObj = ApiRecordBodyIO.decode(decryptedBody);
+    if (!isValid(bodyObj)) {
+      throw new StorageServerError(`Invalid record body: ${getErrorMessage(bodyObj)}`);
     }
+
+    const { payload, meta } = bodyObj.right;
+
+    const record = {
+      ...originalRecord,
+      body: payload !== undefined ? payload : null,
+    };
+
+    KEYS_FOR_ENCRYPTION.forEach((field) => {
+      const fieldValue = meta[field];
+      if (typeof fieldValue === 'string') {
+        record[field] = fieldValue;
+      }
+    });
 
     this.logger.write('debug', 'Finished decryption');
     this.logger.write('debug', JSON.stringify(record, null, 2));
@@ -386,6 +409,8 @@ export {
   FindResult,
   ReadResult,
   DeleteResult,
+  StorageRecord,
   Storage,
+  KEY_FOR_ENCRYPTION,
   createStorage,
 };
