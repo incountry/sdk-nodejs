@@ -17,7 +17,7 @@ function wrapToSecretsData(secret: string): SecretsData {
 type GetSecretsCallback = () => string | SecretsData | Promise<string> | Promise<SecretsData>;
 
 class SecretKeyAccessor {
-  static DEFAULT_VERSION = DEFAULT_VERSION;
+  static DEFAULT_VERSION: NonNegativeInt = DEFAULT_VERSION;
   getSecretsCallback: Function;
 
   constructor(getSecretsCallback: Function) {

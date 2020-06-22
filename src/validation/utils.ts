@@ -1,21 +1,23 @@
 import * as t from 'io-ts';
 import { clone } from 'io-ts-types/lib/clone';
-import { isLeft, isRight } from 'fp-ts/lib/Either';
+import { isLeft, isRight, Either } from 'fp-ts/lib/Either';
 import { getErrorMessage } from './get-error-message';
 import { StorageClientError, StorageServerError } from '../errors';
 import { isJSON } from '../utils';
 
-const toStorageClientError = (prefix = '') => (validation: t.Validation<unknown>): StorageClientError => {
+type Validation<A> = Either<t.Errors, A>;
+
+const toStorageClientError = (prefix = '') => (validation: Validation<unknown>): StorageClientError => {
   const errorMessage = getErrorMessage(validation);
   return new StorageClientError(`${prefix}${errorMessage}`, validation);
 };
 
-const toStorageServerError = (prefix = '') => (validation: t.Validation<unknown>): StorageServerError => {
+const toStorageServerError = (prefix = '') => (validation: Validation<unknown>): StorageServerError => {
   const errorMessage = getErrorMessage(validation);
   return new StorageServerError(`${prefix}${errorMessage}`, validation);
 };
 
-function validationToPromise<A, B>(validation: t.Validation<A>, prepareError?: (validation: t.Validation<A>) => B): Promise<A> {
+function validationToPromise<A, B>(validation: Validation<A>, prepareError?: (validation: Validation<A>) => B): Promise<A> {
   return new Promise<A>((resolve, reject) => {
     if (isRight(validation)) {
       return resolve(validation.right);
@@ -82,5 +84,6 @@ export {
   getErrorMessage,
   isLeft as isInvalid,
   isRight as isValid,
+  Validation,
   Int,
 };
