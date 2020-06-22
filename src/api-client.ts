@@ -36,7 +36,7 @@ type EndpointData = {
 };
 
 const DEFAULT_ENDPOINT_COUNTRY = 'us';
-const DEFAULT_ENDPOINT_SUFFIX = 'api.incountry.io';
+const DEFAULT_ENDPOINT_SUFFIX = '-mt-01.api.incountry.io';
 
 const PoPErrorArray = t.array(t.partial({
   title: t.string,
@@ -86,7 +86,7 @@ class ApiClient {
 
   buildHostName(countryCode: string): string {
     const suffix = this.endpointMask || DEFAULT_ENDPOINT_SUFFIX;
-    return `https://${countryCode}.${suffix}`;
+    return `https://${countryCode}${suffix}`;
   }
 
   async findMidPOPCountry(countryCode: string): Promise<Country | undefined> {

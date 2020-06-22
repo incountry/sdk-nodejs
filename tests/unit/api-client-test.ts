@@ -14,7 +14,7 @@ const { expect, assert } = chai;
 
 const COUNTRY = 'us';
 const CUSTOM_POPAPI_HOST = 'https://test.example';
-const POPAPI_HOST = `https://${COUNTRY}.api.incountry.io`;
+const POPAPI_HOST = `https://${COUNTRY}-mt-01.api.incountry.io`;
 const PORTAL_BACKEND_COUNTRIES_LIST_PATH = '/countries';
 const PORTAL_BACKEND_HOST = 'portal-backend.incountry.com';
 const REQUEST_TIMEOUT_ERROR = { code: 'ETIMEDOUT' };
@@ -119,9 +119,9 @@ describe('ApiClient', () => {
       describe("when the endpointMask was provided to ApiClient and provided host doesn't match endpointMask", () => {
         it('should add requested minipop host to audience', async () => {
           const country = 'zz';
-          const endpointMask = 'test.example.com';
+          const endpointMask = '.test.example.com';
           const customPOPAPIHost = 'https://custom.popapi.host';
-          const audience = `${customPOPAPIHost} https://${country}.${endpointMask}`;
+          const audience = `${customPOPAPIHost} https://${country}${endpointMask}`;
           const apiClient = getApiClient(customPOPAPIHost, undefined, false, endpointMask);
           await expectCorrectURLReturned(apiClient, country, customPOPAPIHost, audience);
         });
@@ -130,8 +130,8 @@ describe('ApiClient', () => {
       describe('when the endpointMask was provided to ApiClient and provided host matches endpointMask', () => {
         it('should use requested host as audience', async () => {
           const country = 'zz';
-          const endpointMask = 'custom.popapi.host';
-          const customPOPAPIHost = `https://${country}.${endpointMask}`;
+          const endpointMask = '.custom.popapi.host';
+          const customPOPAPIHost = `https://${country}${endpointMask}`;
           const apiClient = getApiClient(customPOPAPIHost, undefined, false, endpointMask);
           await expectCorrectURLReturned(apiClient, country, customPOPAPIHost, customPOPAPIHost);
         });
@@ -141,7 +141,7 @@ describe('ApiClient', () => {
     describe('otherwise it should request country data from CountriesCache', () => {
       let apiClient: ApiClient;
       let apiClientWithMask: ApiClient;
-      const endpointMask = 'custom.popapi.host';
+      const endpointMask = '.custom.popapi.host';
 
       beforeEach(() => {
         apiClient = getApiClient(undefined, countriesCache);
@@ -151,29 +151,29 @@ describe('ApiClient', () => {
       describe('when the host provided by CountriesCache matches requested country', () => {
         it('should use the host provided by CountriesCache', async () => {
           const country = 'hu';
-          const customPOPAPIHost = `https://${country}.api.incountry.io`;
+          const customPOPAPIHost = `https://${country}-mt-01.api.incountry.io`;
           await expectCorrectURLReturned(apiClient, country, customPOPAPIHost);
         });
 
         it('should use midpop region', async () => {
           const countryEmea = 'hu';
           const countryApac = 'in';
-          const huPOPAPIHost = `https://${countryEmea}.api.incountry.io`;
-          const inPOPAPIHost = `https://${countryApac}.api.incountry.io`;
+          const huPOPAPIHost = `https://${countryEmea}-mt-01.api.incountry.io`;
+          const inPOPAPIHost = `https://${countryApac}-mt-01.api.incountry.io`;
           await expectCorrectURLReturned(apiClient, countryEmea, huPOPAPIHost, undefined, 'EMEA');
           await expectCorrectURLReturned(apiClient, countryApac, inPOPAPIHost, undefined, 'APAC');
         });
 
         it('should return audience equal to the requested host', async () => {
           const country = 'hu';
-          const customPOPAPIHost = `https://${country}.api.incountry.io`;
+          const customPOPAPIHost = `https://${country}-mt-01.api.incountry.io`;
           await expectCorrectURLReturned(apiClient, country, customPOPAPIHost, customPOPAPIHost);
         });
 
         describe('when endpointMask parameter was set', () => {
           it('should apply endpointMask to the host provided by CountriesCache and produce correct audience', async () => {
             const country = 'hu';
-            const customPOPAPIHost = `https://${country}.${endpointMask}`;
+            const customPOPAPIHost = `https://${country}${endpointMask}`;
             await expectCorrectURLReturned(apiClientWithMask, country, customPOPAPIHost, customPOPAPIHost);
           });
         });
@@ -192,15 +192,15 @@ describe('ApiClient', () => {
 
         it('should add requested country (minipop) host to audience', async () => {
           const country = 'ae';
-          const audience = `${POPAPI_HOST} https://${country}.api.incountry.io`;
+          const audience = `${POPAPI_HOST} https://${country}-mt-01.api.incountry.io`;
           await expectCorrectURLReturned(apiClient, country, POPAPI_HOST, audience);
         });
 
         describe('when endpointMask parameter was set', () => {
           it('should apply endpointMask to the default host and produce correct audience', async () => {
             const country = 'ae';
-            const customPOPAPIHost = `https://${COUNTRY}.${endpointMask}`;
-            const audience = `${customPOPAPIHost} https://${country}.${endpointMask}`;
+            const customPOPAPIHost = `https://${COUNTRY}${endpointMask}`;
+            const audience = `${customPOPAPIHost} https://${country}${endpointMask}`;
             await expectCorrectURLReturned(apiClientWithMask, country, customPOPAPIHost, audience);
           });
         });
