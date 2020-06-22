@@ -4,7 +4,15 @@ import * as t from 'io-ts';
 import { StorageClientError, StorageServerError } from './errors';
 import { toStorageServerError, isInvalid } from './validation/utils';
 
-const DEFAULT_AUTH_URL = 'https://auth.incountry.com/oauth2/token';
+const AUTH_PROTOCOL = 'https://';
+const DEFAULT_AUTH_HOSTNAME_SUFFIX = 'incountry.com';
+const DEFAULT_AUTH_PATH = '/oauth2/token';
+const AUTH_SERVER_SUBDOMAINS: Record<string, string> = {
+  apac: 'auth-apac',
+  emea: 'auth-emea',
+};
+const DEFAULT_AUTH_SERVER_SUBDOMAIN = 'auth-emea';
+
 
 const DEFAULT_HEADERS = {
   Accept: 'application/json, application/x-www-form-urlencoded',
@@ -64,7 +72,7 @@ const parseTokenData = (tokenData: unknown): TokenData => {
 };
 
 interface AuthClient {
-  getToken: (audience: string, envId: string, forceRenew?: boolean) => Promise<string>;
+  getToken: (audience: string, envId: string, region: string, forceRenew?: boolean) => Promise<string>;
 }
 
 const getApiKeyAuthClient = (apiKey: string): AuthClient => ({
@@ -77,16 +85,20 @@ class OAuthClient implements AuthClient {
   constructor(
     private readonly clientId: string,
     private readonly clientSecret: string,
-    private readonly accessTokenUri = DEFAULT_AUTH_URL,
+    private readonly accessTokenUri?: string,
+    private readonly endpointMask?: string,
   ) {
   }
 
-  async getToken(audience: string, envId: string, forceRenew = false): Promise<string> {
+  async getToken(audience: string, envId: string, region: string, forceRenew = false): Promise<string> {
     if (!audience) {
       throw new StorageClientError('Invalid audience provided to AuthClient.getToken()');
     }
     if (!envId) {
       throw new StorageClientError('Invalid envId provided to AuthClient.getToken()');
+    }
+    if (!region) {
+      throw new StorageClientError('Invalid region provided to AuthClient.getToken()');
     }
 
     let token = this.tokens[audience];
@@ -96,7 +108,8 @@ class OAuthClient implements AuthClient {
         Authorization: makeAuthHeader(this.clientId, this.clientSecret),
       };
       const body = { scope: envId, grant_type: 'client_credentials', audience };
-      const tokenData = await this.requestToken(this.accessTokenUri, headers, body);
+      const authServerUrl = this.getTokenProviderEndpoint(region);
+      const tokenData = await this.requestToken(authServerUrl, headers, body);
       token = parseTokenData(tokenData);
       this.tokens[audience] = token;
     }
@@ -124,6 +137,16 @@ class OAuthClient implements AuthClient {
     }
 
     return res.data;
+  }
+
+  private getTokenProviderEndpoint(region: string): string {
+    if (this.accessTokenUri) {
+      return this.accessTokenUri;
+    }
+
+    const hostnameSuffix = this.endpointMask || DEFAULT_AUTH_HOSTNAME_SUFFIX;
+    const subdomain = AUTH_SERVER_SUBDOMAINS[region.toLowerCase()] || DEFAULT_AUTH_SERVER_SUBDOMAIN;
+    return `${AUTH_PROTOCOL}${subdomain}.${hostnameSuffix}${DEFAULT_AUTH_PATH}`;
   }
 }
 

@@ -15,15 +15,23 @@ const PORTAL_BACKEND_PATH = '/countries';
 
 const DIRECT_COUNTRIES_PB_RESPONSE = {
   countries: [
-    { id: 'AE', name: 'United Arab Emirates', direct: true },
-    { id: 'BE', name: 'Belgium', direct: true },
+    {
+      id: 'AE', name: 'United Arab Emirates', direct: true, region: 'EMEA',
+    },
+    {
+      id: 'BE', name: 'Belgium', direct: true, region: 'EMEA',
+    },
   ],
 };
 
 const MIXED_COUNTRIES_PB_RESPONSE = {
   countries: [
-    { id: 'AE', name: 'United Arab Emirates', direct: true },
-    { id: 'BE', name: 'Belgium', direct: false },
+    {
+      id: 'AE', name: 'United Arab Emirates', direct: true, region: 'EMEA',
+    },
+    {
+      id: 'BE', name: 'Belgium', direct: false, region: 'EMEA',
+    },
   ],
 };
 

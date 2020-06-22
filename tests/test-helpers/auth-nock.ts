@@ -1,6 +1,6 @@
 import nock from 'nock';
 
-const DEFAULT_AUTH_HOST = 'https://auth.incountry.com';
+const DEFAULT_AUTH_HOST = 'https://auth-emea.incountry.com';
 const DEFAULT_AUTH_PATH = '/oauth2/token';
 const CUSTOM_AUTH_HOST = 'http://test.example';
 const CUSTOM_AUTH_PATH = '/get/token';
