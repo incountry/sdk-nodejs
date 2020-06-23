@@ -40,8 +40,8 @@ const storage = await createStorage({
   /**
    * {string} Optional
    * Defines API base hostname part to use. 
-   * If set, all requests will be sent to https://${country}.${endpointMask} host instead of the default 
-   * one (https://${country}.api.incountry.io)
+   * If set, all requests will be sent to https://${country}${endpointMask} host instead of the default 
+   * one (https://${country}-mt-01.api.incountry.io)
    */
   endpointMask: '',
 
