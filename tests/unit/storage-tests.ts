@@ -137,6 +137,21 @@ const getDefaultFindResponse = (count: number, data: StorageRecordData[]) => ({
 });
 
 describe('Storage', () => {
+  let clientId: string | undefined;
+  let clientSecret: string | undefined;
+
+  beforeEach(() => {
+    clientId = process.env.INC_CLIENT_ID;
+    clientSecret = process.env.INC_CLIENT_SECRET;
+    delete process.env.INC_CLIENT_ID;
+    delete process.env.INC_CLIENT_SECRET;
+  });
+
+  afterEach(() => {
+    process.env.INC_CLIENT_ID = clientId;
+    process.env.INC_CLIENT_SECRET = clientSecret;
+  });
+
   describe('interface methods', () => {
     let encStorage: Storage;
     let noEncStorage: Storage;
@@ -248,26 +263,31 @@ describe('Storage', () => {
 
         describe('oauth', () => {
           const baseOptions = {
-            apiKey: 'apiKey', environmentId: 'envId', encrypt: false, oauth: {},
+            environmentId: 'envId', encrypt: false,
           };
 
           describe('clientId', () => {
-            let clientId: string | undefined;
+            let envApiKey: string | undefined;
 
             beforeEach(() => {
-              clientId = process.env.INC_CLIENT_ID;
-              delete process.env.INC_CLIENT_ID;
+              envApiKey = process.env.INC_API_KEY;
+              delete process.env.INC_API_KEY;
             });
 
             afterEach(() => {
-              process.env.INC_CLIENT_ID = clientId;
+              process.env.INC_API_KEY = envApiKey;
             });
 
             it('should be provided via either options or environment variable', async () => {
-              await Promise.all([baseOptions, { ...baseOptions, oauth: { clientId: undefined } }].map(async (options) => {
+              await Promise.all([{ ...baseOptions, oauth: {} }, { ...baseOptions, oauth: { clientId: undefined } }].map(async (options) => {
                 await expect(createStorage(options))
-                  .to.be.rejectedWith(StorageClientError, 'Please pass clientId in options or set INC_CLIENT_ID env var');
+                  .to.be.rejectedWith(StorageClientError, 'Please pass apiKey in options or set INC_API_KEY env var');
               }));
+              process.env.INC_CLIENT_SECRET = 'clientSecret';
+              await expect(createStorage(baseOptions))
+                .to.be.rejectedWith(StorageClientError, 'Please pass clientId in options or set INC_CLIENT_ID env var');
+              delete process.env.INC_CLIENT_SECRET;
+
               await expect(createStorage({ ...baseOptions, oauth: { clientId: 'clientId', clientSecret: 'clientSecret' } })).not.to.be.rejected;
               process.env.INC_CLIENT_ID = 'clientId';
               await expect(createStorage({ ...baseOptions, oauth: { clientSecret: 'clientSecret' } })).not.to.be.rejected;
@@ -275,25 +295,80 @@ describe('Storage', () => {
           });
 
           describe('clientSecret', () => {
-            let clientSecret: string | undefined;
-
-            beforeEach(() => {
-              clientSecret = process.env.INC_CLIENT_SECRET;
-              delete process.env.INC_CLIENT_SECRET;
-            });
-
-            afterEach(() => {
-              process.env.INC_CLIENT_SECRET = clientSecret;
-            });
-
             it('should be provided via either options or environment variable', async () => {
-              await Promise.all([baseOptions, { ...baseOptions, oauth: { clientId: 'clientId', clientSecret: undefined } }].map(async (options) => {
-                await expect(createStorage(options))
-                  .to.be.rejectedWith(StorageClientError, 'Please pass clientSecret in options or set INC_CLIENT_SECRET env var');
-              }));
+              process.env.INC_CLIENT_ID = 'clientId';
+              await expect(createStorage(baseOptions))
+                .to.be.rejectedWith(StorageClientError, 'Please pass clientSecret in options or set INC_CLIENT_SECRET env var');
+              delete process.env.INC_CLIENT_ID;
+
+              await expect(createStorage({ ...baseOptions, oauth: { clientId: 'clientId', clientSecret: undefined } }))
+                .to.be.rejectedWith(StorageClientError, 'Please pass clientSecret in options or set INC_CLIENT_SECRET env var');
               await expect(createStorage({ ...baseOptions, oauth: { clientId: 'clientId', clientSecret: 'clientSecret' } })).not.to.be.rejected;
               process.env.INC_CLIENT_SECRET = 'clientSecret';
               await expect(createStorage({ ...baseOptions, oauth: { clientId: 'clientId' } })).not.to.be.rejected;
+              process.env.INC_CLIENT_ID = 'clientId';
+              await expect(createStorage(baseOptions)).not.to.be.rejected;
+            });
+          });
+
+          describe('authEndpoints', () => {
+            it('should be an object', async () => {
+              const invalidAuthEndpoints = [
+                null,
+                'str',
+                123,
+                [],
+                () => {},
+              ];
+              await Promise.all(invalidAuthEndpoints.map(async (authEndpoints) => {
+                const options = {
+                  environmentId: 'envId',
+                  encrypt: false,
+                  oauth: { clientId: 'clientId', clientSecret: 'clientSecret', authEndpoints },
+                };
+                const errorMsg = 'Storage.constructor() Validation Error: authEndpoints should be an object containing "default" key';
+                // @ts-ignore
+                await expect(createStorage(options)).to.be.rejectedWith(StorageClientError, errorMsg);
+              }));
+            });
+
+            it('should be an object with string values and the default key', async () => {
+              const errStringValue = 'Storage.constructor() Validation Error: authEndpoints values should be a string';
+              const errObjectFormat = 'Storage.constructor() Validation Error: authEndpoints should be an object containing "default" key';
+              const invalidAuthEndpoints = [
+                [{}, errObjectFormat],
+                [{ key: 'value' }, errObjectFormat],
+                [{ default: null }, errStringValue],
+                [{ default: undefined }, errStringValue],
+                [{ default: 123 }, errStringValue],
+                [{ default: [] }, errStringValue],
+                [{ default: {} }, errStringValue],
+                [{ default: () => {} }, errStringValue],
+                [{ key: 123, default: '' }, errStringValue],
+              ];
+              await Promise.all(invalidAuthEndpoints.map(async ([authEndpoints, err]) => {
+                const options = {
+                  environmentId: 'envId',
+                  encrypt: false,
+                  oauth: { clientId: 'clientId', clientSecret: 'clientSecret', authEndpoints },
+                };
+                // @ts-ignore
+                await expect(createStorage(options)).to.be.rejectedWith(StorageClientError, err);
+              }));
+
+              await expect(createStorage({
+                environmentId: 'envId',
+                encrypt: false,
+                oauth: {
+                  clientId: 'clientId',
+                  clientSecret: 'clientSecret',
+                  authEndpoints: {
+                    default: 'http://localhost/path',
+                    apac: 'http://localhost/path1',
+                    emea: 'http://127.0.0.1/path2',
+                  },
+                },
+              })).not.to.be.rejected;
             });
           });
         });

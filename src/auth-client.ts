@@ -3,16 +3,13 @@ import * as Querystring from 'querystring';
 import * as t from 'io-ts';
 import { StorageClientError, StorageServerError } from './errors';
 import { toStorageServerError, isInvalid } from './validation/utils';
+import { OAuthEndpoints } from './validation/storage-options';
 
-const AUTH_PROTOCOL = 'https://';
-const DEFAULT_AUTH_HOSTNAME_SUFFIX = 'incountry.com';
-const DEFAULT_AUTH_PATH = '/oauth2/token';
-const AUTH_SERVER_SUBDOMAINS: Record<string, string> = {
-  apac: 'auth-apac',
-  emea: 'auth-emea',
+const DEFAULT_REGIONAL_AUTH_ENDPOINTS: OAuthEndpoints = {
+  apac: 'https://auth-apac.incountry.com/oauth2/token',
+  emea: 'https://auth-emea.incountry.com/oauth2/token',
+  default: 'https://auth-emea.incountry.com/oauth2/token',
 };
-const DEFAULT_AUTH_SERVER_SUBDOMAIN = 'auth-emea';
-
 
 const DEFAULT_HEADERS = {
   Accept: 'application/json, application/x-www-form-urlencoded',
@@ -85,8 +82,7 @@ class OAuthClient implements AuthClient {
   constructor(
     private readonly clientId: string,
     private readonly clientSecret: string,
-    private readonly accessTokenUri?: string,
-    private readonly endpointMask?: string,
+    private readonly authEndpoints?: OAuthEndpoints,
   ) {
   }
 
@@ -140,13 +136,11 @@ class OAuthClient implements AuthClient {
   }
 
   private getTokenProviderEndpoint(region: string): string {
-    if (this.accessTokenUri) {
-      return this.accessTokenUri;
+    if (this.authEndpoints) {
+      return this.authEndpoints[region.toLowerCase()] || this.authEndpoints.default;
     }
 
-    const hostnameSuffix = this.endpointMask || DEFAULT_AUTH_HOSTNAME_SUFFIX;
-    const subdomain = AUTH_SERVER_SUBDOMAINS[region.toLowerCase()] || DEFAULT_AUTH_SERVER_SUBDOMAIN;
-    return `${AUTH_PROTOCOL}${subdomain}.${hostnameSuffix}${DEFAULT_AUTH_PATH}`;
+    return DEFAULT_REGIONAL_AUTH_ENDPOINTS[region.toLowerCase()] || DEFAULT_REGIONAL_AUTH_ENDPOINTS.default;
   }
 }
 
