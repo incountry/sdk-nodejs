@@ -137,6 +137,21 @@ const getDefaultFindResponse = (count: number, data: StorageRecordData[]) => ({
 });
 
 describe('Storage', () => {
+  let clientId: string | undefined;
+  let clientSecret: string | undefined;
+
+  beforeEach(() => {
+    clientId = process.env.INC_CLIENT_ID;
+    clientSecret = process.env.INC_CLIENT_SECRET;
+    delete process.env.INC_CLIENT_ID;
+    delete process.env.INC_CLIENT_SECRET;
+  });
+
+  afterEach(() => {
+    process.env.INC_CLIENT_ID = clientId;
+    process.env.INC_CLIENT_SECRET = clientSecret;
+  });
+
   describe('interface methods', () => {
     let encStorage: Storage;
     let noEncStorage: Storage;
@@ -248,26 +263,31 @@ describe('Storage', () => {
 
         describe('oauth', () => {
           const baseOptions = {
-            apiKey: 'apiKey', environmentId: 'envId', encrypt: false, oauth: {},
+            environmentId: 'envId', encrypt: false,
           };
 
           describe('clientId', () => {
-            let clientId: string | undefined;
+            let envApiKey: string | undefined;
 
             beforeEach(() => {
-              clientId = process.env.INC_CLIENT_ID;
-              delete process.env.INC_CLIENT_ID;
+              envApiKey = process.env.INC_API_KEY;
+              delete process.env.INC_API_KEY;
             });
 
             afterEach(() => {
-              process.env.INC_CLIENT_ID = clientId;
+              process.env.INC_API_KEY = envApiKey;
             });
 
             it('should be provided via either options or environment variable', async () => {
-              await Promise.all([baseOptions, { ...baseOptions, oauth: { clientId: undefined } }].map(async (options) => {
+              await Promise.all([{ ...baseOptions, oauth: {} }, { ...baseOptions, oauth: { clientId: undefined } }].map(async (options) => {
                 await expect(createStorage(options))
-                  .to.be.rejectedWith(StorageClientError, 'Please pass clientId in options or set INC_CLIENT_ID env var');
+                  .to.be.rejectedWith(StorageClientError, 'Please pass apiKey in options or set INC_API_KEY env var');
               }));
+              process.env.INC_CLIENT_SECRET = 'clientSecret';
+              await expect(createStorage(baseOptions))
+                .to.be.rejectedWith(StorageClientError, 'Please pass clientId in options or set INC_CLIENT_ID env var');
+              delete process.env.INC_CLIENT_SECRET;
+
               await expect(createStorage({ ...baseOptions, oauth: { clientId: 'clientId', clientSecret: 'clientSecret' } })).not.to.be.rejected;
               process.env.INC_CLIENT_ID = 'clientId';
               await expect(createStorage({ ...baseOptions, oauth: { clientSecret: 'clientSecret' } })).not.to.be.rejected;
@@ -275,25 +295,19 @@ describe('Storage', () => {
           });
 
           describe('clientSecret', () => {
-            let clientSecret: string | undefined;
-
-            beforeEach(() => {
-              clientSecret = process.env.INC_CLIENT_SECRET;
-              delete process.env.INC_CLIENT_SECRET;
-            });
-
-            afterEach(() => {
-              process.env.INC_CLIENT_SECRET = clientSecret;
-            });
-
             it('should be provided via either options or environment variable', async () => {
-              await Promise.all([baseOptions, { ...baseOptions, oauth: { clientId: 'clientId', clientSecret: undefined } }].map(async (options) => {
-                await expect(createStorage(options))
-                  .to.be.rejectedWith(StorageClientError, 'Please pass clientSecret in options or set INC_CLIENT_SECRET env var');
-              }));
+              process.env.INC_CLIENT_ID = 'clientId';
+              await expect(createStorage(baseOptions))
+                .to.be.rejectedWith(StorageClientError, 'Please pass clientSecret in options or set INC_CLIENT_SECRET env var');
+              delete process.env.INC_CLIENT_ID;
+
+              await expect(createStorage({ ...baseOptions, oauth: { clientId: 'clientId', clientSecret: undefined } }))
+                .to.be.rejectedWith(StorageClientError, 'Please pass clientSecret in options or set INC_CLIENT_SECRET env var');
               await expect(createStorage({ ...baseOptions, oauth: { clientId: 'clientId', clientSecret: 'clientSecret' } })).not.to.be.rejected;
               process.env.INC_CLIENT_SECRET = 'clientSecret';
               await expect(createStorage({ ...baseOptions, oauth: { clientId: 'clientId' } })).not.to.be.rejected;
+              process.env.INC_CLIENT_ID = 'clientId';
+              await expect(createStorage(baseOptions)).not.to.be.rejected;
             });
           });
 
