@@ -31,7 +31,7 @@ const storage = await createStorage({
   oauth: {
     clientId: '',                   // {string} Required when using oAuth authorization, can be also set via INC_CLIENT_ID
     clientSecret: '',               // {string} Required when using oAuth authorization, can be also set via INC_CLIENT_SECRET
-    authUrl: '',                    // {string} Optional - custom endpoint to use for fetching oAuth tokens
+    authEndpoints: '',              // {object} Optional - custom endpoints regional map to use for fetching oAuth tokens
   },
   endpoint: 'INC_URL',              // {string} Optional - Defines API URL
   encrypt: true,                    // {boolean} Optional - If false, encryption is not used. If omitted is set to true.
@@ -90,7 +90,12 @@ const storage = new Storage({
   oauth: {
     clientId: 'CLIENT_ID',
     clientSecret: 'CLIENT_SECRET',
-    authUrl: 'AUTH_URL',
+    authEndpoints: {
+      "default": "https://auth-server-default.com",
+      "emea": "https://auth-server-emea.com",
+      "apac": "https://auth-server-apac.com",
+      "amer": "https://auth-server-amer.com",
+    },
   },
 });
 ```
