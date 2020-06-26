@@ -114,20 +114,24 @@ class Storage {
     this.setLogger(options.logger || defaultLogger.withBaseLogLevel('info'));
 
     const apiKey = options.apiKey || process.env.INC_API_KEY;
+    let clientId = process.env.INC_CLIENT_ID;
+    let clientSecret = process.env.INC_CLIENT_SECRET;
+    let authEndpoints;
     if (options.oauth) {
-      const clientId = options.oauth.clientId || process.env.INC_CLIENT_ID;
+      clientId = options.oauth.clientId || clientId;
+      clientSecret = options.oauth.clientSecret || clientSecret;
+      authEndpoints = options.oauth.authEndpoints;
+    }
+    if (clientId || clientSecret) {
       if (!clientId) {
         throw new StorageClientError('Please pass clientId in options or set INC_CLIENT_ID env var');
       }
 
-      const clientSecret = options.oauth.clientSecret || process.env.INC_CLIENT_SECRET;
       if (!clientSecret) {
         throw new StorageClientError('Please pass clientSecret in options or set INC_CLIENT_SECRET env var');
       }
 
-      const authUrl = options.oauth.authUrl || process.env.INC_AUTH_URL;
-
-      this.authClient = new OAuthClient(clientId, clientSecret, authUrl, options.endpointMask);
+      this.authClient = new OAuthClient(clientId, clientSecret, authEndpoints);
     } else {
       if (!apiKey) {
         throw new StorageClientError('Please pass apiKey in options or set INC_API_KEY env var');
