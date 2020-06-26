@@ -296,6 +296,67 @@ describe('Storage', () => {
               await expect(createStorage({ ...baseOptions, oauth: { clientId: 'clientId' } })).not.to.be.rejected;
             });
           });
+
+          describe('authEndpoints', () => {
+            it('should be an object', async () => {
+              const invalidAuthEndpoints = [
+                null,
+                'str',
+                123,
+                [],
+                () => {},
+              ];
+              await Promise.all(invalidAuthEndpoints.map(async (authEndpoints) => {
+                const options = {
+                  environmentId: 'envId',
+                  encrypt: false,
+                  oauth: { clientId: 'clientId', clientSecret: 'clientSecret', authEndpoints },
+                };
+                const errorMsg = 'Storage.constructor() Validation Error: authEndpoints should be an object containing "default" key';
+                // @ts-ignore
+                await expect(createStorage(options)).to.be.rejectedWith(StorageClientError, errorMsg);
+              }));
+            });
+
+            it('should be an object with string values and the default key', async () => {
+              const errStringValue = 'Storage.constructor() Validation Error: authEndpoints values should be a string';
+              const errObjectFormat = 'Storage.constructor() Validation Error: authEndpoints should be an object containing "default" key';
+              const invalidAuthEndpoints = [
+                [{}, errObjectFormat],
+                [{ key: 'value' }, errObjectFormat],
+                [{ default: null }, errStringValue],
+                [{ default: undefined }, errStringValue],
+                [{ default: 123 }, errStringValue],
+                [{ default: [] }, errStringValue],
+                [{ default: {} }, errStringValue],
+                [{ default: () => {} }, errStringValue],
+                [{ key: 123, default: '' }, errStringValue],
+              ];
+              await Promise.all(invalidAuthEndpoints.map(async ([authEndpoints, err]) => {
+                const options = {
+                  environmentId: 'envId',
+                  encrypt: false,
+                  oauth: { clientId: 'clientId', clientSecret: 'clientSecret', authEndpoints },
+                };
+                // @ts-ignore
+                await expect(createStorage(options)).to.be.rejectedWith(StorageClientError, err);
+              }));
+
+              await expect(createStorage({
+                environmentId: 'envId',
+                encrypt: false,
+                oauth: {
+                  clientId: 'clientId',
+                  clientSecret: 'clientSecret',
+                  authEndpoints: {
+                    default: 'http://localhost/path',
+                    apac: 'http://localhost/path1',
+                    emea: 'http://127.0.0.1/path2',
+                  },
+                },
+              })).not.to.be.rejected;
+            });
+          });
         });
       });
 

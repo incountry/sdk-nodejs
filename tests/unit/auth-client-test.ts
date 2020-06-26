@@ -47,16 +47,6 @@ describe('AuthClient', () => {
       assert.equal(authNock.isDone(), true, 'Requested token using default url');
     });
 
-    it('should use custom auth server url if specified', async () => {
-      const authNock = nockCustomAuth().times(4).reply(200, accessTokenResponse());
-      const authClient = new OAuthClient('clientId', 'clientSecret', `${CUSTOM_AUTH_HOST}${CUSTOM_AUTH_PATH}`);
-      await authClient.getToken(DEFAULT_POPAPI_HOST, ENV_ID, DEFAULT_REGION);
-      await authClient.getToken(uuid(), ENV_ID, APAC_REGION);
-      await authClient.getToken(uuid(), ENV_ID, AMER_REGION);
-      await authClient.getToken(uuid(), ENV_ID, NONEXISTENT_REGION);
-      assert.equal(authNock.isDone(), true, 'Requested token using custom url');
-    });
-
     it('should use APAC auth server url for APAC region', async () => {
       const authNock = nock(APAC_AUTH_HOST).post(DEFAULT_AUTH_PATH).reply(200, accessTokenResponse());
       const authClient = new OAuthClient('clientId', 'clientSecret');
@@ -72,34 +62,57 @@ describe('AuthClient', () => {
       assert.equal(authNock.isDone(), true, 'Requested token using default url');
     });
 
-    describe('if endpointMask was provided', () => {
-      const endpointMask = 'test.example';
+    describe('if custom authEndpoints were provided', () => {
+      describe('if authEndpoints has only default key', () => {
+        const authEndpoints = { default: `${CUSTOM_AUTH_HOST}${CUSTOM_AUTH_PATH}` };
 
-      it('should use "auth-apac" subdomain with endpoint mask for APAC region', async () => {
-        const maskedApacAuthHost = `https://auth-apac.${endpointMask}`;
-        const authNock = nock(maskedApacAuthHost).post(DEFAULT_AUTH_PATH).reply(200, accessTokenResponse());
-        const authClient = new OAuthClient('clientId', 'clientSecret', undefined, endpointMask);
-        await authClient.getToken(DEFAULT_POPAPI_HOST, ENV_ID, APAC_REGION);
-        assert.equal(authNock.isDone(), true, 'Requested token using default url');
+        it('should use auth server url from the "default" region', async () => {
+          const authNock = nockCustomAuth().times(4).reply(200, accessTokenResponse());
+          const authClient = new OAuthClient('clientId', 'clientSecret', authEndpoints);
+          await authClient.getToken(DEFAULT_POPAPI_HOST, ENV_ID, DEFAULT_REGION);
+          await authClient.getToken(uuid(), ENV_ID, APAC_REGION);
+          await authClient.getToken(uuid(), ENV_ID, AMER_REGION);
+          await authClient.getToken(uuid(), ENV_ID, NONEXISTENT_REGION);
+          assert.equal(authNock.isDone(), true, 'Requested token using custom url');
+        });
       });
 
-      it('should use "auth-emea" subdomain with endpoint mask for other regions', async () => {
-        const maskedEmeaAuthHost = `https://auth-emea.${endpointMask}`;
-        const authNock = nock(maskedEmeaAuthHost).post(DEFAULT_AUTH_PATH).times(3).reply(200, accessTokenResponse());
-        const authClient = new OAuthClient('clientId', 'clientSecret', undefined, endpointMask);
-        await authClient.getToken(DEFAULT_POPAPI_HOST, ENV_ID, DEFAULT_REGION);
-        await authClient.getToken(uuid(), ENV_ID, AMER_REGION);
-        await authClient.getToken(uuid(), ENV_ID, NONEXISTENT_REGION);
-        assert.equal(authNock.isDone(), true, 'Requested token using default url');
-      });
+      describe('if authEndpoints has not only default key', () => {
+        const authHosts: Record<string, string> = {
+          apac: 'https://auth-apac.test.example',
+          emea: 'https://auth-emea.test.example',
+          amer: 'https://auth-amer.test.example',
+          south_pole: 'https://auth-south_pole.test.example',
+        };
 
-      it('should use custom auth server url if specified', async () => {
-        const authNock = nockCustomAuth().times(3).reply(200, accessTokenResponse());
-        const authClient = new OAuthClient('clientId', 'clientSecret', `${CUSTOM_AUTH_HOST}${CUSTOM_AUTH_PATH}`, endpointMask);
-        await authClient.getToken(DEFAULT_POPAPI_HOST, ENV_ID, DEFAULT_REGION);
-        await authClient.getToken(uuid(), ENV_ID, APAC_REGION);
-        await authClient.getToken(uuid(), ENV_ID, NONEXISTENT_REGION);
-        assert.equal(authNock.isDone(), true, 'Requested token using custom url');
+        const authEndpoints = {
+          apac: `${authHosts.apac}${DEFAULT_AUTH_PATH}`,
+          emea: `${authHosts.emea}${DEFAULT_AUTH_PATH}`,
+          amer: `${authHosts.amer}${DEFAULT_AUTH_PATH}`,
+          south_pole: `${authHosts.south_pole}${DEFAULT_AUTH_PATH}`,
+          default: `${CUSTOM_AUTH_HOST}${DEFAULT_AUTH_PATH}`,
+        };
+
+        [
+          ['apac', APAC_REGION],
+          ['emea', DEFAULT_REGION],
+          ['amer', AMER_REGION],
+          ['south_pole', 'SOuth_PoLe'],
+        ].forEach(([endpointName, region]) => {
+          it(`should use "auth-${endpointName}" endpoint for ${endpointName} region`, async () => {
+            const authNock = nock(authHosts[endpointName]).post(DEFAULT_AUTH_PATH).reply(200, accessTokenResponse());
+            const authClient = new OAuthClient('clientId', 'clientSecret', authEndpoints);
+            await authClient.getToken(DEFAULT_POPAPI_HOST, ENV_ID, region);
+            assert.equal(authNock.isDone(), true, 'Requested token using default url');
+          });
+        });
+
+        it('should use "default" endpoint for other regions', async () => {
+          const authNock = nock(CUSTOM_AUTH_HOST).post(DEFAULT_AUTH_PATH).reply(200, accessTokenResponse());
+          const authClient = new OAuthClient('clientId', 'clientSecret', authEndpoints);
+          await authClient.getToken(DEFAULT_POPAPI_HOST, ENV_ID, NONEXISTENT_REGION);
+          assert.equal(authNock.isDone(), true, 'Requested token using default url');
+        });
       });
     });
   });
