@@ -1,9 +1,4 @@
 # InCountry Storage SDK
-[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=incountry_sdk-nodejs&metric=alert_status)](https://sonarcloud.io/dashboard?id=incountry_sdk-nodejs)
-
-[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=incountry_sdk-nodejs&metric=coverage)](https://sonarcloud.io/dashboard?id=incountry_sdk-nodejs)
-
-
 Installation
 -----
 
@@ -39,17 +34,17 @@ const storage = await createStorage({
 
   /**
    * {string} Optional
-   * Defines API base hostname part to use. 
-   * If set, all requests will be sent to https://${country}${endpointMask} host instead of the default 
+   * Defines API base hostname part to use.
+   * If set, all requests will be sent to https://${country}${endpointMask} host instead of the default
    * one (https://${country}-mt-01.api.incountry.io)
    */
   endpointMask: '',
 
   /**
    * {string} Optional
-   * If your PoPAPI configuration relies on a custom PoPAPI server (rather than the default one) 
+   * If your PoPAPI configuration relies on a custom PoPAPI server (rather than the default one)
    * use `countriesEndpoint` option to specify the endpoint responsible for fetching supported countries list.
-   */ 
+   */
   countriesEndpoint: '',
 });
 ```
