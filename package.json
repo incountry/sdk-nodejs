@@ -12,33 +12,53 @@
     "axios": "0.19.0",
     "dotenv": "8.2.0",
     "fp-ts": "2.1.2",
-    "io-ts": "2.0.1",
+    "io-ts": "2.2.1",
     "io-ts-types": "0.5.6",
     "lodash.get": "4.4.2",
+    "reflect-metadata": "0.1.13",
     "utf8": "3.0.0"
   },
   "deprecated": false,
   "description": "SDK for writing, reading, and deleting records using Incountry's storage suite",
+  "engines": {
+    "node": ">=8.0.0"
+  },
   "homepage": "https://github.com/incountry/sdk-nodejs#readme",
   "license": "MIT",
   "main": "lib/index.js",
+  "types": "lib/index.d.ts",
   "name": "incountry",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/incountry/sdk-nodejs.git"
   },
   "scripts": {
-    "integrations": "nyc --reporter=lcov --reporter=text --report-dir=it-coverage mocha tests/integration/*.js --timeout 40000",
-    "test": "nyc --reporter=lcov --reporter=text --report-dir=ut-coverage --exclude=tests/**/*.js mocha tests/unit/**/*.js",
-    "validate-eslint": "eslint ."
+    "test": "nyc --report-dir=ut-coverage mocha 'tests/unit/**/*.ts'",
+    "integrations": "nyc --report-dir=it-coverage mocha --timeout 40000 'tests/integration/**/*.ts'",
+    "validate-eslint": "eslint . --ext .js,.ts --ignore-path .gitignore",
+    "build": "tsc -p ./tsconfig.build.json",
+    "watch": "tsc -p ./tsconfig.build.json --watch",
+    "prepublish": "npm run build"
   },
-  "version": "2.0.0",
+  "version": "2.1.0",
   "devDependencies": {
+    "@istanbuljs/nyc-config-typescript": "1.0.1",
+    "@types/chai": "4.2.11",
+    "@types/chai-as-promised": "7.1.2",
+    "@types/lodash.get": "4.4.6",
+    "@types/mocha": "7.0.2",
+    "@types/node": "13.13.4",
+    "@types/sinon": "9.0.4",
+    "@types/sinon-chai": "3.2.4",
+    "@types/uuid": "8.0.0",
+    "@typescript-eslint/eslint-plugin": "2.30.0",
+    "@typescript-eslint/parser": "2.30.0",
     "chai": "4.2.0",
     "chai-as-promised": "7.1.1",
     "chai-nock": "1.2.0",
     "eslint": "6.5.1",
     "eslint-config-airbnb-base": "14.0.0",
+    "eslint-import-resolver-typescript": "2.0.0",
     "eslint-plugin-import": "2.18.2",
     "eslint-plugin-promise": "4.2.1",
     "lodash": "4.17.15",
@@ -46,6 +66,10 @@
     "nock": "11.4.0",
     "nyc": "14.1.1",
     "sinon": "7.4.2",
+    "sinon-chai": "3.5.0",
+    "source-map-support": "0.5.19",
+    "ts-node": "8.10.2",
+    "typescript": "3.8.3",
     "uuid": "3.3.3"
   }
 }

@@ -1,7 +1,4 @@
 # InCountry Storage SDK
-
-
-
 Installation
 -----
 
@@ -24,15 +21,80 @@ To access your data in InCountry using NodeJS SDK, you need to create an instanc
 ```javascript
 const { createStorage } = require('incountry');
 const storage = await createStorage({
-  apiKey: 'API_KEY',                // {string} Required to be passed in, or as environment variable INC_API_KEY
+  apiKey: 'API_KEY',                // {string} Required when using API key authorization, or as environment variable INC_API_KEY
   environmentId: 'ENVIRONMENT_ID',  // {string} Required to be passed in, or as environment variable INC_ENVIRONMENT_ID
+  oauth: {
+    clientId: '',                   // {string} Required when using oAuth authorization, can be also set via INC_CLIENT_ID
+    clientSecret: '',               // {string} Required when using oAuth authorization, can be also set via INC_CLIENT_SECRET
+    authEndpoints: '',              // {object} Optional - custom endpoints regional map to use for fetching oAuth tokens
+  },
   endpoint: 'INC_URL',              // {string} Optional - Defines API URL
   encrypt: true,                    // {boolean} Optional - If false, encryption is not used. If omitted is set to true.
   getSecrets: () => '',             // {GetSecretsCallback} Optional - Used to fetch encryption secret
+
+  /**
+   * {string} Optional
+   * Defines API base hostname part to use.
+   * If set, all requests will be sent to https://${country}${endpointMask} host instead of the default
+   * one (https://${country}-mt-01.api.incountry.io)
+   */
+  endpointMask: '',
+
+  /**
+   * {string} Optional
+   * If your PoPAPI configuration relies on a custom PoPAPI server (rather than the default one)
+   * use `countriesEndpoint` option to specify the endpoint responsible for fetching supported countries list.
+   */
+  countriesEndpoint: '',
 });
 ```
 
-`apiKey` and `environmentId` can be fetched from your dashboard on `Incountry` site.
+`apiKey`, `oauth.clientId`, `oauth.clientSecret` and `environmentId` can be fetched from your dashboard on `Incountry` site.
+
+
+Otherwise you can create an instance of `Storage` class and run all async checks by yourself (or not run at your own risk!)
+
+```javascript
+const { Storage } = require('incountry');
+const storage = new Storage({
+  apiKey: 'API_KEY',
+  environmentId: 'ENVIRONMENT_ID',
+  endpoint: 'INC_URL',
+  encrypt: true,
+  getSecrets: () => '',
+});
+
+await storage.validate();
+```
+
+`validate` method fetches secret data using `GetSecretsCallback` and validates it. If custom encryption configs were provided they would also be checked with all matching secrets.
+
+
+#### oAuth Authentication
+
+SDK also supports oAuth authentication credentials instead of plain API key authorization. oAuth authentication flow is mutually exclusive with API key authentication - you will need to provide either API key or oAuth credentials.
+
+Below is the example how to create storage instance with oAuth credentials (and also provide custom oAuth endpoint):
+```javascript
+const { Storage } = require('incountry');
+const storage = new Storage({
+  environmentId: 'ENVIRONMENT_ID',
+  endpoint: 'INC_URL',
+  encrypt: true,
+  getSecrets: () => '',
+  oauth: {
+    clientId: 'CLIENT_ID',
+    clientSecret: 'CLIENT_SECRET',
+    authEndpoints: {
+      "default": "https://auth-server-default.com",
+      "emea": "https://auth-server-emea.com",
+      "apac": "https://auth-server-apac.com",
+      "amer": "https://auth-server-amer.com",
+    },
+  },
+});
+```
+
 
 #### Encryption key/secret
 
