@@ -228,7 +228,7 @@ class Storage {
     };
 
     const decrypted = await Promise.all(
-      responseData.data.map((item) => this.decryptPayload(item).catch((e) => ({ error: e, rawData: item }))),
+      responseData.data.map((item) => this.decryptPayload(item).catch((ex) => ({ error: ex, rawData: item }))),
     );
 
     const errors: FindResult['errors'] = [];
