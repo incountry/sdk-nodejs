@@ -2,7 +2,7 @@ import * as chai from 'chai';
 import chaiAsPromised from 'chai-as-promised';
 import { createStorage, COUNTRY, noop } from './common';
 import { Storage } from '../../src';
-import { StorageRecordData } from '../../src/validation/storage-record-data';
+import { StorageRecordData } from '../../src/validation/storage-record';
 import { Int } from '../../src/validation/utils';
 
 chai.use(chaiAsPromised);
@@ -41,7 +41,7 @@ describe('Write data to Storage', () => {
           key: Math.random().toString(36).substr(2, 10),
           body: JSON.stringify({ name: 'PersonName' }),
           profile_key: 'profileKey',
-          range_key: 42341 as Int,
+          range_key1: 42341 as Int,
           key2: 'optional key value 2',
           key3: 'optional key value 3',
         };

@@ -6,10 +6,16 @@ const { expect } = chai;
 
 
 const VALID = [
-  [{ key: '' }],
-  [{ key: '', version: 0 }],
-  [{ key: '', body: '', version: 0 }],
-  [{ key: '', body: null, version: 0 }],
+  [{ record_key: '' }],
+  [{ record_key: '', version: 0 }],
+  [{ record_key: '', body: '', version: 0 }],
+  [{ record_key: '', body: null, version: 0 }],
+  [{
+    record_key: '', body: null, version: 0, precommit_body: '',
+  }],
+  [{
+    record_key: '', body: null, version: 0, precommit_body: '', service_key1: '',
+  }],
 ];
 
 const INVALID = [
@@ -23,7 +29,9 @@ const INVALID = [
   [],
   [{}],
   [{ key: 1 }],
-  [{ key: '', body: 1 }],
+  [{ key: '' }],
+  [{ record_key: 1 }],
+  [{ record_key: '', body: 1 }],
 ];
 
 describe('Records Array validation', () => {

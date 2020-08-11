@@ -14,7 +14,7 @@ function generateKey() { return Math.random().toString(36).substr(2, 10); }
 
 describe('Migrate data with different secret version to current', () => {
   afterEach(async () => {
-    await Promise.all(records.map((r) => storage.delete(COUNTRY, r.key))).catch(noop);
+    await Promise.all(records.map((r) => storage.delete(COUNTRY, r.recordKey))).catch(noop);
   });
 
   it('Migrates data', async () => {
@@ -28,17 +28,17 @@ describe('Migrate data with different secret version to current', () => {
     storage = await createStorage(true, false, secret1);
 
     records = [{
-      key: generateKey(),
+      recordKey: generateKey(),
       body: JSON.stringify({ name: 'PersonName0' }),
     }, {
-      key: generateKey(),
+      recordKey: generateKey(),
       body: JSON.stringify({ name: 'PersonName1' }),
     }, {
-      key: generateKey(),
+      recordKey: generateKey(),
       body: JSON.stringify({ name: 'PersonName2' }),
     }];
 
-    const keys = records.map((r) => r.key);
+    const keys = records.map((r) => r.recordKey);
 
     await storage.batchWrite(COUNTRY, records);
 

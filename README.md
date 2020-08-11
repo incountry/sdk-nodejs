@@ -24,7 +24,7 @@ Usage
 
 To access your data in InCountry using NodeJS SDK, you need to create an instance of `Storage` class using async factory method `createStorage`.
 
-```javascript
+```typescript
 const { createStorage } = require('incountry');
 const storage = await createStorage({
   apiKey: 'API_KEY',                // {string} Required when using API key authorization, or as environment variable INC_API_KEY
@@ -40,17 +40,17 @@ const storage = await createStorage({
 
   /**
    * {string} Optional
-   * Defines API base hostname part to use. 
-   * If set, all requests will be sent to https://${country}${endpointMask} host instead of the default 
+   * Defines API base hostname part to use.
+   * If set, all requests will be sent to https://${country}${endpointMask} host instead of the default
    * one (https://${country}-mt-01.api.incountry.io)
    */
   endpointMask: '',
 
   /**
    * {string} Optional
-   * If your PoPAPI configuration relies on a custom PoPAPI server (rather than the default one) 
+   * If your PoPAPI configuration relies on a custom PoPAPI server (rather than the default one)
    * use `countriesEndpoint` option to specify the endpoint responsible for fetching supported countries list.
-   */ 
+   */
   countriesEndpoint: '',
 });
 ```
@@ -60,7 +60,7 @@ const storage = await createStorage({
 
 Otherwise you can create an instance of `Storage` class and run all async checks by yourself (or not run at your own risk!)
 
-```javascript
+```typescript
 const { Storage } = require('incountry');
 const storage = new Storage({
   apiKey: 'API_KEY',
@@ -81,7 +81,7 @@ await storage.validate();
 SDK also supports oAuth authentication credentials instead of plain API key authorization. oAuth authentication flow is mutually exclusive with API key authentication - you will need to provide either API key or oAuth credentials.
 
 Below is the example how to create storage instance with oAuth credentials (and also provide custom oAuth endpoint):
-```javascript
+```typescript
 const { Storage } = require('incountry');
 const storage = new Storage({
   environmentId: 'ENVIRONMENT_ID',
@@ -110,25 +110,38 @@ Note: even though SDK uses PBKDF2 to generate a cryptographically strong encrypt
 
 `GetSecretsCallback` is a function that should return either a string representing your secret or an object (we call it `SecretsData`) or a `Promise` which resolves to that string or object:
 
-```javascript
+```typescript
+type SecretOrKey = {
+  secret: string;
+  version: NonNegativeInt;
+  isKey?: boolean;
+  isForCustomEncryption?: boolean;
+};
+
+type SecretsData = {
+  currentVersion: NonNegativeInt;
+  secrets: Array<SecretOrKey>;
+};
+
+///
 {
   secrets: [
     {
-      secret: 'aaa',                // {string}
-      version: 0                    // {number} Should be a non negative integer
+      secret: 'aaa',
+      version: 0
     },
     {
-      secret: 'bbbbbbbbbbbb...bbb', // {string} Should be a 32-characters 'utf8' encoded string
-      version: 1,                   // {number} Should be a non negative integer
-      isKey: true                   // {boolean} Should be true only for user-defined encryption key
+      secret: 'bbbbbbbbbbbb...bbb', // Should be a 32-characters 'utf8' encoded string
+      version: 1,
+      isKey: true
     },
     {
-      secret: 'ccc',                // {string}
-      version: 2,                   // {number} Should be a non negative integer
-      isForCustomEncryption: true   // {boolean} Should be true only for custom encryption
+      secret: 'ccc',
+      version: 2,
+      isForCustomEncryption: true
     }
   ],
-  currentVersion: 1                 // {number} Should be a non negative integer
+  currentVersion: 1
 };
 ```
 
@@ -194,7 +207,7 @@ Use `write` method in order to create/replace (by `key`) a record.
  * @property {string|null} profile_key
  * @property {string|null} key2
  * @property {string|null} key3
- * @property {number|null} range_key
+ * @property {number|null} range_key1
  * @property {number} version - used internally by the SDK to handle record’s encryption secret version, no need to provide it manually
  */
 
@@ -216,7 +229,7 @@ const record = {
   key: '<key>',
   body: '<body>',
   profile_key: '<profile_key>',
-  range_key: 0,
+  range_key1: 0,
   key2: '<key2>',
   key3: '<key3>'
 }
@@ -234,7 +247,7 @@ Here is how data is transformed and stored in InCountry database:
   key,          // hashed
   body,         // encrypted
   profile_key,  // hashed
-  range_key,    // plain
+  range_key1,    // plain
   key2,         // hashed
   key3          // hashed
 }
@@ -290,7 +303,7 @@ You can specify filter object for every record key combining different queries:
 - single value
 - several values as an array
 - a logical NOT operator for `version`
-- comparison operators for `range_key`
+- comparison operators for `range_key1`
 
 The `options` parameter defines the `limit` - number of records to return and the `offset`- starting index.
 It can be used to implement pagination. Note: SDK returns 100 records at most.
@@ -339,10 +352,10 @@ async find(countryCode, filter, options = {}, requestOptions = {}) {
 Example of usage:
 ```javascript
 const filter = {
-  key: 'abc',
+  key1: 'abc',
   key2: ['def', 'jkl'],
   profile_key: 'test2',
-  range_key: { $gte: 5, $lte: 100 },
+  range_key1: { $gte: 5, $lte: 100 },
   version: { $not: [0, 1] },
 }
 

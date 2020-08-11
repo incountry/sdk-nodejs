@@ -19,17 +19,17 @@ describe('Delete data from Storage', function () {
 
       it('Delete data', async function () {
         const data = {
-          key: Math.random().toString(36).substr(2, 10),
+          record_key: Math.random().toString(36).substr(2, 10),
           body: JSON.stringify({ name: 'PersonName' }),
         };
 
         await storage.write(COUNTRY, data);
-        await storage.read(COUNTRY, data.key);
+        await storage.read(COUNTRY, data.record_key);
 
-        const deleteResult = await storage.delete(COUNTRY, data.key);
+        const deleteResult = await storage.delete(COUNTRY, data.record_key);
         expect(deleteResult.success).to.equal(true);
 
-        const error = await expect(storage.read(COUNTRY, data.key))
+        const error = await expect(storage.read(COUNTRY, data.record_key))
           .to.be.rejectedWith(StorageServerError);
 
         expect(error.code).to.be.equal(404);

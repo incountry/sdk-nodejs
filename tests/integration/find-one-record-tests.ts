@@ -13,17 +13,17 @@ const ANOTHER_COUNTRY = COUNTRY === 'us' ? 'se' : 'us';
 let storage: Storage;
 
 const dataRequest = {
-  key: Math.random().toString(36).substr(2, 10),
+  record_key: Math.random().toString(36).substr(2, 10),
   key2: Math.random().toString(36).substr(2, 10),
   key3: Math.random().toString(36).substr(2, 10),
   profile_key: Math.random().toString(36).substr(2, 10),
-  range_key: Math.floor(Math.random() * 100) + 1 as Int,
+  range_key1: Math.floor(Math.random() * 100) + 1 as Int,
   body: JSON.stringify({ name: 'PersonName' }),
 };
 
 describe('Find one record', () => {
   after(async () => {
-    await storage.delete(COUNTRY, dataRequest.key).catch(noop);
+    await storage.delete(COUNTRY, dataRequest.record_key).catch(noop);
   });
 
   [false, true].forEach(async (encryption) => {
@@ -39,25 +39,25 @@ describe('Find one record', () => {
           throw assert.fail('Record should not be null');
         }
 
-        expect(record.key).to.equal(dataRequest.key);
+        expect(record.record_key).to.equal(dataRequest.record_key);
         expect(record.key2).to.equal(dataRequest.key2);
         expect(record.key3).to.equal(dataRequest.key3);
         expect(record.profile_key).to.equal(dataRequest.profile_key);
-        expect(record.range_key).to.equal(dataRequest.range_key);
+        expect(record.range_key1).to.equal(dataRequest.range_key1);
         expect(record.body).to.equal(dataRequest.body);
       });
 
       it.skip('Find one record by key', async () => {
-        const { record } = await storage.findOne(COUNTRY, { key: dataRequest.key });
+        const { record } = await storage.findOne(COUNTRY, { key: dataRequest.record_key });
         if (record === null) {
           throw assert.fail('Record should not be null');
         }
 
-        expect(record.key).to.equal(dataRequest.key);
+        expect(record.record_key).to.equal(dataRequest.record_key);
         expect(record.key2).to.equal(dataRequest.key2);
         expect(record.key3).to.equal(dataRequest.key3);
         expect(record.profile_key).to.equal(dataRequest.profile_key);
-        expect(record.range_key).to.equal(dataRequest.range_key);
+        expect(record.range_key1).to.equal(dataRequest.range_key1);
         expect(record.body).to.equal(dataRequest.body);
       });
 
@@ -67,11 +67,11 @@ describe('Find one record', () => {
           throw assert.fail('Record should not be null');
         }
 
-        expect(record.key).to.equal(dataRequest.key);
+        expect(record.record_key).to.equal(dataRequest.record_key);
         expect(record.key2).to.equal(dataRequest.key2);
         expect(record.key3).to.equal(dataRequest.key3);
         expect(record.profile_key).to.equal(dataRequest.profile_key);
-        expect(record.range_key).to.equal(dataRequest.range_key);
+        expect(record.range_key1).to.equal(dataRequest.range_key1);
         expect(record.body).to.equal(dataRequest.body);
       });
 
@@ -81,11 +81,11 @@ describe('Find one record', () => {
           throw assert.fail('Record should not be null');
         }
 
-        expect(record.key).to.equal(dataRequest.key);
+        expect(record.record_key).to.equal(dataRequest.record_key);
         expect(record.key2).to.equal(dataRequest.key2);
         expect(record.key3).to.equal(dataRequest.key3);
         expect(record.profile_key).to.equal(dataRequest.profile_key);
-        expect(record.range_key).to.equal(dataRequest.range_key);
+        expect(record.range_key1).to.equal(dataRequest.range_key1);
         expect(record.body).to.equal(dataRequest.body);
       });
 
@@ -95,11 +95,11 @@ describe('Find one record', () => {
           throw assert.fail('Record should not be null');
         }
 
-        expect(record.key).to.equal(dataRequest.key);
+        expect(record.record_key).to.equal(dataRequest.record_key);
         expect(record.key2).to.equal(dataRequest.key2);
         expect(record.key3).to.equal(dataRequest.key3);
         expect(record.profile_key).to.equal(dataRequest.profile_key);
-        expect(record.range_key).to.equal(dataRequest.range_key);
+        expect(record.range_key1).to.equal(dataRequest.range_key1);
         expect(record.body).to.equal(dataRequest.body);
       });
 

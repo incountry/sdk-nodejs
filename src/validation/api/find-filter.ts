@@ -1,5 +1,5 @@
 import * as t from 'io-ts';
-import { exact } from './exact';
+import { exact } from '../exact';
 
 type FilterStringValue = string | string[];
 const FilterStringValueIO: t.Type<FilterStringValue> = t.union([t.string, t.array(t.string)]);

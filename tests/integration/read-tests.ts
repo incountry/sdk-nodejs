@@ -3,7 +3,7 @@ import chaiAsPromised from 'chai-as-promised';
 import { createStorage, COUNTRY, noop } from './common';
 import { Storage, StorageServerError } from '../../src';
 import { Int } from '../../src/validation/utils';
-import { StorageRecordData } from '../../src/validation/storage-record-data';
+import { StorageRecordData } from '../../src/validation/storage-record';
 
 
 chai.use(chaiAsPromised);
@@ -50,7 +50,7 @@ describe('Read data from Storage', () => {
           key: Math.random().toString(36).substr(2, 10),
           body: JSON.stringify({ name: 'PersonName' }),
           profile_key: 'profileKey',
-          range_key: 42341 as Int,
+          range_key1: 42341 as Int,
           key2: 'optional key value 2',
           key3: 'optional key value 3',
         };
@@ -63,7 +63,7 @@ describe('Read data from Storage', () => {
         expect(record.key2).to.equal(data.key2);
         expect(record.key3).to.equal(data.key3);
         expect(record.profile_key).to.equal(data.profile_key);
-        expect(record.range_key).to.equal(data.range_key);
+        expect(record.range_key1).to.equal(data.range_key1);
       });
 
       it('Read data with null body', async () => {

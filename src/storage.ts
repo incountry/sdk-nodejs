@@ -7,15 +7,15 @@ import { SecretKeyAccessor } from './secret-key-accessor';
 import { InCrypt } from './in-crypt';
 import { StorageClientError, StorageCryptoError, StorageServerError } from './errors';
 import {
-  isValid, toStorageClientError, withDefault, Int, getErrorMessage,
+  isValid, toStorageClientError, withDefault, getErrorMessage,
 } from './validation/utils';
-import { StorageRecordDataIO, StorageRecordData } from './validation/storage-record-data';
+import { StorageRecord, fromApiRecord } from './validation/storage-record';
 import { StorageRecordDataArrayIO } from './validation/storage-record-data-array';
 import { CountryCodeIO } from './validation/country-code';
-import { FindOptionsIO, FindOptions } from './validation/find-options';
+import { FindOptionsIO, FindOptions } from './validation/api/find-options';
 import {
   FindFilterIO, FindFilter, FilterStringValue, FilterStringQueryIO, FilterStringValueIO,
-} from './validation/find-filter';
+} from './validation/api/find-filter';
 import { LimitIO } from './validation/limit';
 import { RecordKeyIO } from './validation/record-key';
 import {
@@ -26,41 +26,84 @@ import { validate } from './validation/validate-decorator';
 import { LoggerIO } from './validation/logger';
 import { AuthClient, getApiKeyAuthClient, OAuthClient } from './auth-client';
 import { normalizeErrors } from './normalize-errors-decorator';
-import { FindResponseMeta } from './validation/api-responses/find-response';
-import { ApiRecord, ApiRecordBodyIO } from './validation/api-responses/api-record';
+import { FindResponseMeta } from './validation/api/find-response';
+import { ApiRecord, ApiRecordBodyIO } from './validation/api/api-record';
+import { StorageRecordData, StorageRecordDataIO } from './validation/storage-record-data';
+import { ApiRecordData } from './validation/api/api-record-data';
+import { apiRecordDataFromStorageRecordData, filter2 } from './validation/utils2';
 
 const FIND_LIMIT = 100;
 
-type KEY_FOR_ENCRYPTION = 'key' | 'key2' | 'key3' | 'profile_key';
+type KEY_FOR_ENCRYPTION =
+  | 'record_key'
+  | 'key1'
+  | 'key2'
+  | 'key3'
+  | 'key4'
+  | 'key5'
+  | 'key6'
+  | 'key7'
+  | 'key8'
+  | 'key9'
+  | 'key10'
+  | 'service_key1'
+  | 'service_key2'
+  | 'profile_key';
+
 const KEYS_FOR_ENCRYPTION: KEY_FOR_ENCRYPTION[] = [
-  'key',
+  'record_key',
+  'key1',
   'key2',
   'key3',
+  'key4',
+  'key5',
+  'key6',
+  'key7',
+  'key8',
+  'key9',
+  'key10',
+  'service_key1',
+  'service_key2',
   'profile_key',
 ];
+
+// type KEY_FOR_ENCRYPTION2 =
+//   | 'recordKey'
+//   | 'key1'
+//   | 'key2'
+//   | 'key3'
+//   | 'key4'
+//   | 'key5'
+//   | 'key6'
+//   | 'key7'
+//   | 'key8'
+//   | 'key9'
+//   | 'key10'
+//   | 'serviceKey1'
+//   | 'serviceKey2'
+//   | 'profileKey';
+
+// const KEYS_FOR_ENCRYPTION2 = {
+//   'record_key': '',
+//   'key1',
+//   'key2',
+//   'key3',
+//   'key4',
+//   'key5',
+//   'key6',
+//   'key7',
+//   'key8',
+//   'key9',
+//   'key10',
+//   'service_key1',
+//   'service_key2',
+//   'profile_key',
+// };
 
 type BodyForEncryption = {
   meta: Record<string, unknown>;
   payload?: string | null;
 };
-
-const EMPTY_API_RECORD = {
-  key2: null,
-  key3: null,
-  profile_key: null,
-  range_key: null,
-  version: 0 as Int,
-};
-
-type StorageRecord = {
-  body: string | null;
-  key: string;
-  version: Int;
-  profile_key: string | null;
-  range_key: Int | null;
-  key2: string | null;
-  key3: string | null;
-}
 
 type WriteResult = {
   record: StorageRecordData;
@@ -215,8 +258,9 @@ class Storage {
   @validate(CountryCodeIO, withDefault(FindFilterIO, {}), withDefault(FindOptionsIO, {}))
   @normalizeErrors()
   async find(countryCode: string, filter: FindFilter = {}, options: FindOptions = {}, requestOptions?: RequestOptions): Promise<FindResult> {
+
     const data = {
-      filter: this.hashFilterKeys(filter, ['profile_key', 'key', 'key2', 'key3']),
+      filter: this.hashFilterKeys(filter2(filter), KEYS_FOR_ENCRYPTION),
       options: { limit: FIND_LIMIT, offset: 0, ...options },
     };
 
@@ -331,15 +375,11 @@ class Storage {
     return hashedFilter;
   }
 
-  async encryptPayload(recordData: StorageRecordData): Promise<ApiRecord> {
+  async encryptPayload(storageRecordData: StorageRecordData): Promise<ApiRecordData> {
     this.logger.write('debug', 'Encrypting...');
-    this.logger.write('debug', JSON.stringify(recordData, null, 2));
+    this.logger.write('debug', JSON.stringify(storageRecordData, null, 2));
 
-    const record: ApiRecord = {
-      ...EMPTY_API_RECORD,
-      ...recordData,
-      body: '',
-    };
+    const recordData: ApiRecordData = apiRecordDataFromStorageRecordData(storageRecordData);
 
     const body: BodyForEncryption = {
       meta: {},
@@ -351,41 +391,49 @@ class Storage {
       if (value !== undefined) {
         body.meta[field] = value;
         if (value !== null) {
-          record[field] = this.createKeyHash(this.normalizeKey(value));
+          recordData[field] = this.createKeyHash(this.normalizeKey(value));
         }
       }
     });
 
-    if (typeof recordData.body === 'string') {
-      body.payload = recordData.body;
+    if (typeof storageRecordData.body === 'string') {
+      body.payload = storageRecordData.body;
+    }
+
+    if (typeof storageRecordData.precommitBody === 'string') {
+      const { message: encryptedPrecommitBody } = await this.crypto.encrypt(storageRecordData.precommitBody);
+      recordData.precommit_body = encryptedPrecommitBody;
     }
 
     const { message, secretVersion } = await this.crypto.encrypt(JSON.stringify(body));
-    record.body = message;
-    record.version = secretVersion;
+    recordData.body = message;
+    recordData.version = secretVersion;
+    recordData.is_encrypted = this.encryptionEnabled;
 
     this.logger.write('debug', 'Finished encryption');
-    this.logger.write('debug', JSON.stringify(record, null, 2));
-    return record;
+    this.logger.write('debug', JSON.stringify(recordData, null, 2));
+    return recordData;
   }
 
-  async decryptPayload(originalRecord: ApiRecord): Promise<StorageRecord> {
+  async decryptPayload(apiRecord: ApiRecord): Promise<StorageRecord> {
     this.logger.write('debug', 'Start decrypting...');
-    this.logger.write('debug', JSON.stringify(originalRecord, null, 2));
+    this.logger.write('debug', JSON.stringify(apiRecord, null, 2));
 
-    const decryptedBody = await this.crypto.decrypt(originalRecord.body, originalRecord.version);
+    const record = {
+      ...apiRecord,
+    };
+
+    if (typeof apiRecord.precommit_body === 'string') {
+      record.precommit_body = await this.crypto.decrypt(apiRecord.precommit_body, apiRecord.version);
+    }
+
+    const decryptedBody = await this.crypto.decrypt(apiRecord.body, apiRecord.version);
 
     const bodyObj = ApiRecordBodyIO.decode(decryptedBody);
     if (!isValid(bodyObj)) {
       throw new StorageServerError(`Invalid record body: ${getErrorMessage(bodyObj)}`);
     }
-
     const { payload, meta } = bodyObj.right;
-
-    const record = {
-      ...originalRecord,
-      body: payload !== undefined ? payload : null,
-    };
 
     KEYS_FOR_ENCRYPTION.forEach((field) => {
       const fieldValue = meta[field];
@@ -394,9 +442,19 @@ class Storage {
       }
     });
 
+    // For backward compatibility with older records
+    if (record.record_key === undefined && typeof meta.key === 'string') {
+      record.record_key = meta.key;
+    }
+
+    const storageRecord = {
+      ...fromApiRecord(record),
+      body: payload !== undefined ? payload : null,
+    };
+
     this.logger.write('debug', 'Finished decryption');
-    this.logger.write('debug', JSON.stringify(record, null, 2));
-    return record;
+    this.logger.write('debug', JSON.stringify(storageRecord, null, 2));
+    return storageRecord;
   }
 }
 
@@ -413,8 +471,8 @@ export {
   FindResult,
   ReadResult,
   DeleteResult,
-  StorageRecord,
   Storage,
   KEY_FOR_ENCRYPTION,
+  KEYS_FOR_ENCRYPTION,
   createStorage,
 };

@@ -6,19 +6,18 @@ import get from 'lodash.get';
 import * as t from 'io-ts';
 import { Left } from 'fp-ts/lib/Either';
 import { StorageServerError } from './errors';
-import { getErrorMessage, isInvalid, Codec } from './validation/utils';
-import { RecordResponseIO, RecordResponse } from './validation/api-responses/record-response';
-import { FindResponseIO, FindResponse } from './validation/api-responses/find-response';
-import { WriteResponseIO, WriteResponse } from './validation/api-responses/write-response';
-import { BatchWriteResponseIO, BatchWriteResponse } from './validation/api-responses/batch-write-response';
-import { FindFilter } from './validation/find-filter';
-import { FindOptions } from './validation/find-options';
 import { Country } from './countries-cache';
 import { LogLevel } from './logger';
 import { AuthClient } from './auth-client';
-import { DeleteResponseIO, DeleteResponse } from './validation/api-responses/delete-response';
-import { ApiRecord } from './validation/api-responses/api-record';
-
+import { getErrorMessage, isInvalid, Codec } from './validation/utils';
+import { ReadResponseIO, ReadResponse } from './validation/api/read-response';
+import { FindResponseIO, FindResponse } from './validation/api/find-response';
+import { WriteResponseIO, WriteResponse } from './validation/api/write-response';
+import { BatchWriteResponseIO, BatchWriteResponse } from './validation/api/batch-write-response';
+import { DeleteResponseIO, DeleteResponse } from './validation/api/delete-response';
+import { FindFilter } from './validation/api/find-filter';
+import { FindOptions } from './validation/api/find-options';
+import { ApiRecordData } from './validation/api/api-record-data';
 
 const pjson = require('../package.json');
 
@@ -26,8 +25,6 @@ const SDK_VERSION = pjson.version as string;
 
 type BasicRequestOptions<A> = { method: Method; data?: A; path?: string; headers?: {} }
 type RequestOptions = { headers?: {} };
-
-type RecordData = { key: string } & Partial<Omit<ApiRecord, 'key' | 'version'>>
 
 type EndpointData = {
   endpoint: string;
@@ -195,24 +192,24 @@ class ApiClient {
     return responseData.right;
   }
 
-  async read(countryCode: string, key: string, requestOptions = {}): Promise<RecordResponse> {
+  async read(countryCode: string, key: string, requestOptions = {}): Promise<ReadResponse> {
     return this.request(
       countryCode,
       `v2/storage/records/${countryCode}/${key}`,
       { ...requestOptions, method: 'get' },
-      RecordResponseIO,
+      ReadResponseIO,
       { key, operation: 'read' },
       true,
     );
   }
 
-  write(countryCode: string, data: RecordData, requestOptions = {}): Promise<WriteResponse> {
+  write(countryCode: string, data: ApiRecordData, requestOptions = {}): Promise<WriteResponse> {
     return this.request(
       countryCode,
       `v2/storage/records/${countryCode}`,
       { ...requestOptions, method: 'post', data },
       WriteResponseIO,
-      { key: data.key, operation: 'write' },
+      { key: data.record_key, operation: 'write' },
       true,
     );
   }
@@ -239,7 +236,7 @@ class ApiClient {
     );
   }
 
-  batchWrite(countryCode: string, data: { records: RecordData[] }, requestOptions = {}): Promise<BatchWriteResponse> {
+  batchWrite(countryCode: string, data: { records: ApiRecordData[] }, requestOptions = {}): Promise<BatchWriteResponse> {
     return this.request(
       countryCode,
       `v2/storage/records/${countryCode}/batchWrite`,
@@ -252,7 +249,6 @@ class ApiClient {
 }
 
 export {
-  RecordData,
   RequestOptions,
   ApiClient,
 };
