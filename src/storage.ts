@@ -169,7 +169,7 @@ class Storage {
       this.envId,
       options.endpoint,
       (level, message, meta) => this.logger.write(level, message, meta),
-      () => this.countriesCache.getCountries(),
+      (loggingMeta: {}) => this.countriesCache.getCountries(undefined, loggingMeta),
       options.endpointMask,
     );
     this.normalizeKeys = Boolean(options.normalizeKeys);
@@ -189,38 +189,38 @@ class Storage {
 
   @validate(CountryCodeIO, RecordKeyIO)
   @normalizeErrors()
-  async read(countryCode: string, recordKey: string, requestOptions?: RequestOptions): Promise<ReadResult> {
+  async read(countryCode: string, recordKey: string, requestOptions?: RequestOptions, callLoggingMeta?: any): Promise<ReadResult> {
     const key = this.createKeyHash(this.normalizeKey(recordKey));
-    const responseData = await this.apiClient.read(countryCode, key, requestOptions);
-    const record = await this.decryptPayload(responseData);
+    const responseData = await this.apiClient.read(countryCode, key, requestOptions, callLoggingMeta);
+    const record = await this.decryptPayload(responseData, callLoggingMeta);
     return { record };
   }
 
   @validate(CountryCodeIO, StorageRecordDataIO)
   @normalizeErrors()
-  async write(countryCode: string, recordData: StorageRecordData, requestOptions?: RequestOptions): Promise<WriteResult> {
-    const data = await this.encryptPayload(recordData);
-    await this.apiClient.write(countryCode, data, requestOptions);
+  async write(countryCode: string, recordData: StorageRecordData, requestOptions?: RequestOptions, callLoggingMeta?: any): Promise<WriteResult> {
+    const data = await this.encryptPayload(recordData, callLoggingMeta);
+    await this.apiClient.write(countryCode, data, requestOptions, callLoggingMeta);
     return { record: recordData };
   }
 
   @validate(CountryCodeIO, StorageRecordDataArrayIO)
   @normalizeErrors()
-  async batchWrite(countryCode: string, records: Array<StorageRecordData>): Promise<BatchWriteResult> {
-    const encryptedRecords = await Promise.all(records.map((r) => this.encryptPayload(r)));
-    await this.apiClient.batchWrite(countryCode, { records: encryptedRecords });
+  async batchWrite(countryCode: string, records: Array<StorageRecordData>, callLoggingMeta?: any): Promise<BatchWriteResult> {
+    const encryptedRecords = await Promise.all(records.map((r) => this.encryptPayload(r, callLoggingMeta)));
+    await this.apiClient.batchWrite(countryCode, { records: encryptedRecords }, undefined, callLoggingMeta);
     return { records };
   }
 
   @validate(CountryCodeIO, withDefault(FindFilterIO, {}), withDefault(FindOptionsIO, {}))
   @normalizeErrors()
-  async find(countryCode: string, filter: FindFilter = {}, options: FindOptions = {}, requestOptions?: RequestOptions): Promise<FindResult> {
+  async find(countryCode: string, filter: FindFilter = {}, options: FindOptions = {}, requestOptions?: RequestOptions, callLoggingMeta?: any): Promise<FindResult> {
     const data = {
       filter: this.hashFilterKeys(filter, ['profile_key', 'key', 'key2', 'key3']),
       options: { limit: FIND_LIMIT, offset: 0, ...options },
     };
 
-    const responseData = await this.apiClient.find(countryCode, data, requestOptions);
+    const responseData = await this.apiClient.find(countryCode, data, requestOptions, callLoggingMeta);
 
     const result: FindResult = {
       records: [],
@@ -228,7 +228,7 @@ class Storage {
     };
 
     const decrypted = await Promise.all(
-      responseData.data.map((item) => this.decryptPayload(item).catch((ex) => ({ error: ex, rawData: item }))),
+      responseData.data.map((item) => this.decryptPayload(item, callLoggingMeta).catch((ex) => ({ error: ex, rawData: item }))),
     );
 
     const errors: FindResult['errors'] = [];
@@ -247,31 +247,31 @@ class Storage {
     return result;
   }
 
-  async findOne(countryCode: string, filter: FindFilter, options: FindOptions = {}, requestOptions?: RequestOptions): Promise<FindOneResult> {
+  async findOne(countryCode: string, filter: FindFilter, options: FindOptions = {}, requestOptions?: RequestOptions, callLoggingMeta?: any): Promise<FindOneResult> {
     const optionsWithLimit = { ...options, limit: 1 };
-    const result = await this.find(countryCode, filter, optionsWithLimit, requestOptions);
+    const result = await this.find(countryCode, filter, optionsWithLimit, requestOptions, callLoggingMeta);
     const record = result.records.length ? result.records[0] : null;
     return { record };
   }
 
   @validate(CountryCodeIO, RecordKeyIO)
   @normalizeErrors()
-  async delete(countryCode: string, recordKey: string, requestOptions?: RequestOptions): Promise<DeleteResult> {
+  async delete(countryCode: string, recordKey: string, requestOptions?: RequestOptions, callLoggingMeta?: any): Promise<DeleteResult> {
     try {
       const key = this.createKeyHash(this.normalizeKey(recordKey));
 
-      await this.apiClient.delete(countryCode, key, requestOptions);
+      await this.apiClient.delete(countryCode, key, requestOptions, callLoggingMeta);
 
       return { success: true };
     } catch (err) {
-      this.logger.write('error', err.message);
+      this.logger.write('error', err.message, { callLoggingMeta });
       throw err;
     }
   }
 
   @validate(CountryCodeIO, withDefault(LimitIO, FIND_LIMIT), withDefault(FindFilterIO, {}))
   @normalizeErrors()
-  async migrate(countryCode: string, limit = FIND_LIMIT, _findFilter: FindFilter = {}): Promise<MigrateResult> {
+  async migrate(countryCode: string, limit = FIND_LIMIT, _findFilter: FindFilter = {}, callLoggingMeta?: any): Promise<MigrateResult> {
     if (!this.encryptionEnabled) {
       throw new StorageClientError('Migration not supported when encryption is off');
     }
@@ -279,12 +279,12 @@ class Storage {
     const currentSecretVersion = await this.crypto.getCurrentSecretVersion();
     const findFilter = { ..._findFilter, version: { $not: currentSecretVersion } };
     const findOptions = { limit };
-    const { records, meta, errors } = await this.find(countryCode, findFilter, findOptions);
+    const { records, meta, errors } = await this.find(countryCode, findFilter, findOptions, undefined, callLoggingMeta);
     if (records.length === 0 && errors && errors[0]) {
       throw errors[0].error;
     }
 
-    await this.batchWrite(countryCode, records);
+    await this.batchWrite(countryCode, records, callLoggingMeta);
 
     return {
       meta: {
@@ -331,9 +331,9 @@ class Storage {
     return hashedFilter;
   }
 
-  async encryptPayload(recordData: StorageRecordData): Promise<ApiRecord> {
-    this.logger.write('debug', 'Encrypting...');
-    this.logger.write('debug', JSON.stringify(recordData, null, 2));
+  async encryptPayload(recordData: StorageRecordData, callLoggingMeta?: any): Promise<ApiRecord> {
+    this.logger.write('debug', 'Encrypting...', { callLoggingMeta });
+    this.logger.write('debug', JSON.stringify(recordData, null, 2), { callLoggingMeta });
 
     const record: ApiRecord = {
       ...EMPTY_API_RECORD,
@@ -364,14 +364,14 @@ class Storage {
     record.body = message;
     record.version = secretVersion;
 
-    this.logger.write('debug', 'Finished encryption');
-    this.logger.write('debug', JSON.stringify(record, null, 2));
+    this.logger.write('debug', 'Finished encryption', { callLoggingMeta });
+    this.logger.write('debug', JSON.stringify(record, null, 2), { callLoggingMeta });
     return record;
   }
 
-  async decryptPayload(originalRecord: ApiRecord): Promise<StorageRecord> {
-    this.logger.write('debug', 'Start decrypting...');
-    this.logger.write('debug', JSON.stringify(originalRecord, null, 2));
+  async decryptPayload(originalRecord: ApiRecord, callLoggingMeta?: any): Promise<StorageRecord> {
+    this.logger.write('debug', 'Start decrypting...', { callLoggingMeta });
+    this.logger.write('debug', JSON.stringify(originalRecord, null, 2), { callLoggingMeta });
 
     const decryptedBody = await this.crypto.decrypt(originalRecord.body, originalRecord.version);
 
@@ -394,8 +394,8 @@ class Storage {
       }
     });
 
-    this.logger.write('debug', 'Finished decryption');
-    this.logger.write('debug', JSON.stringify(record, null, 2));
+    this.logger.write('debug', 'Finished decryption', { callLoggingMeta });
+    this.logger.write('debug', JSON.stringify(record, null, 2), { callLoggingMeta });
     return record;
   }
 }
