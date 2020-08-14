@@ -594,10 +594,12 @@ describe('Storage', () => {
     });
 
     describe('logging', () => {
-      it('should receive all 3 arguments', async () => {
+      it('should receive all 3 arguments and callLoggingMeta', async () => {
         const logger = {
           write: sinon.fake(),
         };
+
+        const callLoggingMeta = { test: 'test logging meta' };
 
         const storage = await createStorage({
           apiKey: 'apiKey',
@@ -611,8 +613,10 @@ describe('Storage', () => {
         nockEndpoint(POPAPI_HOST, 'read', COUNTRY, encryptedPayload.key)
           .reply(200, encryptedPayload);
 
-        await expect(storage.read(COUNTRY, key)).to.be.rejectedWith(StorageError);
+        await expect(storage.read(COUNTRY, key, undefined, callLoggingMeta)).to.be.rejectedWith(StorageError);
         expect(logger.write.lastCall.args).to.have.length(3);
+        expect(logger.write.lastCall.args[2]).to.be.an('object');
+        expect(logger.write.lastCall.args[2].callLoggingMeta).to.deep.equal(callLoggingMeta);
       });
     });
 
