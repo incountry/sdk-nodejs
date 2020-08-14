@@ -31,7 +31,7 @@ function validate(...codecs: t.Mixed[]) {
         throw toError(invalid);
       }
 
-      const newArgs = [...results.map(foldValidation), args.slice(results.length)];
+      const newArgs = [...results.map(foldValidation), ...args.slice(results.length)];
       return method.apply(this, newArgs);
     };
 
