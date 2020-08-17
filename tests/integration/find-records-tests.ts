@@ -14,40 +14,40 @@ const ANOTHER_COUNTRY = COUNTRY === 'us' ? 'se' : 'us';
 let storage: Storage;
 
 const dataRequest = {
-  record_key: Math.random().toString(36).substr(2, 10),
+  recordKey: Math.random().toString(36).substr(2, 10),
   key1: Math.random().toString(36).substr(2, 10),
   key2: Math.random().toString(36).substr(2, 10),
   key3: Math.random().toString(36).substr(2, 10),
-  profile_key: Math.random().toString(36).substr(2, 10),
-  range_key1: Math.floor(Math.random() * 100) + 1 as Int,
+  profileKey: Math.random().toString(36).substr(2, 10),
+  rangeKey1: Math.floor(Math.random() * 100) + 1 as Int,
   body: JSON.stringify({ name: 'PersonName' }),
 };
 
 const dataRequest2 = {
-  record_key: Math.random().toString(36).substr(2, 10),
+  recordKey: Math.random().toString(36).substr(2, 10),
   key1: Math.random().toString(36).substr(2, 10),
   key2: Math.random().toString(36).substr(2, 10),
   key3: Math.random().toString(36).substr(2, 10),
-  profile_key: Math.random().toString(36).substr(2, 10),
-  range_key1: Math.floor(Math.random() * 100) + 1 as Int,
+  profileKey: Math.random().toString(36).substr(2, 10),
+  rangeKey1: Math.floor(Math.random() * 100) + 1 as Int,
   body: JSON.stringify({ name: 'PersonName2' }),
 };
 
 const dataRequest3 = {
-  record_key: Math.random().toString(36).substr(2, 10),
+  recordKey: Math.random().toString(36).substr(2, 10),
   key1: Math.random().toString(36).substr(2, 10),
   key2: Math.random().toString(36).substr(2, 10),
   key3: Math.random().toString(36).substr(2, 10),
-  profile_key: Math.random().toString(36).substr(2, 10),
-  range_key1: Math.floor(Math.random() * 100) + 1 as Int,
+  profileKey: Math.random().toString(36).substr(2, 10),
+  rangeKey1: Math.floor(Math.random() * 100) + 1 as Int,
   body: JSON.stringify({ name: 'PersonName3' }),
 };
 
 describe('Find records', () => {
   after(async () => {
-    await storage.delete(COUNTRY, dataRequest.record_key).catch(noop);
-    await storage.delete(COUNTRY, dataRequest2.record_key).catch(noop);
-    await storage.delete(COUNTRY, dataRequest3.record_key).catch(noop);
+    await storage.delete(COUNTRY, dataRequest.recordKey).catch(noop);
+    await storage.delete(COUNTRY, dataRequest2.recordKey).catch(noop);
+    await storage.delete(COUNTRY, dataRequest3.recordKey).catch(noop);
   });
 
   [false, true].forEach((encryption) => {
@@ -72,10 +72,10 @@ describe('Find records', () => {
       });
 
       it.skip('Find records by key', async () => {
-        const { records, meta } = await storage.find(COUNTRY, { key: dataRequest.record_key }, {});
+        const { records, meta } = await storage.find(COUNTRY, { key: dataRequest.recordKey }, {});
 
         expect(records).to.have.lengthOf(1);
-        expect(records[0].record_key).to.equal(dataRequest.record_key);
+        expect(records[0].recordKey).to.equal(dataRequest.recordKey);
         expect(records[0].body).to.equal(dataRequest.body);
         expect(meta).to.have.all.keys('count', 'limit', 'offset', 'total');
         expect(meta.count).to.equal(1);
@@ -88,7 +88,7 @@ describe('Find records', () => {
         const { records, meta } = await storage.find(COUNTRY, { key2: dataRequest.key2 }, {});
 
         expect(records).to.have.lengthOf(1);
-        expect(records[0].record_key).to.equal(dataRequest.record_key);
+        expect(records[0].recordKey).to.equal(dataRequest.recordKey);
         expect(records[0].key1).to.equal(dataRequest.key1);
         expect(records[0].body).to.equal(dataRequest.body);
         expect(meta).to.have.all.keys('count', 'limit', 'offset', 'total');
@@ -110,11 +110,11 @@ describe('Find records', () => {
         expect(meta.limit).to.equal(100);
       });
 
-      it.skip('Find records by profile_key', async () => {
-        const { records, meta } = await storage.find(COUNTRY, { profile_key: dataRequest.profile_key }, {});
+      it.skip('Find records by profileKey', async () => {
+        const { records, meta } = await storage.find(COUNTRY, { profileKey: dataRequest.profileKey }, {});
 
         expect(records).to.have.lengthOf(1);
-        expect(records[0].profile_key).to.equal(dataRequest.profile_key);
+        expect(records[0].profileKey).to.equal(dataRequest.profileKey);
         expect(meta).to.have.all.keys('count', 'limit', 'offset', 'total');
         expect(meta.count).to.equal(1);
         expect(meta.total).to.equal(1);
@@ -136,7 +136,7 @@ describe('Find records', () => {
       it.skip('Find records with pagination', async () => {
         const limit = 10;
         const offset = 1;
-        const { records, meta } = await storage.find(COUNTRY, { range_key1: { $lt: 100 } },
+        const { records, meta } = await storage.find(COUNTRY, { rangeKey1: { $lt: 100 } },
           {
             limit,
             offset,
@@ -151,9 +151,9 @@ describe('Find records', () => {
         expect(meta.limit).to.equal(limit);
       });
 
-      it.skip('Find records by filter with range_key1', async () => {
+      it.skip('Find records by filter with rangeKey1', async () => {
         const { records, meta } = await storage.find(COUNTRY,
-          { range_key1: { $lt: 100 } }, {});
+          { rangeKey1: { $lt: 100 } }, {});
 
         expect(records).to.have.lengthOf(2);
         expect(meta).to.have.all.keys('count', 'limit', 'offset', 'total');
@@ -177,7 +177,7 @@ describe('Find records', () => {
           { key2: { $not: dataRequest.key2 } }, {});
 
         expect(meta.count).to.equal(2);
-        expect(recordsFound.map((r) => r.record_key)).to.include.members([dataRequest2.record_key, dataRequest3.record_key]);
+        expect(recordsFound.map((r) => r.recordKey)).to.include.members([dataRequest2.recordKey, dataRequest3.recordKey]);
       });
 
       it.skip('Records not found by key value', async () => {

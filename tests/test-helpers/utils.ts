@@ -1,12 +1,15 @@
-import { ApiRecord } from './api-record';
-import { StorageRecordData } from '../storage-record-data';
-import { omitUndefined } from '../../utils';
+import { StorageRecord } from '../../src/validation/storage-record';
+import { ApiRecord } from '../../src/validation/api/api-record';
 
-type ApiRecordData = { record_key: string } & Partial<Omit<ApiRecord, 'record_key'>>
-
-function apiRecordDataFromStorageRecordData<A extends StorageRecordData>(r: A): ApiRecordData {
-  return omitUndefined({
+function apiRecordFromStorageRecord(r: StorageRecord, isEncrypted = false): ApiRecord {
+  return {
     record_key: r.recordKey,
+    body: typeof r.body === 'string' ? r.body : '',
+    precommit_body: r.precommitBody,
+    version: r.version,
+    created_at: r.createdAt,
+    updated_at: r.updatedAt,
+    is_encrypted: isEncrypted,
     profile_key: r.profileKey,
     range_key1: r.rangeKey1,
     range_key2: r.rangeKey2,
@@ -30,10 +33,9 @@ function apiRecordDataFromStorageRecordData<A extends StorageRecordData>(r: A): 
     key8: r.key8,
     key9: r.key9,
     key10: r.key10,
-  });
+  };
 }
 
 export {
-  ApiRecordData,
-  apiRecordDataFromStorageRecordData,
+  apiRecordFromStorageRecord,
 };

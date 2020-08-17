@@ -1,6 +1,6 @@
 import * as t from 'io-ts';
 import { DateFromISOString } from 'io-ts-types/lib/DateFromISOString';
-import { JSONIO } from '../utils';
+import { JSONIO, Codec } from '../utils';
 
 const ApiRecordBodyIO = t.intersection([
   t.type({
@@ -13,12 +13,45 @@ const ApiRecordBodyIO = t.intersection([
 
 const ApiRecordBodyFromString = t.string.pipe(JSONIO.pipe(ApiRecordBodyIO), 'ApiRecordBody');
 
-const ApiRecordIO = t.type({
+type ApiRecord = {
+  record_key: string;
+  body: string;
+  precommit_body: null | string;
+  version: t.Int;
+  is_encrypted: null | boolean;
+  created_at: Date;
+  updated_at: Date;
+  profile_key: null | string;
+  range_key1: null | t.Int;
+  range_key2: null | t.Int;
+  range_key3: null | t.Int;
+  range_key4: null | t.Int;
+  range_key5: null | t.Int;
+  range_key6: null | t.Int;
+  range_key7: null | t.Int;
+  range_key8: null | t.Int;
+  range_key9: null | t.Int;
+  range_key10: null | t.Int;
+  service_key1: null | string;
+  service_key2: null | string;
+  key1: null | string;
+  key2: null | string;
+  key3: null | string;
+  key4: null | string;
+  key5: null | string;
+  key6: null | string;
+  key7: null | string;
+  key8: null | string;
+  key9: null | string;
+  key10: null | string;
+}
+
+const ApiRecordIO: Codec<ApiRecord> = t.type({
   record_key: t.string,
   body: t.string,
   precommit_body: t.union([t.null, t.string]),
   version: t.Int,
-  is_encrypted: t.boolean,
+  is_encrypted: t.union([t.null, t.boolean]),
   created_at: DateFromISOString,
   updated_at: DateFromISOString,
   profile_key: t.union([t.null, t.string]),
@@ -45,8 +78,6 @@ const ApiRecordIO = t.type({
   key9: t.union([t.null, t.string]),
   key10: t.union([t.null, t.string]),
 }, 'ApiRecord');
-
-type ApiRecord = t.TypeOf<typeof ApiRecordIO>
 
 export {
   ApiRecordBodyFromString as ApiRecordBodyIO,

@@ -11,17 +11,17 @@ const { expect } = chai;
 let storage: Storage;
 
 const dataRequest = {
-  key: Math.random().toString(36).substr(2, 10).toUpperCase(),
+  recordKey: Math.random().toString(36).substr(2, 10).toUpperCase(),
   key2: Math.random().toString(36).substr(2, 10).toUpperCase(),
   key3: Math.random().toString(36).substr(2, 10).toUpperCase(),
-  profile_key: Math.random().toString(36).substr(2, 10).toUpperCase(),
-  range_key1: Math.floor(Math.random() * 100) + 1 as Int,
+  profileKey: Math.random().toString(36).substr(2, 10).toUpperCase(),
+  rangeKey1: Math.floor(Math.random() * 100) + 1 as Int,
   body: JSON.stringify({ name: 'PersonName' }),
 };
 
 describe('Normalize keys records', () => {
   after(async () => {
-    await storage.delete(COUNTRY, dataRequest.key).catch(noop);
+    await storage.delete(COUNTRY, dataRequest.recordKey).catch(noop);
   });
 
   [false, true].forEach(async (encryption) => {
@@ -33,11 +33,11 @@ describe('Normalize keys records', () => {
         await storage.write(COUNTRY, dataRequest);
       });
       it('Find records by key with lower case', async () => {
-        const { records, meta } = await storage.find(COUNTRY, { key: dataRequest.key.toLowerCase() }, {});
-        const records2 = await storage.find(COUNTRY, { key: dataRequest.key }, {});
+        const { records, meta } = await storage.find(COUNTRY, { recordKey: dataRequest.recordKey.toLowerCase() }, {});
+        const records2 = await storage.find(COUNTRY, { recordKey: dataRequest.recordKey }, {});
 
         expect(records).to.have.lengthOf(1);
-        expect(records[0].key).to.equal(dataRequest.key);
+        expect(records[0].recordKey).to.equal(dataRequest.recordKey);
         expect(records[0].body).to.equal(dataRequest.body);
         expect(meta).to.have.all.keys('count', 'limit', 'offset', 'total');
         expect(meta.count).to.equal(1);
@@ -46,7 +46,7 @@ describe('Normalize keys records', () => {
         expect(meta.limit).to.equal(100);
 
         expect(records2.records).to.have.lengthOf(1);
-        expect(records2.records[0].key).to.equal(dataRequest.key);
+        expect(records2.records[0].recordKey).to.equal(dataRequest.recordKey);
         expect(records2.records[0].body).to.equal(dataRequest.body);
         expect(records2.meta).to.have.all.keys('count', 'limit', 'offset', 'total');
         expect(records2.meta.count).to.equal(1);
@@ -59,7 +59,7 @@ describe('Normalize keys records', () => {
         const { records, meta } = await storage.find(COUNTRY, { key2: dataRequest.key2.toLowerCase() }, {});
 
         expect(records).to.have.lengthOf(1);
-        expect(records[0].key).to.equal(dataRequest.key);
+        expect(records[0].recordKey).to.equal(dataRequest.recordKey);
         expect(records[0].key2).to.equal(dataRequest.key2);
         expect(records[0].body).to.equal(dataRequest.body);
         expect(meta).to.have.all.keys('count', 'limit', 'offset', 'total');
@@ -81,11 +81,11 @@ describe('Normalize keys records', () => {
         expect(meta.limit).to.equal(100);
       });
 
-      it('Find records by profile_key', async () => {
-        const { records, meta } = await storage.find(COUNTRY, { profile_key: dataRequest.profile_key.toLowerCase() }, {});
+      it('Find records by profileKey', async () => {
+        const { records, meta } = await storage.find(COUNTRY, { profileKey: dataRequest.profileKey.toLowerCase() }, {});
 
         expect(records).to.have.lengthOf(1);
-        expect(records[0].profile_key).to.equal(dataRequest.profile_key);
+        expect(records[0].profileKey).to.equal(dataRequest.profileKey);
         expect(meta).to.have.all.keys('count', 'limit', 'offset', 'total');
         expect(meta.count).to.equal(1);
         expect(meta.total).to.equal(1);

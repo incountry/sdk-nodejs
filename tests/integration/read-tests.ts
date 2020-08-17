@@ -3,8 +3,7 @@ import chaiAsPromised from 'chai-as-promised';
 import { createStorage, COUNTRY, noop } from './common';
 import { Storage, StorageServerError } from '../../src';
 import { Int } from '../../src/validation/utils';
-import { StorageRecordData } from '../../src/validation/storage-record';
-
+import { StorageRecordData } from '../../src/validation/storage-record-data';
 
 chai.use(chaiAsPromised);
 const { expect } = chai;
@@ -14,7 +13,7 @@ let data: StorageRecordData;
 
 describe('Read data from Storage', () => {
   afterEach(async () => {
-    await storage.delete(COUNTRY, data.key).catch(noop);
+    await storage.delete(COUNTRY, data.recordKey).catch(noop);
   });
 
   [false, true].forEach((encryption) => {
@@ -25,14 +24,14 @@ describe('Read data from Storage', () => {
 
       it('Read data', async () => {
         data = {
-          key: Math.random().toString(36).substr(2, 10),
+          recordKey: Math.random().toString(36).substr(2, 10),
           body: JSON.stringify({ name: 'PersonName' }),
         };
 
         await storage.write(COUNTRY, data);
-        const { record } = await storage.read(COUNTRY, data.key);
+        const { record } = await storage.read(COUNTRY, data.recordKey);
 
-        expect(record.key).to.equal(data.key);
+        expect(record.recordKey).to.equal(data.recordKey);
         expect(record.body).to.equal(data.body);
       });
 
@@ -47,47 +46,47 @@ describe('Read data from Storage', () => {
 
       it('Read data with optional keys and range', async () => {
         data = {
-          key: Math.random().toString(36).substr(2, 10),
+          recordKey: Math.random().toString(36).substr(2, 10),
           body: JSON.stringify({ name: 'PersonName' }),
-          profile_key: 'profileKey',
-          range_key1: 42341 as Int,
+          profileKey: 'profileKey',
+          rangeKey1: 42341 as Int,
           key2: 'optional key value 2',
           key3: 'optional key value 3',
         };
 
         await storage.write(COUNTRY, data);
-        const { record } = await storage.read(COUNTRY, data.key);
+        const { record } = await storage.read(COUNTRY, data.recordKey);
 
         expect(record.body).to.equal(data.body);
-        expect(record.key).to.equal(data.key);
+        expect(record.recordKey).to.equal(data.recordKey);
         expect(record.key2).to.equal(data.key2);
         expect(record.key3).to.equal(data.key3);
-        expect(record.profile_key).to.equal(data.profile_key);
-        expect(record.range_key1).to.equal(data.range_key1);
+        expect(record.profileKey).to.equal(data.profileKey);
+        expect(record.rangeKey1).to.equal(data.rangeKey1);
       });
 
       it('Read data with null body', async () => {
         data = {
-          key: Math.random().toString(36).substr(2, 10),
+          recordKey: Math.random().toString(36).substr(2, 10),
           body: null,
         };
 
         await storage.write(COUNTRY, data);
-        const { record } = await storage.read(COUNTRY, data.key);
+        const { record } = await storage.read(COUNTRY, data.recordKey);
 
-        expect(record.key).to.equal(data.key);
+        expect(record.recordKey).to.equal(data.recordKey);
         expect(record.body).to.equal(data.body);
       });
 
       it('Read data with empty body', async () => {
         data = {
-          key: Math.random().toString(36).substr(2, 10),
+          recordKey: Math.random().toString(36).substr(2, 10),
         };
 
         await storage.write(COUNTRY, data);
-        const { record } = await storage.read(COUNTRY, data.key);
+        const { record } = await storage.read(COUNTRY, data.recordKey);
 
-        expect(record.key).to.equal(data.key);
+        expect(record.recordKey).to.equal(data.recordKey);
         expect(record.body).to.equal(null);
       });
     });

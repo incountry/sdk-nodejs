@@ -1,7 +1,5 @@
 import * as t from 'io-ts';
-import { withValidate } from 'io-ts-types/lib/withValidate';
-import { either } from 'fp-ts/lib/Either';
-import { omitNulls } from '../utils';
+import { Codec } from './utils';
 
 type StorageRecordData = {
   recordKey: string;
@@ -32,7 +30,7 @@ type StorageRecordData = {
   rangeKey10?: t.Int | null;
 };
 
-const StorageRecordDataIO: t.Type<StorageRecordData> = t.intersection([
+const StorageRecordDataIO: Codec<StorageRecordData> = t.intersection([
   t.type({
     recordKey: t.string,
   }),
@@ -65,11 +63,7 @@ const StorageRecordDataIO: t.Type<StorageRecordData> = t.intersection([
   }),
 ], 'Record');
 
-const StorageRecordDataWithoutNullsIO = withValidate(StorageRecordDataIO, (u, c) => either.map(StorageRecordDataIO.validate(u, c), omitNulls));
-
 export {
   StorageRecordData,
-  StorageRecordDataWithoutNullsIO,
-  // StorageRecordDataWithoutNullsIO as StorageRecordDataIO,
   StorageRecordDataIO,
 };

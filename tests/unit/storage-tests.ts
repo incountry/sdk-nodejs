@@ -30,7 +30,7 @@ import { Int } from '../../src/validation/utils';
 import { ApiRecord } from '../../src/validation/api/api-record';
 import { FindResponse } from '../../src/validation/api/find-response';
 import { ApiRecordData } from '../../src/validation/api/api-record-data';
-import { filter2 } from '../../src/validation/utils2';
+import { filterFromStorageDataKeys } from '../../src/validation/api/find-filter';
 
 chai.use(chaiAsPromised);
 chai.use(sinonChai);
@@ -139,23 +139,22 @@ const TEST_RECORDS: StorageRecordData[] = [
 const PREPARED_PAYLOAD = [
   {
     enc: {
-      ...EMPTY_API_RECORD,
+      is_encrypted: true,
       record_key: '976143aa1fd12b9ad7449fd9d3a6d25347d71b890b49d4fb5c738e798238865f',
-      body: '2:IGJNCmV+RXZydaPxDjjhZ80/6aZ2vcEUZ2GuOzKgVSSdM6gYf5RPgFbyLqv+7ihz0CpYFQQWf9xkIyD/u3VYky8dWLq+NXcE2xYL4/U7LqUZmJPQzgcQCABYQ/8vOvUEcrfOAwzGjR6etTp1ki+79JmCEZFSNqcDP1GZXNLFdLoSUp1X2wVlH9ukhJ4jrE0cKDrpJllswRSOz0BhS8PA/73KNKwo718t7fPWpUm7RkyILwYTd/LpPvpXMS6JypEns8fviOpbCLQPpZNBe6zpwbFf3C0qElHlbCyPbDyUiMzVKOwWlYFpozFcRyWegjJ42T8v52+GuRY5',
-      key1: 'abcb2ad9e9e0b1787f262b014f517ad1136f868e7a015b1d5aa545b2f575640d',
-      key2: '1102ae53e55f0ce1d802cc8bb66397e7ea749fd8d05bd2d4d0f697cedaf138e3',
+      body: '2:Ot5xTx9W45QELWcswRbF/Yw8Dkz0VhRh9ZJDYNy6lWr4jdlOUlr5BOyud6AJVb2XRHdhvte6u9Z8K9n5/AGzLNot65iEgScXWbwJRJr1sJfzQ2qZjigYRhOyTf0Hj3nlZai2souYCEZ1pzGlKlNhdGPpUAxG+JgK7JNVTPBaX70UHqpkYYDjzJRKuBDxM2bmLQ3pxGSeKgW2snEFBzsW7xE+L3JlWxfC3IptJUTBmdRKLISe0XYshkvoqyBkNXOLxF9mrNxRVXCuQVRGyyd6IdhoEERWphlrGZKp6L4FANokymzTJf5/7Z5OP7gunK8nY3lQo/s/',
+      key1: 'daf5914655dc36b7f6f31a97a05205106fdbd725e264235e9e8b31c66489e7ed',
+      key2: 'abcb2ad9e9e0b1787f262b014f517ad1136f868e7a015b1d5aa545b2f575640d',
       profile_key: 'f5b5ae4914972ace070fa51b410789324abe063dbe2bb09801410d9ab54bf833',
       range_key1: 100500 as Int,
       version: 0 as Int,
     },
     dec: {
-      ...EMPTY_API_RECORD,
-      record_key: 'InCountryKey',
+      recordKey: 'InCountryKey',
       body: '{"data": "InCountryBody"}',
-      key1: 'InCountryKey2',
-      key2: 'InCountryKey3',
-      profile_key: 'InCountryPK',
-      range_key1: 100500 as Int,
+      key1: 'InCountryKey1',
+      key2: 'InCountryKey2',
+      profileKey: 'InCountryPK',
+      rangeKey1: 100500 as Int,
     },
   },
 ];
@@ -1180,7 +1179,7 @@ describe('Storage', () => {
       describe('encryption', () => {
         it('should hash filters regardless of enabled/disabled encryption', async () => {
           const filter = { recordKey: [uuid(), uuid()] };
-          const hashedFilter = filter2({ recordKey: filter.recordKey.map((el) => encStorage.createKeyHash(el)) });
+          const hashedFilter = filterFromStorageDataKeys({ recordKey: filter.recordKey.map((el) => encStorage.createKeyHash(el)) });
 
           const popAPI = nockEndpoint(POPAPI_HOST, 'find', COUNTRY)
             .times(2)
@@ -1249,7 +1248,7 @@ describe('Storage', () => {
               expect(record).to.include(resultRecord);
             });
 
-            expect(requestedFilter).to.deep.equal(filter2(hashedFilter));
+            expect(requestedFilter).to.deep.equal(filterFromStorageDataKeys(hashedFilter));
           });
         });
 
@@ -1616,22 +1615,20 @@ describe('Storage', () => {
       PREPARED_PAYLOAD.forEach(async (data, index) => {
         context(`with prepared payload [${index}]`, () => {
           it('should encrypt and match result', async () => {
-            // @ts-ignore
             const encrypted = await storage.encryptPayload(data.dec);
             expect(_.omit(encrypted, 'body')).to.deep.equal(_.omit(data.enc, 'body'));
           });
 
           it('should decrypt and match result', async () => {
-            // @ts-ignore
-            const decrypted = await storage.decryptPayload(data.enc);
-            expect(_.omit(decrypted, 'version')).to.deep.equal(data.dec);
+            const decrypted = await storage.decryptPayload({ ...EMPTY_API_RECORD, ...data.enc });
+            expect(_.omit(decrypted, 'version')).to.deep.include(data.dec);
           });
         });
 
         it('should throw error with wrong body format', async () => {
           const { message: emptyBody } = await storage.crypto.encrypt(JSON.stringify({}));
-          const wrongData = { ...data.enc, body: emptyBody };
-          // @ts-ignore
+          const wrongData = { ...EMPTY_API_RECORD, ...data.enc, body: emptyBody };
+
           await expect(storage.decryptPayload(wrongData)).to.be.rejectedWith('Invalid record body');
         });
       });
@@ -1657,13 +1654,14 @@ describe('Storage', () => {
             getSecrets: defaultGetSecretsCallback,
             logger: LOGGER_STUB,
           });
-          // @ts-ignore
+
           const encrypted1 = await storage1.encryptPayload(PREPARED_PAYLOAD[0].dec);
-          // @ts-ignore
           const encrypted2 = await storage2.encryptPayload(PREPARED_PAYLOAD[0].dec);
 
           KEYS_FOR_ENCRYPTION.forEach((key) => {
-            expect(encrypted1[key]).to.not.equal(encrypted2[key]);
+            if (encrypted1[key] !== undefined && encrypted2[key] !== undefined) {
+              expect(encrypted1[key]).to.not.equal(encrypted2[key]);
+            }
           });
         });
       });

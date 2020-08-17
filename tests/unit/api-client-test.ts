@@ -9,7 +9,7 @@ import { OAuthClient, getApiKeyAuthClient } from '../../src/auth-client';
 import { accessTokenResponse, nockDefaultAuth, nockDefaultAuthMultiple } from '../test-helpers/auth-nock';
 import { getNockedRequestHeaders, nockEndpoint } from '../test-helpers/popapi-nock';
 import { Int } from '../../src/validation/utils';
-import { apiRecordFromStorageRecord } from '../../src/validation/utils2';
+import { apiRecordFromStorageRecord } from '../test-helpers/utils';
 
 chai.use(chaiAsPromised);
 const { expect, assert } = chai;
@@ -26,7 +26,6 @@ const EMPTY_RECORD = {
   version: 0 as Int,
   createdAt: new Date(),
   updatedAt: new Date(),
-  isEncrypted: false,
   precommitBody: null,
   key1: null,
   key2: null,

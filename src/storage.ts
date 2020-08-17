@@ -14,7 +14,7 @@ import { StorageRecordDataArrayIO } from './validation/storage-record-data-array
 import { CountryCodeIO } from './validation/country-code';
 import { FindOptionsIO, FindOptions } from './validation/api/find-options';
 import {
-  FindFilterIO, FindFilter, FilterStringValue, FilterStringQueryIO, FilterStringValueIO,
+  FindFilterIO, FindFilter, FilterStringValue, FilterStringQueryIO, FilterStringValueIO, filterFromStorageDataKeys,
 } from './validation/api/find-filter';
 import { LimitIO } from './validation/limit';
 import { RecordKeyIO } from './validation/record-key';
@@ -29,8 +29,7 @@ import { normalizeErrors } from './normalize-errors-decorator';
 import { FindResponseMeta } from './validation/api/find-response';
 import { ApiRecord, ApiRecordBodyIO } from './validation/api/api-record';
 import { StorageRecordData, StorageRecordDataIO } from './validation/storage-record-data';
-import { ApiRecordData } from './validation/api/api-record-data';
-import { apiRecordDataFromStorageRecordData, filter2 } from './validation/utils2';
+import { ApiRecordData, apiRecordDataFromStorageRecordData } from './validation/api/api-record-data';
 
 const FIND_LIMIT = 100;
 
@@ -66,39 +65,6 @@ const KEYS_FOR_ENCRYPTION: KEY_FOR_ENCRYPTION[] = [
   'service_key2',
   'profile_key',
 ];
-
-// type KEY_FOR_ENCRYPTION2 =
-//   | 'recordKey'
-//   | 'key1'
-//   | 'key2'
-//   | 'key3'
-//   | 'key4'
-//   | 'key5'
-//   | 'key6'
-//   | 'key7'
-//   | 'key8'
-//   | 'key9'
-//   | 'key10'
-//   | 'serviceKey1'
-//   | 'serviceKey2'
-//   | 'profileKey';
-
-// const KEYS_FOR_ENCRYPTION2 = {
-//   'record_key': '',
-//   'key1',
-//   'key2',
-//   'key3',
-//   'key4',
-//   'key5',
-//   'key6',
-//   'key7',
-//   'key8',
-//   'key9',
-//   'key10',
-//   'service_key1',
-//   'service_key2',
-//   'profile_key',
-// };
 
 type BodyForEncryption = {
   meta: Record<string, unknown>;
@@ -258,9 +224,8 @@ class Storage {
   @validate(CountryCodeIO, withDefault(FindFilterIO, {}), withDefault(FindOptionsIO, {}))
   @normalizeErrors()
   async find(countryCode: string, filter: FindFilter = {}, options: FindOptions = {}, requestOptions?: RequestOptions): Promise<FindResult> {
-
     const data = {
-      filter: this.hashFilterKeys(filter2(filter), KEYS_FOR_ENCRYPTION),
+      filter: this.hashFilterKeys(filterFromStorageDataKeys(filter), KEYS_FOR_ENCRYPTION),
       options: { limit: FIND_LIMIT, offset: 0, ...options },
     };
 

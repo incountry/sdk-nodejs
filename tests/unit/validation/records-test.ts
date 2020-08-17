@@ -4,17 +4,16 @@ import { isValid } from '../../../src/validation/utils';
 
 const { expect } = chai;
 
-
 const VALID = [
-  [{ record_key: '' }],
-  [{ record_key: '', version: 0 }],
-  [{ record_key: '', body: '', version: 0 }],
-  [{ record_key: '', body: null, version: 0 }],
+  [{ recordKey: '1' }],
+  [{ recordKey: '1', version: 0 }],
+  [{ recordKey: '2', body: '', version: 0 }],
+  [{ recordKey: '2', body: null, version: 0 }],
   [{
-    record_key: '', body: null, version: 0, precommit_body: '',
+    recordKey: '2', body: null, version: 0, precommitBody: '',
   }],
   [{
-    record_key: '', body: null, version: 0, precommit_body: '', service_key1: '',
+    recordKey: '2', body: null, version: 0, precommitBody: null,
   }],
 ];
 
@@ -30,6 +29,7 @@ const INVALID = [
   [{}],
   [{ key: 1 }],
   [{ key: '' }],
+  [{ record_key: '' }],
   [{ record_key: 1 }],
   [{ record_key: '', body: 1 }],
 ];

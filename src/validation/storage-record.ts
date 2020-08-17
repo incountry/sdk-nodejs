@@ -6,7 +6,6 @@ type StorageRecord =
   Required<StorageRecordData>
   & {
     version: t.Int;
-    isEncrypted: boolean;
     createdAt: Date;
     updatedAt: Date;
   }
@@ -16,7 +15,6 @@ function fromApiRecord(r: ApiRecord): StorageRecord {
     recordKey: r.record_key,
     body: r.body,
     precommitBody: r.precommit_body,
-    isEncrypted: r.is_encrypted,
     version: r.version,
     createdAt: r.created_at,
     updatedAt: r.updated_at,
