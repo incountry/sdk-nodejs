@@ -52,6 +52,13 @@ const storage = await createStorage({
    * use `countriesEndpoint` option to specify the endpoint responsible for fetching supported countries list.
    */
   countriesEndpoint: '',
+
+  /**
+   * {{ timeout: NonNegativeInt }} Optional
+   */
+  httpOptions: {
+    timeout: 1000,         // {number} Optional. Timeout in milliseconds. Should be NonNegativeInt
+  },
 });
 ```
 

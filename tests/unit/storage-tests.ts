@@ -527,6 +527,18 @@ describe('Storage', () => {
         });
       });
 
+
+      describe('httpOptions', () => {
+        it('should throw an error if provided httpOptions are not correct object', async () => {
+          const expectStorageConstructorThrowsError = async (wrongOptions: any) => expect(createStorage({ encrypt: false, httpOptions: wrongOptions }))
+            .to.be.rejectedWith(StorageError, 'httpOptions');
+
+          const wrongOptions = [42, () => null, [], null, { timeout: '100' }, { timeout: -1 }];
+          // @ts-ignore
+          await Promise.all(wrongOptions.map((item) => expectStorageConstructorThrowsError(item)));
+        });
+      });
+
       describe('countriesEndpoint', () => {
         it('should throw an error if provided countriesEndpoint is not string', async () => {
           // @ts-ignore

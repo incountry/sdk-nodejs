@@ -34,6 +34,7 @@ type EndpointData = {
 
 const DEFAULT_ENDPOINT_COUNTRY = 'us';
 const DEFAULT_ENDPOINT_SUFFIX = '-mt-01.api.incountry.io';
+const DEFAULT_HTTP_TIMEOUT = 30 * 1000;
 
 const PoPErrorArray = t.array(t.partial({
   title: t.string,
@@ -68,6 +69,7 @@ class ApiClient {
     readonly loggerFn: (level: LogLevel, message: string, meta?: {}) => void,
     readonly countriesProviderFn: () => Promise<Country[]>,
     readonly endpointMask?: string,
+    readonly httpTimeout = DEFAULT_HTTP_TIMEOUT,
   ) {
   }
 
@@ -161,6 +163,7 @@ class ApiClient {
         url,
         headers,
         data: requestOptions.data,
+        timeout: this.httpTimeout,
       });
     } catch (err) {
       if (get(err, 'response.status') === 401 && retry) {
@@ -255,4 +258,5 @@ class ApiClient {
 export {
   RequestOptions,
   ApiClient,
+  DEFAULT_HTTP_TIMEOUT,
 };
