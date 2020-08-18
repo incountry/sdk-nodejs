@@ -44,8 +44,7 @@ const PORTAL_BACKEND_COUNTRIES_LIST_PATH = '/countries';
 const REQUEST_TIMEOUT_ERROR = { code: 'ETIMEDOUT' };
 const sdkVersionRegExp = /^SDK-Node\.js\/\d+\.\d+\.\d+/;
 
-const EMPTY_API_RECORD: ApiRecord = {
-  record_key: '',
+const EMPTY_API_RECORD = {
   body: '',
   version: 0 as Int,
   created_at: new Date(),
@@ -133,10 +132,40 @@ const TEST_RECORDS: StorageRecordData[] = [
     serviceKey1: 'service_key1',
     rangeKey1: 1 as Int,
   },
+  {
+    recordKey: uuid(),
+    body: 'test',
+    key1: 'key1',
+    key2: 'key2',
+    key3: 'key3',
+    profileKey: 'profile_key',
+    serviceKey1: 'service_key1',
+    rangeKey1: 1 as Int,
+    precommitBody: 'test',
+  },
 ];
 
 
 const PREPARED_PAYLOAD = [
+  {
+    enc: {
+      record_key: '976143aa1fd12b9ad7449fd9d3a6d25347d71b890b49d4fb5c738e798238865f',
+      body: '2:IGJNCmV+RXZydaPxDjjhZ80/6aZ2vcEUZ2GuOzKgVSSdM6gYf5RPgFbyLqv+7ihz0CpYFQQWf9xkIyD/u3VYky8dWLq+NXcE2xYL4/U7LqUZmJPQzgcQCABYQ/8vOvUEcrfOAwzGjR6etTp1ki+79JmCEZFSNqcDP1GZXNLFdLoSUp1X2wVlH9ukhJ4jrE0cKDrpJllswRSOz0BhS8PA/73KNKwo718t7fPWpUm7RkyILwYTd/LpPvpXMS6JypEns8fviOpbCLQPpZNBe6zpwbFf3C0qElHlbCyPbDyUiMzVKOwWlYFpozFcRyWegjJ42T8v52+GuRY5',
+      key2: 'abcb2ad9e9e0b1787f262b014f517ad1136f868e7a015b1d5aa545b2f575640d',
+      key3: '1102ae53e55f0ce1d802cc8bb66397e7ea749fd8d05bd2d4d0f697cedaf138e3',
+      profile_key: 'f5b5ae4914972ace070fa51b410789324abe063dbe2bb09801410d9ab54bf833',
+      range_key1: 100500 as Int,
+      version: 0 as Int,
+    },
+    dec: {
+      recordKey: 'InCountryKey',
+      key2: 'InCountryKey2',
+      key3: 'InCountryKey3',
+      profileKey: 'InCountryPK',
+      body: '{"data": "InCountryBody"}',
+      rangeKey1: 100500 as Int,
+    },
+  },
   {
     enc: {
       is_encrypted: true,
@@ -708,12 +737,32 @@ describe('Storage', () => {
                   const encrypted = await storage.encryptPayload(testCase);
 
                   const [bodyObj, result] = await Promise.all<any, WriteResult>([getNockedRequestBodyObject(popAPI), storage.write(COUNTRY, testCase)]);
-                  expect(_.omit(bodyObj, ['body'])).to.deep.equal(_.omit(encrypted, ['body']));
+                  expect(_.omit(bodyObj, ['body', 'precommit_body'])).to.deep.equal(_.omit(encrypted, ['body', 'precommit_body']));
                   expect(bodyObj.body).to.match(opt.bodyRegExp);
                   expect(result.record).to.deep.equal(testCase);
                 });
+
+                it('should set "is_encrypted"', async () => {
+                  const storage = opt.encrypted ? encStorage : noEncStorage;
+
+                  const [bodyObj] = await Promise.all<any, WriteResult>([getNockedRequestBodyObject(popAPI), storage.write(COUNTRY, testCase)]);
+                  expect(bodyObj.is_encrypted).to.equal(opt.encrypted);
+                });
               });
             });
+          });
+        });
+
+        describe('when enabled', () => {
+          it('should encrypt precommit_body', async () => {
+            const data = {
+              recordKey: '123',
+              precommitBody: 'test',
+            };
+
+            const [bodyObj] = await Promise.all<any, WriteResult>([getNockedRequestBodyObject(popAPI), encStorage.write(COUNTRY, data)]);
+            expect(bodyObj.precommit_body).to.be.a('string');
+            expect(bodyObj.precommit_body).to.not.equal(data.precommitBody);
           });
         });
       });
@@ -1272,12 +1321,11 @@ describe('Storage', () => {
             country: 'us',
             record_key: 'somekey',
             body: '2:unsupported data',
-            version: 0,
+            version: 0 as Int,
           };
           const data = [...apiRecords, unsupportedData];
 
           nockEndpoint(POPAPI_HOST, 'find', COUNTRY)
-            // @ts-ignore
             .reply(200, getDefaultFindResponse(data.length, data));
 
           const result = await encStorage.find('us', {});
@@ -1301,6 +1349,7 @@ describe('Storage', () => {
           const apiRecords = nonEncryptedData.map((record) => ({ ...EMPTY_API_RECORD, ...record }));
           const unsupportedData = {
             ...EMPTY_API_RECORD,
+            record_key: 'unsupported',
             body: '2:unsupported data',
           };
 
@@ -1536,6 +1585,14 @@ describe('Storage', () => {
               const decryptedRecords = await Promise.all(bodyObj.records.map((encRecord: any) => storage.decryptPayload({ ...EMPTY_API_RECORD, ...encRecord })));
               decryptedRecords.forEach((record, index) => expect(record).to.own.include(TEST_RECORDS[index]));
             });
+
+            it('should set "is_encrypted"', async () => {
+              const storage = opt.encrypted ? encStorage : noEncStorage;
+              const [bodyObj] = await Promise.all<any>([getNockedRequestBodyObject(popAPI), storage.batchWrite(COUNTRY, TEST_RECORDS)]);
+              bodyObj.records.forEach((r: any) => {
+                expect(r.is_encrypted).to.equal(opt.encrypted);
+              });
+            });
           });
         });
       });
@@ -1616,12 +1673,12 @@ describe('Storage', () => {
         context(`with prepared payload [${index}]`, () => {
           it('should encrypt and match result', async () => {
             const encrypted = await storage.encryptPayload(data.dec);
-            expect(_.omit(encrypted, 'body')).to.deep.equal(_.omit(data.enc, 'body'));
+            expect(_.omit(encrypted, ['body', 'precommit_body'])).to.deep.include(_.omit(data.enc, ['body', 'precommitBody']));
           });
 
           it('should decrypt and match result', async () => {
             const decrypted = await storage.decryptPayload({ ...EMPTY_API_RECORD, ...data.enc });
-            expect(_.omit(decrypted, 'version')).to.deep.include(data.dec);
+            expect(decrypted).to.deep.include(data.dec);
           });
         });
 
@@ -1655,8 +1712,8 @@ describe('Storage', () => {
             logger: LOGGER_STUB,
           });
 
-          const encrypted1 = await storage1.encryptPayload(PREPARED_PAYLOAD[0].dec);
-          const encrypted2 = await storage2.encryptPayload(PREPARED_PAYLOAD[0].dec);
+          const encrypted1 = await storage1.encryptPayload(PREPARED_PAYLOAD[1].dec as StorageRecordData);
+          const encrypted2 = await storage2.encryptPayload(PREPARED_PAYLOAD[1].dec as StorageRecordData);
 
           KEYS_FOR_ENCRYPTION.forEach((key) => {
             if (encrypted1[key] !== undefined && encrypted2[key] !== undefined) {

@@ -407,8 +407,8 @@ class Storage {
       }
     });
 
-    // For backward compatibility with older records
-    if (record.record_key === undefined && typeof meta.key === 'string') {
+    // For older records
+    if (typeof meta.key === 'string') {
       record.record_key = meta.key;
     }
 

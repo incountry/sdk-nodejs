@@ -41,7 +41,7 @@ const FilterNumberQueryIO: t.Type<FilterNumberQuery> = t.union([
 type FindFilter = Record<string, FilterStringQuery | FilterNumberQuery>;
 const FindFilterIO: t.Type<FindFilter> = t.record(t.string, t.union([FilterStringQueryIO, FilterNumberQueryIO]), 'FindFilter');
 
-function filterFromStorageDataKeys(filter: any): any {
+function filterFromStorageDataKeys(filter: FindFilter): FindFilter {
   return omitUndefined({
     record_key: filter.recordKey,
     key1: filter.key1,
