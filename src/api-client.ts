@@ -153,8 +153,6 @@ class ApiClient {
     };
 
     this.loggerFn('info', `Sending ${method} ${url}`, { ...meta, op_result: 'in_progress' });
-    // console.log('sending data>', requestOptions.data);
-
 
     let response;
     try {
@@ -188,8 +186,6 @@ class ApiClient {
       op_result: 'success',
       responseHeaders: response.config.headers,
     });
-
-    // console.log('resp <<<<', response.data);
 
     const responseData = codec.decode(response.data);
     if (isInvalid(responseData)) {

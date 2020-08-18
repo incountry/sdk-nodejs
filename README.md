@@ -233,10 +233,10 @@ Below is the example of how you may use `write` method:
 
 ```javascript
 const record = {
-  key: '<key>',
+  recordKey: '<key>',
   body: '<body>',
-  profile_key: '<profile_key>',
-  range_key1: 0,
+  profileKey: '<profile_key>',
+  rangeKey1: 0,
   key2: '<key2>',
   key3: '<key3>'
 }
@@ -251,7 +251,7 @@ Here is how data is transformed and stored in InCountry database:
 
 ```javascript
 {
-  key,          // hashed
+  recordKey,          // hashed
   body,         // encrypted
   profile_key,  // hashed
   range_key1,    // plain
