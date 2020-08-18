@@ -33,7 +33,7 @@ import { ApiRecordData, apiRecordDataFromStorageRecordData } from './validation/
 
 const FIND_LIMIT = 100;
 
-type KEY_FOR_ENCRYPTION =
+type KEY_TO_HASH =
   | 'record_key'
   | 'key1'
   | 'key2'
@@ -49,7 +49,7 @@ type KEY_FOR_ENCRYPTION =
   | 'service_key2'
   | 'profile_key';
 
-const KEYS_FOR_ENCRYPTION: KEY_FOR_ENCRYPTION[] = [
+const KEYS_TO_HASH: KEY_TO_HASH[] = [
   'record_key',
   'key1',
   'key2',
@@ -226,7 +226,7 @@ class Storage {
   @normalizeErrors()
   async find(countryCode: string, filter: FindFilter = {}, options: FindOptions = {}, requestOptions?: RequestOptions): Promise<FindResult> {
     const data = {
-      filter: this.hashFilterKeys(filterFromStorageDataKeys(filter), KEYS_FOR_ENCRYPTION),
+      filter: this.hashFilterKeys(filterFromStorageDataKeys(filter), KEYS_TO_HASH),
       options: { limit: FIND_LIMIT, offset: 0, ...options },
     };
 
@@ -352,7 +352,7 @@ class Storage {
       payload: null,
     };
 
-    KEYS_FOR_ENCRYPTION.forEach((field) => {
+    KEYS_TO_HASH.forEach((field) => {
       const value = recordData[field];
       if (value !== undefined) {
         body.meta[field] = value;
@@ -401,7 +401,7 @@ class Storage {
     }
     const { payload, meta } = bodyObj.right;
 
-    KEYS_FOR_ENCRYPTION.forEach((field) => {
+    KEYS_TO_HASH.forEach((field) => {
       const fieldValue = meta[field];
       if (typeof fieldValue === 'string') {
         record[field] = fieldValue;
@@ -438,7 +438,7 @@ export {
   ReadResult,
   DeleteResult,
   Storage,
-  KEY_FOR_ENCRYPTION,
-  KEYS_FOR_ENCRYPTION,
+  KEY_TO_HASH,
+  KEYS_TO_HASH,
   createStorage,
 };

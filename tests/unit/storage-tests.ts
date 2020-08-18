@@ -7,7 +7,7 @@ import { v4 as uuid } from 'uuid';
 import { identity } from 'fp-ts/lib/function';
 import * as _ from 'lodash';
 import {
-  createStorage, Storage, WriteResult, KEYS_FOR_ENCRYPTION,
+  createStorage, Storage, WriteResult, KEYS_TO_HASH,
 } from '../../src/storage';
 import { StorageServerError, StorageClientError, StorageError } from '../../src/errors';
 import { CountriesCache } from '../../src/countries-cache';
@@ -1727,7 +1727,7 @@ describe('Storage', () => {
           const encrypted1 = await storage1.encryptPayload(PREPARED_PAYLOAD[1].dec as StorageRecordData);
           const encrypted2 = await storage2.encryptPayload(PREPARED_PAYLOAD[1].dec as StorageRecordData);
 
-          KEYS_FOR_ENCRYPTION.forEach((key) => {
+          KEYS_TO_HASH.forEach((key) => {
             if (encrypted1[key] !== undefined && encrypted2[key] !== undefined) {
               expect(encrypted1[key]).to.not.equal(encrypted2[key]);
             }
