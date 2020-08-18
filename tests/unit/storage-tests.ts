@@ -168,26 +168,6 @@ const PREPARED_PAYLOAD = [
   },
   {
     enc: {
-      is_encrypted: true,
-      record_key: '976143aa1fd12b9ad7449fd9d3a6d25347d71b890b49d4fb5c738e798238865f',
-      body: '2:Ot5xTx9W45QELWcswRbF/Yw8Dkz0VhRh9ZJDYNy6lWr4jdlOUlr5BOyud6AJVb2XRHdhvte6u9Z8K9n5/AGzLNot65iEgScXWbwJRJr1sJfzQ2qZjigYRhOyTf0Hj3nlZai2souYCEZ1pzGlKlNhdGPpUAxG+JgK7JNVTPBaX70UHqpkYYDjzJRKuBDxM2bmLQ3pxGSeKgW2snEFBzsW7xE+L3JlWxfC3IptJUTBmdRKLISe0XYshkvoqyBkNXOLxF9mrNxRVXCuQVRGyyd6IdhoEERWphlrGZKp6L4FANokymzTJf5/7Z5OP7gunK8nY3lQo/s/',
-      key1: 'daf5914655dc36b7f6f31a97a05205106fdbd725e264235e9e8b31c66489e7ed',
-      key2: 'abcb2ad9e9e0b1787f262b014f517ad1136f868e7a015b1d5aa545b2f575640d',
-      profile_key: 'f5b5ae4914972ace070fa51b410789324abe063dbe2bb09801410d9ab54bf833',
-      range_key1: 100500 as Int,
-      version: 0 as Int,
-    },
-    dec: {
-      recordKey: 'InCountryKey',
-      body: '{"data": "InCountryBody"}',
-      key1: 'InCountryKey1',
-      key2: 'InCountryKey2',
-      profileKey: 'InCountryPK',
-      rangeKey1: 100500 as Int,
-    },
-  },
-  {
-    enc: {
       record_key: '976143aa1fd12b9ad7449fd9d3a6d25347d71b890b49d4fb5c738e798238865f',
       profile_key: 'f5b5ae4914972ace070fa51b410789324abe063dbe2bb09801410d9ab54bf833',
       range_key1: 100500 as Int,
