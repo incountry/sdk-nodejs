@@ -48,21 +48,38 @@ describe('Read data from Storage', () => {
         data = {
           recordKey: Math.random().toString(36).substr(2, 10),
           body: JSON.stringify({ name: 'PersonName' }),
+          precommitBody: JSON.stringify({ name: 'aaa' }),
           profileKey: 'profileKey',
           rangeKey1: 42341 as Int,
+          rangeKey2: 4241 as Int,
+          rangeKey3: 441 as Int,
+          rangeKey4: 41 as Int,
+          rangeKey5: 1 as Int,
+          rangeKey6: 41 as Int,
+          rangeKey7: 441 as Int,
+          rangeKey8: 4241 as Int,
+          rangeKey9: 441 as Int,
+          rangeKey10: 41 as Int,
+          key1: 'optional key value 1',
           key2: 'optional key value 2',
           key3: 'optional key value 3',
+          key4: 'optional key value 4',
+          key5: 'optional key value 5',
+          key6: 'optional key value 6',
+          key7: 'optional key value 7',
+          key8: 'optional key value 8',
+          key9: 'optional key value 9',
+          key10: 'optional key value 10',
+          serviceKey1: 'optional service key value 1',
+          serviceKey2: 'optional service key value 2',
         };
 
         await storage.write(COUNTRY, data);
         const { record } = await storage.read(COUNTRY, data.recordKey);
 
-        expect(record.body).to.equal(data.body);
-        expect(record.recordKey).to.equal(data.recordKey);
-        expect(record.key2).to.equal(data.key2);
-        expect(record.key3).to.equal(data.key3);
-        expect(record.profileKey).to.equal(data.profileKey);
-        expect(record.rangeKey1).to.equal(data.rangeKey1);
+        expect(record).to.deep.include(data);
+        expect(record.createdAt).to.be.a('date');
+        expect(record.updatedAt).to.be.a('date');
       });
 
       it('Read data with null body', async () => {
