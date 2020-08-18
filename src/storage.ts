@@ -180,7 +180,7 @@ class Storage {
       (level, message, meta) => this.logger.write(level, message, meta),
       () => this.countriesCache.getCountries(),
       options.endpointMask,
-      options.httpOptions && options.httpOptions.timeout,
+      options.httpOptions ? options.httpOptions.timeout : undefined,
     );
     this.normalizeKeys = Boolean(options.normalizeKeys);
   }
