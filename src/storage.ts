@@ -362,12 +362,12 @@ class Storage {
       }
     });
 
-    if (typeof storageRecordData.body === 'string') {
-      body.payload = storageRecordData.body;
+    if (typeof recordData.body === 'string') {
+      body.payload = recordData.body;
     }
 
-    if (typeof storageRecordData.precommitBody === 'string') {
-      const { message: encryptedPrecommitBody } = await this.crypto.encrypt(storageRecordData.precommitBody);
+    if (typeof recordData.precommit_body === 'string') {
+      const { message: encryptedPrecommitBody } = await this.crypto.encrypt(recordData.precommit_body);
       recordData.precommit_body = encryptedPrecommitBody;
     }
 

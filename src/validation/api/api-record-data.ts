@@ -2,11 +2,16 @@ import { ApiRecord } from './api-record';
 import { StorageRecordData } from '../storage-record-data';
 import { omitUndefined } from '../../utils';
 
-type ApiRecordData = { record_key: string } & Partial<Omit<ApiRecord, 'record_key'>>
+type ApiRecordData = {
+  record_key: string;
+  body?: string | null;
+} & Partial<Omit<ApiRecord, 'record_key' | 'body'>>
 
 function apiRecordDataFromStorageRecordData<A extends StorageRecordData>(r: A): ApiRecordData {
   return omitUndefined({
     record_key: r.recordKey,
+    body: r.body,
+    precommit_body: r.precommitBody,
     profile_key: r.profileKey,
     range_key1: r.rangeKey1,
     range_key2: r.rangeKey2,

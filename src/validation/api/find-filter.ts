@@ -67,6 +67,7 @@ function filterFromStorageDataKeys(filter: FindFilter): FindFilter {
     range_key8: filter.rangeKey8,
     range_key9: filter.rangeKey9,
     range_key10: filter.rangeKey10,
+    version: filter.version,
   });
 }
 

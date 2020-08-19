@@ -77,7 +77,7 @@ const EMPTY_API_RECORD = {
   range_key10: null,
 };
 
-const TEST_RECORDS: StorageRecordData[] = [
+const TEST_RECORDS = [
   {
     recordKey: uuid(),
   },
@@ -1230,11 +1230,6 @@ describe('Storage', () => {
         });
 
         describe('filter validation', () => {
-          it('should throw an error when filter is undefined', async () => {
-            await expect(encStorage.find(COUNTRY, undefined, { }))
-              .to.be.rejectedWith(StorageError);
-          });
-
           it('should throw an error when filter has wrong format', async () => Promise.all(
             [
               false,
@@ -1331,7 +1326,23 @@ describe('Storage', () => {
           assert.equal(popAPI.isDone(), true, 'nock is done');
         });
 
-        const keys: (keyof StorageRecordData)[] = [
+        type KEY =
+          | 'recordKey'
+          | 'key1'
+          | 'key2'
+          | 'key3'
+          | 'key4'
+          | 'key5'
+          | 'key6'
+          | 'key7'
+          | 'key8'
+          | 'key9'
+          | 'key10'
+          | 'serviceKey1'
+          | 'serviceKey2'
+          | 'profileKey';
+
+        const keys: KEY[] = [
           'recordKey',
           'key1',
           'key2',
@@ -1356,7 +1367,12 @@ describe('Storage', () => {
 
             const resultRecords = TEST_RECORDS.filter((rec) => rec[key] === filter[key]);
             const encryptedRecords = await Promise.all(resultRecords.map((record) => encStorage.encryptPayload(record)));
-            const apiRecords = encryptedRecords.map((record) => ({ ...EMPTY_API_RECORD, ...record, is_encrypted: true }));
+            const apiRecords = encryptedRecords.map((record) => ({
+              ...EMPTY_API_RECORD,
+              ...record,
+              body: record.body || '',
+              is_encrypted: true,
+            }));
 
             nockEndpoint(POPAPI_HOST, 'find', COUNTRY)
               .reply(200, (_uri, requestBody: any) => {
@@ -1378,7 +1394,11 @@ describe('Storage', () => {
 
         it('should decode not encrypted records correctly', async () => {
           const storedData = await Promise.all(TEST_RECORDS.map((record) => noEncStorage.encryptPayload(record)));
-          const apiRecords = storedData.map((record) => ({ ...EMPTY_API_RECORD, ...record }));
+          const apiRecords = storedData.map((record) => ({
+            ...EMPTY_API_RECORD,
+            ...record,
+            body: record.body || '',
+          }));
 
           nockEndpoint(POPAPI_HOST, 'find', COUNTRY)
             .reply(200, getDefaultFindResponse(apiRecords));
@@ -1390,7 +1410,12 @@ describe('Storage', () => {
 
         it('should not throw if some records cannot be decrypted', async () => {
           const encryptedData = await Promise.all(TEST_RECORDS.map((record) => encStorage.encryptPayload(record)));
-          const apiRecords = encryptedData.map((record) => ({ ...EMPTY_API_RECORD, ...record }));
+          const apiRecords = encryptedData.map((record) => ({
+            ...EMPTY_API_RECORD,
+            ...record,
+            body: record.body || '',
+          }));
+
           const unsupportedData = {
             ...EMPTY_API_RECORD,
             country: 'us',
@@ -1421,7 +1446,12 @@ describe('Storage', () => {
           const nonEncryptedData = await Promise.all(
             TEST_RECORDS.map((record) => noEncStorage.encryptPayload(record)),
           );
-          const apiRecords = nonEncryptedData.map((record) => ({ ...EMPTY_API_RECORD, ...record }));
+          const apiRecords = nonEncryptedData.map((record) => ({
+            ...EMPTY_API_RECORD,
+            ...record,
+            body: record.body || '',
+          }));
+
           const unsupportedData = {
             ...EMPTY_API_RECORD,
             record_key: 'unsupported',
@@ -1525,7 +1555,11 @@ describe('Storage', () => {
         const filter = { key10: TEST_RECORDS[4].key10 as string };
         const resultRecords = TEST_RECORDS.filter((rec) => rec.key10 === filter.key10);
         const encryptedRecords = await Promise.all(resultRecords.map((record) => encStorage.encryptPayload(record)));
-        const apiRecords = encryptedRecords.map((record) => ({ ...EMPTY_API_RECORD, ...record }));
+        const apiRecords = encryptedRecords.map((record) => ({
+          ...EMPTY_API_RECORD,
+          ...record,
+          body: record.body || '',
+        }));
 
         nockEndpoint(POPAPI_HOST, 'find', COUNTRY)
           .reply(200, getDefaultFindResponse(apiRecords));
@@ -1545,7 +1579,11 @@ describe('Storage', () => {
       describe('when encryption enabled', () => {
         it('should migrate data from old secret to new', async () => {
           const encryptedRecords = await Promise.all(TEST_RECORDS.map((record) => encStorage.encryptPayload(record)));
-          const apiRecords = encryptedRecords.map((record) => ({ ...EMPTY_API_RECORD, ...record }));
+          const apiRecords = encryptedRecords.map((record) => ({
+            ...EMPTY_API_RECORD,
+            ...record,
+            body: record.body || '',
+          }));
           const migrateResult = { meta: { migrated: apiRecords.length, totalLeft: 0 } };
 
           const oldSecret = { secret: SECRET_KEY, version: 0 };
@@ -1560,7 +1598,14 @@ describe('Storage', () => {
             .reply(200, getDefaultFindResponse(apiRecords));
           const popAPIBatchWrite = nockEndpoint(POPAPI_HOST, 'batchWrite', COUNTRY).reply(200, 'OK');
 
-          const result = await encStorage2.migrate(COUNTRY, apiRecords.length);
+          const [findBodyObj, , result] = await Promise.all<any>([
+            getNockedRequestBodyObject(popAPIFind),
+            getNockedRequestBodyObject(popAPIBatchWrite),
+            encStorage2.migrate(COUNTRY, apiRecords.length),
+          ]);
+
+          expect(findBodyObj.filter.version).to.deep.equal({ $not: newSecret.version });
+
           expect(result).to.deep.equal(migrateResult);
           assert.equal(popAPIFind.isDone(), true, 'find() called');
           assert.equal(popAPIBatchWrite.isDone(), true, 'batchWrite() called');
@@ -1569,7 +1614,11 @@ describe('Storage', () => {
 
       it('should throw error if cannot decrypt any record', async () => {
         const encryptedRecords = await Promise.all(TEST_RECORDS.map((record) => encStorage.encryptPayload(record)));
-        const apiRecords = encryptedRecords.map((record) => ({ ...EMPTY_API_RECORD, ...record }));
+        const apiRecords = encryptedRecords.map((record) => ({
+          ...EMPTY_API_RECORD,
+          ...record,
+          body: record.body || '',
+        }));
 
         const oldSecret = { secret: SECRET_KEY, version: 1 };
         const newSecret = { secret: 'keykey', version: 2 };
