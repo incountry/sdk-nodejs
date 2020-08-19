@@ -1,6 +1,6 @@
 import * as t from 'io-ts';
-import { NonNegativeInt } from './utils';
-import { LimitIO } from './limit';
+import { NonNegativeInt } from '../utils';
+import { LimitIO } from '../limit';
 
 type FindOptions = {
   limit?: number;

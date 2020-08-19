@@ -7,15 +7,15 @@ chai.use(chaiAsPromised);
 const { expect } = chai;
 
 let storage: Storage;
-let data: { key: string; body: string };
+let data: { recordKey: string; body: string };
 
 describe('Custom encryption', () => {
   beforeEach(async () => {
   });
 
   afterEach(async () => {
-    if (data && data.key) {
-      await storage.delete(COUNTRY, data.key);
+    if (data && data.recordKey) {
+      await storage.delete(COUNTRY, data.recordKey);
     }
   });
 
@@ -41,14 +41,14 @@ describe('Custom encryption', () => {
     storage = await createStorage(true, false, () => secrets, customEncConfigs);
 
     data = {
-      key: Math.random().toString(36).substr(2, 10),
+      recordKey: Math.random().toString(36).substr(2, 10),
       body: JSON.stringify({ name: 'PersonName' }),
     };
 
     await storage.write(COUNTRY, data);
-    const { record } = await storage.read(COUNTRY, data.key);
+    const { record } = await storage.read(COUNTRY, data.recordKey);
 
-    expect(record.key).to.equal(data.key);
+    expect(record.recordKey).to.equal(data.recordKey);
     expect(record.body).to.equal(data.body);
   });
 });

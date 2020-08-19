@@ -7,11 +7,22 @@ function isJSON(str: unknown): str is string {
   }
 }
 
-type NoNullField<T> = { [P in keyof T]: NonNullable<T[P]> };
+type NonNull<T> = T extends null ? never : T;
+
+type NoNullField<T> = { [P in keyof T]: NonNull<T[P]> };
 
 const omitNulls = <R extends Record<string, unknown>>(r: R): NoNullField<R> => Object.keys(r)
   .filter((k) => r[k] !== null)
   .reduce((acc, k) => Object.assign(acc, { [k]: r[k] }), {} as any);
+
+type NonUndefined<T> = T extends undefined ? never : T;
+
+type NoUndefinedField<T> = { [P in keyof T]: NonUndefined<T[P]> };
+
+const omitUndefined = <R extends Record<string, unknown>>(r: R): NoUndefinedField<R> => Object.keys(r)
+  .filter((k) => r[k] !== undefined)
+  .reduce((acc, k) => Object.assign(acc, { [k]: r[k] }), {} as any);
+
 
 type Override<T, U> = Omit<T, keyof U> & U;
 
@@ -34,6 +45,7 @@ export {
   Reflected,
   isJSON,
   omitNulls,
+  omitUndefined,
   isRejected,
   reflect,
 };

@@ -4,12 +4,17 @@ import { isValid } from '../../../src/validation/utils';
 
 const { expect } = chai;
 
-
 const VALID = [
-  [{ key: '' }],
-  [{ key: '', version: 0 }],
-  [{ key: '', body: '', version: 0 }],
-  [{ key: '', body: null, version: 0 }],
+  [{ recordKey: '1' }],
+  [{ recordKey: '1', version: 0 }],
+  [{ recordKey: '2', body: '', version: 0 }],
+  [{ recordKey: '2', body: null, version: 0 }],
+  [{
+    recordKey: '2', body: null, version: 0, precommitBody: '',
+  }],
+  [{
+    recordKey: '2', body: null, version: 0, precommitBody: null,
+  }],
 ];
 
 const INVALID = [
@@ -23,7 +28,10 @@ const INVALID = [
   [],
   [{}],
   [{ key: 1 }],
-  [{ key: '', body: 1 }],
+  [{ key: '' }],
+  [{ record_key: '' }],
+  [{ record_key: 1 }],
+  [{ record_key: '', body: 1 }],
 ];
 
 describe('Records Array validation', () => {

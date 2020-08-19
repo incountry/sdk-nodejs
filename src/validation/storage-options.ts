@@ -2,6 +2,7 @@ import * as t from 'io-ts';
 import { Override } from '../utils';
 import { CountriesCache } from '../countries-cache';
 import { Logger, LoggerIO } from './logger';
+import { NonNegativeInt, Codec } from './utils';
 
 const OAUTH_ENDPOINTS_ERROR_MESSAGE = 'authEndpoints should be an object containing "default" key';
 const OAUTH_ENDPOINTS_VALUES_ERROR_MESSAGE = 'authEndpoints values should be a string';
@@ -66,6 +67,9 @@ type StorageOptions = {
   oauth?: OAuthOptions;
   endpointMask?: string;
   countriesEndpoint?: string;
+  httpOptions?: {
+    timeout?: NonNegativeInt;
+  };
 };
 
 type StorageOptionsValidated = Override<StorageOptions, {
@@ -73,7 +77,7 @@ type StorageOptionsValidated = Override<StorageOptions, {
   countriesCache?: {};
 }>;
 
-const StorageOptionsIO: t.Type<StorageOptionsValidated> = t.partial({
+const StorageOptionsIO: Codec<StorageOptionsValidated> = t.partial({
   endpoint: t.string,
   apiKey: t.string,
   environmentId: t.string,
@@ -85,6 +89,9 @@ const StorageOptionsIO: t.Type<StorageOptionsValidated> = t.partial({
   oauth: OAuthOptionsIO,
   endpointMask: t.string,
   countriesEndpoint: t.string,
+  httpOptions: t.partial({
+    timeout: NonNegativeInt,
+  }),
 }, 'StorageOptions');
 
 export {
