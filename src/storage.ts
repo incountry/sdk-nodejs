@@ -441,4 +441,5 @@ export {
   KEY_TO_HASH,
   KEYS_TO_HASH,
   createStorage,
+  FIND_LIMIT,
 };

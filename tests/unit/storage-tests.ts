@@ -7,7 +7,7 @@ import { v4 as uuid } from 'uuid';
 import { identity } from 'fp-ts/lib/function';
 import * as _ from 'lodash';
 import {
-  createStorage, Storage, WriteResult, KEYS_TO_HASH,
+  createStorage, Storage, WriteResult, KEYS_TO_HASH, FIND_LIMIT,
 } from '../../src/storage';
 import { StorageServerError, StorageClientError, StorageError } from '../../src/errors';
 import { CountriesCache } from '../../src/countries-cache';
@@ -31,6 +31,7 @@ import { ApiRecord } from '../../src/validation/api/api-record';
 import { FindResponse } from '../../src/validation/api/find-response';
 import { ApiRecordData } from '../../src/validation/api/api-record-data';
 import { filterFromStorageDataKeys } from '../../src/validation/api/find-filter';
+import { noop } from '../integration/common';
 
 chai.use(chaiAsPromised);
 chai.use(sinonChai);
@@ -243,9 +244,9 @@ const getDefaultStorage = async (encrypt = false, normalizeKeys = false, getSecr
   logger: LOGGER_STUB,
 }, customEncConfigs);
 
-const getDefaultFindResponse = (count: number, data: ApiRecord[]): FindResponse => ({
+const getDefaultFindResponse = (data: ApiRecord[] = [], limit = 100, offset = 0): FindResponse => ({
   meta: {
-    total: count, count, limit: 100, offset: 0,
+    total: data.length, count: data.length, limit, offset,
   },
   data,
 });
@@ -1253,9 +1254,8 @@ describe('Storage', () => {
               .to.be.rejectedWith(StorageError, 'FindFilter', `wrong filter format: ${JSON.stringify(filter)}`)),
           ));
 
-          it('should not throw an error when filter has correct format or not provided', async () => Promise.all(
+          it('should not throw an error when filter has correct format', async () => Promise.all(
             [
-              undefined,
               {},
               { aa: 1 },
               { aa: [] },
@@ -1270,12 +1270,17 @@ describe('Storage', () => {
             ].map((filter) => expect(encStorage.find(COUNTRY, filter))
               .not.to.be.rejectedWith(StorageError, '<FindFilter>', `wrong filter format: ${JSON.stringify(filter)}`)),
           ));
+
+          it('should not throw an error when find filter is not provided', async () => {
+            expect(encStorage.find(COUNTRY))
+              .not.to.be.rejectedWith(StorageError, '<FindFilter>');
+          });
         });
 
         describe('options validation', () => {
           it('should throw an error when options.limit is not positive integer or greater than MAX_LIMIT', async () => {
             nock(PORTAL_BACKEND_HOST).get(PORTAL_BACKEND_COUNTRIES_LIST_PATH).reply(400);
-            nockEndpoint(POPAPI_HOST, 'find', COUNTRY, 'test').reply(200, getDefaultFindResponse(0, []));
+            nockEndpoint(POPAPI_HOST, 'find', COUNTRY, 'test').reply(200, getDefaultFindResponse());
 
             const nonPositiveLimits = [-123, 123.124, 'sdsd'];
             // @ts-ignore
@@ -1288,14 +1293,10 @@ describe('Storage', () => {
             await expect(encStorage.find(COUNTRY, {}, { limit: 10 })).not.to.be.rejected;
           });
 
-          it('should not throw an error when find options has correct format or not provided', async () => Promise.all(
-            [
-              undefined,
-              {},
-              // @ts-ignore
-            ].map((options) => expect(encStorage.find(COUNTRY, {}, options))
-              .not.to.be.rejectedWith(StorageError, '<FindOptions>')),
-          ));
+          it('should not throw an error when find options are not provided', async () => {
+            expect(encStorage.find(COUNTRY, {}))
+              .not.to.be.rejectedWith(StorageError, '<FindOptions>');
+          });
         });
       });
 
@@ -1306,7 +1307,7 @@ describe('Storage', () => {
 
           const popAPI = nockEndpoint(POPAPI_HOST, 'find', COUNTRY)
             .times(2)
-            .reply(200, getDefaultFindResponse(0, []));
+            .reply(200, getDefaultFindResponse());
 
           let [bodyObj] = await Promise.all<any>([getNockedRequestBodyObject(popAPI), encStorage.find(COUNTRY, filter)]);
           expect(bodyObj.filter).to.deep.equal(hashedFilter);
@@ -1322,7 +1323,7 @@ describe('Storage', () => {
           const hashedFilter = { key2: { $not: encStorage.createKeyHash(filter.key2.$not) } };
 
           const popAPI = nockEndpoint(POPAPI_HOST, 'find', COUNTRY)
-            .reply(200, getDefaultFindResponse(0, []));
+            .reply(200, getDefaultFindResponse());
 
           const [bodyObj] = await Promise.all<any>([getNockedRequestBodyObject(popAPI), encStorage.find(COUNTRY, filter)]);
           expect(bodyObj.filter).to.deep.equal(hashedFilter);
@@ -1360,7 +1361,7 @@ describe('Storage', () => {
             nockEndpoint(POPAPI_HOST, 'find', COUNTRY)
               .reply(200, (_uri, requestBody: any) => {
                 requestedFilter = requestBody.filter;
-                return getDefaultFindResponse(apiRecords.length, apiRecords);
+                return getDefaultFindResponse(apiRecords);
               });
 
             const result = await encStorage.find(COUNTRY, filter, {});
@@ -1380,7 +1381,7 @@ describe('Storage', () => {
           const apiRecords = storedData.map((record) => ({ ...EMPTY_API_RECORD, ...record }));
 
           nockEndpoint(POPAPI_HOST, 'find', COUNTRY)
-            .reply(200, getDefaultFindResponse(apiRecords.length, apiRecords));
+            .reply(200, getDefaultFindResponse(apiRecords));
 
           const { records } = await noEncStorage.find(COUNTRY, { key: 'key1' });
 
@@ -1400,7 +1401,7 @@ describe('Storage', () => {
           const data = [...apiRecords, unsupportedData];
 
           nockEndpoint(POPAPI_HOST, 'find', COUNTRY)
-            .reply(200, getDefaultFindResponse(data.length, data));
+            .reply(200, getDefaultFindResponse(data));
 
           const result = await encStorage.find('us', {});
 
@@ -1430,7 +1431,7 @@ describe('Storage', () => {
           const data = [...apiRecords, unsupportedData];
 
           nockEndpoint(POPAPI_HOST, 'find', COUNTRY)
-            .reply(200, getDefaultFindResponse(data.length, data));
+            .reply(200, getDefaultFindResponse(data));
 
           const result = await noEncStorage.find('us', {});
 
@@ -1484,13 +1485,13 @@ describe('Storage', () => {
 
           const storage = await getDefaultStorage();
 
-          nockEndpoint(POPAPI_HOST, 'find', country).reply(200, getDefaultFindResponse(0, []));
+          nockEndpoint(POPAPI_HOST, 'find', country).reply(200, getDefaultFindResponse());
           await storage.find('uS', { key: '123' });
 
-          nockEndpoint(POPAPI_HOST, 'find', country).reply(200, getDefaultFindResponse(0, []));
+          nockEndpoint(POPAPI_HOST, 'find', country).reply(200, getDefaultFindResponse());
           await storage.find('Us', { key: '123' });
 
-          nockEndpoint(POPAPI_HOST, 'find', country).reply(200, getDefaultFindResponse(0, []));
+          nockEndpoint(POPAPI_HOST, 'find', country).reply(200, getDefaultFindResponse());
           await storage.find('US', { key: '123' });
         });
       });
@@ -1514,7 +1515,7 @@ describe('Storage', () => {
       });
 
       it('should return null when no results found', async () => {
-        nockEndpoint(POPAPI_HOST, 'find', COUNTRY).reply(200, getDefaultFindResponse(0, []));
+        nockEndpoint(POPAPI_HOST, 'find', COUNTRY).reply(200, getDefaultFindResponse());
 
         const result = await encStorage.findOne(COUNTRY, {});
         expect(result.record).to.equal(null);
@@ -1527,7 +1528,7 @@ describe('Storage', () => {
         const apiRecords = encryptedRecords.map((record) => ({ ...EMPTY_API_RECORD, ...record }));
 
         nockEndpoint(POPAPI_HOST, 'find', COUNTRY)
-          .reply(200, getDefaultFindResponse(apiRecords.length, apiRecords));
+          .reply(200, getDefaultFindResponse(apiRecords));
         const result = await encStorage.findOne(COUNTRY, filter);
 
         expect(result.record).to.own.include(TEST_RECORDS[4]);
@@ -1556,7 +1557,7 @@ describe('Storage', () => {
           }));
 
           const popAPIFind = nockEndpoint(POPAPI_HOST, 'find', COUNTRY)
-            .reply(200, getDefaultFindResponse(apiRecords.length, apiRecords));
+            .reply(200, getDefaultFindResponse(apiRecords));
           const popAPIBatchWrite = nockEndpoint(POPAPI_HOST, 'batchWrite', COUNTRY).reply(200, 'OK');
 
           const result = await encStorage2.migrate(COUNTRY, apiRecords.length);
@@ -1578,12 +1579,36 @@ describe('Storage', () => {
           currentVersion: newSecret.version,
         }));
 
-        const response = getDefaultFindResponse(apiRecords.length, apiRecords);
+        const response = getDefaultFindResponse(apiRecords);
         nockEndpoint(POPAPI_HOST, 'find', COUNTRY)
           .reply(200, response);
 
         await expect(encStorage2.migrate(COUNTRY, apiRecords.length))
           .to.be.rejectedWith(StorageError, 'Secret not found for version 0');
+      });
+
+      describe('arguments', () => {
+        it('should use default limit if nothing has been passed', async () => {
+          const popAPI = nockEndpoint(POPAPI_HOST, 'find', COUNTRY)
+            .reply(200, getDefaultFindResponse());
+
+          const bodyObjPromise = getNockedRequestBodyObject(popAPI);
+          encStorage.migrate(COUNTRY).catch(noop);
+
+          const bodyObj: any = await bodyObjPromise;
+          expect(bodyObj.options.limit).to.equal(FIND_LIMIT);
+        });
+
+        it('should use passed limit', async () => {
+          const limit = 3;
+          const popAPI = nockEndpoint(POPAPI_HOST, 'find', COUNTRY)
+            .reply(200, getDefaultFindResponse());
+
+          const bodyObjPromise = getNockedRequestBodyObject(popAPI);
+          encStorage.migrate(COUNTRY, limit).catch(noop);
+          const bodyObj: any = await bodyObjPromise;
+          expect(bodyObj.options.limit).to.equal(limit);
+        });
       });
     });
 
