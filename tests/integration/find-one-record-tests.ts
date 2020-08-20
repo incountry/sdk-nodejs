@@ -12,18 +12,41 @@ const ANOTHER_COUNTRY = COUNTRY === 'us' ? 'se' : 'us';
 
 let storage: Storage;
 
+const randomString = () => Math.random().toString(36).substr(2, 10);
+const randomInt = () => Math.floor(Math.random() * 100) + 1 as Int;
+
 const dataRequest = {
-  key: Math.random().toString(36).substr(2, 10),
-  key2: Math.random().toString(36).substr(2, 10),
-  key3: Math.random().toString(36).substr(2, 10),
-  profile_key: Math.random().toString(36).substr(2, 10),
-  range_key: Math.floor(Math.random() * 100) + 1 as Int,
+  recordKey: randomString(),
   body: JSON.stringify({ name: 'PersonName' }),
+  precommitBody: JSON.stringify({ name: 'aaa' }),
+  profileKey: randomString(),
+  rangeKey1: randomInt(),
+  rangeKey2: randomInt(),
+  rangeKey3: 441 as Int,
+  rangeKey4: 41 as Int,
+  rangeKey5: 1 as Int,
+  rangeKey6: 41 as Int,
+  rangeKey7: 441 as Int,
+  rangeKey8: 4241 as Int,
+  rangeKey9: 441 as Int,
+  rangeKey10: randomInt(),
+  key1: randomString(),
+  key2: randomString(),
+  key3: randomString(),
+  key4: randomString(),
+  key5: randomString(),
+  key6: randomString(),
+  key7: randomString(),
+  key8: randomString(),
+  key9: randomString(),
+  key10: randomString(),
+  serviceKey1: randomString(),
+  serviceKey2: randomString(),
 };
 
 describe('Find one record', () => {
   after(async () => {
-    await storage.delete(COUNTRY, dataRequest.key).catch(noop);
+    await storage.delete(COUNTRY, dataRequest.recordKey).catch(noop);
   });
 
   [false, true].forEach(async (encryption) => {
@@ -33,83 +56,58 @@ describe('Find one record', () => {
         storage = await createStorage(encryption);
         await storage.write(COUNTRY, dataRequest);
       });
-      it.skip('Find one record by country', async () => {
-        const { record } = await storage.findOne(COUNTRY, {});
+
+      it('Find one record by recordKey', async () => {
+        const { record } = await storage.findOne(COUNTRY, { recordKey: dataRequest.recordKey });
         if (record === null) {
           throw assert.fail('Record should not be null');
         }
 
-        expect(record.key).to.equal(dataRequest.key);
-        expect(record.key2).to.equal(dataRequest.key2);
-        expect(record.key3).to.equal(dataRequest.key3);
-        expect(record.profile_key).to.equal(dataRequest.profile_key);
-        expect(record.range_key).to.equal(dataRequest.range_key);
-        expect(record.body).to.equal(dataRequest.body);
+        expect(record).to.deep.include(dataRequest);
+        expect(record.createdAt).to.be.a('date');
+        expect(record.updatedAt).to.be.a('date');
       });
 
-      it.skip('Find one record by key', async () => {
-        const { record } = await storage.findOne(COUNTRY, { key: dataRequest.key });
+      it('Find one record by key1', async () => {
+        const { record } = await storage.findOne(COUNTRY, { key1: dataRequest.key1 });
         if (record === null) {
           throw assert.fail('Record should not be null');
         }
 
-        expect(record.key).to.equal(dataRequest.key);
-        expect(record.key2).to.equal(dataRequest.key2);
-        expect(record.key3).to.equal(dataRequest.key3);
-        expect(record.profile_key).to.equal(dataRequest.profile_key);
-        expect(record.range_key).to.equal(dataRequest.range_key);
-        expect(record.body).to.equal(dataRequest.body);
+        expect(record).to.deep.include(dataRequest);
+        expect(record.createdAt).to.be.a('date');
+        expect(record.updatedAt).to.be.a('date');
       });
 
-      it.skip('Find one record by key2', async () => {
-        const { record } = await storage.findOne(COUNTRY, { key2: dataRequest.key2 });
+      it('Find one record by key10', async () => {
+        const { record } = await storage.findOne(COUNTRY, { key10: dataRequest.key10 });
         if (record === null) {
           throw assert.fail('Record should not be null');
         }
 
-        expect(record.key).to.equal(dataRequest.key);
-        expect(record.key2).to.equal(dataRequest.key2);
-        expect(record.key3).to.equal(dataRequest.key3);
-        expect(record.profile_key).to.equal(dataRequest.profile_key);
-        expect(record.range_key).to.equal(dataRequest.range_key);
-        expect(record.body).to.equal(dataRequest.body);
+        expect(record).to.deep.include(dataRequest);
+        expect(record.createdAt).to.be.a('date');
+        expect(record.updatedAt).to.be.a('date');
       });
 
-      it.skip('Find one record by key3', async () => {
-        const { record } = await storage.findOne(COUNTRY, { key3: dataRequest.key3 });
+      it('Find one record by profileKey', async () => {
+        const { record } = await storage.findOne(COUNTRY, { profileKey: dataRequest.profileKey });
         if (record === null) {
           throw assert.fail('Record should not be null');
         }
 
-        expect(record.key).to.equal(dataRequest.key);
-        expect(record.key2).to.equal(dataRequest.key2);
-        expect(record.key3).to.equal(dataRequest.key3);
-        expect(record.profile_key).to.equal(dataRequest.profile_key);
-        expect(record.range_key).to.equal(dataRequest.range_key);
-        expect(record.body).to.equal(dataRequest.body);
+        expect(record).to.deep.include(dataRequest);
+        expect(record.createdAt).to.be.a('date');
+        expect(record.updatedAt).to.be.a('date');
       });
 
-      it.skip('Find one record by profile_key', async () => {
-        const { record } = await storage.findOne(COUNTRY, { profile_key: dataRequest.profile_key });
-        if (record === null) {
-          throw assert.fail('Record should not be null');
-        }
-
-        expect(record.key).to.equal(dataRequest.key);
-        expect(record.key2).to.equal(dataRequest.key2);
-        expect(record.key3).to.equal(dataRequest.key3);
-        expect(record.profile_key).to.equal(dataRequest.profile_key);
-        expect(record.range_key).to.equal(dataRequest.range_key);
-        expect(record.body).to.equal(dataRequest.body);
-      });
-
-      it.skip('Record not found by key value', async () => {
-        const { record } = await storage.findOne(COUNTRY, { key: Math.random().toString(36).substr(2, 10) });
+      it('Record not found by incorrect recordKey', async () => {
+        const { record } = await storage.findOne(COUNTRY, { recordKey: Math.random().toString(36).substr(2, 10) });
         expect(record).to.equal(null);
       });
 
-      it.skip('Record not found by country', async () => {
-        await expect(storage.findOne(ANOTHER_COUNTRY, {})).to.be.rejectedWith(StorageServerError, 'Request failed with status code 409');
+      it('Record not found by country', async () => {
+        await expect(storage.findOne(ANOTHER_COUNTRY, {})).to.be.rejectedWith(StorageServerError);
       });
     });
   });

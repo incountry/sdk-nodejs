@@ -51,7 +51,7 @@ describe('Error reporter', () => {
     it('should convert validation to human readable error message', () => {
       const RecordIO = t.intersection([
         t.type({
-          key: t.string,
+          recordKey: t.string,
         }),
         t.partial({
           body: t.union([t.string, t.null]),
@@ -59,9 +59,9 @@ describe('Error reporter', () => {
       ], 'Record');
 
       expect(getErrorMessage(RecordIO.decode(123))).to.eq('<Record> should be Record but got 123');
-      expect(getErrorMessage(RecordIO.decode({}))).to.eq('<Record>.key should be string but got undefined');
-      expect(getErrorMessage(RecordIO.decode({ key: 123 }))).to.eq('<Record>.key should be string but got 123');
-      expect(getErrorMessage(RecordIO.decode({ key: 123, body: {} }))).to.eq('<Record>.body should be (string | null) but got {}');
+      expect(getErrorMessage(RecordIO.decode({}))).to.eq('<Record>.recordKey should be string but got undefined');
+      expect(getErrorMessage(RecordIO.decode({ recordKey: 123 }))).to.eq('<Record>.recordKey should be string but got 123');
+      expect(getErrorMessage(RecordIO.decode({ recordKey: 123, body: {} }))).to.eq('<Record>.body should be (string | null) but got {}');
     });
   });
 });

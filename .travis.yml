@@ -2,13 +2,12 @@ addons:
   sonarcloud:
     organization: "incountry"
 
+git:
+  depth: false
+
 language: node_js
 node_js:
   - 11
-
-before_install:
-#  for sonar test coverage metric
-  - if [ "$TRAVIS_PULL_REQUEST" != "false" ]; then git fetch --no-tags https://github.com/incountry/sdk-nodejs.git +refs/heads/$TRAVIS_BRANCH:refs/remotes/origin/$TRAVIS_BRANCH; fi  
 
 jobs:
   include:
@@ -21,7 +20,7 @@ jobs:
       script:
         - if [[ ($TRAVIS_BRANCH == "master") && ($TRAVIS_EVENT_TYPE == "cron") ]]; then snyk monitor --org=incountry; fi
         - npm run test
-        - sonar-scanner
+        - if [ "$TRAVIS_PULL_REQUEST" != "false" ]; then sonar-scanner; fi
     - stage: tests
       name: "Integration test"
       before_script:
@@ -38,8 +37,7 @@ jobs:
         - echo $ENV
         - envsubst < .env.template > .env.value
         - envsubst < .env.value > .env
-      script:
-        - if [[ ($TRAVIS_BRANCH == "master") && ($TRAVIS_EVENT_TYPE == "cron") ]]; then snyk monitor --org=incountry; fi
+      script:        
         - npm run integrations
       after_script:
         - rm -f .env.value
