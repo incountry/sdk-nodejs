@@ -37,8 +37,7 @@ jobs:
         - echo $ENV
         - envsubst < .env.template > .env.value
         - envsubst < .env.value > .env
-      script:
-        - if [[ ($TRAVIS_BRANCH == "master") && ($TRAVIS_EVENT_TYPE == "cron") ]]; then snyk monitor --org=incountry; fi
+      script:        
         - npm run integrations
       after_script:
         - rm -f .env.value
