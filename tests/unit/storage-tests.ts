@@ -32,6 +32,7 @@ import { FindResponse } from '../../src/validation/api/find-response';
 import { ApiRecordData } from '../../src/validation/api/api-record-data';
 import { filterFromStorageDataKeys } from '../../src/validation/api/find-filter';
 import { noop } from '../integration/common';
+import { INVALID_REQUEST_OPTIONS, VALID_REQUEST_OPTIONS } from './validation/request-options';
 
 chai.use(chaiAsPromised);
 chai.use(sinonChai);
@@ -230,7 +231,7 @@ const PREPARED_PAYLOAD = [
 ];
 
 
-const LOGGER_STUB = { write: (a: string, b: string) => [a, b] };
+const LOGGER_STUB = () => ({ write: (a: string, b: string, c: any) => [a, b, c] });
 
 const defaultGetSecretsCallback = () => SECRET_KEY;
 
@@ -241,7 +242,7 @@ const getDefaultStorage = async (encrypt = false, normalizeKeys = false, getSecr
   encrypt,
   normalizeKeys,
   getSecrets,
-  logger: LOGGER_STUB,
+  logger: LOGGER_STUB(),
 }, customEncConfigs);
 
 const getDefaultFindResponse = (data: ApiRecord[] = [], limit = 100, offset = 0): FindResponse => ({
@@ -662,7 +663,7 @@ describe('Storage', () => {
           environmentId: 'string',
           endpoint: POPAPI_HOST,
           encrypt: false,
-          logger: LOGGER_STUB,
+          logger: LOGGER_STUB(),
         };
 
         const customEncryptionConfigs = [{ encrypt: () => { }, decrypt: () => { }, version: '' }];
@@ -678,7 +679,7 @@ describe('Storage', () => {
             apiKey: 'string',
             environmentId: 'string',
             endpoint: POPAPI_HOST,
-            logger: LOGGER_STUB,
+            logger: LOGGER_STUB(),
             getSecrets: () => '',
           };
 
@@ -698,7 +699,7 @@ describe('Storage', () => {
           apiKey: 'string',
           environmentId: 'string',
           endpoint: POPAPI_HOST,
-          logger: LOGGER_STUB,
+          logger: LOGGER_STUB(),
           getSecrets: () => '',
         };
 
@@ -718,7 +719,7 @@ describe('Storage', () => {
           apiKey: 'string',
           environmentId: 'string',
           endpoint: POPAPI_HOST,
-          logger: LOGGER_STUB,
+          logger: LOGGER_STUB(),
           getSecrets: () => '',
         };
 
@@ -728,38 +729,41 @@ describe('Storage', () => {
       });
     });
 
-    describe('logging', () => {
-      it('should receive all 3 arguments and callLoggingMeta', async () => {
-        const logger = {
-          write: sinon.fake(),
-        };
-
-        const callLoggingMeta = { test: 'test logging meta' };
-
-        const storage = await createStorage({
-          apiKey: 'apiKey',
-          environmentId: 'envId',
-          encrypt: false,
-          logger,
-        });
-
-        const recordKey = '123';
-        const encryptedPayload = await storage.encryptPayload({ recordKey });
-        nockEndpoint(POPAPI_HOST, 'read', COUNTRY, encryptedPayload.record_key)
-          .reply(200, { ...EMPTY_API_RECORD, ...encryptedPayload });
-
-        await expect(storage.read(COUNTRY, recordKey)).to.be.rejectedWith(StorageError);
-        expect(logger.write.lastCall.args).to.have.length(3);
-        expect(logger.write.lastCall.args[2]).to.be.an('object');
-        expect(logger.write.lastCall.args[2].callLoggingMeta).to.deep.equal(callLoggingMeta);
-      });
-    });
-
     describe('write', () => {
       let popAPI: nock.Scope;
 
       beforeEach(() => {
         popAPI = nockEndpoint(POPAPI_HOST, 'write', COUNTRY).reply(200, 'OK');
+      });
+
+      describe('arguments validation', () => {
+        describe('request options', () => {
+          const recordData = { recordKey: '123' };
+
+          it('should throw error with invalid request options', async () => {
+            // @ts-ignore
+            await Promise.all(INVALID_REQUEST_OPTIONS.map((requestOptions) => expect(encStorage.write(COUNTRY, recordData, requestOptions))
+              .to.be.rejectedWith(StorageError, '<RequestOptionsIO>')));
+          });
+
+          it('should not throw error with valid request options', async () => {
+            await Promise.all(VALID_REQUEST_OPTIONS.map((requestOptions) => expect(encStorage.write(COUNTRY, recordData, requestOptions))
+              .to.not.be.rejectedWith(StorageError, '<RequestOptionsIO>')));
+          });
+
+          it('should not throw error without request options', async () => {
+            expect(encStorage.write(COUNTRY, recordData))
+              .to.not.be.rejectedWith(StorageError, '<RequestOptionsIO>');
+          });
+
+          it('should pass valid request options "meta" to logger', async () => {
+            const meta = { id: 123, test: 'test' };
+            const spy = sinon.spy(encStorage.logger, 'write');
+            await encStorage.write(COUNTRY, recordData, { meta }).catch(noop);
+            expect(spy.args[0][2]).to.deep.include(meta);
+            expect(spy.args[1][2]).to.deep.include(meta);
+          });
+        });
       });
 
       describe('should validate record', () => {
@@ -946,7 +950,7 @@ describe('Storage', () => {
     });
 
     describe('read', () => {
-      describe('should validate arguments', () => {
+      describe('arguments validation', () => {
         describe('when no country provided', () => {
           it('should throw an error', async () => {
             // @ts-ignore
@@ -958,6 +962,32 @@ describe('Storage', () => {
           it('should throw an error', async () => {
             // @ts-ignore
             await expect(encStorage.read(COUNTRY, undefined)).to.be.rejectedWith(StorageError, RECORD_KEY_ERROR_MESSAGE);
+          });
+        });
+
+        describe('request options', () => {
+          it('should throw error with invalid request options', async () => {
+            // @ts-ignore
+            await Promise.all(INVALID_REQUEST_OPTIONS.map((requestOptions) => expect(encStorage.read(COUNTRY, '123', requestOptions))
+              .to.be.rejectedWith(StorageError, '<RequestOptionsIO>')));
+          });
+
+          it('should not throw error with valid request options', async () => {
+            await Promise.all(VALID_REQUEST_OPTIONS.map((requestOptions) => expect(encStorage.read(COUNTRY, '123', requestOptions))
+              .to.not.be.rejectedWith(StorageError, '<RequestOptionsIO>')));
+          });
+
+          it('should not throw error without request options', async () => {
+            expect(encStorage.read(COUNTRY, '123'))
+              .to.not.be.rejectedWith(StorageError, '<RequestOptionsIO>');
+          });
+
+          it('should pass valid request options "meta" to logger', async () => {
+            const meta = { id: 123, test: 'test' };
+            const spy = sinon.spy(encStorage.logger, 'write');
+            await encStorage.read(COUNTRY, '123', { meta }).catch(noop);
+            expect(spy.args[0][2]).to.deep.include(meta);
+            expect(spy.args[1][2]).to.deep.include(meta);
           });
         });
       });
@@ -1112,21 +1142,48 @@ describe('Storage', () => {
     });
 
     describe('delete', () => {
-      describe('should validate record', () => {
-        describe('when no country provided', () => {
-          it('should throw an error', async () => {
+      describe('arguments validation', () => {
+        describe('country', () => {
+          it('should throw an error when no country provided', async () => {
             // @ts-ignore
             await expect(encStorage.delete(undefined, '')).to.be.rejectedWith(StorageError, COUNTRY_CODE_ERROR_MESSAGE);
           });
         });
 
-        describe('when no key provided', () => {
-          it('should throw an error', async () => {
+        describe('recordKey', () => {
+          it('should throw an error when no key provided', async () => {
             // @ts-ignore
             await expect(encStorage.delete(COUNTRY, undefined)).to.be.rejectedWith(StorageError, RECORD_KEY_ERROR_MESSAGE);
           });
         });
+
+        describe('request options', () => {
+          it('should throw error with invalid request options', async () => {
+            // @ts-ignore
+            await Promise.all(INVALID_REQUEST_OPTIONS.map((requestOptions) => expect(encStorage.delete(COUNTRY, '123', requestOptions))
+              .to.be.rejectedWith(StorageError, '<RequestOptionsIO>')));
+          });
+
+          it('should not throw error with valid request options', async () => {
+            await Promise.all(VALID_REQUEST_OPTIONS.map((requestOptions) => expect(encStorage.delete(COUNTRY, '123', requestOptions))
+              .to.not.be.rejectedWith(StorageError, '<RequestOptionsIO>')));
+          });
+
+          it('should not throw error without request options', async () => {
+            expect(encStorage.delete(COUNTRY, '123'))
+              .to.not.be.rejectedWith(StorageError, '<RequestOptionsIO>');
+          });
+
+          it('should pass valid request options "meta" to logger', async () => {
+            const meta = { id: 123, test: 'test' };
+            const spy = sinon.spy(encStorage.logger, 'write');
+            await encStorage.delete(COUNTRY, '123', { meta }).catch(noop);
+            expect(spy.args[0][2]).to.deep.include(meta);
+            expect(spy.args[1][2]).to.deep.include(meta);
+          });
+        });
       });
+
 
       describe('encryption', () => {
         const key = 'test';
@@ -1295,6 +1352,32 @@ describe('Storage', () => {
           it('should not throw an error when find options are not provided', async () => {
             expect(encStorage.find(COUNTRY, {}))
               .not.to.be.rejectedWith(StorageError, '<FindOptions>');
+          });
+        });
+
+        describe('request options', () => {
+          it('should throw error with invalid request options', async () => {
+            // @ts-ignore
+            await Promise.all(INVALID_REQUEST_OPTIONS.map((requestOptions) => expect(encStorage.find(COUNTRY, {}, {}, requestOptions))
+              .to.be.rejectedWith(StorageError, '<RequestOptionsIO>')));
+          });
+
+          it('should not throw error with valid request options', async () => {
+            await Promise.all(VALID_REQUEST_OPTIONS.map((requestOptions) => expect(encStorage.find(COUNTRY, {}, {}, requestOptions))
+              .to.not.be.rejectedWith(StorageError, '<RequestOptionsIO>')));
+          });
+
+          it('should not throw error without request options', async () => {
+            expect(encStorage.find(COUNTRY, {}, {}))
+              .to.not.be.rejectedWith(StorageError, '<RequestOptionsIO>');
+          });
+
+          it('should pass valid request options "meta" to logger', async () => {
+            const meta = { id: 123, test: 'test' };
+            const spy = sinon.spy(encStorage.logger, 'write');
+            await encStorage.find(COUNTRY, {}, {}, { meta }).catch(noop);
+            expect(spy.args[0][2]).to.deep.include(meta);
+            expect(spy.args[1][2]).to.deep.include(meta);
           });
         });
       });
@@ -1532,6 +1615,34 @@ describe('Storage', () => {
     });
 
     describe('findOne', () => {
+      describe('arguments validation', () => {
+        describe('request options', () => {
+          it('should throw error with invalid request options', async () => {
+            // @ts-ignore
+            await Promise.all(INVALID_REQUEST_OPTIONS.map((requestOptions) => expect(encStorage.findOne(COUNTRY, {}, {}, requestOptions))
+              .to.be.rejectedWith(StorageError, '<RequestOptionsIO>')));
+          });
+
+          it('should not throw error with valid request options', async () => {
+            await Promise.all(VALID_REQUEST_OPTIONS.map((requestOptions) => expect(encStorage.findOne(COUNTRY, {}, {}, requestOptions))
+              .to.not.be.rejectedWith(StorageError, '<RequestOptionsIO>')));
+          });
+
+          it('should not throw error without request options', async () => {
+            expect(encStorage.findOne(COUNTRY, {}, {}))
+              .to.not.be.rejectedWith(StorageError, '<RequestOptionsIO>');
+          });
+
+          it('should pass valid request options "meta" to logger', async () => {
+            const meta = { id: 123, test: 'test' };
+            const spy = sinon.spy(encStorage.logger, 'write');
+            await encStorage.findOne(COUNTRY, {}, {}, { meta }).catch(noop);
+            expect(spy.args[0][2]).to.deep.include(meta);
+            expect(spy.args[1][2]).to.deep.include(meta);
+          });
+        });
+      });
+
       it('should enforce limit:1', async () => {
         const popAPI = nockEndpoint(POPAPI_HOST, 'find', COUNTRY)
           .reply(200, {
@@ -1662,6 +1773,32 @@ describe('Storage', () => {
           const bodyObj: any = await bodyObjPromise;
           expect(bodyObj.options.limit).to.equal(limit);
         });
+
+        describe('request options', () => {
+          it('should throw error with invalid request options', async () => {
+            // @ts-ignore
+            await Promise.all(INVALID_REQUEST_OPTIONS.map((requestOptions) => expect(encStorage.migrate(COUNTRY, 1, {}, requestOptions))
+              .to.be.rejectedWith(StorageError, '<RequestOptionsIO>')));
+          });
+
+          it('should not throw error with valid request options', async () => {
+            await Promise.all(VALID_REQUEST_OPTIONS.map((requestOptions) => expect(encStorage.migrate(COUNTRY, 1, {}, requestOptions))
+              .to.not.be.rejectedWith(StorageError, '<RequestOptionsIO>')));
+          });
+
+          it('should not throw error without request options', async () => {
+            expect(encStorage.migrate(COUNTRY, 1, {}))
+              .to.not.be.rejectedWith(StorageError, '<RequestOptionsIO>');
+          });
+
+          it('should pass valid request options "meta" to logger', async () => {
+            const meta = { id: 123, test: 'test' };
+            const spy = sinon.spy(encStorage.logger, 'write');
+            await encStorage.migrate(COUNTRY, 1, {}, { meta }).catch(noop);
+            expect(spy.args[0][2]).to.deep.include(meta);
+            expect(spy.args[1][2]).to.deep.include(meta);
+          });
+        });
       });
     });
 
@@ -1672,13 +1809,40 @@ describe('Storage', () => {
         popAPI = nockEndpoint(POPAPI_HOST, 'batchWrite', COUNTRY).reply(200, 'OK');
       });
 
-      describe('should validate arguments', () => {
+      describe('arguments', () => {
         describe('when country is not a string', () => {
           it('should throw an error', async () => {
             const wrongCountries = [undefined, null, 1, {}, []];
             // @ts-ignore
             await Promise.all(wrongCountries.map((country) => expect(encStorage.batchWrite(country))
               .to.be.rejectedWith(StorageError, COUNTRY_CODE_ERROR_MESSAGE)));
+          });
+        });
+
+        describe('request options', () => {
+          const recordsData = [{ recordKey: '123' }];
+          it('should throw error with invalid request options', async () => {
+            // @ts-ignore
+            await Promise.all(INVALID_REQUEST_OPTIONS.map((requestOptions) => expect(encStorage.batchWrite(COUNTRY, recordsData, requestOptions))
+              .to.be.rejectedWith(StorageError, '<RequestOptionsIO>')));
+          });
+
+          it('should not throw error with valid request options', async () => {
+            await Promise.all(VALID_REQUEST_OPTIONS.map((requestOptions) => expect(encStorage.batchWrite(COUNTRY, recordsData, requestOptions))
+              .to.not.be.rejectedWith(StorageError, '<RequestOptionsIO>')));
+          });
+
+          it('should not throw error without request options', async () => {
+            expect(encStorage.batchWrite(COUNTRY, recordsData))
+              .to.not.be.rejectedWith(StorageError, '<RequestOptionsIO>');
+          });
+
+          it('should pass valid request options "meta" to logger', async () => {
+            const meta = { id: 123, test: 'test' };
+            const spy = sinon.spy(encStorage.logger, 'write');
+            await encStorage.batchWrite(COUNTRY, recordsData, { meta }).catch(noop);
+            expect(spy.args[0][2]).to.deep.include(meta);
+            expect(spy.args[1][2]).to.deep.include(meta);
           });
         });
       });
@@ -1816,7 +1980,7 @@ describe('Storage', () => {
           encrypt: true,
           normalizeKeys: false,
           getSecrets: defaultGetSecretsCallback,
-          logger: LOGGER_STUB,
+          logger: LOGGER_STUB(),
         });
       });
 
@@ -1851,7 +2015,7 @@ describe('Storage', () => {
             encrypt: true,
             normalizeKeys: false,
             getSecrets: defaultGetSecretsCallback,
-            logger: LOGGER_STUB,
+            logger: LOGGER_STUB(),
           });
 
           const storage2 = await createStorage({
@@ -1861,7 +2025,7 @@ describe('Storage', () => {
             encrypt: true,
             normalizeKeys: false,
             getSecrets: defaultGetSecretsCallback,
-            logger: LOGGER_STUB,
+            logger: LOGGER_STUB(),
           });
 
           const encrypted1 = await storage1.encryptPayload(PREPARED_PAYLOAD[1].dec as StorageRecordData);

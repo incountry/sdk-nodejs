@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import crypto from 'crypto';
-import { ApiClient, RequestOptions } from './api-client';
+import { ApiClient } from './api-client';
 import * as defaultLogger from './logger';
 import { CountriesCache } from './countries-cache';
 import { SecretKeyAccessor } from './secret-key-accessor';
@@ -30,6 +30,7 @@ import { FindResponseMeta } from './validation/api/find-response';
 import { ApiRecord, ApiRecordBodyIO } from './validation/api/api-record';
 import { StorageRecordData, StorageRecordDataIO } from './validation/storage-record-data';
 import { ApiRecordData, apiRecordDataFromStorageRecordData } from './validation/api/api-record-data';
+import { RequestOptionsIO, RequestOptions } from './validation/request-options';
 
 const FIND_LIMIT = 100;
 
@@ -197,40 +198,40 @@ class Storage {
     this.countriesCache = countriesCache;
   }
 
-  @validate(CountryCodeIO, RecordKeyIO)
+  @validate(CountryCodeIO, RecordKeyIO, withDefault(RequestOptionsIO, {}))
   @normalizeErrors()
-  async read(countryCode: string, recordKey: string, requestOptions?: RequestOptions, callLoggingMeta?: any): Promise<ReadResult> {
+  async read(countryCode: string, recordKey: string, requestOptions: RequestOptions = {}): Promise<ReadResult> {
     const key = this.createKeyHash(this.normalizeKey(recordKey));
-    const responseData = await this.apiClient.read(countryCode, key, requestOptions, callLoggingMeta);
-    const record = await this.decryptPayload(responseData, callLoggingMeta);
+    const responseData = await this.apiClient.read(countryCode, key, requestOptions);
+    const record = await this.decryptPayload(responseData, requestOptions.meta);
     return { record };
   }
 
-  @validate(CountryCodeIO, StorageRecordDataIO)
+  @validate(CountryCodeIO, StorageRecordDataIO, withDefault(RequestOptionsIO, {}))
   @normalizeErrors()
-  async write(countryCode: string, recordData: StorageRecordData, requestOptions?: RequestOptions, callLoggingMeta?: any): Promise<WriteResult> {
-    const data = await this.encryptPayload(recordData, callLoggingMeta);
-    await this.apiClient.write(countryCode, data, requestOptions, callLoggingMeta);
+  async write(countryCode: string, recordData: StorageRecordData, requestOptions: RequestOptions = {}): Promise<WriteResult> {
+    const data = await this.encryptPayload(recordData, requestOptions.meta);
+    await this.apiClient.write(countryCode, data, requestOptions);
     return { record: recordData };
   }
 
-  @validate(CountryCodeIO, StorageRecordDataArrayIO)
+  @validate(CountryCodeIO, StorageRecordDataArrayIO, withDefault(RequestOptionsIO, {}))
   @normalizeErrors()
-  async batchWrite(countryCode: string, records: Array<StorageRecordData>, callLoggingMeta?: any): Promise<BatchWriteResult> {
-    const encryptedRecords = await Promise.all(records.map((r) => this.encryptPayload(r, callLoggingMeta)));
-    await this.apiClient.batchWrite(countryCode, { records: encryptedRecords }, undefined, callLoggingMeta);
+  async batchWrite(countryCode: string, records: Array<StorageRecordData>, requestOptions: RequestOptions = {}): Promise<BatchWriteResult> {
+    const encryptedRecords = await Promise.all(records.map((r) => this.encryptPayload(r, requestOptions.meta)));
+    await this.apiClient.batchWrite(countryCode, { records: encryptedRecords }, requestOptions);
     return { records };
   }
 
-  @validate(CountryCodeIO, withDefault(FindFilterIO, {}), withDefault(FindOptionsIO, {}))
+  @validate(CountryCodeIO, withDefault(FindFilterIO, {}), withDefault(FindOptionsIO, {}), withDefault(RequestOptionsIO, {}))
   @normalizeErrors()
-  async find(countryCode: string, filter: FindFilter = {}, options: FindOptions = {}, requestOptions?: RequestOptions, callLoggingMeta?: any): Promise<FindResult> {
+  async find(countryCode: string, filter: FindFilter = {}, options: FindOptions = {}, requestOptions: RequestOptions = {}): Promise<FindResult> {
     const data = {
       filter: this.hashFilterKeys(filterFromStorageDataKeys(filter), KEYS_TO_HASH),
       options: { limit: FIND_LIMIT, offset: 0, ...options },
     };
 
-    const responseData = await this.apiClient.find(countryCode, data, requestOptions, callLoggingMeta);
+    const responseData = await this.apiClient.find(countryCode, data, requestOptions);
 
     const result: FindResult = {
       records: [],
@@ -238,7 +239,7 @@ class Storage {
     };
 
     const decrypted = await Promise.all(
-      responseData.data.map((item) => this.decryptPayload(item, callLoggingMeta).catch((ex) => ({ error: ex, rawData: item }))),
+      responseData.data.map((item) => this.decryptPayload(item, requestOptions.meta).catch((ex) => ({ error: ex, rawData: item }))),
     );
 
     const errors: FindResult['errors'] = [];
@@ -257,31 +258,33 @@ class Storage {
     return result;
   }
 
-  async findOne(countryCode: string, filter: FindFilter, options: FindOptions = {}, requestOptions?: RequestOptions, callLoggingMeta?: any): Promise<FindOneResult> {
+  @validate(CountryCodeIO, withDefault(FindFilterIO, {}), withDefault(FindOptionsIO, {}), withDefault(RequestOptionsIO, {}))
+  @normalizeErrors()
+  async findOne(countryCode: string, filter: FindFilter = {}, options: FindOptions = {}, requestOptions: RequestOptions = {}): Promise<FindOneResult> {
     const optionsWithLimit = { ...options, limit: 1 };
-    const result = await this.find(countryCode, filter, optionsWithLimit, requestOptions, callLoggingMeta);
+    const result = await this.find(countryCode, filter, optionsWithLimit, requestOptions);
     const record = result.records.length ? result.records[0] : null;
     return { record };
   }
 
-  @validate(CountryCodeIO, RecordKeyIO)
+  @validate(CountryCodeIO, RecordKeyIO, withDefault(RequestOptionsIO, {}))
   @normalizeErrors()
-  async delete(countryCode: string, recordKey: string, requestOptions?: RequestOptions, callLoggingMeta?: any): Promise<DeleteResult> {
+  async delete(countryCode: string, recordKey: string, requestOptions: RequestOptions = {}): Promise<DeleteResult> {
     try {
       const key = this.createKeyHash(this.normalizeKey(recordKey));
 
-      await this.apiClient.delete(countryCode, key, requestOptions, callLoggingMeta);
+      await this.apiClient.delete(countryCode, key, requestOptions);
 
       return { success: true };
     } catch (err) {
-      this.logger.write('error', err.message, { callLoggingMeta });
+      this.logger.write('error', err.message, requestOptions.meta);
       throw err;
     }
   }
 
-  @validate(CountryCodeIO, withDefault(LimitIO, FIND_LIMIT), withDefault(FindFilterIO, {}))
+  @validate(CountryCodeIO, withDefault(LimitIO, FIND_LIMIT), withDefault(FindFilterIO, {}), withDefault(RequestOptionsIO, {}))
   @normalizeErrors()
-  async migrate(countryCode: string, limit = FIND_LIMIT, _findFilter: FindFilter = {}, callLoggingMeta?: any): Promise<MigrateResult> {
+  async migrate(countryCode: string, limit = FIND_LIMIT, _findFilter: FindFilter = {}, requestOptions: RequestOptions = {}): Promise<MigrateResult> {
     if (!this.encryptionEnabled) {
       throw new StorageClientError('Migration not supported when encryption is off');
     }
@@ -289,12 +292,12 @@ class Storage {
     const currentSecretVersion = await this.crypto.getCurrentSecretVersion();
     const findFilter = { ..._findFilter, version: { $not: currentSecretVersion } };
     const findOptions = { limit };
-    const { records, meta, errors } = await this.find(countryCode, findFilter, findOptions, undefined, callLoggingMeta);
+    const { records, meta, errors } = await this.find(countryCode, findFilter, findOptions, requestOptions);
     if (records.length === 0 && errors && errors[0]) {
       throw errors[0].error;
     }
 
-    await this.batchWrite(countryCode, records, callLoggingMeta);
+    await this.batchWrite(countryCode, records, requestOptions);
 
     return {
       meta: {
@@ -341,9 +344,9 @@ class Storage {
     return hashedFilter;
   }
 
-  async encryptPayload(storageRecordData: StorageRecordData): Promise<ApiRecordData> {
-    this.logger.write('debug', 'Encrypting...');
-    this.logger.write('debug', JSON.stringify(storageRecordData, null, 2));
+  async encryptPayload(storageRecordData: StorageRecordData, loggingMeta?: {}): Promise<ApiRecordData> {
+    this.logger.write('debug', 'Encrypting...', loggingMeta);
+    this.logger.write('debug', JSON.stringify(storageRecordData, null, 2), loggingMeta);
 
     const recordData: ApiRecordData = apiRecordDataFromStorageRecordData(storageRecordData);
 
@@ -376,14 +379,14 @@ class Storage {
     recordData.version = secretVersion;
     recordData.is_encrypted = this.encryptionEnabled;
 
-    this.logger.write('debug', 'Finished encryption');
-    this.logger.write('debug', JSON.stringify(recordData, null, 2));
+    this.logger.write('debug', 'Finished encryption', loggingMeta);
+    this.logger.write('debug', JSON.stringify(recordData, null, 2), loggingMeta);
     return recordData;
   }
 
-  async decryptPayload(apiRecord: ApiRecord): Promise<StorageRecord> {
-    this.logger.write('debug', 'Start decrypting...');
-    this.logger.write('debug', JSON.stringify(apiRecord, null, 2));
+  async decryptPayload(apiRecord: ApiRecord, loggingMeta?: {}): Promise<StorageRecord> {
+    this.logger.write('debug', 'Start decrypting...', loggingMeta);
+    this.logger.write('debug', JSON.stringify(apiRecord, null, 2), loggingMeta);
 
     const record = {
       ...apiRecord,
@@ -418,8 +421,8 @@ class Storage {
       body: payload !== undefined ? payload : null,
     };
 
-    this.logger.write('debug', 'Finished decryption');
-    this.logger.write('debug', JSON.stringify(storageRecord, null, 2));
+    this.logger.write('debug', 'Finished decryption', loggingMeta);
+    this.logger.write('debug', JSON.stringify(storageRecord, null, 2), loggingMeta);
     return storageRecord;
   }
 }

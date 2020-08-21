@@ -311,7 +311,7 @@ describe('ApiClient', () => {
           data: [],
         };
         const wrongPopAPI = nockEndpoint(POPAPI_HOST, 'find', COUNTRY).reply(200, wrongFindResponse);
-        await expect(apiClient.find(COUNTRY, { filter })).to.be.rejectedWith(StorageServerError);
+        await expect(apiClient.find(COUNTRY, { filter }, {})).to.be.rejectedWith(StorageServerError);
         assert.equal(wrongPopAPI.isDone(), true, 'Nock scope is done');
       });
     });

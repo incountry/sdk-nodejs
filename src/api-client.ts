@@ -18,13 +18,13 @@ import { DeleteResponseIO, DeleteResponse } from './validation/api/delete-respon
 import { FindFilter } from './validation/api/find-filter';
 import { FindOptions } from './validation/api/find-options';
 import { ApiRecordData } from './validation/api/api-record-data';
+import { RequestOptions } from './validation/request-options';
 
 const pjson = require('../package.json');
 
 const SDK_VERSION = pjson.version as string;
 
-type BasicRequestOptions<A> = { method: Method; data?: A; path?: string; headers?: {} }
-type RequestOptions = { headers?: {} };
+type BasicRequestOptions<A> = { method: Method; data?: A; path?: string };
 
 type EndpointData = {
   endpoint: string;
@@ -136,7 +136,7 @@ class ApiClient {
     return error;
   }
 
-  private async request<A, B>(countryCode: string, path: string, requestOptions: BasicRequestOptions<A>, codec: Codec<B>, loggingMeta: {}, retry = false): Promise<B> {
+  private async request<A, B>(countryCode: string, path: string, requestOptions: RequestOptions & BasicRequestOptions<A>, codec: Codec<B>, loggingMeta: {}, retry = false): Promise<B> {
     const { endpoint: url, audience, region } = await this.getEndpoint(countryCode, path, loggingMeta);
     const method = requestOptions.method.toUpperCase() as Method;
     const defaultHeaders = await this.headers(audience, region);
@@ -195,64 +195,63 @@ class ApiClient {
     return responseData.right;
   }
 
-  async read(countryCode: string, key: string, requestOptions = {}): Promise<ReadResponse> {
+  async read(countryCode: string, key: string, requestOptions: RequestOptions = {}): Promise<ReadResponse> {
     return this.request(
       countryCode,
       `v2/storage/records/${countryCode}/${key}`,
       { ...requestOptions, method: 'get' },
       ReadResponseIO,
-      { key, operation: 'read' },
+      { key, operation: 'read', ...requestOptions.meta },
       true,
     );
   }
 
-  write(countryCode: string, data: ApiRecordData, requestOptions = {}): Promise<WriteResponse> {
+  write(countryCode: string, data: ApiRecordData, requestOptions: RequestOptions = {}): Promise<WriteResponse> {
     return this.request(
       countryCode,
       `v2/storage/records/${countryCode}`,
       { ...requestOptions, method: 'post', data },
       WriteResponseIO,
-      { key: data.record_key, operation: 'write' },
+      { key: data.record_key, operation: 'write', ...requestOptions.meta },
       true,
     );
   }
 
-  delete(countryCode: string, key: string, requestOptions = {}, callLoggingMeta?: any): Promise<DeleteResponse> {
+  delete(countryCode: string, key: string, requestOptions: RequestOptions = {}): Promise<DeleteResponse> {
     return this.request(
       countryCode,
       `v2/storage/records/${countryCode}/${key}`,
       { ...requestOptions, method: 'delete' },
       DeleteResponseIO,
-      { key, operation: 'delete', callLoggingMeta },
+      { key, operation: 'delete', ...requestOptions.meta },
       true,
     );
   }
 
-  find(countryCode: string, data: { filter?: FindFilter; options?: FindOptions }, requestOptions = {}, callLoggingMeta?: any): Promise<FindResponse> {
+  find(countryCode: string, data: { filter?: FindFilter; options?: FindOptions }, requestOptions: RequestOptions = {}): Promise<FindResponse> {
     return this.request(
       countryCode,
       `v2/storage/records/${countryCode}/find`,
       { ...requestOptions, method: 'post', data },
       FindResponseIO,
-      { operation: 'find', callLoggingMeta },
+      { operation: 'find', ...requestOptions.meta },
       true,
     );
   }
 
-  batchWrite(countryCode: string, data: { records: ApiRecordData[] }, requestOptions = {}): Promise<BatchWriteResponse> {
+  batchWrite(countryCode: string, data: { records: ApiRecordData[] }, requestOptions: RequestOptions = {}): Promise<BatchWriteResponse> {
     return this.request(
       countryCode,
       `v2/storage/records/${countryCode}/batchWrite`,
       { ...requestOptions, method: 'post', data },
       BatchWriteResponseIO,
-      { operation: 'batchWrite', callLoggingMeta },
+      { operation: 'batchWrite', ...requestOptions.meta },
       true,
     );
   }
 }
 
 export {
-  RequestOptions,
   ApiClient,
   DEFAULT_HTTP_TIMEOUT,
 };
