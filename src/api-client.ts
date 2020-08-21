@@ -195,57 +195,57 @@ class ApiClient {
     return responseData.right;
   }
 
-  async read(countryCode: string, key: string, requestOptions: RequestOptions = {}): Promise<ReadResponse> {
+  async read(countryCode: string, key: string, { headers, meta }: RequestOptions = {}): Promise<ReadResponse> {
     return this.request(
       countryCode,
       `v2/storage/records/${countryCode}/${key}`,
-      { ...requestOptions, method: 'get' },
+      { headers, method: 'get' },
       ReadResponseIO,
-      { key, operation: 'read', ...requestOptions.meta },
+      { key, operation: 'read', ...meta },
       true,
     );
   }
 
-  write(countryCode: string, data: ApiRecordData, requestOptions: RequestOptions = {}): Promise<WriteResponse> {
+  write(countryCode: string, data: ApiRecordData, { headers, meta }: RequestOptions = {}): Promise<WriteResponse> {
     return this.request(
       countryCode,
       `v2/storage/records/${countryCode}`,
-      { ...requestOptions, method: 'post', data },
+      { headers, method: 'post', data },
       WriteResponseIO,
-      { key: data.record_key, operation: 'write', ...requestOptions.meta },
+      { key: data.record_key, operation: 'write', ...meta },
       true,
     );
   }
 
-  delete(countryCode: string, key: string, requestOptions: RequestOptions = {}): Promise<DeleteResponse> {
+  delete(countryCode: string, key: string, { headers, meta }: RequestOptions = {}): Promise<DeleteResponse> {
     return this.request(
       countryCode,
       `v2/storage/records/${countryCode}/${key}`,
-      { ...requestOptions, method: 'delete' },
+      { headers, method: 'delete' },
       DeleteResponseIO,
-      { key, operation: 'delete', ...requestOptions.meta },
+      { key, operation: 'delete', ...meta },
       true,
     );
   }
 
-  find(countryCode: string, data: { filter?: FindFilter; options?: FindOptions }, requestOptions: RequestOptions = {}): Promise<FindResponse> {
+  find(countryCode: string, data: { filter?: FindFilter; options?: FindOptions }, { headers, meta }: RequestOptions = {}): Promise<FindResponse> {
     return this.request(
       countryCode,
       `v2/storage/records/${countryCode}/find`,
-      { ...requestOptions, method: 'post', data },
+      { headers, method: 'post', data },
       FindResponseIO,
-      { operation: 'find', ...requestOptions.meta },
+      { operation: 'find', ...meta },
       true,
     );
   }
 
-  batchWrite(countryCode: string, data: { records: ApiRecordData[] }, requestOptions: RequestOptions = {}): Promise<BatchWriteResponse> {
+  batchWrite(countryCode: string, data: { records: ApiRecordData[] }, { headers, meta }: RequestOptions = {}): Promise<BatchWriteResponse> {
     return this.request(
       countryCode,
       `v2/storage/records/${countryCode}/batchWrite`,
-      { ...requestOptions, method: 'post', data },
+      { headers, method: 'post', data },
       BatchWriteResponseIO,
-      { operation: 'batchWrite', ...requestOptions.meta },
+      { operation: 'batchWrite', ...meta },
       true,
     );
   }
