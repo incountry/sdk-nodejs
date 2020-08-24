@@ -63,7 +63,7 @@ const getApiClient = (host?: string, cache?: CountriesCache, useApiKey = true, e
   const environmentId = 'string';
   const loggerFn = (level: string, message: string, meta?: any) => [level, message, meta];
   const authClient = useApiKey ? getApiKeyAuthClient(apiKey) : new OAuthClient('clientId', 'clientSecret');
-  const countryFn = cache ? cache.getCountries.bind(cache) : () => Promise.resolve([]);
+  const countryFn = cache ? cache.getCountries.bind(cache, undefined) : () => Promise.resolve([]);
 
   return new ApiClient(authClient, environmentId, host, loggerFn, countryFn, endpointMask);
 };
@@ -95,7 +95,7 @@ describe('ApiClient', () => {
 
     const expectCorrectURLReturned = async (apiClient: ApiClient, country: string, host: string, audience?: string, region?: string) => {
       const testPath = 'testPath';
-      const res = await apiClient.getEndpoint(country, testPath);
+      const res = await apiClient.getEndpoint(country, testPath, {});
       assert.equal(nockPB.isDone(), false, 'PB was not called');
       expect(res).to.be.an('object');
       expect(res).to.have.keys(['endpoint', 'audience', 'region']);
@@ -239,7 +239,7 @@ describe('ApiClient', () => {
         };
         const country = 'ae';
         const apiClient = getApiClient(undefined, failingCache);
-        await expect(apiClient.getEndpoint(country, 'testPath')).to.be.rejectedWith(StorageServerError, 'Unable to retrieve countries list: test');
+        await expect(apiClient.getEndpoint(country, 'testPath', {})).to.be.rejectedWith(StorageServerError, 'Unable to retrieve countries list: test');
         assert.equal(nockPB.isDone(), false, 'PB was not called');
       });
     });
@@ -257,7 +257,7 @@ describe('ApiClient', () => {
         const workingCache = new CountriesCache(countriesProviderEndpoint, 1000, Date.now() + 1000);
         const country = 'ae';
         const apiClient = getApiClient(undefined, workingCache);
-        await expect(apiClient.getEndpoint(country, 'testPath')).to.be.rejectedWith(StorageServerError, 'Unable to retrieve countries list: Request failed with status code 500');
+        await expect(apiClient.getEndpoint(country, 'testPath', {})).to.be.rejectedWith(StorageServerError, 'Unable to retrieve countries list: Request failed with status code 500');
         assert.equal(countriesProviderNock.isDone(), true, 'Countries provider was called');
       });
     });
@@ -311,7 +311,7 @@ describe('ApiClient', () => {
           data: [],
         };
         const wrongPopAPI = nockEndpoint(POPAPI_HOST, 'find', COUNTRY).reply(200, wrongFindResponse);
-        await expect(apiClient.find(COUNTRY, { filter })).to.be.rejectedWith(StorageServerError);
+        await expect(apiClient.find(COUNTRY, { filter }, {})).to.be.rejectedWith(StorageServerError);
         assert.equal(wrongPopAPI.isDone(), true, 'Nock scope is done');
       });
     });

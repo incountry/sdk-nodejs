@@ -18,13 +18,13 @@ import { DeleteResponseIO, DeleteResponse } from './validation/api/delete-respon
 import { FindFilter } from './validation/api/find-filter';
 import { FindOptions } from './validation/api/find-options';
 import { ApiRecordData } from './validation/api/api-record-data';
+import { RequestOptions } from './validation/request-options';
 
 const pjson = require('../package.json');
 
 const SDK_VERSION = pjson.version as string;
 
-type BasicRequestOptions<A> = { method: Method; data?: A; path?: string; headers?: {} }
-type RequestOptions = { headers?: {} };
+type BasicRequestOptions<A> = { method: Method; data?: A; path?: string };
 
 type EndpointData = {
   endpoint: string;
@@ -67,7 +67,7 @@ class ApiClient {
     readonly envId: string,
     readonly host: string | undefined,
     readonly loggerFn: (level: LogLevel, message: string, meta?: {}) => void,
-    readonly countriesProviderFn: () => Promise<Country[]>,
+    readonly countriesProviderFn: (loggingMeta: {}) => Promise<Country[]>,
     readonly endpointMask?: string,
     readonly httpTimeout = DEFAULT_HTTP_TIMEOUT,
   ) {
@@ -88,22 +88,22 @@ class ApiClient {
     return `https://${countryCode}${suffix}`;
   }
 
-  async findMidPOPCountry(countryCode: string): Promise<Country | undefined> {
+  async findMidPOPCountry(countryCode: string, loggingMeta: {}): Promise<Country | undefined> {
     const countryRegex = new RegExp(countryCode, 'i');
     let midpop;
     try {
-      const countriesList = await this.countriesProviderFn();
+      const countriesList = await this.countriesProviderFn(loggingMeta);
       midpop = countriesList.find((country) => countryRegex.test(country.id));
     } catch (err) {
       const popError = parsePoPError(err);
-      this.loggerFn('error', popError.errorMessage, err);
+      this.loggerFn('error', popError.errorMessage, { error: err, ...loggingMeta });
       throw new StorageServerError(`Unable to retrieve countries list: ${popError.errorMessage}`, popError.responseData, popError.code);
     }
 
     return midpop;
   }
 
-  async getEndpoint(countryCode: string, path: string): Promise<EndpointData> {
+  async getEndpoint(countryCode: string, path: string, loggingMeta: {}): Promise<EndpointData> {
     let host;
     let audience;
     let region = 'EMEA';
@@ -115,7 +115,7 @@ class ApiClient {
         audience = `${host} ${countryHost}`;
       }
     } else {
-      const midpop = await this.findMidPOPCountry(countryCode);
+      const midpop = await this.findMidPOPCountry(countryCode, loggingMeta);
       if (midpop) {
         host = countryHost;
         audience = host;
@@ -129,15 +129,15 @@ class ApiClient {
     return { endpoint: `${host}/${path}`, audience, region };
   }
 
-  prepareValidationError(validationFailedResult: Left<t.Errors>): StorageServerError {
+  prepareValidationError(validationFailedResult: Left<t.Errors>, loggingMeta: {}): StorageServerError {
     const validationErrorMessage = getErrorMessage(validationFailedResult);
     const error = new StorageServerError(`Response Validation Error: ${validationErrorMessage}`, validationFailedResult);
-    this.loggerFn('error', error.message);
+    this.loggerFn('error', error.message, loggingMeta);
     return error;
   }
 
-  private async request<A, B>(countryCode: string, path: string, requestOptions: BasicRequestOptions<A>, codec: Codec<B>, loggingMeta: {}, retry = false): Promise<B> {
-    const { endpoint: url, audience, region } = await this.getEndpoint(countryCode, path);
+  private async request<A, B>(countryCode: string, path: string, requestOptions: RequestOptions & BasicRequestOptions<A>, codec: Codec<B>, loggingMeta: {}, retry = false): Promise<B> {
+    const { endpoint: url, audience, region } = await this.getEndpoint(countryCode, path, loggingMeta);
     const method = requestOptions.method.toUpperCase() as Method;
     const defaultHeaders = await this.headers(audience, region);
     const headers = {
@@ -189,70 +189,69 @@ class ApiClient {
 
     const responseData = codec.decode(response.data);
     if (isInvalid(responseData)) {
-      throw this.prepareValidationError(responseData);
+      throw this.prepareValidationError(responseData, loggingMeta);
     }
 
     return responseData.right;
   }
 
-  async read(countryCode: string, key: string, requestOptions = {}): Promise<ReadResponse> {
+  async read(countryCode: string, key: string, { headers, meta }: RequestOptions = {}): Promise<ReadResponse> {
     return this.request(
       countryCode,
       `v2/storage/records/${countryCode}/${key}`,
-      { ...requestOptions, method: 'get' },
+      { headers, method: 'get' },
       ReadResponseIO,
-      { key, operation: 'read' },
+      { key, operation: 'read', ...meta },
       true,
     );
   }
 
-  write(countryCode: string, data: ApiRecordData, requestOptions = {}): Promise<WriteResponse> {
+  write(countryCode: string, data: ApiRecordData, { headers, meta }: RequestOptions = {}): Promise<WriteResponse> {
     return this.request(
       countryCode,
       `v2/storage/records/${countryCode}`,
-      { ...requestOptions, method: 'post', data },
+      { headers, method: 'post', data },
       WriteResponseIO,
-      { key: data.record_key, operation: 'write' },
+      { key: data.record_key, operation: 'write', ...meta },
       true,
     );
   }
 
-  delete(countryCode: string, key: string, requestOptions = {}): Promise<DeleteResponse> {
+  delete(countryCode: string, key: string, { headers, meta }: RequestOptions = {}): Promise<DeleteResponse> {
     return this.request(
       countryCode,
       `v2/storage/records/${countryCode}/${key}`,
-      { ...requestOptions, method: 'delete' },
+      { headers, method: 'delete' },
       DeleteResponseIO,
-      { key, operation: 'delete' },
+      { key, operation: 'delete', ...meta },
       true,
     );
   }
 
-  find(countryCode: string, data: { filter?: FindFilter; options?: FindOptions }, requestOptions = {}): Promise<FindResponse> {
+  find(countryCode: string, data: { filter?: FindFilter; options?: FindOptions }, { headers, meta }: RequestOptions = {}): Promise<FindResponse> {
     return this.request(
       countryCode,
       `v2/storage/records/${countryCode}/find`,
-      { ...requestOptions, method: 'post', data },
+      { headers, method: 'post', data },
       FindResponseIO,
-      { operation: 'find' },
+      { operation: 'find', ...meta },
       true,
     );
   }
 
-  batchWrite(countryCode: string, data: { records: ApiRecordData[] }, requestOptions = {}): Promise<BatchWriteResponse> {
+  batchWrite(countryCode: string, data: { records: ApiRecordData[] }, { headers, meta }: RequestOptions = {}): Promise<BatchWriteResponse> {
     return this.request(
       countryCode,
       `v2/storage/records/${countryCode}/batchWrite`,
-      { ...requestOptions, method: 'post', data },
+      { headers, method: 'post', data },
       BatchWriteResponseIO,
-      { operation: 'batchWrite' },
+      { operation: 'batchWrite', ...meta },
       true,
     );
   }
 }
 
 export {
-  RequestOptions,
   ApiClient,
   DEFAULT_HTTP_TIMEOUT,
 };

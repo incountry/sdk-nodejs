@@ -27,17 +27,17 @@ class CountriesCache {
     this.logger = logger !== undefined ? logger : defaultLogger.withBaseLogLevel('error');
   }
 
-  async getCountries(timeStamp?: number): Promise<Array<Country>> {
+  async getCountries(timeStamp?: number, loggingMeta?: {}): Promise<Array<Country>> {
     const now = typeof timeStamp === 'number' ? timeStamp : Date.now();
     if (!this.hasFetched || now >= this.expiresOn) {
-      await this.updateCountries();
+      await this.updateCountries(loggingMeta);
       this.expiresOn = now + this.timeout;
     }
 
     return this.countries;
   }
 
-  private async updateCountries(): Promise<void> {
+  private async updateCountries(loggingMeta?: {}): Promise<void> {
     try {
       const response = await axios.get(this.endpoint);
       if (response.data) {
@@ -47,7 +47,7 @@ class CountriesCache {
       }
       this.hasFetched = true;
     } catch (exc) {
-      this.logger.write('error', exc.message || exc.code, exc);
+      this.logger.write('error', exc.message || exc.code, { error: exc, ...loggingMeta });
       throw (exc);
     }
   }

@@ -1,6 +1,6 @@
 import * as chai from 'chai';
 import chaiAsPromised from 'chai-as-promised';
-import { createStorage, COUNTRY } from './common';
+import { createStorage, COUNTRY, noop } from './common';
 import { Storage } from '../../src';
 
 chai.use(chaiAsPromised);
@@ -15,7 +15,7 @@ describe('Custom encryption', () => {
 
   afterEach(async () => {
     if (data && data.recordKey) {
-      await storage.delete(COUNTRY, data.recordKey);
+      await storage.delete(COUNTRY, data.recordKey).catch(noop);
     }
   });
 
