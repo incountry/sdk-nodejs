@@ -26,23 +26,23 @@ To access your data in InCountry using NodeJS SDK, you need to create an instanc
 
 ```typescript
 type StorageOptions = {
-  apiKey?: string;    // Required when using API key authorization, or as environment variable INC_API_KEY
-  environmentId?: string; // Required to be passed in, or as environment variable INC_ENVIRONMENT_ID
+  apiKey?: string;         // Required when using API key authorization, or as environment variable INC_API_KEY
+  environmentId?: string;  // Required to be passed in, or as environment variable INC_ENVIRONMENT_ID
 
   oauth?: {
-    clientId?: string; // Required when using oAuth authorization, can be also set via environment variable INC_CLIENT_ID
+    clientId?: string;     // Required when using oAuth authorization, can be also set via environment variable INC_CLIENT_ID
     clientSecret?: string; // Required when using oAuth authorization, can be also set via environment variable INC_CLIENT_SECRET
-    authEndpoints?: { // Custom endpoints regional map to use for fetching oAuth tokens
+    authEndpoints?: {      // Custom endpoints regional map to use for fetching oAuth tokens
       default: string;
       [key: string]: string;
     };
   };
 
-  endpoint?: string; // Defines API URL
-  encrypt?: boolean; // If false, encryption is not used. If omitted is set to true.
+  endpoint?: string;       // Defines API URL
+  encrypt?: boolean;       // If false, encryption is not used. If omitted is set to true.
 
   logger?: Logger;
-  getSecrets?: Function; // Used to fetch encryption secret
+  getSecrets?: Function;   // Used to fetch encryption secret
   normalizeKeys?: boolean;
   countriesCache?: CountriesCache;
 
@@ -292,11 +292,11 @@ Here is how data is transformed and stored in InCountry database:
 ```typescript
 {
   recordKey,          // hashed
-  body,         // encrypted
-  profileKey,  // hashed
-  rangeKey1,    // plain
-  key2,         // hashed
-  key3          // hashed
+  body,               // encrypted
+  profileKey,         // hashed
+  rangeKey1,          // plain
+  key2,               // hashed
+  key3                // hashed
 }
 ```
 
