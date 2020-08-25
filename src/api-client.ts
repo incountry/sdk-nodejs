@@ -195,13 +195,13 @@ class ApiClient {
     return responseData.right;
   }
 
-  async read(countryCode: string, key: string, { headers, meta }: RequestOptions = {}): Promise<ReadResponse> {
+  async read(countryCode: string, recordKey: string, { headers, meta }: RequestOptions = {}): Promise<ReadResponse> {
     return this.request(
       countryCode,
-      `v2/storage/records/${countryCode}/${key}`,
+      `v2/storage/records/${countryCode}/${recordKey}`,
       { headers, method: 'get' },
       ReadResponseIO,
-      { key, operation: 'read', ...meta },
+      { key: recordKey, operation: 'read', ...meta },
       true,
     );
   }
@@ -217,13 +217,13 @@ class ApiClient {
     );
   }
 
-  delete(countryCode: string, key: string, { headers, meta }: RequestOptions = {}): Promise<DeleteResponse> {
+  delete(countryCode: string, recordKey: string, { headers, meta }: RequestOptions = {}): Promise<DeleteResponse> {
     return this.request(
       countryCode,
-      `v2/storage/records/${countryCode}/${key}`,
+      `v2/storage/records/${countryCode}/${recordKey}`,
       { headers, method: 'delete' },
       DeleteResponseIO,
-      { key, operation: 'delete', ...meta },
+      { key: recordKey, operation: 'delete', ...meta },
       true,
     );
   }
