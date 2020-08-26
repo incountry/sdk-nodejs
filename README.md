@@ -235,12 +235,8 @@ const storage = await createStorage({
 
 Use `write` method in order to create/replace (by `recordKey`) a record.
 
-#### List of available record fields
-v3.0.0 release introduced a series of new fields available for storage. Below is an exhaustive list of fields available for storage in InCountry along with their types and  storage methods - each field is either encrypted, hashed or stored as is:
-
 ```typescript
 type StorageRecordData = {
-   // String fields, hashed
   recordKey: string;
   profileKey?: string | null;
   key1?: string | null;
@@ -255,12 +251,8 @@ type StorageRecordData = {
   key10?: string | null;
   serviceKey1?: string | null;
   serviceKey2?: string | null;
-
-   // String fields, encrypted
   body?: string | null;
   precommitBody?: string | null;
-
-  // Int fields, plain
   rangeKey1?: t.Int | null;
   rangeKey2?: t.Int | null;
   rangeKey3?: t.Int | null;
@@ -289,7 +281,7 @@ async write(
 Below is the example of how you may use `write` method:
 
 ```typescript
-const record = {
+const recordData = {
   recordKey: '<key>',
   body: '<body>',
   profileKey: '<profile_key>',
@@ -298,23 +290,49 @@ const record = {
   key3: '<key3>'
 }
 
-const writeResult = await storage.write(country, record);
+const writeResult = await storage.write(countryCode, recordData);
 ```
 
 #### Encryption
 
 InCountry uses client-side encryption for your data. Note that only body is encrypted. Some of other fields are hashed.
-Here is how data is transformed and stored in InCountry database:
+
+#### List of available record fields
+v3.0.0 release introduced a series of new fields available for storage. Below is an exhaustive list of fields available for storage in InCountry along with their types and  storage methods - each field is either encrypted, hashed or stored as is:
+
 
 ```typescript
-{
-  recordKey,          // hashed
-  body,               // encrypted
-  profileKey,         // hashed
-  rangeKey1,          // plain
-  key2,               // hashed
-  key3                // hashed
-}
+// String fields, hashed:
+recordKey
+key1
+key2
+key3
+key4
+key5
+key6
+key7
+key8
+key9
+key10
+profileKey
+serviceKey1
+serviceKey2
+
+// String fields, encrypted:
+body
+precommitBody
+
+// Int fields, plain:
+rangeKey1
+rangeKey2
+rangeKey3
+rangeKey4
+rangeKey5
+rangeKey6
+rangeKey7
+rangeKey8
+rangeKey9
+rangeKey10
 ```
 
 #### Batches
@@ -337,13 +355,13 @@ async batchWrite(
 
 Example of usage:
 ```typescript
-batchResult = await storage.batchWrite(country, records);
+batchResult = await storage.batchWrite(countryCode, recordDataArr);
 ```
 
 ### Reading stored data
 
 Stored record can be read by `recordKey` using `read` method. It accepts an object with two fields: `country` and `recordKey`.
-It returns a `Promise` which resolves to `{ record }`  or  rejects Promise if there is no record with this `recordKey`.
+It returns a `Promise` which resolves to `{ record }` or is rejected if there are no records for the given `recordKey`.
 
 #### Created and updated dates fields
 
@@ -396,7 +414,7 @@ async read(
 
 Example of usage:
 ```javascript
-const readResult = await storage.read(country, recordKey);
+const readResult = await storage.read(countryCode, recordKey);
 ```
 
 ### Find records
@@ -471,7 +489,7 @@ const options = {
   offset: 0,
 };
 
-const findResult = await storage.find(country, filter, options);
+const findResult = await storage.find(countryCode, filter, options);
 ```
 
 And the return object `findResult` looks like the following:
@@ -524,7 +542,7 @@ async findOne(
 
 Example of usage:
 ```typescript
-const findOneResult = await storage.findOne(country, filter);
+const findOneResult = await storage.findOne(countryCode, filter);
 ```
 
 ### Delete records
@@ -546,7 +564,7 @@ async delete(
 
 Example of usage:
 ```typescript
-const deleteResult = await storage.delete(country, recordKey);
+const deleteResult = await storage.delete(countryCode, recordKey);
 ```
 
 ## Data Migration and Key Rotation support
@@ -578,7 +596,7 @@ async migrate(
 
 Example of usage:
 ```typescript
-const migrateResult = await storage.migrate(country, limit);
+const migrateResult = await storage.migrate(countryCode);
 ```
 
 
@@ -642,13 +660,8 @@ Here's an example of how you can set up SDK to use custom encryption (using XXTE
 
 ```typescript
 const xxtea = require('xxtea');
-const encrypt = function(text, secret) {
-  return xxtea.encrypt(text, secret);
-};
-
-const decrypt = function(encryptedText, secret) {
-  return xxtea.decrypt(encryptedText, secret);
-};
+const encrypt = (text, secret) => xxtea.encrypt(text, secret);
+const decrypt = (encryptedText, secret) => xxtea.decrypt(encryptedText, secret);
 
 const config = {
   encrypt,
@@ -673,7 +686,6 @@ const getSecretsCallback = () => {
 const options = {
   apiKey: 'API_KEY',
   environmentId: 'ENVIRONMENT_ID',
-  encrypt: true,
   getSecrets: getSecretsCallback,
 }};
 

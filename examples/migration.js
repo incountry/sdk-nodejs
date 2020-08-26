@@ -1,8 +1,9 @@
 const { createStorage } = require('incountry');
 
-const COUNTRY = 'us';
+const COUNTRY_CODE = 'us';
 const API_KEY = 'API_KEY';
 const ENVIRONMENT_ID = 'ENVIRONMENT_ID';
+const LIMIT = 50;
 
 const getSecrets = () => ({
   currentVersion: 1,
@@ -16,13 +17,12 @@ async function migrate() {
   const storage = await createStorage({
     apiKey: API_KEY,
     environmentId: ENVIRONMENT_ID,
-    encrypt: true,
     getSecrets,
   });
 
   let migrationComplete = false;
   while (!migrationComplete) {
-    const res = await storage.migrate(COUNTRY, 50);
+    const res = await storage.migrate(COUNTRY_CODE, LIMIT);
     if (res.totalLeft === 0) {
       migrationComplete = true;
     } else {
