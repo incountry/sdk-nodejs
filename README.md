@@ -39,7 +39,7 @@ type StorageOptions = {
   };
 
   endpoint?: string;       // Defines API URL
-  encrypt?: boolean;       // If false, encryption is not used. If omitted is set to true.
+  encrypt?: boolean;       // If false, encryption is not used. Defaults to true.
 
   logger?: Logger;
   getSecrets?: Function;   // Used to fetch encryption secret
