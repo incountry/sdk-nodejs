@@ -235,6 +235,44 @@ const storage = await createStorage({
 
 Use `write` method in order to create/replace (by `recordKey`) a record.
 
+#### List of available record fields
+v3.0.0 release introduced a series of new fields available for storage. Below is an exhaustive list of fields available for storage in InCountry along with their types and  storage methods - each field is either encrypted, hashed or stored as is:
+
+
+```typescript
+// String fields, hashed:
+recordKey
+key1
+key2
+key3
+key4
+key5
+key6
+key7
+key8
+key9
+key10
+profileKey
+serviceKey1
+serviceKey2
+
+// String fields, encrypted:
+body
+precommitBody
+
+// Int fields, plain:
+rangeKey1
+rangeKey2
+rangeKey3
+rangeKey4
+rangeKey5
+rangeKey6
+rangeKey7
+rangeKey8
+rangeKey9
+rangeKey10
+```
+
 ```typescript
 type StorageRecordData = {
   recordKey: string;
@@ -291,48 +329,6 @@ const recordData = {
 }
 
 const writeResult = await storage.write(countryCode, recordData);
-```
-
-#### Encryption
-
-InCountry uses client-side encryption for your data. Note that only body is encrypted. Some of other fields are hashed.
-
-#### List of available record fields
-v3.0.0 release introduced a series of new fields available for storage. Below is an exhaustive list of fields available for storage in InCountry along with their types and  storage methods - each field is either encrypted, hashed or stored as is:
-
-
-```typescript
-// String fields, hashed:
-recordKey
-key1
-key2
-key3
-key4
-key5
-key6
-key7
-key8
-key9
-key10
-profileKey
-serviceKey1
-serviceKey2
-
-// String fields, encrypted:
-body
-precommitBody
-
-// Int fields, plain:
-rangeKey1
-rangeKey2
-rangeKey3
-rangeKey4
-rangeKey5
-rangeKey6
-rangeKey7
-rangeKey8
-rangeKey9
-rangeKey10
 ```
 
 #### Batches
