@@ -64,7 +64,10 @@ type StorageOptions = {
   };
 };
 
-async function createStorage(options: StorageOptions, customEncryptionConfigs?: CustomEncryptionConfig[]): Promise<Storage> {
+async function createStorage(
+  options: StorageOptions,
+  customEncryptionConfigs?: CustomEncryptionConfig[]
+): Promise<Storage> {
   /* ... */
 }
 
@@ -75,7 +78,9 @@ const storage = await createStorage({
   oauth: {
     clientId: '',
     clientSecret: '',
-    authEndpoints: '',
+    authEndpoints: {
+      default: 'https://auth',
+    },
   },
   endpoint: 'INC_URL',
   encrypt: true,
@@ -83,7 +88,7 @@ const storage = await createStorage({
   endpointMask: '',
   countriesEndpoint: '',
   httpOptions: {
-    timeout: 1000,
+    timeout: 5000,
   },
 });
 ```
@@ -230,12 +235,14 @@ const storage = await createStorage({
 
 Use `write` method in order to create/replace (by `recordKey`) a record.
 
+#### List of available record fields
+v3.0.0 release introduced a series of new fields available for storage. Below is an exhaustive list of fields available for storage in InCountry along with their types and  storage methods - each field is either encrypted, hashed or stored as is:
+
 ```typescript
 type StorageRecordData = {
+   // String fields, hashed
   recordKey: string;
-  body?: string | null;
   profileKey?: string | null;
-  precommitBody?: string | null;
   key1?: string | null;
   key2?: string | null;
   key3?: string | null;
@@ -248,6 +255,12 @@ type StorageRecordData = {
   key10?: string | null;
   serviceKey1?: string | null;
   serviceKey2?: string | null;
+
+   // String fields, encrypted
+  body?: string | null;
+  precommitBody?: string | null;
+
+  // Int fields, plain
   rangeKey1?: t.Int | null;
   rangeKey2?: t.Int | null;
   rangeKey3?: t.Int | null;
@@ -264,7 +277,11 @@ type WriteResult = {
   record: StorageRecordData;
 };
 
-countryCode: string, recordData: StorageRecordData, requestOptions: RequestOptions = {}): Promise<WriteResult> {
+async write(
+  countryCode: string,
+  recordData: StorageRecordData,
+  requestOptions: RequestOptions = {},
+): Promise<WriteResult> {
   /* ... */
 }
 ```
@@ -309,7 +326,11 @@ type BatchWriteResult = {
   records: Array<StorageRecordData>;
 };
 
-async batchWrite(countryCode: string, records: Array<StorageRecordData>, requestOptions: RequestOptions = {}): Promise<BatchWriteResult> {
+async batchWrite(
+  countryCode: string,
+  records: Array<StorageRecordData>,
+  requestOptions: RequestOptions = {},
+): Promise<BatchWriteResult> {
   /* ... */
 }
 ```
@@ -323,6 +344,10 @@ batchResult = await storage.batchWrite(country, records);
 
 Stored record can be read by `recordKey` using `read` method. It accepts an object with two fields: `country` and `recordKey`.
 It returns a `Promise` which resolves to `{ record }`  or  rejects Promise if there is no record with this `recordKey`.
+
+#### Created and updated dates fields
+
+Fields `createdAt` and `updatedAt` store dates set by Incountry storage server. `createdAt` indicates when the data was first time processed in the target country. `updatedAt` indicates when last write operation finished.
 
 ```typescript
 type StorageRecord = {
@@ -360,7 +385,11 @@ type ReadResult = {
   record: StorageRecord;
 };
 
-async read(countryCode: string, recordKey: string, requestOptions: RequestOptions = {}): Promise<ReadResult> {
+async read(
+  countryCode: string,
+  recordKey: string,
+  requestOptions: RequestOptions = {},
+): Promise<ReadResult> {
   /* ... */
 }
 ```
@@ -417,7 +446,12 @@ type FindResult = {
   errors?: Array<{ error: StorageCryptoError; rawData: ApiRecord }>;
 };
 
-find(countryCode: string, filter: FindFilter = {}, options: FindOptions = {}, requestOptions: RequestOptions = {}): Promise<FindResult> {
+async find(
+  countryCode: string,
+  filter: FindFilter = {},
+  options: FindOptions = {},
+  requestOptions: RequestOptions = {},
+): Promise<FindResult> {
   /* ... */
 }
 ```
@@ -478,7 +512,12 @@ type FindOneResult = {
   record: StorageRecord | null;
 };
 
-async findOne(countryCode: string, filter: FindFilter = {}, options: FindOptions = {}, requestOptions: RequestOptions = {}): Promise<FindOneResult> {
+async findOne(
+  countryCode: string,
+  filter: FindFilter = {},
+  options: FindOptions = {},
+  requestOptions: RequestOptions = {},
+): Promise<FindOneResult> {
   /* ... */
 }
 ```
@@ -496,7 +535,11 @@ type DeleteResult = {
   success: true;
 };
 
-async delete(countryCode: string, recordKey: string, requestOptions: RequestOptions = {}): Promise<DeleteResult> {
+async delete(
+  countryCode: string,
+  recordKey: string,
+  requestOptions: RequestOptions = {},
+): Promise<DeleteResult> {
   /* ... */
 }
 ```
@@ -523,7 +566,12 @@ type MigrateResult = {
   };
 };
 
-async migrate(countryCode: string, limit = FIND_LIMIT, _findFilter: FindFilter = {}, requestOptions: RequestOptions = {}): Promise<MigrateResult> {
+async migrate(
+  countryCode: string,
+  limit = FIND_LIMIT,
+  findFilter: FindFilter = {},
+  requestOptions: RequestOptions = {},
+): Promise<MigrateResult> {
   /* ... */
 }
 ```
