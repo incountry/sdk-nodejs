@@ -93,7 +93,7 @@ const storage = await createStorage({
 });
 ```
 
-`apiKey`, `oauth.clientId`, `oauth.clientSecret` and `environmentId` can be fetched from your dashboard on `Incountry` site.
+`apiKey`, `oauth.clientId`, `oauth.clientSecret` and `environmentId` can be fetched from your dashboard on InCountry site.
 
 
 Otherwise you can create an instance of `Storage` class and run all async checks by yourself (or not run at your own risk!)
@@ -361,7 +361,7 @@ It returns a `Promise` which resolves to `{ record }` or is rejected if there ar
 
 #### Created and updated dates fields
 
-Fields `createdAt` and `updatedAt` store dates set by Incountry storage server. `createdAt` indicates when the data was first time processed in the target country. `updatedAt` indicates when last write operation finished.
+Fields `createdAt` and `updatedAt` store dates set by InCountry storage server. `createdAt` indicates when the data was first time processed in the target country. `updatedAt` indicates when last write operation finished.
 
 ```typescript
 type StorageRecord = {
