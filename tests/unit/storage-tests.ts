@@ -31,12 +31,13 @@ import { ApiRecord } from '../../src/validation/api/api-record';
 import { FindResponse } from '../../src/validation/api/find-response';
 import { ApiRecordData } from '../../src/validation/api/api-record-data';
 import { filterFromStorageDataKeys } from '../../src/validation/api/find-filter';
-import { noop } from '../integration/common';
 import { INVALID_REQUEST_OPTIONS, VALID_REQUEST_OPTIONS } from './validation/request-options';
 
 chai.use(chaiAsPromised);
 chai.use(sinonChai);
 const { expect, assert } = chai;
+
+const noop = () => {};
 
 const COUNTRY = 'us';
 const SECRET_KEY = 'password';
