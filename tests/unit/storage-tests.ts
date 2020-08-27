@@ -330,7 +330,7 @@ describe('Storage', () => {
           });
 
           it('should be provided via either options or environment variable', async () => {
-            await Promise.all([{ }, { apiKey: undefined }].map(async (options) => {
+            await Promise.all([{}, { apiKey: undefined }].map(async (options) => {
               await expect(createStorage(options))
                 .to.be.rejectedWith(StorageError, 'Please pass apiKey in options or set INC_API_KEY env var');
             }));
