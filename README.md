@@ -419,9 +419,25 @@ It is possible to search by random keys using `find` method.
 
 You can specify filter object for every record key combining different queries:
 - single value
-- several values as an array
-- a logical NOT operator for `version`
-- comparison operators for `range_key1`
+```typescript
+{ key1: 'abc' }
+```
+
+- multiple values as an array
+```typescript
+{ key2: ['def', 'jkl'] }
+```
+
+- a logical NOT operator
+```typescript
+{ key3: { $not: 'abc' } }
+{ key3: { $not: ['abc', 'def'] } }
+```
+
+- comparison operators for `rangeKey1...rangeKey10`
+```typescript
+{ rangeKey1: { $gte: 5, $lte: 100 } }
+```
 
 The `options` parameter defines the `limit` - number of records to return and the `offset`- starting index.
 It can be used to implement pagination. Note: SDK returns 100 records at most.
