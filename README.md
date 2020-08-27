@@ -359,9 +359,9 @@ batchResult = await storage.batchWrite(countryCode, recordDataArr);
 Stored record can be read by `recordKey` using `read` method. It accepts an object with two fields: `country` and `recordKey`.
 It returns a `Promise` which resolves to `{ record }` or is rejected if there are no records for the given `recordKey`.
 
-#### Created and updated dates fields
+#### Date fields
 
-Fields `createdAt` and `updatedAt` store dates set by InCountry storage server. `createdAt` indicates when the data was first time processed in the target country. `updatedAt` indicates when last write operation finished.
+Use `createdAt` and `updatedAt` fields to access date-related information about records. `createdAt` indicates date when the record was initially created in the target country. `updatedAt` shows the date of the latest write operation for the given `recordKey`.
 
 ```typescript
 type StorageRecord = {
