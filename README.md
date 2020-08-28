@@ -239,8 +239,8 @@ Use `write` method in order to create/replace (by `recordKey`) a record.
 v3.0.0 release introduced a series of new fields available for storage. Below is an exhaustive list of fields available for storage in InCountry along with their types and  storage methods - each field is either encrypted, hashed or stored as is:
 
 
+##### String fields, hashed:
 ```typescript
-// String fields, hashed:
 recordKey
 key1
 key2
@@ -255,12 +255,16 @@ key10
 profileKey
 serviceKey1
 serviceKey2
+```
 
-// String fields, encrypted:
+##### String fields, encrypted:
+```typescript
 body
 precommitBody
+```
 
-// Int fields, plain:
+##### Int fields, plain:
+```typescript
 rangeKey1
 rangeKey2
 rangeKey3
@@ -419,9 +423,26 @@ It is possible to search by random keys using `find` method.
 
 You can specify filter object for every record key combining different queries:
 - single value
-- several values as an array
-- a logical NOT operator for `version`
-- comparison operators for `range_key1`
+```typescript
+{ key1: 'abc', rangeKey1: 1 }
+```
+
+- multiple values as an array
+```typescript
+{ key2: ['def', 'jkl'], rangeKey1: [1, 2] }
+```
+
+- a logical NOT operator for [String fields](#string-fields-hashed) and `version`
+```typescript
+{ key3: { $not: 'abc' } }
+{ key3: { $not: ['abc', 'def'] } }
+{ version: { $not: 1 }}
+```
+
+- comparison operators for [Int fields](#int-fields-plain)
+```typescript
+{ rangeKey1: { $gte: 5, $lte: 100 } }
+```
 
 The `options` parameter defines the `limit` - number of records to return and the `offset`- starting index.
 It can be used to implement pagination. Note: SDK returns 100 records at most.
