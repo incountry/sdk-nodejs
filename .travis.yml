@@ -2,53 +2,46 @@ addons:
   sonarcloud:
     organization: "incountry"
 
-git:
-  depth: false
-
 language: node_js
-node_js:
-  - 11
+node_js: 12.16
 
 jobs:
   include:
-    - stage: tests
-      name: "ESLint validation"
+    - stage: build
+      name: "Build the code, scan with Snyk, run all tests & linters"
+      before_install:
+        # Install Sonar-scanner
+        - wget -q https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-${SONARSCANNER_VERSION}-linux.zip
+        - unzip -q sonar-scanner-cli-${SONARSCANNER_VERSION}-linux.zip -d /home/travis/bin
+        # We need the target branch to be present in order to allow Sonar properly build the test coverage difference bw current branch and target branch
+        - if [ "$TRAVIS_PULL_REQUEST" != "false" ]; then git fetch --no-tags https://github.com/${TRAVIS_PULL_REQUEST_SLUG}.git +refs/heads/${TRAVIS_BRANCH}:refs/remotes/origin/${TRAVIS_BRANCH}; fi
       script:
-        - npm run validate-eslint
-    - stage: tests
-      name: "Unit tests"
+        # Print debug information
+        - echo "Building for branch=$TRAVIS_BRANCH, PR=${TRAVIS_PULL_REQUEST} ..."; env | grep "COMMIT\|PULL\|BRANCH"
+        # Perform the build
+        - ./travis-build.sh
+    - stage: build
+      name: "Run integration tests"
       script:
-        - if [[ ($TRAVIS_BRANCH == "master") && ($TRAVIS_EVENT_TYPE == "cron") ]]; then snyk monitor --org=incountry; fi
-        - npm run test
-        - if [ "$TRAVIS_PULL_REQUEST" != "false" ]; then sonar-scanner; fi
-    - stage: tests
-      name: "Integration test"
-      before_script:
+        # Print debug information
+        - echo "Building for branch=$TRAVIS_BRANCH, PR=${TRAVIS_PULL_REQUEST} ..."; env | grep "COMMIT\|PULL\|BRANCH"
+        # Prepare envvars for integration tests
         - |
-            if [[ $TRAVIS_BRANCH == "master" ]]; then
-              export ENV=PRD
-            elif [[ $TRAVIS_BRANCH == "develop" ]]; then
-              export ENV=QA;
-            elif [[ $TRAVIS_BRANCH =~ ^RC_.*$ ]]; then
-              export ENV=STG;
-            else
-              export ENV=QA
-            fi
-        - echo $ENV
+          if [[ $TRAVIS_BRANCH == "master" ]]; then export ENV=PRD;
+          elif [[ $TRAVIS_BRANCH == "develop" ]]; then export ENV=QA;
+          elif [[ $TRAVIS_BRANCH =~ ^RC_.*$ ]]; then export ENV=STG;
+          else export ENV=QA; fi
+        - echo "ENV=${ENV}"
         - envsubst < .env.template > .env.value
         - envsubst < .env.value > .env
-      script:        
-        - npm run integrations
-      after_script:
-        - rm -f .env.value
-        - rm -f .env
-
-    - stage: install
-      name: "Build"
-      script:
+        # Perform the integration tests
         - npm install
-        - if [[ ($TRAVIS_BRANCH == "master") && ($TRAVIS_EVENT_TYPE == "cron") ]]; then npm install -g snyk; fi
+        - npm run integrations
 
 stages:
-  - name: install
-  - name: tests
+  - name: build
+
+env:
+  global:
+    - APP_NAME=sdk-nodejs
+    - SONARSCANNER_VERSION=4.3.0.2102
