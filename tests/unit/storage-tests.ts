@@ -651,7 +651,7 @@ describe('Storage', () => {
         const wrongCountriesCaches = [null, undefined, false, {}];
         wrongCountriesCaches.forEach((item) => {
           // @ts-ignore
-          expect(() => storage.setCountriesCache(item)).to.throw(StorageError, 'You must pass an instance of CountriesCache');
+          expect(() => storage.setCountriesCache(item)).to.throw(StorageError, 'You must pass an instance of CountriesCache blah');
         });
         expect(() => storage.setCountriesCache(new CountriesCache())).not.to.throw();
       });

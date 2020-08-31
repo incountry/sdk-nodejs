@@ -193,7 +193,7 @@ class Storage {
 
   setCountriesCache(countriesCache: CountriesCache): void {
     if (!(countriesCache instanceof CountriesCache)) {
-      throw new StorageClientError('You must pass an instance of CountriesCache');
+      throw new StorageClientError('You must pass an instance of CountriesCache blah');
     }
     this.countriesCache = countriesCache;
   }
