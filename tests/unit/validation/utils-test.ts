@@ -16,7 +16,6 @@ import {
 
 chai.use(chaiAsPromised);
 const { expect, assert } = chai;
-// const { expect } = chai;
 
 describe('Validation Utils', () => {
   describe('toStorageClientError', () => {
