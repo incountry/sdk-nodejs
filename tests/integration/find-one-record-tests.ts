@@ -1,14 +1,11 @@
 import * as chai from 'chai';
 import chaiAsPromised from 'chai-as-promised';
 import { createStorage, COUNTRY, noop } from './common';
-import { StorageServerError } from '../../src/errors';
 import { Storage } from '../../src';
 import { Int } from '../../src/validation/utils';
 
 chai.use(chaiAsPromised);
 const { expect, assert } = chai;
-
-const ANOTHER_COUNTRY = COUNTRY === 'us' ? 'se' : 'us';
 
 let storage: Storage;
 
@@ -104,10 +101,6 @@ describe('Find one record', () => {
       it('Record not found by incorrect recordKey', async () => {
         const { record } = await storage.findOne(COUNTRY, { recordKey: Math.random().toString(36).substr(2, 10) });
         expect(record).to.equal(null);
-      });
-
-      it('Record not found by country', async () => {
-        await expect(storage.findOne(ANOTHER_COUNTRY, {})).to.be.rejectedWith(StorageServerError);
       });
     });
   });
