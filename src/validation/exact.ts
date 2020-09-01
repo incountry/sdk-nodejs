@@ -5,7 +5,7 @@ const getExtraProps = (props: Record<string, any>, r: Record<string, any>): stri
 
 const exact = <P, A, >(codec: t.InterfaceType<P, A> | t.PartialType<P, A>): t.InterfaceType<P, A> => new t.InterfaceType(
   codec.name,
-  codec.is,
+  (u: unknown): u is A => codec.is(u) && getExtraProps(codec.props, u).length === 0,
   (i, c) => either.chain(t.UnknownRecord.validate(i, c), (r) => {
     const ex = getExtraProps(codec.props, r);
     return ex.length > 0

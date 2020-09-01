@@ -8,6 +8,8 @@ import { CountriesCache, Country } from '../../src/countries-cache';
 import { OAuthClient, getApiKeyAuthClient } from '../../src/auth-client';
 import { accessTokenResponse, nockDefaultAuth, nockDefaultAuthMultiple } from '../test-helpers/auth-nock';
 import { getNockedRequestHeaders, nockEndpoint } from '../test-helpers/popapi-nock';
+import { Int } from '../../src/validation/utils';
+import { apiRecordFromStorageRecord } from '../test-helpers/utils';
 
 chai.use(chaiAsPromised);
 const { expect, assert } = chai;
@@ -21,11 +23,33 @@ const REQUEST_TIMEOUT_ERROR = { code: 'ETIMEDOUT' };
 
 const EMPTY_RECORD = {
   body: '',
+  version: 0 as Int,
+  createdAt: new Date(),
+  updatedAt: new Date(),
+  precommitBody: null,
+  key1: null,
   key2: null,
   key3: null,
-  profile_key: null,
-  range_key: null,
-  version: 0,
+  key4: null,
+  key5: null,
+  key6: null,
+  key7: null,
+  key8: null,
+  key9: null,
+  key10: null,
+  serviceKey1: null,
+  serviceKey2: null,
+  profileKey: null,
+  rangeKey1: null,
+  rangeKey2: null,
+  rangeKey3: null,
+  rangeKey4: null,
+  rangeKey5: null,
+  rangeKey6: null,
+  rangeKey7: null,
+  rangeKey8: null,
+  rangeKey9: null,
+  rangeKey10: null,
 };
 
 function createFakeCountriesCache(countries: Country[]) {
@@ -39,7 +63,7 @@ const getApiClient = (host?: string, cache?: CountriesCache, useApiKey = true, e
   const environmentId = 'string';
   const loggerFn = (level: string, message: string, meta?: any) => [level, message, meta];
   const authClient = useApiKey ? getApiKeyAuthClient(apiKey) : new OAuthClient('clientId', 'clientSecret');
-  const countryFn = cache ? cache.getCountries.bind(cache) : () => Promise.resolve([]);
+  const countryFn = cache ? cache.getCountries.bind(cache, undefined) : () => Promise.resolve([]);
 
   return new ApiClient(authClient, environmentId, host, loggerFn, countryFn, endpointMask);
 };
@@ -71,7 +95,7 @@ describe('ApiClient', () => {
 
     const expectCorrectURLReturned = async (apiClient: ApiClient, country: string, host: string, audience?: string, region?: string) => {
       const testPath = 'testPath';
-      const res = await apiClient.getEndpoint(country, testPath);
+      const res = await apiClient.getEndpoint(country, testPath, {});
       assert.equal(nockPB.isDone(), false, 'PB was not called');
       expect(res).to.be.an('object');
       expect(res).to.have.keys(['endpoint', 'audience', 'region']);
@@ -215,7 +239,7 @@ describe('ApiClient', () => {
         };
         const country = 'ae';
         const apiClient = getApiClient(undefined, failingCache);
-        await expect(apiClient.getEndpoint(country, 'testPath')).to.be.rejectedWith(StorageServerError, 'Unable to retrieve countries list: test');
+        await expect(apiClient.getEndpoint(country, 'testPath', {})).to.be.rejectedWith(StorageServerError, 'Unable to retrieve countries list: test');
         assert.equal(nockPB.isDone(), false, 'PB was not called');
       });
     });
@@ -233,7 +257,7 @@ describe('ApiClient', () => {
         const workingCache = new CountriesCache(countriesProviderEndpoint, 1000, Date.now() + 1000);
         const country = 'ae';
         const apiClient = getApiClient(undefined, workingCache);
-        await expect(apiClient.getEndpoint(country, 'testPath')).to.be.rejectedWith(StorageServerError, 'Unable to retrieve countries list: Request failed with status code 500');
+        await expect(apiClient.getEndpoint(country, 'testPath', {})).to.be.rejectedWith(StorageServerError, 'Unable to retrieve countries list: Request failed with status code 500');
         assert.equal(countriesProviderNock.isDone(), true, 'Countries provider was called');
       });
     });
@@ -273,7 +297,7 @@ describe('ApiClient', () => {
       errorCases.forEach((errCase) => {
         it(`should throw StorageServerError ${errCase.name}`, async () => {
           const scope = errCase.respond(nockEndpoint(POPAPI_HOST, 'write', COUNTRY));
-          await expect(apiClient.write(COUNTRY, { key: '' })).to.be.rejectedWith(StorageServerError);
+          await expect(apiClient.write(COUNTRY, { record_key: '' })).to.be.rejectedWith(StorageServerError);
           assert.equal(scope.isDone(), true, 'Nock scope is done');
         });
       });
@@ -287,7 +311,7 @@ describe('ApiClient', () => {
           data: [],
         };
         const wrongPopAPI = nockEndpoint(POPAPI_HOST, 'find', COUNTRY).reply(200, wrongFindResponse);
-        await expect(apiClient.find(COUNTRY, { filter })).to.be.rejectedWith(StorageServerError);
+        await expect(apiClient.find(COUNTRY, { filter }, {})).to.be.rejectedWith(StorageServerError);
         assert.equal(wrongPopAPI.isDone(), true, 'Nock scope is done');
       });
     });
@@ -295,13 +319,13 @@ describe('ApiClient', () => {
     describe('methods', () => {
       describe('read', () => {
         it('should not throw error with correct data', async () => {
-          const key = '123';
-          const record = {
+          const recordKey = '123';
+          const record = apiRecordFromStorageRecord({
             ...EMPTY_RECORD,
-            key,
-          };
-          const popAPI = nockEndpoint(POPAPI_HOST, 'read', COUNTRY, key).reply(200, record);
-          const result = await apiClient.read(COUNTRY, key);
+            recordKey,
+          });
+          const popAPI = nockEndpoint(POPAPI_HOST, 'read', COUNTRY, recordKey).reply(200, record);
+          const result = await apiClient.read(COUNTRY, recordKey);
           await expect(result).to.deep.equal(record);
           assert.equal(popAPI.isDone(), true, 'Nock scope is done');
         });
@@ -309,10 +333,10 @@ describe('ApiClient', () => {
 
       describe('write', () => {
         it('should not throw error with correct data', async () => {
-          const key = '123';
+          const record_key = '123';
           const record = {
             ...EMPTY_RECORD,
-            key,
+            record_key,
           };
           const popAPI = nockEndpoint(POPAPI_HOST, 'write', COUNTRY).reply(200);
           await apiClient.write(COUNTRY, record);
@@ -346,10 +370,10 @@ describe('ApiClient', () => {
 
       describe('batchWrite', () => {
         it('should not throw error with correct data', async () => {
-          const key = '123';
+          const record_key = '123';
           const record = {
             ...EMPTY_RECORD,
-            key,
+            record_key,
           };
           const popAPI = nockEndpoint(POPAPI_HOST, 'batchWrite', COUNTRY).reply(200);
           await apiClient.batchWrite(COUNTRY, { records: [record] });
@@ -369,7 +393,7 @@ describe('ApiClient', () => {
 
     it('should send access_token in Authorization header', async () => {
       const popAPI = nockEndpoint(POPAPI_HOST, 'write', COUNTRY).reply(200, 'OK');
-      const [headers] = await Promise.all<Record<string, string>, unknown>([getNockedRequestHeaders(popAPI), apiClient.write(COUNTRY, { key: '123' })]);
+      const [headers] = await Promise.all<Record<string, string>, unknown>([getNockedRequestHeaders(popAPI), apiClient.write(COUNTRY, { record_key: '123' })]);
       const { authorization } = headers;
       expect(authorization).to.eq('Bearer access_token');
       assert.equal(popAPI.isDone(), true, 'Nock scope is done');
@@ -400,7 +424,7 @@ describe('ApiClient', () => {
 
       collectAuthHeaders(popAPI);
 
-      await apiClient.write(COUNTRY, { key: '123' });
+      await apiClient.write(COUNTRY, { record_key: '123' });
       expect(authHeaders).to.deep.equal(['Bearer access_token1', 'Bearer access_token2']);
       assert.equal(popAPI.isDone(), true, 'Nock scope is done');
     });
@@ -414,7 +438,7 @@ describe('ApiClient', () => {
 
       collectAuthHeaders(popAPI);
 
-      await expect(apiClient.write(COUNTRY, { key: '123' })).to.be.rejectedWith(StorageServerError);
+      await expect(apiClient.write(COUNTRY, { record_key: '123' })).to.be.rejectedWith(StorageServerError);
       expect(authHeaders).to.deep.equal(['Bearer access_token1', 'Bearer access_token2']);
       assert.equal(popAPI.pendingMocks().length, 1, 'Nock scope is done');
     });

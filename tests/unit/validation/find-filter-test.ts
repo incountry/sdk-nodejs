@@ -1,51 +1,51 @@
 import * as chai from 'chai';
-import { StorageRecordDataArrayIO } from '../../../src/validation/storage-record-data-array';
+import { FindFilterIO } from '../../../src/validation/api/find-filter';
 import { isValid } from '../../../src/validation/utils';
 
 const { expect } = chai;
 
-const VALID = [
-  [{ recordKey: '1' }],
-  [{ recordKey: '1', version: 0 }],
-  [{ recordKey: '2', body: '', version: 0 }],
-  [{ recordKey: '2', body: null, version: 0 }],
-  [{
-    recordKey: '2', body: null, version: 0, precommitBody: '',
-  }],
-  [{
-    recordKey: '2', body: null, version: 0, precommitBody: null,
-  }],
-];
 
-const INVALID = [
-  true,
-  false,
-  () => {},
-  '',
-  -1,
-  0,
+const VALID_FIND_FILTER = [
   {},
-  [],
-  [{}],
-  [{ key: 1 }],
-  [{ key: '' }],
-  [{ record_key: '' }],
-  [{ record_key: 1 }],
-  [{ record_key: '', body: 1 }],
+  { aa: 1 },
+  { aa: [] },
+  { aa: [1] },
+  { aa: { $not: 1 } },
+  { aa: { $not: [1] } },
+  { aa: { $gt: 1 } },
+  { aa: { $lt: 1 } },
+  { aa: '' },
+  { aa: [''] },
 ];
 
-describe('Records Array validation', () => {
-  const codec = StorageRecordDataArrayIO;
+const INVALID_FIND_FILTER = [
+  false,
+  '',
+  1,
+  [],
+  () => 1,
+  { aa: true },
+  { aa: () => 1 },
+  { aaa1: { $not: () => 1 } },
+  { aaa1: { cccccc: 1 } },
+  { aaa1: { $not: { $not: 1 } } },
+  { aaa3: { $gt: 'ccc' } },
+  { aaa3: { $gt: [] } },
+];
+
+describe('Find Filter validation', () => {
+  const codec = FindFilterIO;
+
 
   describe('.is()', () => {
     it('should return false for invalid data', () => {
-      INVALID.forEach((value) => {
+      INVALID_FIND_FILTER.forEach((value) => {
         expect(codec.is(value)).to.equal(false, `invalid data ${JSON.stringify(value)}`);
       });
     });
 
     it('should return true for valid data', () => {
-      VALID.forEach((value) => {
+      VALID_FIND_FILTER.forEach((value) => {
         expect(codec.is(value)).to.equal(true, `valid data ${JSON.stringify(value)}`);
       });
     });
@@ -53,15 +53,20 @@ describe('Records Array validation', () => {
 
   describe('.decode()', () => {
     it('should not decode invalid data', () => {
-      INVALID.forEach((value) => {
+      INVALID_FIND_FILTER.forEach((value) => {
         expect(isValid(codec.decode(value))).to.equal(false, `invalid data ${JSON.stringify(value)}`);
       });
     });
 
     it('should decode valid data', () => {
-      VALID.forEach((value) => {
+      VALID_FIND_FILTER.forEach((value) => {
         expect(isValid(codec.decode(value))).to.equal(true, `valid data ${JSON.stringify(value)}`);
       });
     });
   });
 });
+
+export {
+  VALID_FIND_FILTER,
+  INVALID_FIND_FILTER,
+};

@@ -224,16 +224,17 @@ describe('Countries cache', () => {
         });
 
         it('should log error', async () => {
+          const loggingMeta = { callLoggingMeta: '123' };
           nockPBCountriesAPIFails();
           const spy = sinon.spy(loggerStub, 'write');
 
           const cache = new CountriesCache(undefined, undefined, undefined, loggerStub);
 
           try {
-            await cache.getCountries();
+            await cache.getCountries(undefined, loggingMeta);
           } catch (e) {
             expect(spy).to.be.calledWithMatch('error');
-            expect(spy.args[0][2]).to.deep.equal(REQUEST_TIMEOUT_ERROR);
+            expect(spy.args[0][2]).to.deep.equal({ error: REQUEST_TIMEOUT_ERROR, ...loggingMeta });
             return;
           }
 

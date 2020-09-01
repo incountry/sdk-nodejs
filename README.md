@@ -1,4 +1,10 @@
 # InCountry Storage SDK
+[![Build Status](https://travis-ci.com/incountry/sdk-nodejs.svg?branch=master)](https://travis-ci.com/incountry/sdk-nodejs)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=incountry_sdk-nodejs&metric=alert_status)](https://sonarcloud.io/dashboard?id=incountry_sdk-nodejs)
+[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=incountry_sdk-nodejs&metric=coverage)](https://sonarcloud.io/dashboard?id=incountry_sdk-nodejs)
+[![vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=incountry_sdk-nodejs&metric=vulnerabilities)](https://sonarcloud.io/dashboard?id=incountry_sdk-nodejs)
+
+
 Installation
 -----
 
@@ -18,43 +24,88 @@ Usage
 
 To access your data in InCountry using NodeJS SDK, you need to create an instance of `Storage` class using async factory method `createStorage`.
 
-```javascript
-const { createStorage } = require('incountry');
-const storage = await createStorage({
-  apiKey: 'API_KEY',                // {string} Required when using API key authorization, or as environment variable INC_API_KEY
-  environmentId: 'ENVIRONMENT_ID',  // {string} Required to be passed in, or as environment variable INC_ENVIRONMENT_ID
-  oauth: {
-    clientId: '',                   // {string} Required when using oAuth authorization, can be also set via INC_CLIENT_ID
-    clientSecret: '',               // {string} Required when using oAuth authorization, can be also set via INC_CLIENT_SECRET
-    authEndpoints: '',              // {object} Optional - custom endpoints regional map to use for fetching oAuth tokens
-  },
-  endpoint: 'INC_URL',              // {string} Optional - Defines API URL
-  encrypt: true,                    // {boolean} Optional - If false, encryption is not used. If omitted is set to true.
-  getSecrets: () => '',             // {GetSecretsCallback} Optional - Used to fetch encryption secret
+```typescript
+type StorageOptions = {
+  apiKey?: string;         // Required when using API key authorization, or as environment variable INC_API_KEY
+  environmentId?: string;  // Required to be passed in, or as environment variable INC_ENVIRONMENT_ID
+
+  oauth?: {
+    clientId?: string;     // Required when using oAuth authorization, can be also set via environment variable INC_CLIENT_ID
+    clientSecret?: string; // Required when using oAuth authorization, can be also set via environment variable INC_CLIENT_SECRET
+    authEndpoints?: {      // Custom endpoints regional map to use for fetching oAuth tokens
+      default: string;
+      [key: string]: string;
+    };
+  };
+
+  endpoint?: string;       // Defines API URL
+  encrypt?: boolean;       // If false, encryption is not used. Defaults to true.
+
+  logger?: Logger;
+  getSecrets?: Function;   // Used to fetch encryption secret
+  normalizeKeys?: boolean;
+  countriesCache?: CountriesCache;
 
   /**
-   * {string} Optional
    * Defines API base hostname part to use.
    * If set, all requests will be sent to https://${country}${endpointMask} host instead of the default
    * one (https://${country}-mt-01.api.incountry.io)
    */
-  endpointMask: '',
+  endpointMask?: string;
 
   /**
-   * {string} Optional
    * If your PoPAPI configuration relies on a custom PoPAPI server (rather than the default one)
    * use `countriesEndpoint` option to specify the endpoint responsible for fetching supported countries list.
    */
+  countriesEndpoint?: string;
+
+  httpOptions?: {
+    timeout?: NonNegativeInt; // Timeout in milliseconds.
+  };
+};
+
+async function createStorage(
+  options: StorageOptions,
+  customEncryptionConfigs?: CustomEncryptionConfig[]
+): Promise<Storage> {
+  /* ... */
+}
+
+const { createStorage } = require('incountry');
+const storage = await createStorage({
+  apiKey: 'API_KEY',
+  environmentId: 'ENVIRONMENT_ID',
+  oauth: {
+    clientId: '',
+    clientSecret: '',
+    authEndpoints: {
+      default: 'https://auth',
+    },
+  },
+  endpoint: 'INC_URL',
+  encrypt: true,
+  getSecrets: () => '',
+  endpointMask: '',
   countriesEndpoint: '',
+  httpOptions: {
+    timeout: 5000,
+  },
 });
 ```
 
-`apiKey`, `oauth.clientId`, `oauth.clientSecret` and `environmentId` can be fetched from your dashboard on `Incountry` site.
+---
+**WARNING**
+
+API Key authorization is being deprecated. We keep backwards compatibility for `apiKey` param but you no longer can get API keys (neither old nor new) from your dashboard.
+
+---
+
+`oauth.clientId`, `oauth.clientSecret` and `environmentId` can be fetched from your dashboard on InCountry site.
 
 
 Otherwise you can create an instance of `Storage` class and run all async checks by yourself (or not run at your own risk!)
 
-```javascript
+```typescript
 const { Storage } = require('incountry');
 const storage = new Storage({
   apiKey: 'API_KEY',
@@ -75,7 +126,7 @@ await storage.validate();
 SDK also supports oAuth authentication credentials instead of plain API key authorization. oAuth authentication flow is mutually exclusive with API key authentication - you will need to provide either API key or oAuth credentials.
 
 Below is the example how to create storage instance with oAuth credentials (and also provide custom oAuth endpoint):
-```javascript
+```typescript
 const { Storage } = require('incountry');
 const storage = new Storage({
   environmentId: 'ENVIRONMENT_ID',
@@ -104,25 +155,38 @@ Note: even though SDK uses PBKDF2 to generate a cryptographically strong encrypt
 
 `GetSecretsCallback` is a function that should return either a string representing your secret or an object (we call it `SecretsData`) or a `Promise` which resolves to that string or object:
 
-```javascript
+```typescript
+type SecretOrKey = {
+  secret: string;
+  version: NonNegativeInt;
+  isKey?: boolean;
+  isForCustomEncryption?: boolean;
+};
+
+type SecretsData = {
+  currentVersion: NonNegativeInt;
+  secrets: Array<SecretOrKey>;
+};
+
+/// SecretsData example
 {
   secrets: [
     {
-      secret: 'aaa',                // {string}
-      version: 0                    // {number} Should be a non negative integer
+      secret: 'aaa',
+      version: 0
     },
     {
-      secret: 'bbbbbbbbbbbb...bbb', // {string} Should be a 32-characters 'utf8' encoded string
-      version: 1,                   // {number} Should be a non negative integer
-      isKey: true                   // {boolean} Should be true only for user-defined encryption key
+      secret: 'bbbbbbbbbbbb...bbb', // Should be a 32-characters 'utf8' encoded string
+      version: 1,
+      isKey: true
     },
     {
-      secret: 'ccc',                // {string}
-      version: 2,                   // {number} Should be a non negative integer
-      isForCustomEncryption: true   // {boolean} Should be true only for custom encryption
+      secret: 'ccc',
+      version: 2,
+      isForCustomEncryption: true
     }
   ],
-  currentVersion: 1                 // {number} Should be a non negative integer
+  currentVersion: 1
 };
 ```
 
@@ -134,11 +198,8 @@ SDK allows you to use custom encryption keys, instead of secrets. Please note th
 
 Here are some examples of `GetSecretsCallback`.
 
-```javascript
-/**
- * @callback GetSecretsCallback
- * @returns {string|SecretsData|Promise<string>|Promise<SecretsData>}
- */
+```typescript
+type GetSecretsCallback = () => string | SecretsData | Promise<string> | Promise<SecretsData>;
 
 // Synchronous
 const getSecretsSync = () => 'longAndStrongPassword';
@@ -162,118 +223,205 @@ const getSecretsPromise = () =>
 
 By default SDK outputs logs into `console` in JSON format. You can override this behavior passing logger object as a Storage constructor parameter. Logger object must look like the following:
 
-```javascript
+```typescript
 // Custom logger must implement `write` method
+
 const customLogger = {
-  write: (logLevel, message) => {} // {(logLevel:string, message: string) => void}
+  write: (logLevel: LogLevel, message: string, meta?: {}): void => {}
 };
 
 const storage = await createStorage({
   apiKey: '',
   environmentId: '',
-  getSecrets: () => '', // {GetSecretsCallback}
+  getSecrets: () => '',
   logger: customLogger
 });
 ```
 
 ### Writing data to Storage
 
-Use `write` method in order to create/replace (by `key`) a record.
+Use `write` method in order to create/replace (by `recordKey`) a record.
 
-```javascript
-/**
- * @typedef Record
- * @property {string} key
- * @property {string|null} body
- * @property {string|null} profile_key
- * @property {string|null} key2
- * @property {string|null} key3
- * @property {number|null} range_key
- * @property {number} version - used internally by the SDK to handle record’s encryption secret version, no need to provide it manually
- */
+#### List of available record fields
+v3.0.0 release introduced a series of new fields available for storage. Below is an exhaustive list of fields available for storage in InCountry along with their types and  storage methods - each field is either encrypted, hashed or stored as is:
 
-/**
-  * @param {string} countryCode - Country code
-  * @param {Record} record
-  * @param {object} [requestOptions]
-  * @return {Promise<{ record: Record }>} Written record
-  */
-async write(countryCode, record, requestOptions = {}) {
+
+##### String fields, hashed:
+```typescript
+recordKey
+key1
+key2
+key3
+key4
+key5
+key6
+key7
+key8
+key9
+key10
+profileKey
+serviceKey1
+serviceKey2
+```
+
+##### String fields, encrypted:
+```typescript
+body
+precommitBody
+```
+
+##### Int fields, plain:
+```typescript
+rangeKey1
+rangeKey2
+rangeKey3
+rangeKey4
+rangeKey5
+rangeKey6
+rangeKey7
+rangeKey8
+rangeKey9
+rangeKey10
+```
+
+```typescript
+type StorageRecordData = {
+  recordKey: string;
+  profileKey?: string | null;
+  key1?: string | null;
+  key2?: string | null;
+  key3?: string | null;
+  key4?: string | null;
+  key5?: string | null;
+  key6?: string | null;
+  key7?: string | null;
+  key8?: string | null;
+  key9?: string | null;
+  key10?: string | null;
+  serviceKey1?: string | null;
+  serviceKey2?: string | null;
+  body?: string | null;
+  precommitBody?: string | null;
+  rangeKey1?: t.Int | null;
+  rangeKey2?: t.Int | null;
+  rangeKey3?: t.Int | null;
+  rangeKey4?: t.Int | null;
+  rangeKey5?: t.Int | null;
+  rangeKey6?: t.Int | null;
+  rangeKey7?: t.Int | null;
+  rangeKey8?: t.Int | null;
+  rangeKey9?: t.Int | null;
+  rangeKey10?: t.Int | null;
+};
+
+type WriteResult = {
+  record: StorageRecordData;
+};
+
+async write(
+  countryCode: string,
+  recordData: StorageRecordData,
+  requestOptions: RequestOptions = {},
+): Promise<WriteResult> {
   /* ... */
 }
 ```
 
 Below is the example of how you may use `write` method:
 
-```javascript
-const record = {
-  key: '<key>',
+```typescript
+const recordData = {
+  recordKey: '<key>',
   body: '<body>',
-  profile_key: '<profile_key>',
-  range_key: 0,
+  profileKey: '<profile_key>',
+  rangeKey1: 0,
   key2: '<key2>',
   key3: '<key3>'
 }
 
-const writeResult = await storage.write(country, record);
-```
-
-#### Encryption
-
-InCountry uses client-side encryption for your data. Note that only body is encrypted. Some of other fields are hashed.
-Here is how data is transformed and stored in InCountry database:
-
-```javascript
-{
-  key,          // hashed
-  body,         // encrypted
-  profile_key,  // hashed
-  range_key,    // plain
-  key2,         // hashed
-  key3          // hashed
-}
+const writeResult = await storage.write(countryCode, recordData);
 ```
 
 #### Batches
 
 Use `batchWrite` method to create/replace multiple records at once
 
-```javascript
-/**
- * @param {string} countryCode
- * @param {Array<Record>} records
- * @return {Promise<{ records: Array<Record> }>} Written records
- */
-async batchWrite(countryCode, records) {
+```typescript
+type BatchWriteResult = {
+  records: Array<StorageRecordData>;
+};
+
+async batchWrite(
+  countryCode: string,
+  records: Array<StorageRecordData>,
+  requestOptions: RequestOptions = {},
+): Promise<BatchWriteResult> {
   /* ... */
 }
 ```
 
 Example of usage:
-```javascript
-batchResult = await storage.batchWrite(country, records);
+```typescript
+batchResult = await storage.batchWrite(countryCode, recordDataArr);
 ```
 
 ### Reading stored data
 
-Stored record can be read by `key` using `read` method. It accepts an object with two fields: `country` and `key`.
-It returns a `Promise` which resolves to `{ record }`  or  `{ record: null }` if there is no record with this `key`.
+Stored record can be read by `recordKey` using `read` method. It accepts an object with two fields: `country` and `recordKey`.
+It returns a `Promise` which resolves to `{ record }` or is rejected if there are no records for the given `recordKey`.
 
-```javascript
-/**
- * @param {string} countryCode Country code
- * @param {string} recordKey
- * @param {object} [requestOptions]
- * @return {Promise<{ record: Record|null }>} Matching record
- */
-async read(countryCode, recordKey, requestOptions = {}) {
+#### Date fields
+
+Use `createdAt` and `updatedAt` fields to access date-related information about records. `createdAt` indicates date when the record was initially created in the target country. `updatedAt` shows the date of the latest write operation for the given `recordKey`.
+
+```typescript
+type StorageRecord = {
+  recordKey: string;
+  body: string | null;
+  profileKey: string | null;
+  precommitBody: string | null;
+  key1: string | null;
+  key2: string | null;
+  key3: string | null;
+  key4: string | null;
+  key5: string | null;
+  key6: string | null;
+  key7: string | null;
+  key8: string | null;
+  key9: string | null;
+  key10: string | null;
+  serviceKey1: string | null;
+  serviceKey2: string | null;
+  rangeKey1: t.Int | null;
+  rangeKey2: t.Int | null;
+  rangeKey3: t.Int | null;
+  rangeKey4: t.Int | null;
+  rangeKey5: t.Int | null;
+  rangeKey6: t.Int | null;
+  rangeKey7: t.Int | null;
+  rangeKey8: t.Int | null;
+  rangeKey9: t.Int | null;
+  rangeKey10: t.Int | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+type ReadResult = {
+  record: StorageRecord;
+};
+
+async read(
+  countryCode: string,
+  recordKey: string,
+  requestOptions: RequestOptions = {},
+): Promise<ReadResult> {
   /* ... */
 }
 ```
 
 Example of usage:
 ```javascript
-const readResult = await storage.read(country, key);
+const readResult = await storage.read(countryCode, recordKey);
 ```
 
 ### Find records
@@ -282,62 +430,82 @@ It is possible to search by random keys using `find` method.
 
 You can specify filter object for every record key combining different queries:
 - single value
-- several values as an array
-- a logical NOT operator for `version`
-- comparison operators for `range_key`
+```typescript
+{ key1: 'abc', rangeKey1: 1 }
+```
+
+- multiple values as an array
+```typescript
+{ key2: ['def', 'jkl'], rangeKey1: [1, 2] }
+```
+
+- a logical NOT operator for [String fields](#string-fields-hashed) and `version`
+```typescript
+{ key3: { $not: 'abc' } }
+{ key3: { $not: ['abc', 'def'] } }
+{ version: { $not: 1 }}
+```
+
+- comparison operators for [Int fields](#int-fields-plain)
+```typescript
+{ rangeKey1: { $gte: 5, $lte: 100 } }
+```
 
 The `options` parameter defines the `limit` - number of records to return and the `offset`- starting index.
 It can be used to implement pagination. Note: SDK returns 100 records at most.
 
 
-```javascript
-/**
- * @typedef {string | Array<string>} FilterStringValue
-*/
+```typescript
+type FilterStringValue = string | string[];
+type FilterStringQuery = FilterStringValue | { $not?: FilterStringValue };
 
-/**
- * @typedef { number | Array<number> | { $not: number | Array<number> } | { $gt?: number, $gte?: number, $lt?: number, $lte?: number }} FilterNumberValue
-*/
+type FilterNumberValue = number | number[];
+type FilterNumberQuery =
+  FilterNumberValue |
+  {
+    $not?: FilterNumberValue;
+    $gt?: number;
+    $gte?: number;
+    $lt?: number;
+    $lte?: number;
+  };
 
-/**
- * @typedef {Object.<string,{FilterStringValue | FilterNumberValue}>} FindFilter
-*/
+type FindFilter = Record<string, FilterStringQuery | FilterNumberQuery>;
 
-/**
- * @typedef FindOptions
- * @property {number} limit
- * @property {number} offset
-*/
+type FindOptions = {
+  limit?: number;
+  offset?: number;
+};
 
-/**
- * @typedef FindResultsMeta
- * @property {number} total
- * @property {number} count
- * @property {number} limit
- * @property {number} offset
-*/
+type FindResult = {
+  meta: {
+    total: number;
+    count: number;
+    limit: number;
+    offset: number;
+  };
+  records: Array<StorageRecord>;
+  errors?: Array<{ error: StorageCryptoError; rawData: ApiRecord }>;
+};
 
-/**
- * Find records matching filter.
- * @param {string} countryCode - Country code.
- * @param {FindFilter} filter - The filter to apply.
- * @param {FindOptions} options - The options to pass to PoP.
- * @param {object} [requestOptions]
- * @return {Promise<{ meta: FindResultsMeta }, records: Array<Record>, errors?: Array<{ error: InCryptoError, rawData: Record  }> } Matching records.
- */
-async find(countryCode, filter, options = {}, requestOptions = {}) {
+async find(
+  countryCode: string,
+  filter: FindFilter = {},
+  options: FindOptions = {},
+  requestOptions: RequestOptions = {},
+): Promise<FindResult> {
   /* ... */
 }
 ```
 
 Example of usage:
-```javascript
+```typescript
 const filter = {
-  key: 'abc',
+  key1: 'abc',
   key2: ['def', 'jkl'],
-  profile_key: 'test2',
-  range_key: { $gte: 5, $lte: 100 },
-  version: { $not: [0, 1] },
+  profileKey: 'test2',
+  rangeKey1: { $gte: 5, $lte: 100 },
+  rangeKey2: { $not: [0, 1] },
 }
 
 const options = {
@@ -345,14 +513,14 @@ const options = {
   offset: 0,
 };
 
-const findResult = await storage.find(country, filter, options);
+const findResult = await storage.find(countryCode, filter, options);
 ```
 
 And the return object `findResult` looks like the following:
 
-```javascript
+```typescript
 {
-  records: [{/* record */}],
+  records: [{/* StorageRecord */}],
   errors: [],
   meta: {
     limit: 100,
@@ -368,12 +536,12 @@ There could be a situation when `find` method will receive records that could no
 For example, if one changed the encryption key while the found data is encrypted with the older version of that key.
 In such cases find() method return data will be as follows:
 
-```javascript
+```typescript
 {
   records: [/* successfully decrypted records */],
   errors: [/* errors */],
   meta: {/* ... */}
-}
+}: FindResult
 ```
 
 ### Find one record matching filter
@@ -381,43 +549,46 @@ In such cases find() method return data will be as follows:
 If you need to find the first record matching filter, you can use the `findOne` method.
 If record not found, it will return `null`.
 
-```javascript
-/**
- * @param {string} countryCode - Country code.
- * @param {FindFilter} filter - The filter to apply.
- * @param {FindOptions} options - The options to pass to PoP.
- * @param {object} [requestOptions]
- * @return {Promise<{ record: Record|null }>} Matching record.
- */
-async findOne(countryCode, filter, options = {}, requestOptions = {}) {
+```typescript
+type FindOneResult = {
+  record: StorageRecord | null;
+};
+
+async findOne(
+  countryCode: string,
+  filter: FindFilter = {},
+  options: FindOptions = {},
+  requestOptions: RequestOptions = {},
+): Promise<FindOneResult> {
   /* ... */
 }
 ```
 
 Example of usage:
-```javascript
-const findOneResult = await storage.findOne(country, filter);
+```typescript
+const findOneResult = await storage.findOne(countryCode, filter);
 ```
 
 ### Delete records
 
-Use `delete` method in order to delete a record from InCountry storage. It is only possible using `key` field.
-```javascript
-/**
- * Delete a record by ket.
- * @param {string} countryCode - Country code.
- * @param {string} recordKey
- * @param {object} [requestOptions]
- * @return {Promise<{ success: true }>} Operation result.
- */
-async delete(countryCode, recordKey, requestOptions = {}) {
+Use `delete` method in order to delete a record from InCountry storage. It is only possible using `recordKey` field.
+```typescript
+type DeleteResult = {
+  success: true;
+};
+
+async delete(
+  countryCode: string,
+  recordKey: string,
+  requestOptions: RequestOptions = {},
+): Promise<DeleteResult> {
   /* ... */
 }
 ```
 
 Example of usage:
-```javascript
-const deleteResult = await storage.delete(country, key);
+```typescript
+const deleteResult = await storage.delete(countryCode, recordKey);
 ```
 
 ## Data Migration and Key Rotation support
@@ -429,26 +600,27 @@ It returns an object which contains some information about the migration - the a
 
 For a detailed example of a migration script please see [examples/migration.js](examples/migration.js)
 
-```javascript
-/**
- * @typedef MigrateResultMeta
- * @property {number} migrated Non Negative Int - The amount of records migrated
- * @property {number} total_left Non Negative Int - The amount of records left to migrate
-*/
+```typescript
+type MigrateResult = {
+  meta: {
+    migrated: number;
+    totalLeft: number;
+  };
+};
 
-/**
- * @param {string} countryCode - Country code.
- * @param {number} limit - Find limit
- * @returns {Promise<{ meta: MigrateResultMeta }>}
- */
-async migrate(countryCode, limit = FIND_LIMIT, findFilterOptional = {}) {
+async migrate(
+  countryCode: string,
+  limit = FIND_LIMIT,
+  findFilter: FindFilter = {},
+  requestOptions: RequestOptions = {},
+): Promise<MigrateResult> {
   /* ... */
 }
 ```
 
 Example of usage:
-```javascript
-const migrateResult = await storage.migrate(country, limit);
+```typescript
+const migrateResult = await storage.migrate(countryCode);
 ```
 
 
@@ -467,7 +639,7 @@ InCountry Node SDK throws following Exceptions:
 
 We suggest gracefully handling all the possible exceptions:
 
-```javascript
+```typescript
 try {
   // use InCountry Storage instance here
 } catch(e) {
@@ -510,15 +682,10 @@ Only one configuration can be set as `isCurrent: true`.
 
 Here's an example of how you can set up SDK to use custom encryption (using XXTEA encryption algorithm):
 
-```javascript
+```typescript
 const xxtea = require('xxtea');
-const encrypt = function(text, secret) {
-  return xxtea.encrypt(text, secret);
-};
-
-const decrypt = function(encryptedText, secret) {
-  return xxtea.decrypt(encryptedText, secret);
-};
+const encrypt = (text, secret) => xxtea.encrypt(text, secret);
+const decrypt = (encryptedText, secret) => xxtea.decrypt(encryptedText, secret);
 
 const config = {
   encrypt,
@@ -543,13 +710,12 @@ const getSecretsCallback = () => {
 const options = {
   apiKey: 'API_KEY',
   environmentId: 'ENVIRONMENT_ID',
-  encrypt: true,
   getSecrets: getSecretsCallback,
 }};
 
 const storage = await createStorage(options, [config]);
 
-await storage.write('us', { key: '<key>', body: '<body>' });
+await storage.write('us', { recordKey: '<key>', body: '<body>' });
 ```
 
 ## Testing Locally

@@ -43,10 +43,10 @@ const NonNegativeInt = t.refinement(
 
 type NonNegativeInt = t.TypeOf<typeof NonNegativeInt>
 
-function withDefault<C extends t.Any>(codec: C, defaultValue: any): C {
+function optional<C extends t.Any>(codec: C): C {
   const r: any = clone(codec);
   const { validate } = r;
-  r.validate = (i: any, context: t.Context) => validate(i !== undefined ? i : defaultValue, context);
+  r.validate = (i: any, context: t.Context) => i !== undefined ? validate(i, context) : t.success(undefined);
   // tslint:disable-next-line: deprecation
   r.decode = (i: any) => r.validate(i, t.getDefaultContext(r));
   return r;
@@ -80,7 +80,7 @@ export {
   JSONIO,
   PositiveInt,
   NonNegativeInt,
-  withDefault,
+  optional,
   getErrorMessage,
   isLeft as isInvalid,
   isRight as isValid,
