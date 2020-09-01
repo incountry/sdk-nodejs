@@ -7,7 +7,7 @@ import { SecretKeyAccessor } from './secret-key-accessor';
 import { InCrypt } from './in-crypt';
 import { StorageClientError, StorageCryptoError, StorageServerError } from './errors';
 import {
-  isValid, toStorageClientError, withDefault, getErrorMessage,
+  isValid, toStorageClientError, optional, getErrorMessage,
 } from './validation/utils';
 import { StorageRecord, fromApiRecord } from './validation/storage-record';
 import { StorageRecordDataArrayIO } from './validation/storage-record-data-array';
@@ -198,7 +198,7 @@ class Storage {
     this.countriesCache = countriesCache;
   }
 
-  @validate(CountryCodeIO, RecordKeyIO, withDefault(RequestOptionsIO, {}))
+  @validate(CountryCodeIO, RecordKeyIO, optional(RequestOptionsIO))
   @normalizeErrors()
   async read(countryCode: string, recordKey: string, requestOptions: RequestOptions = {}): Promise<ReadResult> {
     const key = this.createKeyHash(this.normalizeKey(recordKey));
@@ -207,7 +207,7 @@ class Storage {
     return { record };
   }
 
-  @validate(CountryCodeIO, StorageRecordDataIO, withDefault(RequestOptionsIO, {}))
+  @validate(CountryCodeIO, StorageRecordDataIO, optional(RequestOptionsIO))
   @normalizeErrors()
   async write(countryCode: string, recordData: StorageRecordData, requestOptions: RequestOptions = {}): Promise<WriteResult> {
     const data = await this.encryptPayload(recordData, requestOptions.meta);
@@ -215,7 +215,7 @@ class Storage {
     return { record: recordData };
   }
 
-  @validate(CountryCodeIO, StorageRecordDataArrayIO, withDefault(RequestOptionsIO, {}))
+  @validate(CountryCodeIO, StorageRecordDataArrayIO, optional(RequestOptionsIO))
   @normalizeErrors()
   async batchWrite(countryCode: string, records: Array<StorageRecordData>, requestOptions: RequestOptions = {}): Promise<BatchWriteResult> {
     const encryptedRecords = await Promise.all(records.map((r) => this.encryptPayload(r, requestOptions.meta)));
@@ -223,7 +223,7 @@ class Storage {
     return { records };
   }
 
-  @validate(CountryCodeIO, withDefault(FindFilterIO, {}), withDefault(FindOptionsIO, {}), withDefault(RequestOptionsIO, {}))
+  @validate(CountryCodeIO, optional(FindFilterIO), optional(FindOptionsIO), optional(RequestOptionsIO))
   @normalizeErrors()
   async find(countryCode: string, filter: FindFilter = {}, options: FindOptions = {}, requestOptions: RequestOptions = {}): Promise<FindResult> {
     const data = {
@@ -258,7 +258,7 @@ class Storage {
     return result;
   }
 
-  @validate(CountryCodeIO, withDefault(FindFilterIO, {}), withDefault(FindOptionsIO, {}), withDefault(RequestOptionsIO, {}))
+  @validate(CountryCodeIO, optional(FindFilterIO), optional(FindOptionsIO), optional(RequestOptionsIO))
   @normalizeErrors()
   async findOne(countryCode: string, filter: FindFilter = {}, options: FindOptions = {}, requestOptions: RequestOptions = {}): Promise<FindOneResult> {
     const optionsWithLimit = { ...options, limit: 1 };
@@ -267,7 +267,7 @@ class Storage {
     return { record };
   }
 
-  @validate(CountryCodeIO, RecordKeyIO, withDefault(RequestOptionsIO, {}))
+  @validate(CountryCodeIO, RecordKeyIO, optional(RequestOptionsIO))
   @normalizeErrors()
   async delete(countryCode: string, recordKey: string, requestOptions: RequestOptions = {}): Promise<DeleteResult> {
     try {
@@ -282,7 +282,7 @@ class Storage {
     }
   }
 
-  @validate(CountryCodeIO, withDefault(LimitIO, FIND_LIMIT), withDefault(FindFilterIO, {}), withDefault(RequestOptionsIO, {}))
+  @validate(CountryCodeIO, optional(LimitIO), optional(FindFilterIO), optional(RequestOptionsIO))
   @normalizeErrors()
   async migrate(countryCode: string, limit = FIND_LIMIT, _findFilter: FindFilter = {}, requestOptions: RequestOptions = {}): Promise<MigrateResult> {
     if (!this.encryptionEnabled) {
