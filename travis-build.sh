@@ -29,7 +29,7 @@ npm install
 # SNYK dependency scan - runs for master and RC branches, but not for PRs
 if [[ "$TRAVIS_PULL_REQUEST" == 'false' ]] && branch_matches "^master$|^develop$|^SB_*|^RC_*"; then
   npm install -g snyk
-  snyk monitor --org=incountry --prune-repeated-subdependencies --remote-repo-url="${APP_NAME}" --project-name="${APP_NAME}:${TRAVIS_BRANCH}"
+  snyk monitor --org=incountry --prune-repeated-subdependencies --project-name="${APP_NAME}:${TRAVIS_BRANCH}"
 else
   log_info "Snyk dependency scan skipped"
 fi
