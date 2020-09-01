@@ -93,7 +93,14 @@ const storage = await createStorage({
 });
 ```
 
-`apiKey`, `oauth.clientId`, `oauth.clientSecret` and `environmentId` can be fetched from your dashboard on InCountry site.
+---
+**WARNING**
+
+API Key authorization is being deprecated. We keep backwards compatibility for `apiKey` param but you no longer can get API keys (neither old nor new) from your dashboard.
+
+---
+
+`oauth.clientId`, `oauth.clientSecret` and `environmentId` can be fetched from your dashboard on InCountry site.
 
 
 Otherwise you can create an instance of `Storage` class and run all async checks by yourself (or not run at your own risk!)
