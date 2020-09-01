@@ -4,6 +4,9 @@ if [[ "${TRAVIS_BUILD_SCRIPT_DEBUG_ENABLED:-false}" == 'true' ]]; then
   set -x
 fi
 
+# Print debug information
+echo "Building for branch=$TRAVIS_BRANCH, PR=${TRAVIS_PULL_REQUEST} ..."; env | grep "COMMIT\|PULL\|BRANCH"
+
 set -e
 set -o pipefail
 
