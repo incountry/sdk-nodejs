@@ -1622,18 +1622,18 @@ describe('Storage', () => {
         describe('filter validation', () => {
           it('should throw an error when filter has wrong format', async () => Promise.all(
             // @ts-ignore
-            INVALID_FIND_FILTER.map((filter) => expect(encStorage.find(COUNTRY, filter))
+            INVALID_FIND_FILTER.map((filter) => expect(encStorage.findOne(COUNTRY, filter))
               .to.be.rejectedWith(StorageError, 'FindFilter', `wrong filter format: ${JSON.stringify(filter)}`)),
           ));
 
           it('should not throw an error when filter has correct format', async () => Promise.all(
             // @ts-ignore
-            VALID_FIND_FILTER.map((filter) => expect(encStorage.find(COUNTRY, filter))
+            VALID_FIND_FILTER.map((filter) => expect(encStorage.findOne(COUNTRY, filter))
               .not.to.be.rejectedWith(StorageError, '<FindFilter>', `wrong filter format: ${JSON.stringify(filter)}`)),
           ));
 
           it('should not throw an error when find filter is not provided', async () => {
-            expect(encStorage.find(COUNTRY))
+            expect(encStorage.findOne(COUNTRY))
               .not.to.be.rejectedWith(StorageError, '<FindFilter>');
           });
         });
