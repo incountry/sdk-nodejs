@@ -46,6 +46,7 @@ const PORTAL_BACKEND_HOST = 'portal-backend.incountry.com';
 const PORTAL_BACKEND_COUNTRIES_LIST_PATH = '/countries';
 const REQUEST_TIMEOUT_ERROR = { code: 'ETIMEDOUT' };
 const sdkVersionRegExp = /^SDK-Node\.js\/\d+\.\d+\.\d+/;
+const popapiResponseHeaders = { 'x-inc-corr-id-resp': uuid(), alpha: 'beta', gamma: 'delta' };
 
 const EMPTY_API_RECORD = {
   body: '',
@@ -252,6 +253,23 @@ const getDefaultFindResponse = (data: ApiRecord[] = [], limit = 100, offset = 0)
   },
   data,
 });
+
+const getLoggerCallMeta = (loggerSpy: sinon.SinonSpy) => {
+  const loggerInfoCalls = loggerSpy.args.filter((args) => args[0] === 'info');
+  return loggerInfoCalls[loggerInfoCalls.length - 1][2];
+};
+
+const checkLoggerMeta = (actualLoggerMeta: any, meta: any, opName: string) => {
+  expect(actualLoggerMeta).to.be.an('object');
+  expect(actualLoggerMeta).to.deep.include({
+    country: COUNTRY,
+    operation: opName,
+    op_result: 'success',
+    ...meta,
+  });
+  expect(actualLoggerMeta).to.contain.keys('requestHeaders', 'responseHeaders');
+  expect(actualLoggerMeta.responseHeaders).to.deep.include(popapiResponseHeaders);
+};
 
 describe('Storage', () => {
   let clientId: string | undefined;
@@ -734,7 +752,7 @@ describe('Storage', () => {
       let popAPI: nock.Scope;
 
       beforeEach(() => {
-        popAPI = nockEndpoint(POPAPI_HOST, 'write', COUNTRY).reply(200, 'OK');
+        popAPI = nockEndpoint(POPAPI_HOST, 'write', COUNTRY).reply(200, 'OK', popapiResponseHeaders);
       });
 
       describe('arguments validation', () => {
@@ -876,6 +894,18 @@ describe('Storage', () => {
           const [headers] = await Promise.all([getNockedRequestHeaders(popAPI), encStorage.write(COUNTRY, TEST_RECORDS[0])]);
           const userAgent = headers['user-agent'];
           expect(userAgent).to.match(sdkVersionRegExp);
+        });
+      });
+
+      describe('response headers', () => {
+        it('should be provided to logger in meta param', async () => {
+          const recordData = { recordKey: uuid() };
+          const callMeta = { id: uuid(), test: uuid() };
+          const spy = sinon.spy(encStorage.logger, 'write');
+          await encStorage.write(COUNTRY, recordData, { meta: callMeta });
+          expect(spy.calledWith('info')).to.eq(true);
+          const actualMeta = getLoggerCallMeta(spy);
+          checkLoggerMeta(actualMeta, callMeta, 'write');
         });
       });
 
@@ -1074,6 +1104,22 @@ describe('Storage', () => {
         });
       });
 
+      describe('response headers', () => {
+        it('should be provided to logger in meta param', async () => {
+          const callMeta = { id: uuid(), test: uuid() };
+          const spy = sinon.spy(encStorage.logger, 'write');
+
+          const encryptedPayload = await encStorage.encryptPayload(TEST_RECORDS[0]);
+          nockEndpoint(POPAPI_HOST, 'read', COUNTRY, encryptedPayload.record_key)
+            .reply(200, { ...EMPTY_API_RECORD, ...encryptedPayload }, popapiResponseHeaders);
+
+          await encStorage.read(COUNTRY, TEST_RECORDS[0].recordKey, { meta: callMeta });
+          expect(spy.calledWith('info')).to.eq(true);
+          const actualMeta = getLoggerCallMeta(spy);
+          checkLoggerMeta(actualMeta, callMeta, 'read');
+        });
+      });
+
       describe('normalize keys option', () => {
         const recordKey = 'aAbB';
         const recordKeyNormalized = 'aabb';
@@ -1232,6 +1278,22 @@ describe('Storage', () => {
           const [headers] = await Promise.all([getNockedRequestHeaders(popAPI), encStorage.delete(COUNTRY, TEST_RECORDS[0].recordKey)]);
           const userAgent = headers['user-agent'];
           expect(userAgent).to.match(sdkVersionRegExp);
+        });
+      });
+
+      describe('response headers', () => {
+        it('should be provided to logger in meta param', async () => {
+          const callMeta = { id: uuid(), test: uuid() };
+          const spy = sinon.spy(encStorage.logger, 'write');
+
+          const encryptedPayload = await encStorage.encryptPayload(TEST_RECORDS[0]);
+          nockEndpoint(POPAPI_HOST, 'delete', COUNTRY, encryptedPayload.record_key)
+            .reply(200, { success: true }, popapiResponseHeaders);
+
+          await encStorage.delete(COUNTRY, TEST_RECORDS[0].recordKey, { meta: callMeta });
+          expect(spy.calledWith('info')).to.eq(true);
+          const actualMeta = getLoggerCallMeta(spy);
+          checkLoggerMeta(actualMeta, callMeta, 'delete');
         });
       });
 
@@ -1613,6 +1675,21 @@ describe('Storage', () => {
           await storage.find('US', { key: '123' });
         });
       });
+
+      describe('response headers', () => {
+        it('should be provided to logger in meta param', async () => {
+          const callMeta = { id: uuid(), test: uuid() };
+          const spy = sinon.spy(encStorage.logger, 'write');
+
+          nockEndpoint(POPAPI_HOST, 'find', COUNTRY)
+            .reply(200, getDefaultFindResponse(), popapiResponseHeaders);
+
+          await encStorage.find(COUNTRY, { key: uuid() }, undefined, { meta: callMeta });
+          expect(spy.calledWith('info')).to.eq(true);
+          const actualMeta = getLoggerCallMeta(spy);
+          checkLoggerMeta(actualMeta, callMeta, 'find');
+        });
+      });
     });
 
     describe('findOne', () => {
@@ -1807,7 +1884,7 @@ describe('Storage', () => {
       let popAPI: nock.Scope;
 
       beforeEach(() => {
-        popAPI = nockEndpoint(POPAPI_HOST, 'batchWrite', COUNTRY).reply(200, 'OK');
+        popAPI = nockEndpoint(POPAPI_HOST, 'batchWrite', COUNTRY).reply(200, 'OK', popapiResponseHeaders);
       });
 
       describe('arguments', () => {
@@ -1966,6 +2043,18 @@ describe('Storage', () => {
 
           nockEndpoint(POPAPI_HOST, 'batchWrite', country).reply(200, 'OK');
           await storage.batchWrite('US', [{ recordKey: '123' }]);
+        });
+      });
+
+      describe('response headers', () => {
+        it('should be provided to logger in meta param', async () => {
+          const recordsData = [{ recordKey: uuid() }, { recordKey: uuid() }];
+          const callMeta = { id: uuid(), test: uuid() };
+          const spy = sinon.spy(encStorage.logger, 'write');
+          await encStorage.batchWrite(COUNTRY, recordsData, { meta: callMeta }).catch(noop);
+          expect(spy.calledWith('info')).to.eq(true);
+          const actualMeta = getLoggerCallMeta(spy);
+          checkLoggerMeta(actualMeta, callMeta, 'batchWrite');
         });
       });
     });
