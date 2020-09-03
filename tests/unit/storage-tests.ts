@@ -32,6 +32,7 @@ import { FindResponse } from '../../src/validation/api/find-response';
 import { ApiRecordData } from '../../src/validation/api/api-record-data';
 import { filterFromStorageDataKeys } from '../../src/validation/api/find-filter';
 import { INVALID_REQUEST_OPTIONS, VALID_REQUEST_OPTIONS } from './validation/request-options';
+import { INVALID_FIND_FILTER, VALID_FIND_FILTER } from './validation/find-filter-test';
 
 chai.use(chaiAsPromised);
 chai.use(sinonChai);
@@ -348,7 +349,7 @@ describe('Storage', () => {
           });
 
           it('should be provided via either options or environment variable', async () => {
-            await Promise.all([{ }, { apiKey: undefined }].map(async (options) => {
+            await Promise.all([{}, { apiKey: undefined }].map(async (options) => {
               await expect(createStorage(options))
                 .to.be.rejectedWith(StorageError, 'Please pass apiKey in options or set INC_API_KEY env var');
             }));
@@ -1231,7 +1232,6 @@ describe('Storage', () => {
         });
       });
 
-
       describe('encryption', () => {
         const key = 'test';
 
@@ -1355,38 +1355,14 @@ describe('Storage', () => {
 
         describe('filter validation', () => {
           it('should throw an error when filter has wrong format', async () => Promise.all(
-            [
-              false,
-              '',
-              1,
-              [],
-              () => 1,
-              { aa: true },
-              { aa: () => 1 },
-              { aaa1: { $not: () => 1 } },
-              { aaa1: { cccccc: 1 } },
-              { aaa1: { $not: { $not: 1 } } },
-              { aaa3: { $gt: 'ccc' } },
-              { aaa3: { $gt: [] } },
-              // @ts-ignore
-            ].map((filter) => expect(encStorage.find(COUNTRY, filter))
+            // @ts-ignore
+            INVALID_FIND_FILTER.map((filter) => expect(encStorage.find(COUNTRY, filter))
               .to.be.rejectedWith(StorageError, 'FindFilter', `wrong filter format: ${JSON.stringify(filter)}`)),
           ));
 
           it('should not throw an error when filter has correct format', async () => Promise.all(
-            [
-              {},
-              { aa: 1 },
-              { aa: [] },
-              { aa: [1] },
-              { aa: { $not: 1 } },
-              { aa: { $not: [1] } },
-              { aa: { $gt: 1 } },
-              { aa: { $lt: 1 } },
-              { aa: '' },
-              { aa: [''] },
-              // @ts-ignore
-            ].map((filter) => expect(encStorage.find(COUNTRY, filter))
+            // @ts-ignore
+            VALID_FIND_FILTER.map((filter) => expect(encStorage.find(COUNTRY, filter))
               .not.to.be.rejectedWith(StorageError, '<FindFilter>', `wrong filter format: ${JSON.stringify(filter)}`)),
           ));
 
@@ -1717,6 +1693,25 @@ describe('Storage', () => {
             await encStorage.findOne(COUNTRY, {}, {}, { meta }).catch(noop);
             expect(spy.args[0][2]).to.deep.include(meta);
             expect(spy.args[1][2]).to.deep.include(meta);
+          });
+        });
+
+        describe('filter validation', () => {
+          it('should throw an error when filter has wrong format', async () => Promise.all(
+            // @ts-ignore
+            INVALID_FIND_FILTER.map((filter) => expect(encStorage.findOne(COUNTRY, filter))
+              .to.be.rejectedWith(StorageError, 'FindFilter', `wrong filter format: ${JSON.stringify(filter)}`)),
+          ));
+
+          it('should not throw an error when filter has correct format', async () => Promise.all(
+            // @ts-ignore
+            VALID_FIND_FILTER.map((filter) => expect(encStorage.findOne(COUNTRY, filter))
+              .not.to.be.rejectedWith(StorageError, '<FindFilter>', `wrong filter format: ${JSON.stringify(filter)}`)),
+          ));
+
+          it('should not throw an error when find filter is not provided', async () => {
+            expect(encStorage.findOne(COUNTRY))
+              .not.to.be.rejectedWith(StorageError, '<FindFilter>');
           });
         });
       });

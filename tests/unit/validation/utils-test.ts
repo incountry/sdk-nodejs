@@ -6,7 +6,7 @@ import {
   toStorageClientError,
   toStorageServerError,
   validationToPromise,
-  withDefault,
+  optional,
   isValid,
 } from '../../../src/validation/utils';
 import {
@@ -39,7 +39,7 @@ describe('Validation Utils', () => {
     });
   });
 
-  describe('withDefault', () => {
+  describe('optional', () => {
     const codec = t.string;
 
     it('should decode valid value', () => {
@@ -52,9 +52,8 @@ describe('Validation Utils', () => {
       expect(isValid(codec.decode(undefined))).to.equal(false);
     });
 
-    context('same codec wrapped withDefault', () => {
-      const defaultValue = 'test';
-      const codecWithDefault = withDefault(codec, defaultValue);
+    context('same codec wrapped optional', () => {
+      const codecWithDefault = optional(codec);
 
       it('should decode valid value', () => {
         expect(isValid(codecWithDefault.decode(''))).to.equal(true);
@@ -62,12 +61,12 @@ describe('Validation Utils', () => {
       it('should return error for invalid value', () => {
         expect(isValid(codecWithDefault.decode(1))).to.equal(false);
       });
-      it('should decode predefined value for undefined input', () => {
+      it('should decode undefined as a valid value', () => {
         const result = codecWithDefault.decode(undefined);
         if (!isValid(result)) {
           throw assert.fail('codec wrapped withDefault should decode valid');
         }
-        expect(result.right).to.equal(defaultValue);
+        expect(result.right).to.equal(undefined);
       });
     });
   });
