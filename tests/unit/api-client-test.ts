@@ -1,15 +1,17 @@
 import * as chai from 'chai';
 import chaiAsPromised from 'chai-as-promised';
 import nock from 'nock';
+import { Readable } from 'stream';
 
 import { ApiClient } from '../../src/api-client';
 import { StorageServerError } from '../../src/errors';
 import { CountriesCache, Country } from '../../src/countries-cache';
 import { OAuthClient, getApiKeyAuthClient } from '../../src/auth-client';
 import { accessTokenResponse, nockDefaultAuth, nockDefaultAuthMultiple } from '../test-helpers/auth-nock';
-import { getNockedRequestHeaders, nockEndpoint } from '../test-helpers/popapi-nock';
+import { getNockedRequestHeaders, nockEndpoint, getNockedRequestBody } from '../test-helpers/popapi-nock';
 import { Int } from '../../src/validation/utils';
 import { apiRecordFromStorageRecord } from '../test-helpers/utils';
+
 
 chai.use(chaiAsPromised);
 const { expect, assert } = chai;
@@ -377,6 +379,46 @@ describe('ApiClient', () => {
           };
           const popAPI = nockEndpoint(POPAPI_HOST, 'batchWrite', COUNTRY).reply(200);
           await apiClient.batchWrite(COUNTRY, { records: [record] });
+          assert.equal(popAPI.isDone(), true, 'Nock scope is done');
+        });
+      });
+
+      describe('addAttachment', () => {
+        it('should send file data from stream', async () => {
+          const recordKey = '123';
+          const popAPI = nockEndpoint(POPAPI_HOST, 'addAttachment', COUNTRY, recordKey).reply(200);
+
+          const chunks = ['1111111', '2222222', '3333333'];
+
+          const data$ = new Readable({
+            objectMode: true,
+            read() {},
+          });
+
+          const bodyPomise = getNockedRequestBody(popAPI);
+          const reqPromise = apiClient.addAttachment(COUNTRY, recordKey, { fileName: 'test', file: data$ });
+
+          data$.push(chunks[0]);
+          data$.push(chunks[1]);
+          data$.push(chunks[2]);
+          data$.push(null);
+
+          const [bodyObj] = await Promise.all([bodyPomise, reqPromise]);
+
+          // console.log('BODY \n', bodyObj);
+
+          assert.equal(popAPI.isDone(), true, 'Nock scope is done');
+          expect(bodyObj).to.include(chunks.join(''));
+        });
+      });
+
+      describe('deleteAttachment', () => {
+        it('should not throw error with correct data', async () => {
+          const record_key = '123';
+          const file_id = '122223';
+          const response = {};
+          const popAPI = nockEndpoint(POPAPI_HOST, 'deleteAttachment', COUNTRY, record_key, file_id).reply(200, response);
+          await apiClient.deleteAttachment(COUNTRY, record_key, file_id);
           assert.equal(popAPI.isDone(), true, 'Nock scope is done');
         });
       });

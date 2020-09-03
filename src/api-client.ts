@@ -2,8 +2,9 @@
 
 import axios, { Method } from 'axios';
 import get from 'lodash.get';
-
+import { Readable } from 'stream';
 import * as t from 'io-ts';
+import FormData from 'form-data';
 import { Left } from 'fp-ts/lib/Either';
 import { StorageServerError } from './errors';
 import { Country } from './countries-cache';
@@ -31,6 +32,16 @@ type EndpointData = {
   audience: string;
   region: string;
 };
+
+type AttachmentData = {
+  file: Readable;
+  fileName: string;
+}
+
+type AttachmentWritableMeta = {
+  filename?: string;
+  mime_type?: string;
+}
 
 const DEFAULT_ENDPOINT_COUNTRY = 'us';
 const DEFAULT_ENDPOINT_SUFFIX = '-mt-01.api.incountry.io';
@@ -228,7 +239,11 @@ class ApiClient {
     );
   }
 
-  find(countryCode: string, data: { filter?: FindFilter; options?: FindOptions }, { headers, meta }: RequestOptions = {}): Promise<FindResponse> {
+  find(
+    countryCode: string,
+    data: { filter?: FindFilter; options?: FindOptions },
+    { headers, meta }: RequestOptions = {},
+  ): Promise<FindResponse> {
     return this.request(
       countryCode,
       `v2/storage/records/${countryCode}/find`,
@@ -239,7 +254,11 @@ class ApiClient {
     );
   }
 
-  batchWrite(countryCode: string, data: { records: ApiRecordData[] }, { headers, meta }: RequestOptions = {}): Promise<BatchWriteResponse> {
+  batchWrite(
+    countryCode: string,
+    data: { records: ApiRecordData[] },
+    { headers, meta }: RequestOptions = {},
+  ): Promise<BatchWriteResponse> {
     return this.request(
       countryCode,
       `v2/storage/records/${countryCode}/batchWrite`,
@@ -249,9 +268,99 @@ class ApiClient {
       true,
     );
   }
+
+  addAttachment(
+    countryCode: string,
+    recordKey: string,
+    attachmentData: AttachmentData,
+    { headers, meta }: RequestOptions = {},
+  ): Promise<unknown> {
+    const data = new FormData();
+    data.append('filename', attachmentData.fileName);
+    data.append('file', attachmentData.file);
+
+    return this.request(
+      countryCode,
+      `v2/storage/records/${countryCode}/${recordKey}/attachments`,
+      { headers, method: 'post', data },
+      t.unknown,
+      { key: recordKey, operation: 'add_attachment', ...meta },
+      true,
+    );
+  }
+
+  upsertAttachment(
+    countryCode: string,
+    recordKey: string,
+    attachmentData: AttachmentData,
+    { headers, meta }: RequestOptions = {},
+  ): Promise<unknown> {
+    const data = new FormData();
+    data.append('filename', attachmentData.fileName);
+    data.append('file', attachmentData.file);
+
+    return this.request(
+      countryCode,
+      `v2/storage/records/${countryCode}/${recordKey}/attachments`,
+      { headers, method: 'put', data },
+      t.unknown,
+      { key: recordKey, operation: 'upsert_attachment', ...meta },
+      true,
+    );
+  }
+
+  deleteAttachment(
+    countryCode: string,
+    recordKey: string,
+    fileId: string,
+    { headers, meta }: RequestOptions = {},
+  ): Promise<unknown> {
+    return this.request(
+      countryCode,
+      `v2/storage/records/${countryCode}/${recordKey}/attachments/${fileId}`,
+      { headers, method: 'delete' },
+      t.unknown,
+      { key: recordKey, operation: 'delete_attachment', ...meta },
+      true,
+    );
+  }
+
+  getAttachmentFile(
+    countryCode: string,
+    recordKey: string,
+    fileId: string,
+    { headers, meta }: RequestOptions = {},
+  ): Promise<unknown> {
+    return this.request(
+      countryCode,
+      `v2/storage/records/${countryCode}/${recordKey}/attachments/${fileId}`,
+      { headers, method: 'get' },
+      t.unknown,
+      { key: recordKey, operation: 'get_attachment_file', ...meta },
+      true,
+    );
+  }
+
+  updateAttachmentMeta(
+    countryCode: string,
+    recordKey: string,
+    fileId: string,
+    fileMeta: AttachmentWritableMeta,
+    { headers, meta }: RequestOptions = {},
+  ): Promise<unknown> {
+    return this.request(
+      countryCode,
+      `v2/storage/records/${countryCode}/${recordKey}/attachments/${fileId}`,
+      { headers, method: 'patch', data: fileMeta },
+      t.unknown,
+      { key: recordKey, operation: 'update_attachment_meta', ...meta },
+      true,
+    );
+  }
 }
 
 export {
   ApiClient,
   DEFAULT_HTTP_TIMEOUT,
+  AttachmentWritableMeta,
 };

@@ -11,6 +11,7 @@
   "dependencies": {
     "axios": "0.19.0",
     "dotenv": "8.2.0",
+    "form-data": "3.0.0",
     "fp-ts": "2.1.2",
     "io-ts": "2.2.1",
     "io-ts-types": "0.5.6",
