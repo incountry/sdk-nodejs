@@ -301,7 +301,7 @@ class Storage {
     const result: MigrateResult = {
       meta: {
         migrated: records.length,
-        totalLeft: meta.total - meta.count,
+        totalLeft: meta.total - records.length,
       },
     };
 
