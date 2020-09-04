@@ -20,6 +20,7 @@ import { FindFilter } from './validation/api/find-filter';
 import { FindOptions } from './validation/api/find-options';
 import { ApiRecordData } from './validation/api/api-record-data';
 import { RequestOptions } from './validation/request-options';
+import { AttachmentWritableMeta } from './validation/attachment-writable-meta';
 
 const pjson = require('../package.json');
 
@@ -36,11 +37,6 @@ type EndpointData = {
 type AttachmentData = {
   file: Readable;
   fileName: string;
-}
-
-type AttachmentWritableMeta = {
-  filename?: string;
-  mime_type?: string;
 }
 
 const DEFAULT_ENDPOINT_COUNTRY = 'us';
@@ -345,13 +341,13 @@ class ApiClient {
     countryCode: string,
     recordKey: string,
     fileId: string,
-    fileMeta: AttachmentWritableMeta,
+    { fileName, mimeType }: AttachmentWritableMeta,
     { headers, meta }: RequestOptions = {},
   ): Promise<unknown> {
     return this.request(
       countryCode,
       `v2/storage/records/${countryCode}/${recordKey}/attachments/${fileId}`,
-      { headers, method: 'patch', data: fileMeta },
+      { headers, method: 'patch', data: { filename: fileName, mime_type: mimeType } },
       t.unknown,
       { key: recordKey, operation: 'update_attachment_meta', ...meta },
       true,

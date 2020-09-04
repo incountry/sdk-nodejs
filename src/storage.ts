@@ -2,8 +2,8 @@ import 'dotenv/config';
 import crypto from 'crypto';
 import * as t from 'io-ts';
 import { createReadStream } from 'fs';
-import { Readable } from 'stream';
-import { ApiClient, AttachmentWritableMeta } from './api-client';
+import { Readable, PassThrough } from 'stream';
+import { ApiClient } from './api-client';
 import * as defaultLogger from './logger';
 import { CountriesCache } from './countries-cache';
 import { SecretKeyAccessor } from './secret-key-accessor';
@@ -34,7 +34,8 @@ import { ApiRecord, ApiRecordBodyIO } from './validation/api/api-record';
 import { StorageRecordData, StorageRecordDataIO } from './validation/storage-record-data';
 import { ApiRecordData, apiRecordDataFromStorageRecordData } from './validation/api/api-record-data';
 import { RequestOptionsIO, RequestOptions } from './validation/request-options';
-import { isPathLike } from './utils';
+import { AttachmentWritableMeta, AttachmentWritableMetaIO } from './validation/attachment-writable-meta';
+import { AttachmentData, AttachmentDataIO } from './validation/attachment-data';
 
 const FIND_LIMIT = 100;
 
@@ -108,11 +109,6 @@ type ReadResult = {
 type DeleteResult = {
   success: true;
 };
-
-type AttachmentData = {
-  fileName: string;
-  file: Readable | Buffer | string;
-}
 
 class Storage {
   envId: string;
@@ -316,7 +312,7 @@ class Storage {
     };
   }
 
-  @validate(CountryCodeIO, RecordKeyIO, t.unknown, t.unknown, withDefault(RequestOptionsIO, {}))
+  @validate(CountryCodeIO, RecordKeyIO, AttachmentDataIO, withDefault(t.boolean, false), withDefault(RequestOptionsIO, {}))
   @normalizeErrors()
   async addAttachment(
     countryCode: string,
@@ -325,9 +321,20 @@ class Storage {
     upsert = false,
     requestOptions: RequestOptions = {},
   ): Promise<unknown> {
+    let data$: Readable;
+
+    if (typeof file === 'string') {
+      data$ = createReadStream(file);
+    } else if (Buffer.isBuffer(file)) {
+      data$ = new PassThrough();
+      (data$ as PassThrough).end(file);
+    } else {
+      data$ = file;
+    }
+
     const data = {
       fileName,
-      file: isPathLike(file) ? createReadStream(file) : file,
+      file: data$,
     };
 
     return upsert
@@ -357,7 +364,7 @@ class Storage {
     return this.apiClient.getAttachmentFile(countryCode, recordKey, fileId, requestOptions);
   }
 
-  @validate(CountryCodeIO, RecordKeyIO, t.string, t.unknown, withDefault(RequestOptionsIO, {}))
+  @validate(CountryCodeIO, RecordKeyIO, t.string, AttachmentWritableMetaIO, withDefault(RequestOptionsIO, {}))
   @normalizeErrors()
   async updateAttachmentMeta(
     countryCode: string,

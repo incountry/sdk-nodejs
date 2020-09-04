@@ -26,8 +26,20 @@ const popAPIEndpoints = {
     verb: 'post' as Method,
     path: (country?: string, key?: string) => `/v2/storage/records/${country}/${key}/attachments`,
   },
+  upsertAttachment: {
+    verb: 'put' as Method,
+    path: (country?: string, key?: string) => `/v2/storage/records/${country}/${key}/attachments`,
+  },
   deleteAttachment: {
     verb: 'delete' as Method,
+    path: (country?: string, key?: string, file?: string) => `/v2/storage/records/${country}/${key}/attachments/${file}`,
+  },
+  updateAttachmentMeta: {
+    verb: 'patch' as Method,
+    path: (country?: string, key?: string, file?: string) => `/v2/storage/records/${country}/${key}/attachments/${file}`,
+  },
+  getAttachmentFile: {
+    verb: 'get' as Method,
     path: (country?: string, key?: string, file?: string) => `/v2/storage/records/${country}/${key}/attachments/${file}`,
   },
 };

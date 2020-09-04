@@ -389,6 +389,7 @@ describe('ApiClient', () => {
           const popAPI = nockEndpoint(POPAPI_HOST, 'addAttachment', COUNTRY, recordKey).reply(200);
 
           const chunks = ['1111111', '2222222', '3333333'];
+          const fileName = 'test';
 
           const data$ = new Readable({
             objectMode: true,
@@ -396,7 +397,7 @@ describe('ApiClient', () => {
           });
 
           const bodyPomise = getNockedRequestBody(popAPI);
-          const reqPromise = apiClient.addAttachment(COUNTRY, recordKey, { fileName: 'test', file: data$ });
+          const reqPromise = apiClient.addAttachment(COUNTRY, recordKey, { fileName, file: data$ });
 
           data$.push(chunks[0]);
           data$.push(chunks[1]);
@@ -405,10 +406,39 @@ describe('ApiClient', () => {
 
           const [bodyObj] = await Promise.all([bodyPomise, reqPromise]);
 
-          // console.log('BODY \n', bodyObj);
+          assert.equal(popAPI.isDone(), true, 'Nock scope is done');
+          expect(bodyObj).to.include(chunks.join(''));
+          expect(bodyObj).to.include(fileName);
+        });
+      });
+
+      describe('upsertAttachment', () => {
+        it('should send file data from stream', async () => {
+          const recordKey = '123';
+          const popAPI = nockEndpoint(POPAPI_HOST, 'upsertAttachment', COUNTRY, recordKey).reply(200);
+
+          const chunks = ['1111111', '2222222', '3333333'];
+
+          const data$ = new Readable({
+            objectMode: true,
+            read() {},
+          });
+
+          const fileName = 'test';
+
+          const bodyPomise = getNockedRequestBody(popAPI);
+          const reqPromise = apiClient.upsertAttachment(COUNTRY, recordKey, { fileName, file: data$ });
+
+          data$.push(chunks[0]);
+          data$.push(chunks[1]);
+          data$.push(chunks[2]);
+          data$.push(null);
+
+          const [bodyObj] = await Promise.all([bodyPomise, reqPromise]);
 
           assert.equal(popAPI.isDone(), true, 'Nock scope is done');
           expect(bodyObj).to.include(chunks.join(''));
+          expect(bodyObj).to.include(fileName);
         });
       });
 
@@ -419,6 +449,28 @@ describe('ApiClient', () => {
           const response = {};
           const popAPI = nockEndpoint(POPAPI_HOST, 'deleteAttachment', COUNTRY, record_key, file_id).reply(200, response);
           await apiClient.deleteAttachment(COUNTRY, record_key, file_id);
+          assert.equal(popAPI.isDone(), true, 'Nock scope is done');
+        });
+      });
+
+      describe('updateAttachmentMeta', () => {
+        it('should not throw error with correct data', async () => {
+          const record_key = '123';
+          const file_id = '122223';
+          const response = {};
+          const popAPI = nockEndpoint(POPAPI_HOST, 'updateAttachmentMeta', COUNTRY, record_key, file_id).reply(200, response);
+          await apiClient.updateAttachmentMeta(COUNTRY, record_key, file_id, { fileName: 'new' });
+          assert.equal(popAPI.isDone(), true, 'Nock scope is done');
+        });
+      });
+
+      describe('getAttachmentFile', () => {
+        it('should not throw error with correct data', async () => {
+          const record_key = '123';
+          const file_id = '122223';
+          const response = {};
+          const popAPI = nockEndpoint(POPAPI_HOST, 'getAttachmentFile', COUNTRY, record_key, file_id).reply(200, response);
+          await apiClient.getAttachmentFile(COUNTRY, record_key, file_id);
           assert.equal(popAPI.isDone(), true, 'Nock scope is done');
         });
       });

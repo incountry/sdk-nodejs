@@ -1,5 +1,3 @@
-import { PathLike } from "fs";
-
 function isJSON(str: unknown): str is string {
   try {
     JSON.parse(str as string);
@@ -42,8 +40,6 @@ function reflect<T>(promiseLike: PromiseLike<T>): PromiseLike<Reflected<T>> {
   );
 }
 
-const isPathLike = (s: unknown): s is PathLike => typeof s === 'string' || Buffer.isBuffer(s);
-
 export {
   Override,
   Reflected,
@@ -51,6 +47,5 @@ export {
   omitNulls,
   omitUndefined,
   isRejected,
-  isPathLike,
   reflect,
 };
