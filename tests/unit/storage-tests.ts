@@ -7,7 +7,7 @@ import { v4 as uuid } from 'uuid';
 import { identity } from 'fp-ts/lib/function';
 import * as _ from 'lodash';
 import {
-  createStorage, Storage, WriteResult, KEYS_TO_HASH, FIND_LIMIT,
+  createStorage, Storage, WriteResult, KEYS_TO_HASH, FIND_LIMIT, MigrateResult,
 } from '../../src/storage';
 import { StorageServerError, StorageClientError, StorageError } from '../../src/errors';
 import { CountriesCache } from '../../src/countries-cache';
@@ -1786,27 +1786,21 @@ describe('Storage', () => {
             .reply(200, getDefaultFindResponse(apiRecords));
           const popAPIBatchWrite = nockEndpoint(POPAPI_HOST, 'batchWrite', COUNTRY).reply(200, 'OK');
 
-          const [findBodyObj, , result] = await Promise.all<any>([
+          const [findBodyObj, , result] = await Promise.all<any, any, MigrateResult>([
             getNockedRequestBodyObject(popAPIFind),
             getNockedRequestBodyObject(popAPIBatchWrite),
             encStorage2.migrate(COUNTRY, apiRecords.length),
           ]);
 
           expect(findBodyObj.filter.version).to.deep.equal({ $not: newSecret.version });
-
           expect(result).to.deep.equal(migrateResult);
           assert.equal(popAPIFind.isDone(), true, 'find() called');
           assert.equal(popAPIBatchWrite.isDone(), true, 'batchWrite() called');
         });
       });
 
-      it('should throw error if cannot decrypt any record', async () => {
-        const encryptedRecords = await Promise.all(TEST_RECORDS.map((record) => encStorage.encryptPayload(record)));
-        const apiRecords = encryptedRecords.map((record) => ({
-          ...EMPTY_API_RECORD,
-          ...record,
-          body: record.body || '',
-        }));
+      it('should not throw error if no records found to migrate', async () => {
+        const apiRecords: ApiRecord[] = [];
 
         const oldSecret = { secret: SECRET_KEY, version: 1 };
         const newSecret = { secret: 'keykey', version: 2 };
@@ -1820,8 +1814,37 @@ describe('Storage', () => {
         nockEndpoint(POPAPI_HOST, 'find', COUNTRY)
           .reply(200, response);
 
-        await expect(encStorage2.migrate(COUNTRY, apiRecords.length))
-          .to.be.rejectedWith(StorageError, 'Secret not found for version 0');
+        await expect(encStorage2.migrate(COUNTRY, 10))
+          .to.be.not.rejectedWith(StorageError);
+      });
+
+      it('should not throw error if cannot decrypt some record', async () => {
+        const encryptedRecords = await Promise.all(TEST_RECORDS.map((record) => encStorage.encryptPayload(record)));
+        const apiRecords = encryptedRecords.map((record) => ({
+          ...EMPTY_API_RECORD,
+          ...record,
+          body: record.body || '',
+        }));
+
+        apiRecords[0].body = '1234578';
+
+        const oldSecret = { secret: SECRET_KEY, version: 0 };
+        const newSecret = { secret: 'keykey', version: 2 };
+
+        const encStorage2 = await getDefaultStorage(true, false, () => ({
+          secrets: [oldSecret, newSecret],
+          currentVersion: newSecret.version,
+        }));
+
+        const response = getDefaultFindResponse(apiRecords);
+        nockEndpoint(POPAPI_HOST, 'find', COUNTRY)
+          .reply(200, response);
+
+        nockEndpoint(POPAPI_HOST, 'batchWrite', COUNTRY).reply(200, 'OK');
+
+        const result = await encStorage2.migrate(COUNTRY, apiRecords.length);
+        expect(result.meta.errors).to.have.length(1);
+        expect(result.meta.errors).to.have.deep.nested.property('[0].rawData', apiRecords[0]);
       });
 
       describe('arguments', () => {

@@ -84,6 +84,7 @@ type MigrateResult = {
   meta: {
     migrated: number;
     totalLeft: number;
+    errors?: Array<{ error: StorageCryptoError; rawData: ApiRecord }>;
   };
 };
 
@@ -293,18 +294,22 @@ class Storage {
     const findFilter = { ..._findFilter, version: { $not: currentSecretVersion } };
     const findOptions = { limit };
     const { records, meta, errors } = await this.find(countryCode, findFilter, findOptions, requestOptions);
-    if (records.length === 0 && errors && errors[0]) {
-      throw errors[0].error;
+    if (records.length > 0) {
+      await this.batchWrite(countryCode, records, requestOptions);
     }
 
-    await this.batchWrite(countryCode, records, requestOptions);
-
-    return {
+    const result: MigrateResult = {
       meta: {
-        migrated: meta.count,
-        totalLeft: meta.total - meta.count,
+        migrated: records.length,
+        totalLeft: meta.total - records.length,
       },
     };
+
+    if (errors) {
+      result.meta.errors = errors;
+    }
+
+    return result;
   }
 
   async validate(): Promise<void> {
