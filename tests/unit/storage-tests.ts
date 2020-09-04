@@ -1818,30 +1818,6 @@ describe('Storage', () => {
           .to.be.not.rejectedWith(StorageError);
       });
 
-      it('should throw error if cannot decrypt all found records', async () => {
-        const encryptedRecords = await Promise.all(TEST_RECORDS.map((record) => encStorage.encryptPayload(record)));
-        const apiRecords = encryptedRecords.map((record) => ({
-          ...EMPTY_API_RECORD,
-          ...record,
-          body: record.body || '',
-        }));
-
-        const oldSecret = { secret: SECRET_KEY, version: 1 };
-        const newSecret = { secret: 'keykey', version: 2 };
-
-        const encStorage2 = await getDefaultStorage(true, false, () => ({
-          secrets: [oldSecret, newSecret],
-          currentVersion: newSecret.version,
-        }));
-
-        const response = getDefaultFindResponse(apiRecords);
-        nockEndpoint(POPAPI_HOST, 'find', COUNTRY)
-          .reply(200, response);
-
-        await expect(encStorage2.migrate(COUNTRY, apiRecords.length))
-          .to.be.rejectedWith(StorageError, 'Secret not found for version 0');
-      });
-
       it('should not throw error if cannot decrypt some record', async () => {
         const encryptedRecords = await Promise.all(TEST_RECORDS.map((record) => encStorage.encryptPayload(record)));
         const apiRecords = encryptedRecords.map((record) => ({

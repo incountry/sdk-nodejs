@@ -294,11 +294,7 @@ class Storage {
     const findFilter = { ..._findFilter, version: { $not: currentSecretVersion } };
     const findOptions = { limit };
     const { records, meta, errors } = await this.find(countryCode, findFilter, findOptions, requestOptions);
-    if (records.length === 0) {
-      if (errors && errors[0]) {
-        throw errors[0].error;
-      }
-    } else {
+    if (records.length > 0) {
       await this.batchWrite(countryCode, records, requestOptions);
     }
 
