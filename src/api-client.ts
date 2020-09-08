@@ -191,7 +191,7 @@ class ApiClient {
     this.loggerFn('info', `Finished ${method} ${url}`, {
       ...meta,
       op_result: 'success',
-      responseHeaders: response.config.headers,
+      responseHeaders: response.headers,
     });
 
     const responseData = codec.decode(response.data);
