@@ -8,7 +8,7 @@ import { StorageServerError } from '../../src/errors';
 import { CountriesCache, Country } from '../../src/countries-cache';
 import { OAuthClient, getApiKeyAuthClient } from '../../src/auth-client';
 import { accessTokenResponse, nockDefaultAuth, nockDefaultAuthMultiple } from '../test-helpers/auth-nock';
-import { getNockedRequestHeaders, nockEndpoint, getNockedRequestBody } from '../test-helpers/popapi-nock';
+import { getNockedRequestHeaders, nockPopApi, getNockedRequestBody } from '../test-helpers/popapi-nock';
 import { Int } from '../../src/validation/utils';
 import { apiRecordFromStorageRecord } from '../test-helpers/utils';
 
@@ -298,7 +298,7 @@ describe('ApiClient', () => {
 
       errorCases.forEach((errCase) => {
         it(`should throw StorageServerError ${errCase.name}`, async () => {
-          const scope = errCase.respond(nockEndpoint(POPAPI_HOST, 'write', COUNTRY));
+          const scope = errCase.respond(nockPopApi(POPAPI_HOST).write(COUNTRY));
           await expect(apiClient.write(COUNTRY, { record_key: '' })).to.be.rejectedWith(StorageServerError);
           assert.equal(scope.isDone(), true, 'Nock scope is done');
         });
@@ -312,7 +312,7 @@ describe('ApiClient', () => {
           meta: { total: 0, limit: 100, offset: 0 },
           data: [],
         };
-        const wrongPopAPI = nockEndpoint(POPAPI_HOST, 'find', COUNTRY).reply(200, wrongFindResponse);
+        const wrongPopAPI = nockPopApi(POPAPI_HOST).find(COUNTRY).reply(200, wrongFindResponse);
         await expect(apiClient.find(COUNTRY, { filter }, {})).to.be.rejectedWith(StorageServerError);
         assert.equal(wrongPopAPI.isDone(), true, 'Nock scope is done');
       });
@@ -326,7 +326,7 @@ describe('ApiClient', () => {
             ...EMPTY_RECORD,
             recordKey,
           });
-          const popAPI = nockEndpoint(POPAPI_HOST, 'read', COUNTRY, recordKey).reply(200, record);
+          const popAPI = nockPopApi(POPAPI_HOST).read(COUNTRY, recordKey).reply(200, record);
           const result = await apiClient.read(COUNTRY, recordKey);
           await expect(result).to.deep.equal(record);
           assert.equal(popAPI.isDone(), true, 'Nock scope is done');
@@ -340,7 +340,7 @@ describe('ApiClient', () => {
             ...EMPTY_RECORD,
             record_key,
           };
-          const popAPI = nockEndpoint(POPAPI_HOST, 'write', COUNTRY).reply(200);
+          const popAPI = nockPopApi(POPAPI_HOST).write(COUNTRY).reply(200);
           await apiClient.write(COUNTRY, record);
           assert.equal(popAPI.isDone(), true, 'Nock scope is done');
         });
@@ -349,7 +349,7 @@ describe('ApiClient', () => {
       describe('delete', () => {
         it('should not throw error with correct data', async () => {
           const key = '123';
-          const popAPI = nockEndpoint(POPAPI_HOST, 'delete', COUNTRY, key).reply(200);
+          const popAPI = nockPopApi(POPAPI_HOST).delete(COUNTRY, key).reply(200);
           await apiClient.delete(COUNTRY, key);
           assert.equal(popAPI.isDone(), true, 'Nock scope is done');
         });
@@ -364,7 +364,7 @@ describe('ApiClient', () => {
             },
             data: [],
           };
-          const popAPI = nockEndpoint(POPAPI_HOST, 'find', COUNTRY).reply(200, response);
+          const popAPI = nockPopApi(POPAPI_HOST).find(COUNTRY).reply(200, response);
           await apiClient.find(COUNTRY, { filter });
           assert.equal(popAPI.isDone(), true, 'Nock scope is done');
         });
@@ -377,7 +377,7 @@ describe('ApiClient', () => {
             ...EMPTY_RECORD,
             record_key,
           };
-          const popAPI = nockEndpoint(POPAPI_HOST, 'batchWrite', COUNTRY).reply(200);
+          const popAPI = nockPopApi(POPAPI_HOST).batchWrite(COUNTRY).reply(200);
           await apiClient.batchWrite(COUNTRY, { records: [record] });
           assert.equal(popAPI.isDone(), true, 'Nock scope is done');
         });
@@ -386,7 +386,7 @@ describe('ApiClient', () => {
       describe('addAttachment', () => {
         it('should send file data from stream', async () => {
           const recordKey = '123';
-          const popAPI = nockEndpoint(POPAPI_HOST, 'addAttachment', COUNTRY, recordKey).reply(200);
+          const popAPI = nockPopApi(POPAPI_HOST).addAttachment(COUNTRY, recordKey).reply(200);
 
           const chunks = ['1111111', '2222222', '3333333'];
           const fileName = 'test';
@@ -415,7 +415,7 @@ describe('ApiClient', () => {
       describe('upsertAttachment', () => {
         it('should send file data from stream', async () => {
           const recordKey = '123';
-          const popAPI = nockEndpoint(POPAPI_HOST, 'upsertAttachment', COUNTRY, recordKey).reply(200);
+          const popAPI = nockPopApi(POPAPI_HOST).upsertAttachment(COUNTRY, recordKey).reply(200);
 
           const chunks = ['1111111', '2222222', '3333333'];
 
@@ -447,7 +447,7 @@ describe('ApiClient', () => {
           const record_key = '123';
           const file_id = '122223';
           const response = {};
-          const popAPI = nockEndpoint(POPAPI_HOST, 'deleteAttachment', COUNTRY, record_key, file_id).reply(200, response);
+          const popAPI = nockPopApi(POPAPI_HOST).deleteAttachment(COUNTRY, record_key, file_id).reply(200, response);
           await apiClient.deleteAttachment(COUNTRY, record_key, file_id);
           assert.equal(popAPI.isDone(), true, 'Nock scope is done');
         });
@@ -458,7 +458,7 @@ describe('ApiClient', () => {
           const record_key = '123';
           const file_id = '122223';
           const response = {};
-          const popAPI = nockEndpoint(POPAPI_HOST, 'updateAttachmentMeta', COUNTRY, record_key, file_id).reply(200, response);
+          const popAPI = nockPopApi(POPAPI_HOST).updateAttachmentMeta(COUNTRY, record_key, file_id).reply(200, response);
           await apiClient.updateAttachmentMeta(COUNTRY, record_key, file_id, { fileName: 'new' });
           assert.equal(popAPI.isDone(), true, 'Nock scope is done');
         });
@@ -469,7 +469,7 @@ describe('ApiClient', () => {
           const record_key = '123';
           const file_id = '122223';
           const response = {};
-          const popAPI = nockEndpoint(POPAPI_HOST, 'getAttachmentFile', COUNTRY, record_key, file_id).reply(200, response);
+          const popAPI = nockPopApi(POPAPI_HOST).getAttachmentFile(COUNTRY, record_key, file_id).reply(200, response);
           await apiClient.getAttachmentFile(COUNTRY, record_key, file_id);
           assert.equal(popAPI.isDone(), true, 'Nock scope is done');
         });
@@ -486,7 +486,7 @@ describe('ApiClient', () => {
     });
 
     it('should send access_token in Authorization header', async () => {
-      const popAPI = nockEndpoint(POPAPI_HOST, 'write', COUNTRY).reply(200, 'OK');
+      const popAPI = nockPopApi(POPAPI_HOST).write(COUNTRY).reply(200, 'OK');
       const [headers] = await Promise.all<Record<string, string>, unknown>([getNockedRequestHeaders(popAPI), apiClient.write(COUNTRY, { record_key: '123' })]);
       const { authorization } = headers;
       expect(authorization).to.eq('Bearer access_token');

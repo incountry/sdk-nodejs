@@ -317,7 +317,7 @@ class Storage {
     return result;
   }
 
-  @validate(CountryCodeIO, RecordKeyIO, AttachmentDataIO, withDefault(t.boolean, false), withDefault(RequestOptionsIO, {}))
+  @validate(CountryCodeIO, RecordKeyIO, AttachmentDataIO, optional(t.boolean), optional(RequestOptionsIO))
   @normalizeErrors()
   async addAttachment(
     countryCode: string,
@@ -347,7 +347,7 @@ class Storage {
       : this.apiClient.addAttachment(countryCode, recordKey, data, requestOptions);
   }
 
-  @validate(CountryCodeIO, RecordKeyIO, t.string, withDefault(RequestOptionsIO, {}))
+  @validate(CountryCodeIO, RecordKeyIO, t.string, optional(RequestOptionsIO))
   @normalizeErrors()
   async deleteAttachment(
     countryCode: string,
@@ -358,7 +358,7 @@ class Storage {
     return this.apiClient.deleteAttachment(countryCode, recordKey, fileId, requestOptions);
   }
 
-  @validate(CountryCodeIO, RecordKeyIO, t.string, withDefault(RequestOptionsIO, {}))
+  @validate(CountryCodeIO, RecordKeyIO, t.string, optional(RequestOptionsIO))
   @normalizeErrors()
   async getAttachmentFile(
     countryCode: string,
@@ -369,7 +369,7 @@ class Storage {
     return this.apiClient.getAttachmentFile(countryCode, recordKey, fileId, requestOptions);
   }
 
-  @validate(CountryCodeIO, RecordKeyIO, t.string, AttachmentWritableMetaIO, withDefault(RequestOptionsIO, {}))
+  @validate(CountryCodeIO, RecordKeyIO, t.string, AttachmentWritableMetaIO, optional(RequestOptionsIO))
   @normalizeErrors()
   async updateAttachmentMeta(
     countryCode: string,
