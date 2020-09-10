@@ -28,6 +28,11 @@ const SDK_VERSION = pjson.version as string;
 
 type BasicRequestOptions<A> = { method: Method; data?: A; path?: string };
 
+const AddAttachmentResultIO = t.unknown;
+type AddAttachmentResult = unknown;
+const UpsertAttachmentResultIO = t.unknown;
+type UpsertAttachmentResult = unknown;
+
 type EndpointData = {
   endpoint: string;
   audience: string;
@@ -270,7 +275,7 @@ class ApiClient {
     recordKey: string,
     attachmentData: AttachmentData,
     { headers, meta }: RequestOptions = {},
-  ): Promise<unknown> {
+  ): Promise<AddAttachmentResult> {
     const data = new FormData();
     data.append('filename', attachmentData.fileName);
     data.append('file', attachmentData.file);
@@ -279,7 +284,7 @@ class ApiClient {
       countryCode,
       `v2/storage/records/${countryCode}/${recordKey}/attachments`,
       { headers, method: 'post', data },
-      t.unknown,
+      AddAttachmentResultIO,
       { key: recordKey, operation: 'add_attachment', ...meta },
       true,
     );
@@ -290,7 +295,7 @@ class ApiClient {
     recordKey: string,
     attachmentData: AttachmentData,
     { headers, meta }: RequestOptions = {},
-  ): Promise<unknown> {
+  ): Promise<UpsertAttachmentResult> {
     const data = new FormData();
     data.append('filename', attachmentData.fileName);
     data.append('file', attachmentData.file);
@@ -299,7 +304,7 @@ class ApiClient {
       countryCode,
       `v2/storage/records/${countryCode}/${recordKey}/attachments`,
       { headers, method: 'put', data },
-      t.unknown,
+      UpsertAttachmentResultIO,
       { key: recordKey, operation: 'upsert_attachment', ...meta },
       true,
     );
