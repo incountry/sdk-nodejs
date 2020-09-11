@@ -16,6 +16,8 @@ import { FindResponseIO, FindResponse } from './validation/api/find-response';
 import { WriteResponseIO, WriteResponse } from './validation/api/write-response';
 import { BatchWriteResponseIO, BatchWriteResponse } from './validation/api/batch-write-response';
 import { DeleteResponseIO, DeleteResponse } from './validation/api/delete-response';
+import { AddAttachmentResponseIO, AddAttachmentResponse } from './validation/api/add-attachment-response';
+import { UpsertAttachmentResponse, UpsertAttachmentResponseIO } from './validation/api/upsert-attachment-response';
 import { FindFilter } from './validation/api/find-filter';
 import { FindOptions } from './validation/api/find-options';
 import { ApiRecordData } from './validation/api/api-record-data';
@@ -27,11 +29,6 @@ const pjson = require('../package.json');
 const SDK_VERSION = pjson.version as string;
 
 type BasicRequestOptions<A> = { method: Method; data?: A; path?: string };
-
-const AddAttachmentResultIO = t.unknown;
-type AddAttachmentResult = unknown;
-const UpsertAttachmentResultIO = t.unknown;
-type UpsertAttachmentResult = unknown;
 
 type EndpointData = {
   endpoint: string;
@@ -275,7 +272,7 @@ class ApiClient {
     recordKey: string,
     attachmentData: AttachmentData,
     { headers, meta }: RequestOptions = {},
-  ): Promise<AddAttachmentResult> {
+  ): Promise<AddAttachmentResponse> {
     const data = new FormData();
     data.append('filename', attachmentData.fileName);
     data.append('file', attachmentData.file);
@@ -284,7 +281,7 @@ class ApiClient {
       countryCode,
       `v2/storage/records/${countryCode}/${recordKey}/attachments`,
       { headers, method: 'post', data },
-      AddAttachmentResultIO,
+      AddAttachmentResponseIO,
       { key: recordKey, operation: 'add_attachment', ...meta },
       true,
     );
@@ -295,7 +292,7 @@ class ApiClient {
     recordKey: string,
     attachmentData: AttachmentData,
     { headers, meta }: RequestOptions = {},
-  ): Promise<UpsertAttachmentResult> {
+  ): Promise<UpsertAttachmentResponse> {
     const data = new FormData();
     data.append('filename', attachmentData.fileName);
     data.append('file', attachmentData.file);
@@ -304,7 +301,7 @@ class ApiClient {
       countryCode,
       `v2/storage/records/${countryCode}/${recordKey}/attachments`,
       { headers, method: 'put', data },
-      UpsertAttachmentResultIO,
+      UpsertAttachmentResponseIO,
       { key: recordKey, operation: 'upsert_attachment', ...meta },
       true,
     );

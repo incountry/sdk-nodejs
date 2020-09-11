@@ -9,7 +9,6 @@ type AttachmentData = {
   file: File;
 }
 
-
 const isFile = (o: unknown): o is File => typeof o === 'string' || Buffer.isBuffer(o) || o instanceof Readable;
 
 const FileIO = new t.Type<File>(

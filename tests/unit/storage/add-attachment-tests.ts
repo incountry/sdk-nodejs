@@ -1,0 +1,192 @@
+import * as chai from 'chai';
+import * as sinon from 'sinon';
+import { ReadStream } from 'fs';
+import sinonChai from 'sinon-chai';
+import chaiAsPromised from 'chai-as-promised';
+import nock from 'nock';
+import { Readable } from 'stream';
+import {
+  POPAPI_HOST,
+  COUNTRY,
+  REQUEST_TIMEOUT_ERROR,
+  getDefaultStorage,
+} from './common';
+import { StorageError, StorageServerError } from '../../../src/errors';
+import { COUNTRY_CODE_ERROR_MESSAGE } from '../../../src/validation/country-code';
+import { nockPopApi, getNockedRequestBody } from '../../test-helpers/popapi-nock';
+import { Storage } from '../../../src/storage';
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const fs = require('fs');
+
+chai.use(chaiAsPromised);
+chai.use(sinonChai);
+const { expect, assert } = chai;
+
+describe('Storage', () => {
+  let clientId: string | undefined;
+  let clientSecret: string | undefined;
+
+  beforeEach(() => {
+    clientId = process.env.INC_CLIENT_ID;
+    clientSecret = process.env.INC_CLIENT_SECRET;
+    delete process.env.INC_CLIENT_ID;
+    delete process.env.INC_CLIENT_SECRET;
+  });
+
+  afterEach(() => {
+    process.env.INC_CLIENT_ID = clientId;
+    process.env.INC_CLIENT_SECRET = clientSecret;
+  });
+
+  describe('interface methods', () => {
+    let encStorage: Storage;
+    // let noEncStorage: Storage;
+
+    beforeEach(async () => {
+      nock.disableNetConnect();
+      encStorage = await getDefaultStorage(true);
+      // noEncStorage = await getDefaultStorage(false);
+    });
+
+    afterEach(() => {
+      nock.cleanAll();
+      nock.enableNetConnect();
+    });
+
+
+    describe('addAttachment', () => {
+      // let popAPI: nock.Scope;
+
+      beforeEach(() => {
+        // popAPI = nockEndpoint(POPAPI_HOST).addAttachment(COUNTRY).reply(200, 'OK');
+      });
+
+      describe('arguments validation', () => {
+        describe('when country is not a string', () => {
+          it('should throw an error', async () => {
+            const wrongCountries = [undefined, null, 1, {}, []];
+            // @ts-ignore
+            await Promise.all(wrongCountries.map((country) => expect(encStorage.addAttachment(country))
+              .to.be.rejectedWith(StorageError, COUNTRY_CODE_ERROR_MESSAGE)));
+          });
+        });
+      });
+
+      describe('in case of network error', () => {
+        it('should throw an error', async () => {
+          const recordKey = '123';
+          const attachment = { file: Buffer.from(''), fileName: 'test' };
+
+          nock.cleanAll();
+          const scope = nockPopApi(POPAPI_HOST).addAttachment(COUNTRY, recordKey)
+            .replyWithError(REQUEST_TIMEOUT_ERROR);
+
+          await expect(encStorage.addAttachment(COUNTRY, recordKey, attachment)).to.be.rejectedWith(StorageServerError);
+          assert.equal(scope.isDone(), true, 'Nock scope is done');
+        });
+      });
+
+      describe('normalize country', () => {
+        it('it should pass normalized country code', async () => {
+          const country = 'us';
+          const recordKey = '123';
+          const attachment = { file: Buffer.from(''), fileName: 'test' };
+
+          const storage = await getDefaultStorage();
+
+          nockPopApi(POPAPI_HOST).addAttachment(country, recordKey).reply(200, 'OK');
+          await storage.addAttachment('uS', recordKey, attachment);
+
+          nockPopApi(POPAPI_HOST).addAttachment(country, recordKey).reply(200, 'OK');
+          await storage.addAttachment('Us', recordKey, attachment);
+
+          nockPopApi(POPAPI_HOST).addAttachment(country, recordKey).reply(200, 'OK');
+          await storage.addAttachment('US', recordKey, attachment);
+        });
+      });
+
+      describe('attachment data consume', () => {
+        let stub: sinon.SinonStub | undefined;
+        afterEach(() => {
+          if (stub) {
+            stub.restore();
+          }
+        });
+
+        it('should read file from by path', async () => {
+          const recordKey = '123';
+          const popAPI = nockPopApi(POPAPI_HOST).addAttachment(COUNTRY, recordKey).reply(200);
+
+          const data = '1111111222222';
+          const fileName = 'test123';
+
+          const filePath = 'test/test';
+
+          stub = sinon.stub(fs, 'createReadStream').callsFake(() => {
+            const data$ = new Readable({
+              objectMode: true,
+              read() {},
+            });
+            data$.push(data);
+            data$.push(null);
+            return data$ as ReadStream;
+          });
+
+          const bodyPomise = getNockedRequestBody(popAPI);
+          const reqPromise = encStorage.addAttachment(COUNTRY, recordKey, { fileName, file: filePath });
+          const [bodyObj] = await Promise.all([bodyPomise, reqPromise]);
+
+          assert.equal(popAPI.isDone(), true, 'Nock scope is done');
+          expect(stub).calledWith(filePath);
+          expect(bodyObj).to.include(data);
+          expect(bodyObj).to.include(fileName);
+        });
+
+        it('should read data from buffer', async () => {
+          const recordKey = '123';
+          const popAPI = nockPopApi(POPAPI_HOST).addAttachment(COUNTRY, recordKey).reply(200);
+
+          const data = '1111111';
+          const fileName = 'test';
+
+          const file = Buffer.from(data);
+
+          const bodyPomise = getNockedRequestBody(popAPI);
+          const reqPromise = encStorage.addAttachment(COUNTRY, recordKey, { fileName, file });
+          const [bodyObj] = await Promise.all([bodyPomise, reqPromise]);
+
+          assert.equal(popAPI.isDone(), true, 'Nock scope is done');
+          expect(bodyObj).to.include(data);
+          expect(bodyObj).to.include(fileName);
+        });
+
+        it('should read data from stream', async () => {
+          const recordKey = '123';
+          const popAPI = nockPopApi(POPAPI_HOST).addAttachment(COUNTRY, recordKey).reply(200);
+
+          const chunks = ['1111111', '2222222', '3333333'];
+          const fileName = 'test';
+
+          const data$ = new Readable({
+            objectMode: true,
+            read() {},
+          });
+
+          const bodyPomise = getNockedRequestBody(popAPI);
+          const reqPromise = encStorage.addAttachment(COUNTRY, recordKey, { fileName, file: data$ });
+
+          data$.push(chunks[0]);
+          data$.push(chunks[1]);
+          data$.push(chunks[2]);
+          data$.push(null);
+
+          const [bodyObj] = await Promise.all([bodyPomise, reqPromise]);
+
+          assert.equal(popAPI.isDone(), true, 'Nock scope is done');
+          expect(bodyObj).to.include(chunks.join(''));
+          expect(bodyObj).to.include(fileName);
+        });
+      });
+    });
+  });
+});
