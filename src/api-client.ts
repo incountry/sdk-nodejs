@@ -360,5 +360,4 @@ class ApiClient {
 export {
   ApiClient,
   DEFAULT_HTTP_TIMEOUT,
-  AttachmentWritableMeta,
 };

@@ -20,25 +20,25 @@ const getNockedRequestBody = (nocked: nock.Scope) => new Promise((resolve) => {
 });
 
 const nockPopApi = (host: string) => ({
-  write: (country: string) => nock(host).post(`/v2/storage/records/${country}`),
+  write: (countryCode: string) => nock(host).post(`/v2/storage/records/${countryCode}`),
 
-  read: (country: string, key: string) => nock(host).get(`/v2/storage/records/${country}/${key}`),
+  read: (countryCode: string, recordKey: string) => nock(host).get(`/v2/storage/records/${countryCode}/${recordKey}`),
 
-  delete: (country: string, key: string) => nock(host).delete(`/v2/storage/records/${country}/${key}`),
+  delete: (countryCode: string, recordKey: string) => nock(host).delete(`/v2/storage/records/${countryCode}/${recordKey}`),
 
-  find: (country: string) => nock(host).post(`/v2/storage/records/${country}/find`),
+  find: (countryCode: string) => nock(host).post(`/v2/storage/records/${countryCode}/find`),
 
-  batchWrite: (country: string) => nock(host).post(`/v2/storage/records/${country}/batchWrite`),
+  batchWrite: (countryCode: string) => nock(host).post(`/v2/storage/records/${countryCode}/batchWrite`),
 
-  addAttachment: (country: string, key: string) => nock(host).post(`/v2/storage/records/${country}/${key}/attachments`),
+  addAttachment: (countryCode: string, recordKey: string) => nock(host).post(`/v2/storage/records/${countryCode}/${recordKey}/attachments`),
 
-  upsertAttachment: (country: string, key: string) => nock(host).put(`/v2/storage/records/${country}/${key}/attachments`),
+  upsertAttachment: (countryCode: string, recordKey: string) => nock(host).put(`/v2/storage/records/${countryCode}/${recordKey}/attachments`),
 
-  deleteAttachment: (country: string, key: string, file: string) => nock(host).delete(`/v2/storage/records/${country}/${key}/attachments/${file}`),
+  deleteAttachment: (countryCode: string, recordKey: string, fileId: string) => nock(host).delete(`/v2/storage/records/${countryCode}/${recordKey}/attachments/${fileId}`),
 
-  updateAttachmentMeta: (country: string, key: string, file: string) => nock(host).patch(`/v2/storage/records/${country}/${key}/attachments/${file}`),
+  updateAttachmentMeta: (countryCode: string, recordKey: string, fileId: string) => nock(host).patch(`/v2/storage/records/${countryCode}/${recordKey}/attachments/${fileId}`),
 
-  getAttachmentFile: (country: string, key: string, file: string) => nock(host).get(`/v2/storage/records/${country}/${key}/attachments/${file}`),
+  getAttachmentFile: (countryCode: string, recordKey: string, fileId: string) => nock(host).get(`/v2/storage/records/${countryCode}/${recordKey}/attachments/${fileId}`),
 });
 
 export {
