@@ -52,6 +52,7 @@ const EMPTY_RECORD = {
   rangeKey8: null,
   rangeKey9: null,
   rangeKey10: null,
+  attachments: [],
 };
 
 function createFakeCountriesCache(countries: Country[]) {

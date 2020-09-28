@@ -28,42 +28,54 @@ describe('Add attachment to record', () => {
 
   it('add attachment specified by file path', async () => {
     const { record: recordBefore } = await storage.read(COUNTRY, recordData.recordKey);
-    // check record has 0 attachment
-    expect(recordBefore.rangeKey8).to.equal(null);
+    expect(recordBefore.attachments).to.be.empty;
 
-    const attachmentData = { file: './LICENSE', fileName: 'example license file' };
+    const fileName = 'example license file';
+    const attachmentData = { file: './LICENSE', fileName };
     await storage.addAttachment(COUNTRY, recordData.recordKey, attachmentData);
 
     const { record: recordAfter } = await storage.read(COUNTRY, recordData.recordKey);
-    // check record has 1 attachment
-    expect(recordAfter.rangeKey8).to.equal(null);
+    expect(recordAfter.attachments).to.be.not.empty;
+    expect(recordAfter.attachments[0].fileName).to.equal(fileName);
   });
 
   it('add attachment specified from Buffer', async () => {
     const { record: recordBefore } = await storage.read(COUNTRY, recordData.recordKey);
-    // check record has 0 attachment
-    expect(recordBefore.rangeKey8).to.equal(null);
+    expect(recordBefore.attachments).to.be.empty;
 
     const file = await fs.promises.readFile('./LICENSE');
-    const attachmentData = { file, fileName: 'example license file' };
+    const fileName = 'example license file';
+    const attachmentData = { file, fileName };
     await storage.addAttachment(COUNTRY, recordData.recordKey, attachmentData);
 
     const { record: recordAfter } = await storage.read(COUNTRY, recordData.recordKey);
-    // check record has 1 attachment
-    expect(recordAfter.rangeKey8).to.equal(null);
+    expect(recordAfter.attachments).to.be.not.empty;
+    expect(recordAfter.attachments[0].fileName).to.equal(fileName);
   });
 
   it('add attachment specified from Stream', async () => {
     const { record: recordBefore } = await storage.read(COUNTRY, recordData.recordKey);
-    // check record has 0 attachment
-    expect(recordBefore.rangeKey8).to.equal(null);
+    expect(recordBefore.attachments).to.be.empty;
 
     const file$ = fs.createReadStream('./LICENSE');
-    const attachmentData = { file: file$, fileName: 'example license file' };
+    const fileName = 'example license file';
+    const attachmentData = { file: file$, fileName };
     await storage.addAttachment(COUNTRY, recordData.recordKey, attachmentData);
 
     const { record: recordAfter } = await storage.read(COUNTRY, recordData.recordKey);
-    // check record has 1 attachment
-    expect(recordAfter.rangeKey8).to.equal(null);
+    expect(recordAfter.attachments).to.be.not.empty;
+    expect(recordAfter.attachments[0].fileName).to.equal(fileName);
+  });
+
+  xit('upsert attachment specified by file path', async () => {
+
+  });
+
+  xit('upsert attachment specified from Buffer', async () => {
+
+  });
+
+  xit('upsert attachment specified from Stream', async () => {
+
   });
 });

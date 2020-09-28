@@ -37,7 +37,7 @@ type EndpointData = {
 };
 
 type AttachmentData = {
-  file: Readable;
+  file: Readable | Buffer;
   fileName: string;
 }
 
@@ -196,6 +196,8 @@ class ApiClient {
       responseHeaders: response.headers,
     });
 
+    console.log('sdsd', response.data);
+
     const responseData = codec.decode(response.data);
     if (isInvalid(responseData)) {
       throw this.prepareValidationError(responseData, loggingMeta);
@@ -274,13 +276,12 @@ class ApiClient {
     { headers, meta }: RequestOptions = {},
   ): Promise<AddAttachmentResponse> {
     const data = new FormData();
-    data.append('filename', attachmentData.fileName);
-    data.append('file', attachmentData.file);
+    data.append('file', attachmentData.file, { filename: attachmentData.fileName });
 
     return this.request(
       countryCode,
       `v2/storage/records/${countryCode}/${recordKey}/attachments`,
-      { headers, method: 'post', data },
+      { headers: { ...headers, ...data.getHeaders() }, method: 'post', data },
       AddAttachmentResponseIO,
       { key: recordKey, operation: 'add_attachment', ...meta },
       true,
@@ -294,13 +295,12 @@ class ApiClient {
     { headers, meta }: RequestOptions = {},
   ): Promise<UpsertAttachmentResponse> {
     const data = new FormData();
-    data.append('filename', attachmentData.fileName);
-    data.append('file', attachmentData.file);
+    data.append('file', attachmentData.file, { filename: attachmentData.fileName });
 
     return this.request(
       countryCode,
       `v2/storage/records/${countryCode}/${recordKey}/attachments`,
-      { headers, method: 'put', data },
+      { headers: { ...headers, ...data.getHeaders() }, method: 'put', data },
       UpsertAttachmentResponseIO,
       { key: recordKey, operation: 'upsert_attachment', ...meta },
       true,

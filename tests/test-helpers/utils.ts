@@ -1,5 +1,19 @@
-import { StorageRecord } from '../../src/validation/storage-record';
+import { StorageRecord, StorageRecordAttachment } from '../../src/validation/storage-record';
 import { ApiRecord } from '../../src/validation/api/api-record';
+import { ApiRecordAttachment } from '../../src/validation/api/api-record-attachment';
+
+function fromStorageRecordAttachment(a: StorageRecordAttachment): ApiRecordAttachment {
+  return {
+    file_id: a.fileId,
+    filename: a.fileName,
+    hash: a.hash,
+    mime_type: a.mimeType,
+    size: a.size,
+    created_at: a.createdAt,
+    updated_at: a.updatedAt,
+    download_link: a.downloadLink,
+  };
+}
 
 function apiRecordFromStorageRecord(r: StorageRecord, isEncrypted = false): ApiRecord {
   return {
@@ -33,6 +47,7 @@ function apiRecordFromStorageRecord(r: StorageRecord, isEncrypted = false): ApiR
     key8: r.key8,
     key9: r.key9,
     key10: r.key10,
+    attachments: r.attachments.map(fromStorageRecordAttachment),
   };
 }
 

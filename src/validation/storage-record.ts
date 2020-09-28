@@ -1,6 +1,31 @@
 import * as t from 'io-ts';
 import { StorageRecordData } from './storage-record-data';
 import { ApiRecord } from './api/api-record';
+import { ApiRecordAttachment } from './api/api-record-attachment';
+
+type StorageRecordAttachment = {
+  fileId: string;
+  fileName: string;
+  hash: string;
+  mimeType: string;
+  size: number;
+  createdAt: Date;
+  updatedAt: Date;
+  downloadLink: string;
+}
+
+function fromApiRecordAttachment(a: ApiRecordAttachment): StorageRecordAttachment {
+  return {
+    fileId: a.file_id,
+    fileName: a.filename,
+    hash: a.hash,
+    mimeType: a.mime_type,
+    size: a.size,
+    createdAt: a.created_at,
+    updatedAt: a.updated_at,
+    downloadLink: a.download_link,
+  };
+}
 
 type StorageRecord =
   Required<StorageRecordData>
@@ -8,6 +33,7 @@ type StorageRecord =
     version: t.Int;
     createdAt: Date;
     updatedAt: Date;
+    attachments: StorageRecordAttachment[];
   }
 
 function fromApiRecord(r: ApiRecord): StorageRecord {
@@ -41,10 +67,13 @@ function fromApiRecord(r: ApiRecord): StorageRecord {
     key8: r.key8,
     key9: r.key9,
     key10: r.key10,
+    attachments: r.attachments.map(fromApiRecordAttachment),
   };
 }
 
 export {
   StorageRecord,
+  StorageRecordAttachment,
   fromApiRecord,
+  fromApiRecordAttachment,
 };

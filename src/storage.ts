@@ -2,7 +2,7 @@ import 'dotenv/config';
 import crypto from 'crypto';
 import * as t from 'io-ts';
 import { createReadStream } from 'fs';
-import { Readable, PassThrough } from 'stream';
+import { Readable } from 'stream';
 import { ApiClient } from './api-client';
 import * as defaultLogger from './logger';
 import { CountriesCache } from './countries-cache';
@@ -12,7 +12,12 @@ import { StorageClientError, StorageCryptoError, StorageServerError } from './er
 import {
   isValid, toStorageClientError, optional, getErrorMessage,
 } from './validation/utils';
-import { StorageRecord, fromApiRecord } from './validation/storage-record';
+import {
+  StorageRecord,
+  fromApiRecord,
+  fromApiRecordAttachment,
+  StorageRecordAttachment,
+} from './validation/storage-record';
 import { StorageRecordDataArrayIO } from './validation/storage-record-data-array';
 import { CountryCodeIO } from './validation/country-code';
 import { FindOptionsIO, FindOptions } from './validation/api/find-options';
@@ -325,14 +330,11 @@ class Storage {
     { file, fileName }: AttachmentData,
     upsert = false,
     requestOptions: RequestOptions = {},
-  ): Promise<unknown> {
-    let data$: Readable;
+  ): Promise<StorageRecordAttachment> {
+    let data$: Readable | Buffer;
 
     if (typeof file === 'string') {
       data$ = createReadStream(file);
-    } else if (Buffer.isBuffer(file)) {
-      data$ = new PassThrough();
-      (data$ as PassThrough).end(file);
     } else {
       data$ = file;
     }
@@ -342,9 +344,13 @@ class Storage {
       file: data$,
     };
 
-    return upsert
-      ? this.apiClient.upsertAttachment(countryCode, recordKey, data, requestOptions)
-      : this.apiClient.addAttachment(countryCode, recordKey, data, requestOptions);
+    const key = this.createKeyHash(this.normalizeKey(recordKey));
+
+    const attachment = upsert
+      ? await this.apiClient.upsertAttachment(countryCode, key, data, requestOptions)
+      : await this.apiClient.addAttachment(countryCode, key, data, requestOptions);
+
+    return fromApiRecordAttachment(attachment);
   }
 
   @validate(CountryCodeIO, RecordKeyIO, t.string, optional(RequestOptionsIO))

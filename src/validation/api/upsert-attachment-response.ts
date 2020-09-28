@@ -1,7 +1,7 @@
-import * as t from 'io-ts';
+import { ApiRecordAttachment, ApiRecordAttachmentIO } from './api-record-attachment';
 
-const UpsertAttachmentResponseIO = t.unknown;
-type UpsertAttachmentResponse = unknown;
+const UpsertAttachmentResponseIO = ApiRecordAttachmentIO;
+type UpsertAttachmentResponse = ApiRecordAttachment;
 
 export {
   UpsertAttachmentResponseIO,
