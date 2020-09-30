@@ -7,6 +7,7 @@ import {
   COUNTRY,
   REQUEST_TIMEOUT_ERROR,
   getDefaultStorage,
+  EMPTY_API_ATTACHMENT_META,
 } from './common';
 import { StorageError, StorageServerError } from '../../../src/errors';
 import { COUNTRY_CODE_ERROR_MESSAGE } from '../../../src/validation/country-code';
@@ -49,7 +50,7 @@ describe('Storage', () => {
     });
 
 
-    describe('deleteAttachment', () => {
+    describe('getAttachmentMeta', () => {
       // let popAPI: nock.Scope;
 
       beforeEach(() => {
@@ -61,7 +62,7 @@ describe('Storage', () => {
           it('should throw an error', async () => {
             const wrongCountries = [undefined, null, 1, {}, []];
             // @ts-ignore
-            await Promise.all(wrongCountries.map((country) => expect(encStorage.deleteAttachment(country))
+            await Promise.all(wrongCountries.map((country) => expect(encStorage.getAttachmentMeta(country))
               .to.be.rejectedWith(StorageError, COUNTRY_CODE_ERROR_MESSAGE)));
           });
         });
@@ -74,10 +75,10 @@ describe('Storage', () => {
           const { record_key: hashedKey } = await encStorage.encryptPayload({ recordKey });
 
           nock.cleanAll();
-          const scope = nockPopApi(POPAPI_HOST).deleteAttachment(COUNTRY, hashedKey, fileId)
+          const scope = nockPopApi(POPAPI_HOST).getAttachmentMeta(COUNTRY, hashedKey, fileId)
             .replyWithError(REQUEST_TIMEOUT_ERROR);
 
-          await expect(encStorage.deleteAttachment(COUNTRY, recordKey, fileId)).to.be.rejectedWith(StorageServerError);
+          await expect(encStorage.getAttachmentMeta(COUNTRY, recordKey, fileId)).to.be.rejectedWith(StorageServerError);
           assert.equal(scope.isDone(), true, 'Nock scope is done');
         });
       });
@@ -91,14 +92,14 @@ describe('Storage', () => {
           const storage = await getDefaultStorage();
           const { record_key: hashedKey } = await storage.encryptPayload({ recordKey });
 
-          nockPopApi(POPAPI_HOST).deleteAttachment(country, hashedKey, fileId).reply(200, 'OK');
-          await storage.deleteAttachment('uS', recordKey, fileId);
+          nockPopApi(POPAPI_HOST).getAttachmentMeta(country, hashedKey, fileId).reply(200, EMPTY_API_ATTACHMENT_META);
+          await storage.getAttachmentMeta('uS', recordKey, fileId);
 
-          nockPopApi(POPAPI_HOST).deleteAttachment(country, hashedKey, fileId).reply(200, 'OK');
-          await storage.deleteAttachment('Us', recordKey, fileId);
+          nockPopApi(POPAPI_HOST).getAttachmentMeta(country, hashedKey, fileId).reply(200, EMPTY_API_ATTACHMENT_META);
+          await storage.getAttachmentMeta('Us', recordKey, fileId);
 
-          nockPopApi(POPAPI_HOST).deleteAttachment(country, hashedKey, fileId).reply(200, 'OK');
-          await storage.deleteAttachment('US', recordKey, fileId);
+          nockPopApi(POPAPI_HOST).getAttachmentMeta(country, hashedKey, fileId).reply(200, EMPTY_API_ATTACHMENT_META);
+          await storage.getAttachmentMeta('US', recordKey, fileId);
         });
       });
     });

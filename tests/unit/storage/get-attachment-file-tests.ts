@@ -71,9 +71,10 @@ describe('Storage', () => {
         it('should throw an error', async () => {
           const recordKey = '123';
           const fileId = 'abc1212232';
+          const { record_key: hashedKey } = await encStorage.encryptPayload({ recordKey });
 
           nock.cleanAll();
-          const scope = nockPopApi(POPAPI_HOST).getAttachmentFile(COUNTRY, recordKey, fileId)
+          const scope = nockPopApi(POPAPI_HOST).getAttachmentFile(COUNTRY, hashedKey, fileId)
             .replyWithError(REQUEST_TIMEOUT_ERROR);
 
           await expect(encStorage.getAttachmentFile(COUNTRY, recordKey, fileId)).to.be.rejectedWith(StorageServerError);
@@ -88,14 +89,15 @@ describe('Storage', () => {
           const fileId = 'abc1212232';
 
           const storage = await getDefaultStorage();
+          const { record_key: hashedKey } = await storage.encryptPayload({ recordKey });
 
-          nockPopApi(POPAPI_HOST).getAttachmentFile(country, recordKey, fileId).reply(200, 'OK');
+          nockPopApi(POPAPI_HOST).getAttachmentFile(country, hashedKey, fileId).reply(200, 'OK');
           await storage.getAttachmentFile('uS', recordKey, fileId);
 
-          nockPopApi(POPAPI_HOST).getAttachmentFile(country, recordKey, fileId).reply(200, 'OK');
+          nockPopApi(POPAPI_HOST).getAttachmentFile(country, hashedKey, fileId).reply(200, 'OK');
           await storage.getAttachmentFile('Us', recordKey, fileId);
 
-          nockPopApi(POPAPI_HOST).getAttachmentFile(country, recordKey, fileId).reply(200, 'OK');
+          nockPopApi(POPAPI_HOST).getAttachmentFile(country, hashedKey, fileId).reply(200, 'OK');
           await storage.getAttachmentFile('US', recordKey, fileId);
         });
       });

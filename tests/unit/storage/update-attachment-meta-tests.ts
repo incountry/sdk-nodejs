@@ -7,6 +7,7 @@ import {
   COUNTRY,
   REQUEST_TIMEOUT_ERROR,
   getDefaultStorage,
+  EMPTY_API_ATTACHMENT_META,
 } from './common';
 import { StorageError, StorageServerError } from '../../../src/errors';
 import { COUNTRY_CODE_ERROR_MESSAGE } from '../../../src/validation/country-code';
@@ -74,8 +75,10 @@ describe('Storage', () => {
           const fileId = 'abc1212232';
           const fileMeta: AttachmentWritableMeta = { fileName: 'newname' };
 
+          const { record_key: hashedKey } = await encStorage.encryptPayload({ recordKey });
+
           nock.cleanAll();
-          const scope = nockPopApi(POPAPI_HOST).updateAttachmentMeta(COUNTRY, recordKey, fileId)
+          const scope = nockPopApi(POPAPI_HOST).updateAttachmentMeta(COUNTRY, hashedKey, fileId)
             .replyWithError(REQUEST_TIMEOUT_ERROR);
 
           await expect(encStorage.updateAttachmentMeta(COUNTRY, recordKey, fileId, fileMeta)).to.be.rejectedWith(StorageServerError);
@@ -91,14 +94,15 @@ describe('Storage', () => {
           const fileMeta: AttachmentWritableMeta = { fileName: 'newname' };
 
           const storage = await getDefaultStorage();
+          const { record_key: hashedKey } = await storage.encryptPayload({ recordKey });
 
-          nockPopApi(POPAPI_HOST).updateAttachmentMeta(country, recordKey, fileId).reply(200, 'OK');
+          nockPopApi(POPAPI_HOST).updateAttachmentMeta(country, hashedKey, fileId).reply(200, EMPTY_API_ATTACHMENT_META);
           await storage.updateAttachmentMeta('uS', recordKey, fileId, fileMeta);
 
-          nockPopApi(POPAPI_HOST).updateAttachmentMeta(country, recordKey, fileId).reply(200, 'OK');
+          nockPopApi(POPAPI_HOST).updateAttachmentMeta(country, hashedKey, fileId).reply(200, EMPTY_API_ATTACHMENT_META);
           await storage.updateAttachmentMeta('Us', recordKey, fileId, fileMeta);
 
-          nockPopApi(POPAPI_HOST).updateAttachmentMeta(country, recordKey, fileId).reply(200, 'OK');
+          nockPopApi(POPAPI_HOST).updateAttachmentMeta(country, hashedKey, fileId).reply(200, EMPTY_API_ATTACHMENT_META);
           await storage.updateAttachmentMeta('US', recordKey, fileId, fileMeta);
         });
       });

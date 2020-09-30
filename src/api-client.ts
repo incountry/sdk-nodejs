@@ -1,6 +1,6 @@
 /* eslint @typescript-eslint/no-var-requires: "off" */
 
-import axios, { Method } from 'axios';
+import axios, { Method, ResponseType } from 'axios';
 import get from 'lodash.get';
 import { Readable } from 'stream';
 import * as t from 'io-ts';
@@ -10,7 +10,11 @@ import { StorageServerError } from './errors';
 import { Country } from './countries-cache';
 import { LogLevel } from './logger';
 import { AuthClient } from './auth-client';
-import { getErrorMessage, isInvalid, Codec } from './validation/utils';
+import {
+  getErrorMessage,
+  isInvalid,
+  Codec, ReadableIO,
+} from './validation/utils';
 import { ReadResponseIO, ReadResponse } from './validation/api/read-response';
 import { FindResponseIO, FindResponse } from './validation/api/find-response';
 import { WriteResponseIO, WriteResponse } from './validation/api/write-response';
@@ -23,12 +27,15 @@ import { FindOptions } from './validation/api/find-options';
 import { ApiRecordData } from './validation/api/api-record-data';
 import { RequestOptions } from './validation/request-options';
 import { AttachmentWritableMeta } from './validation/attachment-writable-meta';
+import { UpdateAttachmentMetaResponse, UpdateAttachmentMetaResponseIO } from './validation/api/update-attachment-meta-response';
+import { GetAttachmentMetaResponse, GetAttachmentMetaResponseIO } from './validation/api/get-attachment-meta-response';
 
 const pjson = require('../package.json');
+require('request-to-curl');
 
 const SDK_VERSION = pjson.version as string;
 
-type BasicRequestOptions<A> = { method: Method; data?: A; path?: string };
+type BasicRequestOptions<A> = { method: Method; data?: A; path?: string; responseType?: ResponseType };
 
 type EndpointData = {
   endpoint: string;
@@ -171,6 +178,7 @@ class ApiClient {
         headers,
         data: requestOptions.data,
         timeout: this.httpTimeout,
+        responseType: requestOptions.responseType,
       });
     } catch (err) {
       if (get(err, 'response.status') === 401 && retry) {
@@ -196,13 +204,10 @@ class ApiClient {
       responseHeaders: response.headers,
     });
 
-    console.log('sdsd', response.data);
-
     const responseData = codec.decode(response.data);
     if (isInvalid(responseData)) {
       throw this.prepareValidationError(responseData, loggingMeta);
     }
-
     return responseData.right;
   }
 
@@ -328,12 +333,12 @@ class ApiClient {
     recordKey: string,
     fileId: string,
     { headers, meta }: RequestOptions = {},
-  ): Promise<unknown> {
+  ): Promise<Readable> {
     return this.request(
       countryCode,
       `v2/storage/records/${countryCode}/${recordKey}/attachments/${fileId}`,
-      { headers, method: 'get' },
-      t.unknown,
+      { headers, method: 'get', responseType: 'stream' },
+      ReadableIO,
       { key: recordKey, operation: 'get_attachment_file', ...meta },
       true,
     );
@@ -345,13 +350,29 @@ class ApiClient {
     fileId: string,
     { fileName, mimeType }: AttachmentWritableMeta,
     { headers, meta }: RequestOptions = {},
-  ): Promise<unknown> {
+  ): Promise<UpdateAttachmentMetaResponse> {
     return this.request(
       countryCode,
       `v2/storage/records/${countryCode}/${recordKey}/attachments/${fileId}`,
       { headers, method: 'patch', data: { filename: fileName, mime_type: mimeType } },
-      t.unknown,
+      UpdateAttachmentMetaResponseIO,
       { key: recordKey, operation: 'update_attachment_meta', ...meta },
+      true,
+    );
+  }
+
+  getAttachmentMeta(
+    countryCode: string,
+    recordKey: string,
+    fileId: string,
+    { headers, meta }: RequestOptions = {},
+  ): Promise<GetAttachmentMetaResponse> {
+    return this.request(
+      countryCode,
+      `v2/storage/records/${countryCode}/${recordKey}/attachments/${fileId}/meta`,
+      { headers, method: 'get' },
+      GetAttachmentMetaResponseIO,
+      { key: recordKey, operation: 'get_attachment_meta', ...meta },
       true,
     );
   }

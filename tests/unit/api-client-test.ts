@@ -10,7 +10,7 @@ import { OAuthClient, getApiKeyAuthClient } from '../../src/auth-client';
 import { accessTokenResponse, nockDefaultAuth, nockDefaultAuthMultiple } from '../test-helpers/auth-nock';
 import { getNockedRequestHeaders, nockPopApi, getNockedRequestBody } from '../test-helpers/popapi-nock';
 import { Int } from '../../src/validation/utils';
-import { apiRecordFromStorageRecord } from '../test-helpers/utils';
+import { EMPTY_API_ATTACHMENT_META, EMPTY_API_RECORD } from './storage/common';
 
 
 chai.use(chaiAsPromised);
@@ -322,14 +322,14 @@ describe('ApiClient', () => {
     describe('methods', () => {
       describe('read', () => {
         it('should not throw error with correct data', async () => {
-          const recordKey = '123';
-          const record = apiRecordFromStorageRecord({
-            ...EMPTY_RECORD,
-            recordKey,
-          });
-          const popAPI = nockPopApi(POPAPI_HOST).read(COUNTRY, recordKey).reply(200, record);
-          const result = await apiClient.read(COUNTRY, recordKey);
-          await expect(result).to.deep.equal(record);
+          const record_key = '123';
+          const record = {
+            ...EMPTY_API_RECORD,
+            record_key,
+          };
+          const popAPI = nockPopApi(POPAPI_HOST).read(COUNTRY, record_key).reply(200, record);
+          const result = await apiClient.read(COUNTRY, record_key);
+          expect(result).to.deep.equal(record);
           assert.equal(popAPI.isDone(), true, 'Nock scope is done');
         });
       });
@@ -387,7 +387,7 @@ describe('ApiClient', () => {
       describe('addAttachment', () => {
         it('should send file data from stream', async () => {
           const recordKey = '123';
-          const popAPI = nockPopApi(POPAPI_HOST).addAttachment(COUNTRY, recordKey).reply(200);
+          const popAPI = nockPopApi(POPAPI_HOST).addAttachment(COUNTRY, recordKey).reply(200, EMPTY_API_ATTACHMENT_META);
 
           const chunks = ['1111111', '2222222', '3333333'];
           const fileName = 'test';
@@ -416,7 +416,7 @@ describe('ApiClient', () => {
       describe('upsertAttachment', () => {
         it('should send file data from stream', async () => {
           const recordKey = '123';
-          const popAPI = nockPopApi(POPAPI_HOST).upsertAttachment(COUNTRY, recordKey).reply(200);
+          const popAPI = nockPopApi(POPAPI_HOST).upsertAttachment(COUNTRY, recordKey).reply(200, EMPTY_API_ATTACHMENT_META);
 
           const chunks = ['1111111', '2222222', '3333333'];
 
@@ -458,9 +458,18 @@ describe('ApiClient', () => {
         it('should not throw error with correct data', async () => {
           const record_key = '123';
           const file_id = '122223';
-          const response = {};
-          const popAPI = nockPopApi(POPAPI_HOST).updateAttachmentMeta(COUNTRY, record_key, file_id).reply(200, response);
+          const popAPI = nockPopApi(POPAPI_HOST).updateAttachmentMeta(COUNTRY, record_key, file_id).reply(200, EMPTY_API_ATTACHMENT_META);
           await apiClient.updateAttachmentMeta(COUNTRY, record_key, file_id, { fileName: 'new' });
+          assert.equal(popAPI.isDone(), true, 'Nock scope is done');
+        });
+      });
+
+      describe('getAttachmentMeta', () => {
+        it('should not throw error with correct data', async () => {
+          const record_key = '123';
+          const file_id = '122223';
+          const popAPI = nockPopApi(POPAPI_HOST).getAttachmentMeta(COUNTRY, record_key, file_id).reply(200, EMPTY_API_ATTACHMENT_META);
+          await apiClient.getAttachmentMeta(COUNTRY, record_key, file_id);
           assert.equal(popAPI.isDone(), true, 'Nock scope is done');
         });
       });

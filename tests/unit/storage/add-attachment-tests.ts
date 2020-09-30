@@ -10,6 +10,7 @@ import {
   COUNTRY,
   REQUEST_TIMEOUT_ERROR,
   getDefaultStorage,
+  EMPTY_API_ATTACHMENT_META,
 } from './common';
 import { StorageError, StorageServerError } from '../../../src/errors';
 import { COUNTRY_CODE_ERROR_MESSAGE } from '../../../src/validation/country-code';
@@ -55,12 +56,6 @@ describe('Storage', () => {
 
 
     describe('addAttachment', () => {
-      // let popAPI: nock.Scope;
-
-      beforeEach(() => {
-        // popAPI = nockEndpoint(POPAPI_HOST).addAttachment(COUNTRY).reply(200, 'OK');
-      });
-
       describe('arguments validation', () => {
         describe('when country is not a string', () => {
           it('should throw an error', async () => {
@@ -75,10 +70,11 @@ describe('Storage', () => {
       describe('in case of network error', () => {
         it('should throw an error', async () => {
           const recordKey = '123';
+          const encryptedPayload = await encStorage.encryptPayload({ recordKey });
           const attachment = { file: Buffer.from(''), fileName: 'test' };
 
           nock.cleanAll();
-          const scope = nockPopApi(POPAPI_HOST).addAttachment(COUNTRY, recordKey)
+          const scope = nockPopApi(POPAPI_HOST).addAttachment(COUNTRY, encryptedPayload.record_key)
             .replyWithError(REQUEST_TIMEOUT_ERROR);
 
           await expect(encStorage.addAttachment(COUNTRY, recordKey, attachment)).to.be.rejectedWith(StorageServerError);
@@ -93,14 +89,15 @@ describe('Storage', () => {
           const attachment = { file: Buffer.from(''), fileName: 'test' };
 
           const storage = await getDefaultStorage();
+          const encryptedPayload = await encStorage.encryptPayload({ recordKey });
 
-          nockPopApi(POPAPI_HOST).addAttachment(country, recordKey).reply(200, 'OK');
+          nockPopApi(POPAPI_HOST).addAttachment(country, encryptedPayload.record_key).reply(200, EMPTY_API_ATTACHMENT_META);
           await storage.addAttachment('uS', recordKey, attachment);
 
-          nockPopApi(POPAPI_HOST).addAttachment(country, recordKey).reply(200, 'OK');
+          nockPopApi(POPAPI_HOST).addAttachment(country, encryptedPayload.record_key).reply(200, EMPTY_API_ATTACHMENT_META);
           await storage.addAttachment('Us', recordKey, attachment);
 
-          nockPopApi(POPAPI_HOST).addAttachment(country, recordKey).reply(200, 'OK');
+          nockPopApi(POPAPI_HOST).addAttachment(country, encryptedPayload.record_key).reply(200, EMPTY_API_ATTACHMENT_META);
           await storage.addAttachment('US', recordKey, attachment);
         });
       });
@@ -115,7 +112,8 @@ describe('Storage', () => {
 
         it('should read file from by path', async () => {
           const recordKey = '123';
-          const popAPI = nockPopApi(POPAPI_HOST).addAttachment(COUNTRY, recordKey).reply(200);
+          const encryptedPayload = await encStorage.encryptPayload({ recordKey });
+          const popAPI = nockPopApi(POPAPI_HOST).addAttachment(COUNTRY, encryptedPayload.record_key).reply(200, EMPTY_API_ATTACHMENT_META);
 
           const data = '1111111222222';
           const fileName = 'test123';
@@ -144,7 +142,8 @@ describe('Storage', () => {
 
         it('should read data from buffer', async () => {
           const recordKey = '123';
-          const popAPI = nockPopApi(POPAPI_HOST).addAttachment(COUNTRY, recordKey).reply(200);
+          const encryptedPayload = await encStorage.encryptPayload({ recordKey });
+          const popAPI = nockPopApi(POPAPI_HOST).addAttachment(COUNTRY, encryptedPayload.record_key).reply(200, EMPTY_API_ATTACHMENT_META);
 
           const data = '1111111';
           const fileName = 'test';
@@ -162,7 +161,8 @@ describe('Storage', () => {
 
         it('should read data from stream', async () => {
           const recordKey = '123';
-          const popAPI = nockPopApi(POPAPI_HOST).addAttachment(COUNTRY, recordKey).reply(200);
+          const encryptedPayload = await encStorage.encryptPayload({ recordKey });
+          const popAPI = nockPopApi(POPAPI_HOST).addAttachment(COUNTRY, encryptedPayload.record_key).reply(200, EMPTY_API_ATTACHMENT_META);
 
           const chunks = ['1111111', '2222222', '3333333'];
           const fileName = 'test';

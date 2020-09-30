@@ -50,6 +50,18 @@ const EMPTY_API_RECORD = {
   range_key8: null,
   range_key9: null,
   range_key10: null,
+  attachments: [],
+};
+
+const EMPTY_API_ATTACHMENT_META = {
+  file_id: '',
+  filename: '',
+  hash: '',
+  mime_type: '',
+  size: 123,
+  created_at: new Date(),
+  updated_at: new Date(),
+  download_link: '',
 };
 
 const TEST_RECORDS = [
@@ -173,6 +185,7 @@ export {
   PORTAL_BACKEND_COUNTRIES_LIST_PATH,
   LOGGER_STUB,
   EMPTY_API_RECORD,
+  EMPTY_API_ATTACHMENT_META,
   TEST_RECORDS,
   noop,
   sdkVersionRegExp,

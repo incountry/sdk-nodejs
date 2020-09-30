@@ -361,7 +361,8 @@ class Storage {
     fileId: string,
     requestOptions: RequestOptions = {},
   ): Promise<unknown> {
-    return this.apiClient.deleteAttachment(countryCode, recordKey, fileId, requestOptions);
+    const key = this.createKeyHash(this.normalizeKey(recordKey));
+    return this.apiClient.deleteAttachment(countryCode, key, fileId, requestOptions);
   }
 
   @validate(CountryCodeIO, RecordKeyIO, t.string, optional(RequestOptionsIO))
@@ -371,8 +372,9 @@ class Storage {
     recordKey: string,
     fileId: string,
     requestOptions: RequestOptions = {},
-  ): Promise<unknown> {
-    return this.apiClient.getAttachmentFile(countryCode, recordKey, fileId, requestOptions);
+  ): Promise<Readable> {
+    const key = this.createKeyHash(this.normalizeKey(recordKey));
+    return this.apiClient.getAttachmentFile(countryCode, key, fileId, requestOptions);
   }
 
   @validate(CountryCodeIO, RecordKeyIO, t.string, AttachmentWritableMetaIO, optional(RequestOptionsIO))
@@ -383,10 +385,24 @@ class Storage {
     fileId: string,
     fileMeta: AttachmentWritableMeta,
     requestOptions: RequestOptions = {},
-  ): Promise<unknown> {
-    return this.apiClient.updateAttachmentMeta(countryCode, recordKey, fileId, fileMeta, requestOptions);
+  ): Promise<StorageRecordAttachment> {
+    const key = this.createKeyHash(this.normalizeKey(recordKey));
+    const attachment = await this.apiClient.updateAttachmentMeta(countryCode, key, fileId, fileMeta, requestOptions);
+    return fromApiRecordAttachment(attachment);
   }
 
+  @validate(CountryCodeIO, RecordKeyIO, t.string, optional(RequestOptionsIO))
+  @normalizeErrors()
+  async getAttachmentMeta(
+    countryCode: string,
+    recordKey: string,
+    fileId: string,
+    requestOptions: RequestOptions = {},
+  ): Promise<StorageRecordAttachment> {
+    const key = this.createKeyHash(this.normalizeKey(recordKey));
+    const attachment = await this.apiClient.getAttachmentMeta(countryCode, key, fileId, requestOptions);
+    return fromApiRecordAttachment(attachment);
+  }
 
   async validate(): Promise<void> {
     await this.crypto.validate();
