@@ -31,7 +31,6 @@ import { UpdateAttachmentMetaResponse, UpdateAttachmentMetaResponseIO } from './
 import { GetAttachmentMetaResponse, GetAttachmentMetaResponseIO } from './validation/api/get-attachment-meta-response';
 
 const pjson = require('../package.json');
-require('request-to-curl');
 
 const SDK_VERSION = pjson.version as string;
 
