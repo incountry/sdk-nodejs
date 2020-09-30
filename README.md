@@ -404,6 +404,7 @@ type StorageRecord = {
   rangeKey10: t.Int | null;
   createdAt: Date;
   updatedAt: Date;
+  attachments: StorageRecordAttachment[];
 }
 
 type ReadResult = {
@@ -590,6 +591,104 @@ Example of usage:
 ```typescript
 const deleteResult = await storage.delete(countryCode, recordKey);
 ```
+
+## Attaching files to a record
+
+General info about files, limit and how they would be stored if one decided to upload.
+Attachment info will be available in record `StorageRecord` object `attachments` field.
+```typescript
+type StorageRecord = {
+  /* ... other fields ...  */
+  attachments: StorageRecordAttachment[];
+}
+
+type StorageRecordAttachment = {
+  fileId: string;
+  fileName: string;
+  hash: string;
+  mimeType: string;
+  size: number;
+  createdAt: Date;
+  updatedAt: Date;
+  downloadLink: string;
+}
+```
+
+
+### Adding attachment
+Using `addAttachment` method you can add or replace attachment.
+Data can be provided as `Readable` stream, `Buffer` or via `string` with path to the file.
+
+```typescript
+
+type AttachmentData = {
+  file: Readable | Buffer | string;
+  fileName: string;
+}
+
+async addAttachment(
+  countryCode: string,
+  recordKey: string,
+  { file, fileName }: AttachmentData,
+  upsert = false,
+  requestOptions: RequestOptions = {},
+): Promise<StorageRecordAttachment> {
+  /* ... */
+}
+```
+
+### Deleting attachment
+```typescript
+
+deleteAttachment(
+  countryCode: string,
+  recordKey: string,
+  fileId: string,
+  requestOptions: RequestOptions = {},
+): Promise<unknown> {
+  /* ... */
+}
+```
+
+### Downloading attachment content
+Using `getAttachmentFile` method you can download content of the attachment.
+It returns readable stream.
+
+```typescript
+async getAttachmentFile(
+  countryCode: string,
+  recordKey: string,
+  fileId: string,
+  requestOptions: RequestOptions = {},
+): Promise<Readable> {
+  /* ... */
+}
+```
+
+### Working with attachment meta info
+```typescript
+async getAttachmentMeta(
+  countryCode: string,
+  recordKey: string,
+  fileId: string,
+  requestOptions: RequestOptions = {},
+): Promise<StorageRecordAttachment> {
+  /* ... */
+}
+```
+
+```typescript
+async updateAttachmentMeta(
+  countryCode: string,
+  recordKey: string,
+  fileId: string,
+  fileMeta: AttachmentWritableMeta,
+  requestOptions: RequestOptions = {},
+): Promise<StorageRecordAttachment> {
+    /* ... */
+}
+```
+
 
 ## Data Migration and Key Rotation support
 
