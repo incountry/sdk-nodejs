@@ -38,7 +38,7 @@ const nockPopApi = (host: string) => ({
 
   getAttachmentMeta: (countryCode: string, recordKey: string, fileId: string) => nock(host).get(`/v2/storage/records/${countryCode}/${recordKey}/attachments/${fileId}/meta`),
 
-  updateAttachmentMeta: (countryCode: string, recordKey: string, fileId: string) => nock(host).patch(`/v2/storage/records/${countryCode}/${recordKey}/attachments/${fileId}`),
+  updateAttachmentMeta: (countryCode: string, recordKey: string, fileId: string) => nock(host).patch(`/v2/storage/records/${countryCode}/${recordKey}/attachments/${fileId}/meta`),
 
   getAttachmentFile: (countryCode: string, recordKey: string, fileId: string) => nock(host).get(`/v2/storage/records/${countryCode}/${recordKey}/attachments/${fileId}`),
 });

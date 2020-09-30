@@ -352,7 +352,7 @@ class ApiClient {
   ): Promise<UpdateAttachmentMetaResponse> {
     return this.request(
       countryCode,
-      `v2/storage/records/${countryCode}/${recordKey}/attachments/${fileId}`,
+      `v2/storage/records/${countryCode}/${recordKey}/attachments/${fileId}/meta`,
       { headers, method: 'patch', data: { filename: fileName, mime_type: mimeType } },
       UpdateAttachmentMetaResponseIO,
       { key: recordKey, operation: 'update_attachment_meta', ...meta },
