@@ -37,12 +37,10 @@ describe('Storage', () => {
 
   describe('interface methods', () => {
     let encStorage: Storage;
-    // let noEncStorage: Storage;
 
     beforeEach(async () => {
       nock.disableNetConnect();
       encStorage = await getDefaultStorage(true);
-      // noEncStorage = await getDefaultStorage(false);
     });
 
     afterEach(() => {
@@ -52,12 +50,6 @@ describe('Storage', () => {
 
 
     describe('updateAttachmentMeta', () => {
-      // let popAPI: nock.Scope;
-
-      beforeEach(() => {
-        // popAPI = nockEndpoint(POPAPI_HOST).addAttachment(COUNTRY).reply(200, 'OK');
-      });
-
       describe('arguments validation', () => {
         describe('when country is not a string', () => {
           it('should throw an error', async () => {
