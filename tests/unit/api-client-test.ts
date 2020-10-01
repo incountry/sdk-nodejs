@@ -8,7 +8,7 @@ import { StorageServerError } from '../../src/errors';
 import { CountriesCache, Country } from '../../src/countries-cache';
 import { OAuthClient, getApiKeyAuthClient } from '../../src/auth-client';
 import { accessTokenResponse, nockDefaultAuth, nockDefaultAuthMultiple } from '../test-helpers/auth-nock';
-import { getNockedRequestHeaders, nockPopApi, getNockedRequestBody } from '../test-helpers/popapi-nock';
+import { getNockedRequestHeaders, nockPopApi, getNockedRequestBodyRaw } from '../test-helpers/popapi-nock';
 import { Int } from '../../src/validation/utils';
 import { EMPTY_API_ATTACHMENT_META, EMPTY_API_RECORD } from './storage/common';
 
@@ -397,7 +397,7 @@ describe('ApiClient', () => {
             read() {},
           });
 
-          const bodyPomise = getNockedRequestBody(popAPI);
+          const bodyPromise = getNockedRequestBodyRaw(popAPI);
           const reqPromise = apiClient.addAttachment(COUNTRY, recordKey, { fileName, file: data$ });
 
           data$.push(chunks[0]);
@@ -405,7 +405,7 @@ describe('ApiClient', () => {
           data$.push(chunks[2]);
           data$.push(null);
 
-          const [bodyObj] = await Promise.all([bodyPomise, reqPromise]);
+          const [bodyObj] = await Promise.all([bodyPromise, reqPromise]);
 
           assert.equal(popAPI.isDone(), true, 'Nock scope is done');
           expect(bodyObj).to.include(chunks.join(''));
@@ -427,7 +427,7 @@ describe('ApiClient', () => {
 
           const fileName = 'test';
 
-          const bodyPomise = getNockedRequestBody(popAPI);
+          const bodyPromise = getNockedRequestBodyRaw(popAPI);
           const reqPromise = apiClient.upsertAttachment(COUNTRY, recordKey, { fileName, file: data$ });
 
           data$.push(chunks[0]);
@@ -435,7 +435,7 @@ describe('ApiClient', () => {
           data$.push(chunks[2]);
           data$.push(null);
 
-          const [bodyObj] = await Promise.all([bodyPomise, reqPromise]);
+          const [bodyObj] = await Promise.all([bodyPromise, reqPromise]);
 
           assert.equal(popAPI.isDone(), true, 'Nock scope is done');
           expect(bodyObj).to.include(chunks.join(''));

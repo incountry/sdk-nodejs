@@ -13,7 +13,7 @@ const getNockedRequestBodyObject = (nocked: nock.Scope) => new Promise((resolve)
   });
 });
 
-const getNockedRequestBody = (nocked: nock.Scope) => new Promise((resolve) => {
+const getNockedRequestBodyRaw = (nocked: nock.Scope) => new Promise((resolve) => {
   nocked.on('request', (_req, _interceptor, reqBody) => {
     resolve(reqBody);
   });
@@ -46,6 +46,6 @@ const nockPopApi = (host: string) => ({
 export {
   nockPopApi,
   getNockedRequestBodyObject,
-  getNockedRequestBody,
+  getNockedRequestBodyRaw,
   getNockedRequestHeaders,
 };

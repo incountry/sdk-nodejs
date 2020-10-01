@@ -327,21 +327,15 @@ class Storage {
   async addAttachment(
     countryCode: string,
     recordKey: string,
-    { file, fileName }: AttachmentData,
+    { file: filePathOrData, fileName }: AttachmentData,
     upsert = false,
     requestOptions: RequestOptions = {},
   ): Promise<StorageRecordAttachment> {
-    let data$: Readable | Buffer;
-
-    if (typeof file === 'string') {
-      data$ = createReadStream(file);
-    } else {
-      data$ = file;
-    }
+    const file = typeof filePathOrData === 'string' ? createReadStream(filePathOrData) : filePathOrData;
 
     const data = {
       fileName,
-      file: data$,
+      file,
     };
 
     const key = this.createKeyHash(this.normalizeKey(recordKey));

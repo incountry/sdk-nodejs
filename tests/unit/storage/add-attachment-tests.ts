@@ -14,7 +14,7 @@ import {
 } from './common';
 import { StorageError, StorageServerError } from '../../../src/errors';
 import { COUNTRY_CODE_ERROR_MESSAGE } from '../../../src/validation/country-code';
-import { nockPopApi, getNockedRequestBody } from '../../test-helpers/popapi-nock';
+import { nockPopApi, getNockedRequestBodyRaw } from '../../test-helpers/popapi-nock';
 import { Storage } from '../../../src/storage';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const fs = require('fs');
@@ -41,12 +41,10 @@ describe('Storage', () => {
 
   describe('interface methods', () => {
     let encStorage: Storage;
-    // let noEncStorage: Storage;
 
     beforeEach(async () => {
       nock.disableNetConnect();
       encStorage = await getDefaultStorage(true);
-      // noEncStorage = await getDefaultStorage(false);
     });
 
     afterEach(() => {
@@ -102,7 +100,7 @@ describe('Storage', () => {
         });
       });
 
-      describe('attachment data consume', () => {
+      describe('attachment data consumption', () => {
         let stub: sinon.SinonStub | undefined;
         afterEach(() => {
           if (stub) {
@@ -110,7 +108,7 @@ describe('Storage', () => {
           }
         });
 
-        it('should read file from by path', async () => {
+        it('should read file by path', async () => {
           const recordKey = '123';
           const encryptedPayload = await encStorage.encryptPayload({ recordKey });
           const popAPI = nockPopApi(POPAPI_HOST).addAttachment(COUNTRY, encryptedPayload.record_key).reply(200, EMPTY_API_ATTACHMENT_META);
@@ -130,9 +128,9 @@ describe('Storage', () => {
             return data$ as ReadStream;
           });
 
-          const bodyPomise = getNockedRequestBody(popAPI);
+          const bodyPromise = getNockedRequestBodyRaw(popAPI);
           const reqPromise = encStorage.addAttachment(COUNTRY, recordKey, { fileName, file: filePath });
-          const [bodyObj] = await Promise.all([bodyPomise, reqPromise]);
+          const [bodyObj] = await Promise.all([bodyPromise, reqPromise]);
 
           assert.equal(popAPI.isDone(), true, 'Nock scope is done');
           expect(stub).calledWith(filePath);
@@ -150,9 +148,9 @@ describe('Storage', () => {
 
           const file = Buffer.from(data);
 
-          const bodyPomise = getNockedRequestBody(popAPI);
+          const bodyPromise = getNockedRequestBodyRaw(popAPI);
           const reqPromise = encStorage.addAttachment(COUNTRY, recordKey, { fileName, file });
-          const [bodyObj] = await Promise.all([bodyPomise, reqPromise]);
+          const [bodyObj] = await Promise.all([bodyPromise, reqPromise]);
 
           assert.equal(popAPI.isDone(), true, 'Nock scope is done');
           expect(bodyObj).to.include(data);
@@ -172,7 +170,7 @@ describe('Storage', () => {
             read() {},
           });
 
-          const bodyPomise = getNockedRequestBody(popAPI);
+          const bodyPromise = getNockedRequestBodyRaw(popAPI);
           const reqPromise = encStorage.addAttachment(COUNTRY, recordKey, { fileName, file: data$ });
 
           data$.push(chunks[0]);
@@ -180,7 +178,7 @@ describe('Storage', () => {
           data$.push(chunks[2]);
           data$.push(null);
 
-          const [bodyObj] = await Promise.all([bodyPomise, reqPromise]);
+          const [bodyObj] = await Promise.all([bodyPromise, reqPromise]);
 
           assert.equal(popAPI.isDone(), true, 'Nock scope is done');
           expect(bodyObj).to.include(chunks.join(''));

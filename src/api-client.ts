@@ -13,7 +13,8 @@ import { AuthClient } from './auth-client';
 import {
   getErrorMessage,
   isInvalid,
-  Codec, ReadableIO,
+  Codec,
+  ReadableIO,
 } from './validation/utils';
 import { ReadResponseIO, ReadResponse } from './validation/api/read-response';
 import { FindResponseIO, FindResponse } from './validation/api/find-response';
