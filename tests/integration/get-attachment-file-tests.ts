@@ -29,11 +29,13 @@ describe('Get attachment file for record', () => {
 
   it('should get attachment file data', async () => {
     const file = await fs.promises.readFile('./LICENSE');
-    const data = await storage.addAttachment(COUNTRY, recordData.recordKey, { file, fileName: '123' });
+    const fileName = Math.random().toString(36).substr(2, 10).toUpperCase();
+    const data = await storage.addAttachment(COUNTRY, recordData.recordKey, { file, fileName });
 
-    const file$ = await storage.getAttachmentFile(COUNTRY, recordData.recordKey, data.fileId);
+    const { file: file$ } = await storage.getAttachmentFile(COUNTRY, recordData.recordKey, data.fileId);
+    const receivedFile = await readStream(file$);
 
-    const result = await readStream(file$);
-    expect(result).to.deep.equal(file);
+    // expect(receivedFileName).to.equal(fileName);
+    expect(receivedFile).to.deep.equal(file);
   });
 });

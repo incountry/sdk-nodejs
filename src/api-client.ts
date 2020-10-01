@@ -48,6 +48,11 @@ type AttachmentData = {
   fileName: string;
 }
 
+type GetAttachmentFileResponse = {
+  file: Readable;
+  fileName: string;
+};
+
 const DEFAULT_ENDPOINT_COUNTRY = 'us';
 const DEFAULT_ENDPOINT_SUFFIX = '-mt-01.api.incountry.io';
 const DEFAULT_HTTP_TIMEOUT = 30 * 1000;
@@ -89,7 +94,7 @@ class ApiClient {
   ) {
   }
 
-  async headers(tokenAudience: string, region: string) {
+  async headers(tokenAudience: string, region: string): Promise<Record<string, string>> {
     const token = await this.authClient.getToken(tokenAudience, this.envId, region);
     return {
       Authorization: `Bearer ${token}`,
@@ -152,7 +157,7 @@ class ApiClient {
     return error;
   }
 
-  private async request<A, B>(countryCode: string, path: string, requestOptions: RequestOptions & BasicRequestOptions<A>, codec: Codec<B>, loggingMeta: {}, retry = false): Promise<B> {
+  private async request<A, B>(countryCode: string, path: string, requestOptions: RequestOptions & BasicRequestOptions<A>, codec: Codec<B>, loggingMeta: {}, retry = false): Promise<{ data: B; headers: Record<string, string> }> {
     const { endpoint: url, audience, region } = await this.getEndpoint(countryCode, path, loggingMeta);
     const method = requestOptions.method.toUpperCase() as Method;
     const defaultHeaders = await this.headers(audience, region);
@@ -208,11 +213,11 @@ class ApiClient {
     if (isInvalid(responseData)) {
       throw this.prepareValidationError(responseData, loggingMeta);
     }
-    return responseData.right;
+    return { data: responseData.right, headers: response.headers };
   }
 
   async read(countryCode: string, recordKey: string, { headers, meta }: RequestOptions = {}): Promise<ReadResponse> {
-    return this.request(
+    const { data: responseData } = await this.request(
       countryCode,
       `v2/storage/records/${countryCode}/${recordKey}`,
       { headers, method: 'get' },
@@ -220,9 +225,11 @@ class ApiClient {
       { key: recordKey, operation: 'read', ...meta },
       true,
     );
+
+    return responseData;
   }
 
-  write(countryCode: string, data: ApiRecordData, { headers, meta }: RequestOptions = {}): Promise<WriteResponse> {
+  async write(countryCode: string, data: ApiRecordData, { headers, meta }: RequestOptions = {}): Promise<WriteResponse> {
     return this.request(
       countryCode,
       `v2/storage/records/${countryCode}`,
@@ -233,7 +240,7 @@ class ApiClient {
     );
   }
 
-  delete(countryCode: string, recordKey: string, { headers, meta }: RequestOptions = {}): Promise<DeleteResponse> {
+  async delete(countryCode: string, recordKey: string, { headers, meta }: RequestOptions = {}): Promise<DeleteResponse> {
     return this.request(
       countryCode,
       `v2/storage/records/${countryCode}/${recordKey}`,
@@ -244,12 +251,12 @@ class ApiClient {
     );
   }
 
-  find(
+  async find(
     countryCode: string,
     data: { filter?: FindFilter; options?: FindOptions },
     { headers, meta }: RequestOptions = {},
   ): Promise<FindResponse> {
-    return this.request(
+    const { data: responseData } = await this.request(
       countryCode,
       `v2/storage/records/${countryCode}/find`,
       { headers, method: 'post', data },
@@ -257,9 +264,10 @@ class ApiClient {
       { operation: 'find', ...meta },
       true,
     );
+    return responseData;
   }
 
-  batchWrite(
+  async batchWrite(
     countryCode: string,
     data: { records: ApiRecordData[] },
     { headers, meta }: RequestOptions = {},
@@ -274,7 +282,7 @@ class ApiClient {
     );
   }
 
-  addAttachment(
+  async addAttachment(
     countryCode: string,
     recordKey: string,
     attachmentData: AttachmentData,
@@ -283,7 +291,7 @@ class ApiClient {
     const data = new FormData();
     data.append('file', attachmentData.file, { filename: attachmentData.fileName });
 
-    return this.request(
+    const { data: responseData } = await this.request(
       countryCode,
       `v2/storage/records/${countryCode}/${recordKey}/attachments`,
       { headers: { ...headers, ...data.getHeaders() }, method: 'post', data },
@@ -291,9 +299,11 @@ class ApiClient {
       { key: recordKey, operation: 'add_attachment', ...meta },
       true,
     );
+
+    return responseData;
   }
 
-  upsertAttachment(
+  async upsertAttachment(
     countryCode: string,
     recordKey: string,
     attachmentData: AttachmentData,
@@ -301,8 +311,7 @@ class ApiClient {
   ): Promise<UpsertAttachmentResponse> {
     const data = new FormData();
     data.append('file', attachmentData.file, { filename: attachmentData.fileName });
-
-    return this.request(
+    const { data: responseData } = await this.request(
       countryCode,
       `v2/storage/records/${countryCode}/${recordKey}/attachments`,
       { headers: { ...headers, ...data.getHeaders() }, method: 'put', data },
@@ -310,9 +319,11 @@ class ApiClient {
       { key: recordKey, operation: 'upsert_attachment', ...meta },
       true,
     );
+
+    return responseData;
   }
 
-  deleteAttachment(
+  async deleteAttachment(
     countryCode: string,
     recordKey: string,
     fileId: string,
@@ -328,13 +339,13 @@ class ApiClient {
     );
   }
 
-  getAttachmentFile(
+  async getAttachmentFile(
     countryCode: string,
     recordKey: string,
     fileId: string,
     { headers, meta }: RequestOptions = {},
-  ): Promise<Readable> {
-    return this.request(
+  ): Promise<GetAttachmentFileResponse> {
+    const { data: file, headers: responseHeaders } = await this.request(
       countryCode,
       `v2/storage/records/${countryCode}/${recordKey}/attachments/${fileId}`,
       { headers, method: 'get', responseType: 'stream' },
@@ -342,16 +353,23 @@ class ApiClient {
       { key: recordKey, operation: 'get_attachment_file', ...meta },
       true,
     );
+
+    const fileName = responseHeaders['content-disposition'];
+
+    return {
+      file,
+      fileName: typeof fileName === 'string' ? fileName : 'file',
+    };
   }
 
-  updateAttachmentMeta(
+  async updateAttachmentMeta(
     countryCode: string,
     recordKey: string,
     fileId: string,
     { fileName, mimeType }: AttachmentWritableMeta,
     { headers, meta }: RequestOptions = {},
   ): Promise<UpdateAttachmentMetaResponse> {
-    return this.request(
+    const { data: responseData } = await this.request(
       countryCode,
       `v2/storage/records/${countryCode}/${recordKey}/attachments/${fileId}/meta`,
       { headers, method: 'patch', data: { filename: fileName, mime_type: mimeType } },
@@ -359,15 +377,17 @@ class ApiClient {
       { key: recordKey, operation: 'update_attachment_meta', ...meta },
       true,
     );
+
+    return responseData;
   }
 
-  getAttachmentMeta(
+  async getAttachmentMeta(
     countryCode: string,
     recordKey: string,
     fileId: string,
     { headers, meta }: RequestOptions = {},
   ): Promise<GetAttachmentMetaResponse> {
-    return this.request(
+    const { data: responseData } = await this.request(
       countryCode,
       `v2/storage/records/${countryCode}/${recordKey}/attachments/${fileId}/meta`,
       { headers, method: 'get' },
@@ -375,10 +395,13 @@ class ApiClient {
       { key: recordKey, operation: 'get_attachment_meta', ...meta },
       true,
     );
+
+    return responseData;
   }
 }
 
 export {
   ApiClient,
   DEFAULT_HTTP_TIMEOUT,
+  GetAttachmentFileResponse,
 };

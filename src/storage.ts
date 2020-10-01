@@ -2,8 +2,7 @@ import 'dotenv/config';
 import crypto from 'crypto';
 import * as t from 'io-ts';
 import { createReadStream } from 'fs';
-import { Readable } from 'stream';
-import { ApiClient } from './api-client';
+import { ApiClient, GetAttachmentFileResponse } from './api-client';
 import * as defaultLogger from './logger';
 import { CountriesCache } from './countries-cache';
 import { SecretKeyAccessor } from './secret-key-accessor';
@@ -366,7 +365,7 @@ class Storage {
     recordKey: string,
     fileId: string,
     requestOptions: RequestOptions = {},
-  ): Promise<Readable> {
+  ): Promise<GetAttachmentFileResponse> {
     const key = this.createKeyHash(this.normalizeKey(recordKey));
     return this.apiClient.getAttachmentFile(countryCode, key, fileId, requestOptions);
   }
