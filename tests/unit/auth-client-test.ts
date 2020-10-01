@@ -132,7 +132,8 @@ describe('AuthClient', () => {
         it(`getToken() should throw an error when called with audience="${audience}"`, async () => {
           nockDefaultAuth().reply(200, accessTokenResponse());
           // @ts-ignore
-          await expect(authClient.getToken(audience)).to.be.rejectedWith(StorageClientError, 'Invalid audience provided to AuthClient.getToken()');
+          await expect(authClient.getToken(audience))
+            .to.be.rejectedWith(StorageClientError, 'Invalid audience provided to AuthClient.getToken()');
         });
       });
 
@@ -140,7 +141,8 @@ describe('AuthClient', () => {
         it(`getToken() should throw an error when called with envId="${envId}"`, async () => {
           nockDefaultAuth().reply(200, accessTokenResponse());
           // @ts-ignore
-          await expect(authClient.getToken(DEFAULT_POPAPI_HOST, envId)).to.be.rejectedWith(StorageClientError, 'Invalid envId provided to AuthClient.getToken()');
+          await expect(authClient.getToken(DEFAULT_POPAPI_HOST, envId))
+            .to.be.rejectedWith(StorageClientError, 'Invalid envId provided to AuthClient.getToken()');
         });
       });
 
@@ -148,7 +150,8 @@ describe('AuthClient', () => {
         it(`getToken() should throw an error when called with region="${region}"`, async () => {
           nockDefaultAuth().reply(200, accessTokenResponse());
           // @ts-ignore
-          await expect(authClient.getToken(DEFAULT_POPAPI_HOST, ENV_ID, region)).to.be.rejectedWith(StorageClientError, 'Invalid region provided to AuthClient.getToken()');
+          await expect(authClient.getToken(DEFAULT_POPAPI_HOST, ENV_ID, region))
+            .to.be.rejectedWith(StorageClientError, 'Invalid region provided to AuthClient.getToken()');
         });
       });
     });

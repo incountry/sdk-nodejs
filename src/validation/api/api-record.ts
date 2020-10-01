@@ -1,6 +1,7 @@
 import * as t from 'io-ts';
 import { DateFromISOString } from 'io-ts-types/lib/DateFromISOString';
 import { JSONIO, Codec } from '../utils';
+import { ApiRecordAttachmentIO, ApiRecordAttachment } from './api-record-attachment';
 
 const ApiRecordBodyIO = t.intersection([
   t.type({
@@ -44,6 +45,7 @@ type ApiRecord = {
   key8: null | string;
   key9: null | string;
   key10: null | string;
+  attachments: ApiRecordAttachment[];
 }
 
 const ApiRecordIO: Codec<ApiRecord> = t.type({
@@ -77,6 +79,7 @@ const ApiRecordIO: Codec<ApiRecord> = t.type({
   key8: t.union([t.null, t.string]),
   key9: t.union([t.null, t.string]),
   key10: t.union([t.null, t.string]),
+  attachments: t.array(ApiRecordAttachmentIO),
 }, 'ApiRecord');
 
 export {

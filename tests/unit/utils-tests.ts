@@ -3,6 +3,7 @@ import * as chai from 'chai';
 import {
   isJSON,
   omitNulls,
+  getFileNameFromHeaders,
 } from '../../src/utils';
 
 const { expect } = chai;
@@ -31,6 +32,29 @@ describe('Utils', () => {
         b: '',
         c: undefined,
         e: false,
+      });
+    });
+  });
+
+  describe('getFileNameFromHeaders', () => {
+    it('should return null for wrong headers object', () => {
+      [
+        {},
+        { 'content-disposition': 'attachment; filename-filename.jpg' },
+        { 'content-disposition': 'attachment; filename123="filename.jpg"' },
+        { 'content-disposition': 'attachment; filename="filename.jpg' },
+      ].forEach((s) => {
+        expect(getFileNameFromHeaders(s)).to.equal(null);
+      });
+    });
+
+    it('should return file name for right headers object', () => {
+      const fileName = 'filename.jpg';
+      [
+        { 'content-disposition': `form-data; name="fieldName"; filename="${fileName}"` },
+        { 'content-disposition': `attachment; filename="${fileName}"` },
+      ].forEach((s) => {
+        expect(getFileNameFromHeaders(s)).to.equal(fileName);
       });
     });
   });

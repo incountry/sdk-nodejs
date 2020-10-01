@@ -43,10 +43,12 @@ describe('Validate arguments decorator', () => {
       [undefined, 1],
     ].map(async (args) => {
       // @ts-ignore
-      expect(() => a.syncMethod(...args)).to.throw(StorageClientError, 'Validation Error', `sync method with ${JSON.stringify(args)}`);
+      expect(() => a.syncMethod(...args))
+        .to.throw(StorageClientError, 'Validation Error', `sync method with ${JSON.stringify(args)}`);
 
       // @ts-ignore
-      await expect(a.asyncMethod(...args)).to.be.rejectedWith(StorageClientError, 'Validation Error', `async method with ${JSON.stringify(args)}`);
+      await expect(a.asyncMethod(...args))
+        .to.be.rejectedWith(StorageClientError, 'Validation Error', `async method with ${JSON.stringify(args)}`);
     }));
   });
 });

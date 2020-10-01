@@ -1,6 +1,8 @@
 import 'dotenv/config';
 import crypto from 'crypto';
-import { ApiClient } from './api-client';
+import * as t from 'io-ts';
+import { createReadStream } from 'fs';
+import { ApiClient, GetAttachmentFileResponse } from './api-client';
 import * as defaultLogger from './logger';
 import { CountriesCache } from './countries-cache';
 import { SecretKeyAccessor } from './secret-key-accessor';
@@ -9,7 +11,12 @@ import { StorageClientError, StorageCryptoError, StorageServerError } from './er
 import {
   isValid, toStorageClientError, optional, getErrorMessage,
 } from './validation/utils';
-import { StorageRecord, fromApiRecord } from './validation/storage-record';
+import {
+  StorageRecord,
+  fromApiRecord,
+  fromApiRecordAttachment,
+  StorageRecordAttachment,
+} from './validation/storage-record';
 import { StorageRecordDataArrayIO } from './validation/storage-record-data-array';
 import { CountryCodeIO } from './validation/country-code';
 import { FindOptionsIO, FindOptions } from './validation/api/find-options';
@@ -31,6 +38,8 @@ import { ApiRecord, ApiRecordBodyIO } from './validation/api/api-record';
 import { StorageRecordData, StorageRecordDataIO } from './validation/storage-record-data';
 import { ApiRecordData, apiRecordDataFromStorageRecordData } from './validation/api/api-record-data';
 import { RequestOptionsIO, RequestOptions } from './validation/request-options';
+import { AttachmentWritableMeta, AttachmentWritableMetaIO } from './validation/attachment-writable-meta';
+import { AttachmentData, AttachmentDataIO } from './validation/attachment-data';
 
 const FIND_LIMIT = 100;
 
@@ -310,6 +319,82 @@ class Storage {
     }
 
     return result;
+  }
+
+  @validate(CountryCodeIO, RecordKeyIO, AttachmentDataIO, optional(t.boolean), optional(RequestOptionsIO))
+  @normalizeErrors()
+  async addAttachment(
+    countryCode: string,
+    recordKey: string,
+    { file: filePathOrData, fileName }: AttachmentData,
+    upsert = false,
+    requestOptions: RequestOptions = {},
+  ): Promise<StorageRecordAttachment> {
+    const file = typeof filePathOrData === 'string' ? createReadStream(filePathOrData) : filePathOrData;
+
+    const data = {
+      fileName,
+      file,
+    };
+
+    const key = this.createKeyHash(this.normalizeKey(recordKey));
+
+    const attachment = upsert
+      ? await this.apiClient.upsertAttachment(countryCode, key, data, requestOptions)
+      : await this.apiClient.addAttachment(countryCode, key, data, requestOptions);
+
+    return fromApiRecordAttachment(attachment);
+  }
+
+  @validate(CountryCodeIO, RecordKeyIO, t.string, optional(RequestOptionsIO))
+  @normalizeErrors()
+  async deleteAttachment(
+    countryCode: string,
+    recordKey: string,
+    fileId: string,
+    requestOptions: RequestOptions = {},
+  ): Promise<unknown> {
+    const key = this.createKeyHash(this.normalizeKey(recordKey));
+    return this.apiClient.deleteAttachment(countryCode, key, fileId, requestOptions);
+  }
+
+  @validate(CountryCodeIO, RecordKeyIO, t.string, optional(RequestOptionsIO))
+  @normalizeErrors()
+  async getAttachmentFile(
+    countryCode: string,
+    recordKey: string,
+    fileId: string,
+    requestOptions: RequestOptions = {},
+  ): Promise<GetAttachmentFileResponse> {
+    const key = this.createKeyHash(this.normalizeKey(recordKey));
+    return this.apiClient.getAttachmentFile(countryCode, key, fileId, requestOptions);
+  }
+
+  @validate(CountryCodeIO, RecordKeyIO, t.string, AttachmentWritableMetaIO, optional(RequestOptionsIO))
+  @normalizeErrors()
+  async updateAttachmentMeta(
+    countryCode: string,
+    recordKey: string,
+    fileId: string,
+    fileMeta: AttachmentWritableMeta,
+    requestOptions: RequestOptions = {},
+  ): Promise<StorageRecordAttachment> {
+    const key = this.createKeyHash(this.normalizeKey(recordKey));
+    const attachment = await this.apiClient.updateAttachmentMeta(countryCode, key, fileId, fileMeta, requestOptions);
+    return fromApiRecordAttachment(attachment);
+  }
+
+  @validate(CountryCodeIO, RecordKeyIO, t.string, optional(RequestOptionsIO))
+  @normalizeErrors()
+  async getAttachmentMeta(
+    countryCode: string,
+    recordKey: string,
+    fileId: string,
+    requestOptions: RequestOptions = {},
+  ): Promise<StorageRecordAttachment> {
+    const key = this.createKeyHash(this.normalizeKey(recordKey));
+    const attachment = await this.apiClient.getAttachmentMeta(countryCode, key, fileId, requestOptions);
+    return fromApiRecordAttachment(attachment);
   }
 
   async validate(): Promise<void> {
