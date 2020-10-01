@@ -30,6 +30,7 @@ import { RequestOptions } from './validation/request-options';
 import { AttachmentWritableMeta } from './validation/attachment-writable-meta';
 import { UpdateAttachmentMetaResponse, UpdateAttachmentMetaResponseIO } from './validation/api/update-attachment-meta-response';
 import { GetAttachmentMetaResponse, GetAttachmentMetaResponseIO } from './validation/api/get-attachment-meta-response';
+import { getFileNameFromHeaders } from './utils';
 
 const pjson = require('../package.json');
 
@@ -354,11 +355,9 @@ class ApiClient {
       true,
     );
 
-    const fileName = responseHeaders['content-disposition'];
-
     return {
       file,
-      fileName: typeof fileName === 'string' ? fileName : 'file',
+      fileName: getFileNameFromHeaders(responseHeaders) || 'file',
     };
   }
 
