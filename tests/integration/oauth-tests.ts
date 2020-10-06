@@ -227,4 +227,28 @@ describe('With OAuth authentication', () => {
       expect(recordAfter.attachments).to.be.empty;
     });
   });
+
+  context('with wrong credentials', () => {
+    let envIdOauth: any;
+    let storage2: Storage;
+    beforeEach(async () => {
+      envIdOauth = process.env.INT_INC_ENVIRONMENT_ID_OAUTH;
+      process.env.INT_INC_ENVIRONMENT_ID_OAUTH = uuid();
+      storage2 = await createStorage(true, true);
+    });
+
+    afterEach(() => {
+      process.env.INT_INC_ENVIRONMENT_ID_OAUTH = envIdOauth;
+    });
+
+    it('should throw error on any storage operation', async () => {
+      data = createRecord();
+
+      const error = await expect(storage2.write(COUNTRY, data)).to.be.rejectedWith(StorageServerError);
+      expect(error.code).to.eq('EAUTH');
+      expect(error.data.error).to.eq('invalid_scope');
+      expect(error.data.status_code).to.eq(400);
+      data = undefined as any;
+    });
+  });
 });
