@@ -47,7 +47,6 @@ describe('Find one record', () => {
   });
 
   [false, true].forEach(async (encryption) => {
-    storage = await createStorage(encryption);
     context(`${encryption ? 'with' : 'without'} encryption`, () => {
       before(async () => {
         storage = await createStorage(encryption);

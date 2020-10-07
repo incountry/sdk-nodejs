@@ -32,10 +32,10 @@ describe('Get attachment file for record', () => {
     const fileName = Math.random().toString(36).substr(2, 10).toUpperCase();
     const data = await storage.addAttachment(COUNTRY, recordData.recordKey, { file, fileName });
 
-    const { file: file$ } = await storage.getAttachmentFile(COUNTRY, recordData.recordKey, data.fileId);
+    const { file: file$, fileName: receivedFileName } = await storage.getAttachmentFile(COUNTRY, recordData.recordKey, data.fileId);
     const receivedFile = await readStream(file$);
 
-    // expect(receivedFileName).to.equal(fileName);
+    expect(receivedFileName).to.match(/file/);
     expect(receivedFile).to.deep.equal(file);
   });
 });
