@@ -1,6 +1,24 @@
+import intersection from 'lodash.intersection';
+import pick from 'lodash.pick';
 import * as t from 'io-ts';
 import { exact } from '../exact';
 import { omitUndefined } from '../../utils';
+import { isInvalid } from '../utils';
+
+const SEARCH_FIELD = 'searchKeys';
+const API_RECORD_SEARCH_FIELD = 'search_keys';
+const EXCLUDED_KEYS_WHEN_SEARCHING = [
+  'key1',
+  'key2',
+  'key3',
+  'key4',
+  'key5',
+  'key6',
+  'key7',
+  'key8',
+  'key9',
+  'key10',
+];
 
 type FilterStringValue = string | string[];
 const FilterStringValueIO: t.Type<FilterStringValue> = t.union([t.string, t.array(t.string)]);
@@ -39,7 +57,47 @@ const FilterNumberQueryIO: t.Type<FilterNumberQuery> = t.union([
 ]);
 
 type FindFilter = Record<string, FilterStringQuery | FilterNumberQuery>;
-const FindFilterIO: t.Type<FindFilter> = t.record(t.string, t.union([FilterStringQueryIO, FilterNumberQueryIO]), 'FindFilter');
+const FindFilterWithoutSearchIO: t.Type<FindFilter> = t.record(t.string, t.union([FilterStringQueryIO, FilterNumberQueryIO]), 'FindFilterWithoutSearch');
+
+type FindFilterSearchField = {
+  [SEARCH_FIELD]: string;
+};
+
+const FindFilterSearchFieldValueIO: t.Type<string> = new t.Type(
+  'FindFilterSearchFieldValue',
+  (u): u is string => t.string.is(u) && u.length >= 3,
+  (u, c) => t.string.is(u) && u.length >= 3 ? t.success(u) : t.failure(u, c),
+  String,
+);
+
+const FindFilterSearchFieldIO: t.Type<FindFilterSearchField> = t.record(t.literal(SEARCH_FIELD), FindFilterSearchFieldValueIO, 'FindFilterSearchField');
+const FindFilterIO = new t.Type(
+  'FindFilter',
+  (u): u is FindFilter => {
+    if (t.object.is(u) && Object.prototype.hasOwnProperty.call(u, SEARCH_FIELD)) {
+      if (!FindFilterSearchFieldIO.is(pick(u, SEARCH_FIELD))) {
+        return false;
+      }
+      if (intersection(Object.keys(u), EXCLUDED_KEYS_WHEN_SEARCHING).length > 0) {
+        return false;
+      }
+    }
+    return FindFilterWithoutSearchIO.is(u);
+  },
+  (u, c) => {
+    if (t.object.is(u) && Object.prototype.hasOwnProperty.call(u, SEARCH_FIELD)) {
+      if (isInvalid(FindFilterSearchFieldIO.validate(pick(u, SEARCH_FIELD), c))) {
+        return t.failure(u, c);
+      }
+      if (intersection(Object.keys(u), EXCLUDED_KEYS_WHEN_SEARCHING).length > 0) {
+        return t.failure(u, c);
+      }
+    }
+
+    return FindFilterWithoutSearchIO.validate(u, c);
+  },
+  Object,
+);
 
 function filterFromStorageDataKeys(filter: FindFilter): FindFilter {
   return omitUndefined({
@@ -68,6 +126,7 @@ function filterFromStorageDataKeys(filter: FindFilter): FindFilter {
     range_key9: filter.rangeKey9,
     range_key10: filter.rangeKey10,
     version: filter.version,
+    [API_RECORD_SEARCH_FIELD]: filter[SEARCH_FIELD],
   });
 }
 

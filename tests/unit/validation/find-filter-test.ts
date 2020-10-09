@@ -16,6 +16,20 @@ const VALID_FIND_FILTER = [
   { aa: { $lt: 1 } },
   { aa: '' },
   { aa: [''] },
+  {
+    key1: 'k', key2: 'k', key3: 'k', key4: 'k', key5: 'k', key6: 'k', key7: 'k', key8: 'k', key9: 'k', key10: 'k',
+  },
+  { searchKeys: 'test' },
+  { searchKeys: 'tes' },
+  { searchKeys: "te$t 1234567±!@#$%^&*()_+[]{}|\\/.,<>-';" },
+  { aa: 1, searchKeys: 'test' },
+  { aa: { $not: 1 }, searchKeys: 'test' },
+  { aa: { $not: 'aa' }, searchKeys: 'test' },
+  { aa: { $not: [1] }, searchKeys: 'test' },
+  { recordKey: 'test', searchKeys: 'test' },
+  { serviceKey1: 'test', searchKeys: 'test' },
+  { rangeKey1: 1, searchKeys: 'test' },
+  { version: 1, searchKeys: 'test' },
 ];
 
 const INVALID_FIND_FILTER = [
@@ -31,6 +45,26 @@ const INVALID_FIND_FILTER = [
   { aaa1: { $not: { $not: 1 } } },
   { aaa3: { $gt: 'ccc' } },
   { aaa3: { $gt: [] } },
+  { searchKeys: ['test1', 'test2'] },
+  { searchKeys: '' },
+  { searchKeys: 't' },
+  { searchKeys: 'tt' },
+  { searchKeys: 1 },
+  { searchKeys: { $gt: 1 } },
+  { searchKeys: { $not: 'test' } },
+  { aaa1: { cccccc: 1 }, searchKeys: 'test' },
+  { aaa1: { $not: { $not: 1 } }, searchKeys: 'test' },
+  { aaa3: { $gt: 'ccc' }, searchKeys: 'test' },
+  { key1: 'k', searchKeys: 'test' },
+  { key2: 'k', searchKeys: 'test' },
+  { key3: 'k', searchKeys: 'test' },
+  { key4: 'k', searchKeys: 'test' },
+  { key5: 'k', searchKeys: 'test' },
+  { key6: 'k', searchKeys: 'test' },
+  { key7: 'k', searchKeys: 'test' },
+  { key8: 'k', searchKeys: 'test' },
+  { key9: 'k', searchKeys: 'test' },
+  { key10: 'k', searchKeys: 'test' },
 ];
 
 describe('Find Filter validation', () => {

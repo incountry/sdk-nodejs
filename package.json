@@ -15,6 +15,8 @@
     "io-ts": "2.2.1",
     "io-ts-types": "0.5.6",
     "lodash.get": "4.4.2",
+    "lodash.intersection": "4.4.0",
+    "lodash.pick": "4.4.0",
     "reflect-metadata": "0.1.13",
     "utf8": "3.0.0"
   },
@@ -46,6 +48,8 @@
     "@types/chai": "4.2.11",
     "@types/chai-as-promised": "7.1.2",
     "@types/lodash.get": "4.4.6",
+    "@types/lodash.intersection": "4.4.6",
+    "@types/lodash.pick": "4.4.6",
     "@types/mocha": "7.0.2",
     "@types/node": "13.13.4",
     "@types/sinon": "9.0.4",
