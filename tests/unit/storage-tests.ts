@@ -30,7 +30,7 @@ import { Int } from '../../src/validation/utils';
 import { ApiRecord } from '../../src/validation/api/api-record';
 import { FindResponse } from '../../src/validation/api/find-response';
 import { ApiRecordData } from '../../src/validation/api/api-record-data';
-import { filterFromStorageDataKeys } from '../../src/validation/api/find-filter';
+import { filterFromStorageDataKeys, API_RECORD_SEARCH_FIELD, SEARCH_FIELD } from '../../src/validation/api/find-filter';
 import { INVALID_REQUEST_OPTIONS, VALID_REQUEST_OPTIONS } from './validation/request-options';
 import { INVALID_FIND_FILTER, VALID_FIND_FILTER } from './validation/find-filter-test';
 
@@ -1539,6 +1539,23 @@ describe('Storage', () => {
           assert.equal(popAPI.isDone(), true, 'nock is done');
         });
 
+        it(`should not hash filter.${SEARCH_FIELD} regardless of enabled/disabled encryption`, async () => {
+          const filter = { [SEARCH_FIELD]: 'search text' };
+          const sentFilter = { [API_RECORD_SEARCH_FIELD]: 'search text' };
+
+          const popAPI = nockEndpoint(POPAPI_HOST, 'find', COUNTRY)
+            .times(2)
+            .reply(200, getDefaultFindResponse());
+
+          let [bodyObj] = await Promise.all<any>([getNockedRequestBodyObject(popAPI), encStorage.find(COUNTRY, filter)]);
+          expect(bodyObj.filter).to.deep.equal(sentFilter);
+
+          [bodyObj] = await Promise.all<any>([getNockedRequestBodyObject(popAPI), noEncStorage.find(COUNTRY, filter)]);
+          expect(bodyObj.filter).to.deep.equal(sentFilter);
+
+          assert.equal(popAPI.isDone(), true, 'nock is done');
+        });
+
         type KEY =
           | 'recordKey'
           | 'key1'
@@ -1710,6 +1727,12 @@ describe('Storage', () => {
             const storage = await getDefaultStorage({ encrypt: true, normalizeKeys: true });
             const [bodyObj] = await Promise.all<any>([getNockedRequestBodyObject(popAPI), storage.find(COUNTRY, { recordKey })]);
             expect(bodyObj.filter.record_key).to.equal(storage.createKeyHash(recordKeyNormalized));
+          });
+
+          it(`should not normalize filter.${SEARCH_FIELD}`, async () => {
+            const storage = await getDefaultStorage(true, true);
+            const [bodyObj] = await Promise.all<any>([getNockedRequestBodyObject(popAPI), storage.find(COUNTRY, { [SEARCH_FIELD]: recordKey })]);
+            expect(bodyObj.filter[API_RECORD_SEARCH_FIELD]).to.equal(recordKey);
           });
         });
 

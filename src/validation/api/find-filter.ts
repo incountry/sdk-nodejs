@@ -144,4 +144,6 @@ export {
   FilterNumberQueryIO,
   FindFilterIO,
   filterFromStorageDataKeys,
+  API_RECORD_SEARCH_FIELD,
+  SEARCH_FIELD,
 };
