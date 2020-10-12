@@ -150,7 +150,7 @@ describe('Find records', () => {
         checkFindResponseMeta(meta, 0);
       });
 
-      context('Records search by search_keys', () => {
+      context('Records search by searchKeys', () => {
         const searchableProperties: (keyof StorageRecordData)[] = ['key1', 'key2'];
 
         searchableProperties.forEach((property) => {
