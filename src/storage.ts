@@ -235,10 +235,7 @@ class Storage {
   @validate(CountryCodeIO, optional(FindFilterIO), optional(FindOptionsIO), optional(RequestOptionsIO))
   @normalizeErrors()
   async find(countryCode: string, filter: FindFilter = {}, options: FindOptions = {}, requestOptions: RequestOptions = {}): Promise<FindResult> {
-    let keysToHash: Array<KEY_TO_HASH | SEARCH_KEY> = KEYS_TO_HASH;
-    if (this.hashSearchKeys) {
-      keysToHash = keysToHash.concat(SEARCH_KEYS);
-    }
+    const keysToHash = this.getKeysToHash();
 
     const data = {
       filter: this.hashFilterKeys(filterFromStorageDataKeys(filter), keysToHash),
@@ -333,6 +330,14 @@ class Storage {
     return this.normalizeKeys ? String(key).toLowerCase() : String(key);
   }
 
+  private getKeysToHash(): Array<KEY_TO_HASH | SEARCH_KEY> {
+    let keysToHash: Array<KEY_TO_HASH | SEARCH_KEY> = KEYS_TO_HASH;
+    if (this.hashSearchKeys) {
+      keysToHash = keysToHash.concat(SEARCH_KEYS);
+    }
+    return keysToHash;
+  }
+
   createKeyHash(s: string): string {
     const stringToHash = `${s}:${this.envId}`;
     return crypto
@@ -373,11 +378,7 @@ class Storage {
       payload: null,
     };
 
-    let keysToHash: Array<KEY_TO_HASH | SEARCH_KEY> = KEYS_TO_HASH;
-    if (this.hashSearchKeys) {
-      keysToHash = keysToHash.concat(SEARCH_KEYS);
-    }
-
+    const keysToHash = this.getKeysToHash();
     keysToHash.forEach((field) => {
       const value = recordData[field];
       if (value !== undefined) {
