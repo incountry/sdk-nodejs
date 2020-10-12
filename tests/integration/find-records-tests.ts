@@ -6,6 +6,7 @@ import { createStorage, COUNTRY, noop } from './common';
 import { Storage } from '../../src';
 import { Int } from '../../src/validation/utils';
 import { FindResponseMeta } from '../../src/validation/api/find-response';
+import { StorageRecordData } from '../../src/validation/storage-record-data';
 
 chai.use(chaiAsPromised);
 const { expect } = chai;
@@ -147,6 +148,30 @@ describe('Find records', () => {
 
         expect(records).to.have.lengthOf(0);
         checkFindResponseMeta(meta, 0);
+      });
+
+      context('Records search by search_keys', () => {
+        const searchableProperties: (keyof StorageRecordData)[] = ['key1', 'key2'];
+
+        searchableProperties.forEach((property) => {
+          const value = (dataRequest as StorageRecordData)[property] as string;
+          const searchCriterias = [
+            { description: 'full match', criteria: value },
+            { description: 'partial match (prefix)', criteria: value.substring(0, value.length - 1) },
+            { description: 'partial match (suffix)', criteria: value.substring(1, value.length) },
+            { description: 'partial match (in the middle)', criteria: value.substring(1, value.length - 1) },
+          ];
+
+          searchCriterias.forEach(({ description, criteria }) => {
+            it(`should find record by ${property} ${description}`, async () => {
+              const { records, meta } = await storage.find(COUNTRY, { searchKeys: criteria }, {});
+
+              expect(records).to.have.lengthOf(1);
+              expect(records[0]).to.deep.include(dataRequest);
+              checkFindResponseMeta(meta, 1);
+            });
+          });
+        });
       });
     });
   });
