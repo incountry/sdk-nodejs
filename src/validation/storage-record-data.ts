@@ -1,5 +1,5 @@
 import * as t from 'io-ts';
-import { Codec } from './utils';
+import { Codec, getStringMaxLengthIO } from './utils';
 
 type StorageRecordData = {
   recordKey: string;
@@ -30,40 +30,45 @@ type StorageRecordData = {
   rangeKey10?: t.Int | null;
 };
 
-const StorageRecordDataIO: Codec<StorageRecordData> = t.intersection([
-  t.type({
-    recordKey: t.string,
-  }),
-  t.partial({
-    body: t.union([t.string, t.null]),
-    profileKey: t.union([t.string, t.null]),
-    key1: t.union([t.string, t.null]),
-    key2: t.union([t.string, t.null]),
-    key3: t.union([t.string, t.null]),
-    key4: t.union([t.string, t.null]),
-    key5: t.union([t.string, t.null]),
-    key6: t.union([t.string, t.null]),
-    key7: t.union([t.string, t.null]),
-    key8: t.union([t.string, t.null]),
-    key9: t.union([t.string, t.null]),
-    key10: t.union([t.string, t.null]),
-    precommitBody: t.union([t.string, t.null]),
-    serviceKey1: t.union([t.string, t.null]),
-    serviceKey2: t.union([t.string, t.null]),
-    rangeKey1: t.union([t.Int, t.null]),
-    rangeKey2: t.union([t.Int, t.null]),
-    rangeKey3: t.union([t.Int, t.null]),
-    rangeKey4: t.union([t.Int, t.null]),
-    rangeKey5: t.union([t.Int, t.null]),
-    rangeKey6: t.union([t.Int, t.null]),
-    rangeKey7: t.union([t.Int, t.null]),
-    rangeKey8: t.union([t.Int, t.null]),
-    rangeKey9: t.union([t.Int, t.null]),
-    rangeKey10: t.union([t.Int, t.null]),
-  }),
-], 'Record');
+const stringMax256IO = getStringMaxLengthIO(256);
+
+const getStorageRecordDataIO = (params: { hasSearchKeys: boolean }): Codec<StorageRecordData> => {
+  const keyStringIO = params.hasSearchKeys ? t.string : stringMax256IO;
+  return t.intersection([
+    t.type({
+      recordKey: t.string,
+    }),
+    t.partial({
+      body: t.union([t.string, t.null]),
+      profileKey: t.union([t.string, t.null]),
+      key1: t.union([keyStringIO, t.null]),
+      key2: t.union([keyStringIO, t.null]),
+      key3: t.union([keyStringIO, t.null]),
+      key4: t.union([keyStringIO, t.null]),
+      key5: t.union([keyStringIO, t.null]),
+      key6: t.union([keyStringIO, t.null]),
+      key7: t.union([keyStringIO, t.null]),
+      key8: t.union([keyStringIO, t.null]),
+      key9: t.union([keyStringIO, t.null]),
+      key10: t.union([keyStringIO, t.null]),
+      precommitBody: t.union([t.string, t.null]),
+      serviceKey1: t.union([t.string, t.null]),
+      serviceKey2: t.union([t.string, t.null]),
+      rangeKey1: t.union([t.Int, t.null]),
+      rangeKey2: t.union([t.Int, t.null]),
+      rangeKey3: t.union([t.Int, t.null]),
+      rangeKey4: t.union([t.Int, t.null]),
+      rangeKey5: t.union([t.Int, t.null]),
+      rangeKey6: t.union([t.Int, t.null]),
+      rangeKey7: t.union([t.Int, t.null]),
+      rangeKey8: t.union([t.Int, t.null]),
+      rangeKey9: t.union([t.Int, t.null]),
+      rangeKey10: t.union([t.Int, t.null]),
+    }),
+  ], 'Record');
+};
 
 export {
   StorageRecordData,
-  StorageRecordDataIO,
+  getStorageRecordDataIO,
 };

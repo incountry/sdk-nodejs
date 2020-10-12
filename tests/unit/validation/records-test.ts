@@ -1,5 +1,5 @@
 import * as chai from 'chai';
-import { StorageRecordDataArrayIO } from '../../../src/validation/storage-record-data-array';
+import { getStorageRecordDataArrayIO } from '../../../src/validation/storage-record-data-array';
 import { isValid } from '../../../src/validation/utils';
 
 const { expect } = chai;
@@ -35,7 +35,7 @@ const INVALID = [
 ];
 
 describe('Records Array validation', () => {
-  const codec = StorageRecordDataArrayIO;
+  const codec = getStorageRecordDataArrayIO({ hasSearchKeys: true });
 
   describe('.is()', () => {
     it('should return false for invalid data', () => {

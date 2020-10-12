@@ -8,7 +8,8 @@ import { isInvalid, toStorageClientError } from './utils';
 
 const foldValidation = fold(() => '', identity);
 
-function validate(...codecs: t.Mixed[]) {
+type getCodec = (params: any) => t.Mixed;
+function validate(...getCodecs: Array<t.Mixed | getCodec>) {
   return function wrap(target: object, propertyKey: string, descriptor: TypedPropertyDescriptor<any>): TypedPropertyDescriptor<any> {
     const method = descriptor.value;
     if (!t.Function.is(method)) {
@@ -21,6 +22,7 @@ function validate(...codecs: t.Mixed[]) {
     const isPromise = type && type.name === 'Promise';
 
     descriptor.value = function value(...args: any[]) {
+      const codecs = getCodecs.map((v) => typeof v === 'function' ? v(this) : v);
       const results = codecs.map((codec, index) => codec.decode(args[index]));
       const invalid = results.find(isInvalid);
 

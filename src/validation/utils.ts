@@ -1,9 +1,13 @@
 import * as t from 'io-ts';
 import { clone } from 'io-ts-types/lib/clone';
-import { isLeft, isRight, Either } from 'fp-ts/lib/Either';
+import { withValidate } from 'io-ts-types/lib/withValidate';
+import {
+  isLeft, isRight, Either, either,
+} from 'fp-ts/lib/Either';
 import { getErrorMessage } from './get-error-message';
 import { StorageClientError, StorageServerError } from '../errors';
 import { isJSON } from '../utils';
+
 
 type Validation<A> = Either<t.Errors, A>;
 
@@ -72,6 +76,8 @@ const JSONIO = new t.Type<JSON, string, string>(
 type Codec<A> = t.Type<A, unknown>;
 type Int = t.Int;
 
+const getStringMaxLengthIO = (maxLength: number): t.Mixed => withValidate(t.string, (u, c) => either.chain(t.string.validate(u, c), (s) => s.length < maxLength ? t.success(s) : t.failure(s, c)));
+
 export {
   Codec,
   toStorageClientError,
@@ -86,4 +92,5 @@ export {
   isRight as isValid,
   Validation,
   Int,
+  getStringMaxLengthIO,
 };
