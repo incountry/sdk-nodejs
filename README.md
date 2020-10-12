@@ -426,30 +426,65 @@ const readResult = await storage.read(countryCode, recordKey);
 
 ### Find records
 
-It is possible to search by random keys using `find` method.
+You can find all the records in the specified country matching the specified search filter and returned in accordance to the specified options.
 
-You can specify filter object for every record key combining different queries:
+#### Filtering records
+
+Records search could be performed using exact match search operators as well as partial text match operators in almost any combinations. 
+
+##### Exact match search
+
+The next exact match filtering criteria available:
 - single value
 ```typescript
+// Matches all records where record.key1 = 'abc' AND record.rangeKey = 1
 { key1: 'abc', rangeKey1: 1 }
 ```
 
 - multiple values as an array
 ```typescript
+// Matches all records where (record.key2 = 'def' OR record.key2 = 'jkl') AND (record.rangeKey = 1 OR record.rangeKey = 2)
 { key2: ['def', 'jkl'], rangeKey1: [1, 2] }
 ```
 
 - a logical NOT operator for [String fields](#string-fields-hashed) and `version`
 ```typescript
+// Matches all records where record.key3 <> 'abc'
 { key3: { $not: 'abc' } }
+
+// Matches all records where record.key3 <> 'abc' AND record.key3 <> 'def'
 { key3: { $not: ['abc', 'def'] } }
+
+// Matches all records where record.version <> 1
 { version: { $not: 1 }}
 ```
 
 - comparison operators for [Int fields](#int-fields-plain)
 ```typescript
+// Matches all records where record.rangeKey >= 5 AND record.rangeKey <= 100
 { rangeKey1: { $gte: 5, $lte: 100 } }
 ```
+
+##### Partial text match search
+
+Also you can search records by partial match using `searchKeys` operator, which performs partial match 
+search (using `LIKE` SQL operator) among record's text fields `key1, key2, ..., key10`.
+```typescript
+// Matches all records where record.key1 LIKE 'abc' OR record.key2 LIKE 'abc' OR ... OR record.key10 LIKE 'abc'
+{ searchKeys: 'abc' }
+```
+
+**Please note:** `searchKeys` operator cannot be used in combination with any of `key1, key2, ..., key10` keys.
+
+```typescript
+// Matches all records where (record.key1 LIKE 'abc' OR record.key2 LIKE 'abc' OR ... OR record.key10 LIKE 'abc') AND (record.rangeKey = 1 OR record.rangeKey = 2)
+{ searchKeys: 'abc', rangeKey1: [1, 2] }
+
+// Causes validation error (StorageClientError)
+{ searchKeys: 'abc', key1: 'def' }
+```
+
+#### Search options
 
 The `options` parameter defines the `limit` - number of records to return and the `offset`- starting index.
 It can be used to implement pagination. Note: SDK returns 100 records at most.
@@ -498,7 +533,7 @@ async find(
 }
 ```
 
-Example of usage:
+#### Example of usage
 ```typescript
 const filter = {
   key1: 'abc',
