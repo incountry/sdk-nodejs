@@ -3,7 +3,6 @@ import pick from 'lodash.pick';
 import * as t from 'io-ts';
 import { exact } from '../exact';
 import { omitUndefined } from '../../utils';
-import { isInvalid } from '../utils';
 
 const SEARCH_FIELD = 'searchKeys';
 const API_RECORD_SEARCH_FIELD = 'search_keys';
@@ -63,18 +62,21 @@ type FindFilterSearchField = {
   [SEARCH_FIELD]: string;
 };
 
+const isSearchFieldValue = (u: unknown): u is string => t.string.is(u) && u.length >= 3 && u.length <= 256;
 const FindFilterSearchFieldValueIO: t.Type<string> = new t.Type(
   'FindFilterSearchFieldValue',
-  (u): u is string => t.string.is(u) && u.length >= 3,
-  (u, c) => t.string.is(u) && u.length >= 3 ? t.success(u) : t.failure(u, c),
+  (u): u is string => isSearchFieldValue(u),
+  (u, c) => isSearchFieldValue(u) ? t.success(u) : t.failure(u, c),
   String,
 );
+
+const isFindFilterWithSearchField = (u: unknown): u is FindFilterSearchField => t.object.is(u) && Object.prototype.hasOwnProperty.call(u, SEARCH_FIELD);
 
 const FindFilterSearchFieldIO: t.Type<FindFilterSearchField> = t.record(t.literal(SEARCH_FIELD), FindFilterSearchFieldValueIO, 'FindFilterSearchField');
 const FindFilterIO = new t.Type(
   'FindFilter',
   (u): u is FindFilter => {
-    if (t.object.is(u) && Object.prototype.hasOwnProperty.call(u, SEARCH_FIELD)) {
+    if (isFindFilterWithSearchField(u)) {
       if (!FindFilterSearchFieldIO.is(pick(u, SEARCH_FIELD))) {
         return false;
       }
@@ -85,8 +87,8 @@ const FindFilterIO = new t.Type(
     return FindFilterWithoutSearchIO.is(u);
   },
   (u, c) => {
-    if (t.object.is(u) && Object.prototype.hasOwnProperty.call(u, SEARCH_FIELD)) {
-      if (isInvalid(FindFilterSearchFieldIO.validate(pick(u, SEARCH_FIELD), c))) {
+    if (isFindFilterWithSearchField(u)) {
+      if (!FindFilterSearchFieldIO.is(pick(u, SEARCH_FIELD))) {
         return t.failure(u, c);
       }
       if (intersection(Object.keys(u), EXCLUDED_KEYS_WHEN_SEARCHING).length > 0) {
