@@ -426,11 +426,7 @@ const readResult = await storage.read(countryCode, recordKey);
 
 ### Find records
 
-You can find all the records in the specified country matching the specified search filter and returned in accordance to the specified options.
-
-#### Filtering records
-
-Records search could be performed using exact match search operators as well as partial text match operators in almost any combinations. 
+You can search records either using exact match search operators or partial text match operators in almost any combinations. 
 
 ##### Exact match search
 
@@ -468,13 +464,13 @@ The next exact match filtering criteria available:
 ##### Partial text match search
 
 Also you can search records by partial match using `searchKeys` operator, which performs partial match 
-search (using `LIKE` SQL operator) among record's text fields `key1, key2, ..., key10`.
+search (similar to `LIKE` SQL operator) among record's text fields `key1, key2, ..., key10`.
 ```typescript
 // Matches all records where record.key1 LIKE 'abc' OR record.key2 LIKE 'abc' OR ... OR record.key10 LIKE 'abc'
 { searchKeys: 'abc' }
 ```
 
-**Please note:** `searchKeys` operator cannot be used in combination with any of `key1, key2, ..., key10` keys.
+**Please note:** `searchKeys` operator cannot be used in combination with any of `key1, key2, ..., key10` keys and works only in combination with non-hashing Storage mode (hashSearchKeys param for Storage).
 
 ```typescript
 // Matches all records where (record.key1 LIKE 'abc' OR record.key2 LIKE 'abc' OR ... OR record.key10 LIKE 'abc') AND (record.rangeKey = 1 OR record.rangeKey = 2)
