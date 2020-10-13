@@ -1,5 +1,5 @@
 import * as t from 'io-ts';
-import { Codec, getStringMaxLengthIO } from './utils';
+import { Codec, StringMax256 } from './utils';
 
 type StorageRecordData = {
   recordKey: string;
@@ -30,10 +30,8 @@ type StorageRecordData = {
   rangeKey10?: t.Int | null;
 };
 
-const stringMax256IO = getStringMaxLengthIO(256);
-
-const getStorageRecordDataIO = (params: { hasSearchKeys: boolean }): Codec<StorageRecordData> => {
-  const keyStringIO = params.hasSearchKeys ? t.string : stringMax256IO;
+const getStorageRecordDataIO = (params: { hashSearchKeys: boolean }): Codec<StorageRecordData> => {
+  const keyStringIO = params.hashSearchKeys ? t.string : StringMax256;
   return t.intersection([
     t.type({
       recordKey: t.string,

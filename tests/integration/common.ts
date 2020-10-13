@@ -8,7 +8,7 @@ const COUNTRY = process.env.INT_INC_COUNTRY || 'us';
 
 const DEFAULT_SECRET = () => 'supersecret';
 
-async function createDefaultStorage(encryption: boolean, normalizeKeys = false, getSecrets: Function = DEFAULT_SECRET, customEncConfigs?: CustomEncryptionConfig[]) {
+async function createDefaultStorage(encryption: boolean, normalizeKeys = false, getSecrets: Function = DEFAULT_SECRET, customEncConfigs?: CustomEncryptionConfig[], hashSearchKeys?: boolean) {
   return createStorage({
     apiKey: process.env.INC_API_KEY,
     environmentId: process.env.INC_ENVIRONMENT_ID,
@@ -16,6 +16,7 @@ async function createDefaultStorage(encryption: boolean, normalizeKeys = false, 
     encrypt: encryption,
     normalizeKeys,
     getSecrets,
+    hashSearchKeys,
   }, customEncConfigs);
 }
 

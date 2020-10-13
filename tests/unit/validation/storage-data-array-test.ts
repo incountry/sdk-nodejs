@@ -1,0 +1,116 @@
+import * as chai from 'chai';
+import { getStorageRecordDataArrayIO } from '../../../src/validation/storage-record-data-array';
+import { isValid } from '../../../src/validation/utils';
+
+const { expect } = chai;
+
+const VALID = [
+  [{ recordKey: '1' }],
+  [{ recordKey: '1', version: 0 }],
+  [{ recordKey: '2', body: '', version: 0 }],
+  [{ recordKey: '2', body: null, version: 0 }],
+  [{
+    recordKey: '2', body: null, version: 0, precommitBody: '',
+  }],
+  [{
+    recordKey: '2', body: null, version: 0, precommitBody: null,
+  }],
+];
+
+const INVALID = [
+  true,
+  false,
+  () => {},
+  '',
+  -1,
+  0,
+  {},
+  [],
+  [{}],
+  [{ key: 1 }],
+  [{ key: '' }],
+  [{ record_key: '' }],
+  [{ record_key: 1 }],
+  [{ record_key: '', body: 1 }],
+];
+
+const VALID_NOT_HASHED = [
+  [{ recordKey: '1' }],
+  [{ recordKey: '1', version: 0 }],
+  [{ recordKey: '2', body: '', version: 0 }],
+  [{ recordKey: '2', body: null, version: 0 }],
+  [{
+    recordKey: '2', body: null, version: 0, precommitBody: '',
+  }],
+  [{
+    recordKey: '2', body: null, version: 0, precommitBody: null,
+  }],
+  [{ recordKey: '1', key1: '123456890' }],
+
+];
+
+const INVALID_NOT_HASHED = [
+  true,
+  false,
+  () => {},
+  '',
+  -1,
+  0,
+  {},
+  [],
+  [{}],
+  [{ key: 1 }],
+  [{ key: '' }],
+  [{ record_key: '' }],
+  [{ record_key: 1 }],
+  [{ record_key: '', body: 1 }],
+  [{ recordKey: '1', key1: '012345689_012345689_012345689_012345689_012345689_012345689_012345689_012345689_012345689_012345689_012345689_012345689_012345689_012345689_012345689_012345689_012345689_012345689_012345689_012345689_012345689_012345689_012345689_012345689_012345689_012345689_' }],
+  [{ recordKey: '1', key2: '012345689_012345689_012345689_012345689_012345689_012345689_012345689_012345689_012345689_012345689_012345689_012345689_012345689_012345689_012345689_012345689_012345689_012345689_012345689_012345689_012345689_012345689_012345689_012345689_012345689_012345689_' }],
+];
+
+describe('Records Array validation', () => {
+  [true, false].forEach((hashSearchKeys) => {
+    context(`with "hashSearchKeys" ${hashSearchKeys ? 'enabled' : 'disabled'}`, () => {
+      const codec = getStorageRecordDataArrayIO({ hashSearchKeys });
+
+      let validData: any[];
+      let invalidData: any[];
+
+      if (hashSearchKeys) {
+        validData = VALID;
+        invalidData = INVALID;
+      } else {
+        validData = VALID_NOT_HASHED;
+        invalidData = INVALID_NOT_HASHED;
+      }
+
+      describe('.is()', () => {
+        it('should return false for invalid data', () => {
+          invalidData.forEach((value) => {
+            expect(codec.is(value)).to.equal(false, `invalid data ${JSON.stringify(value)} should fail`);
+          });
+        });
+
+        it('should return true for valid data', () => {
+          validData.forEach((value) => {
+            expect(codec.is(value)).to.equal(true, `valid data ${JSON.stringify(value)} should work`);
+          });
+        });
+      });
+
+      describe('.decode()', () => {
+        it('should not decode invalid data', () => {
+          invalidData.forEach((value) => {
+            expect(isValid(codec.decode(value))).to.equal(false, `invalid data ${JSON.stringify(value)} should fail`);
+          });
+        });
+
+        it('should decode valid data', () => {
+          validData.forEach((value) => {
+            expect(isValid(codec.decode(value))).to.equal(true, `valid data ${JSON.stringify(value)} should work`);
+          });
+        });
+      });
+    });
+  });
+});
