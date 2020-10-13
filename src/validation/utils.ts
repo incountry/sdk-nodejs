@@ -73,13 +73,13 @@ const JSONIO = new t.Type<JSON, string, string>(
 type Codec<A> = t.Type<A, unknown>;
 type Int = t.Int;
 
-interface Max256Brand {
+interface StringMax256Brand {
   readonly StringMax256: unique symbol;
 }
 
 const StringMax256 = t.brand(
   t.string,
-  (n): n is t.Branded<string, Max256Brand> => n.length < 256,
+  (s): s is t.Branded<string, StringMax256Brand> => s.length < 256,
   'StringMax256',
 );
 
