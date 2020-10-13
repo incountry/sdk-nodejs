@@ -1,5 +1,4 @@
 import intersection from 'lodash.intersection';
-import pick from 'lodash.pick';
 import * as t from 'io-ts';
 import { exact } from '../exact';
 import { omitUndefined } from '../../utils';
@@ -18,6 +17,8 @@ const EXCLUDED_KEYS_WHEN_SEARCHING = [
   'key9',
   'key10',
 ];
+const SEARCH_FIELD_MIN_LENGTH = 3;
+const SEARCH_FIELD_MAX_LENGTH = 256;
 
 type FilterStringValue = string | string[];
 const FilterStringValueIO: t.Type<FilterStringValue> = t.union([t.string, t.array(t.string)]);
@@ -62,22 +63,14 @@ type FindFilterSearchField = {
   [SEARCH_FIELD]: string;
 };
 
-const isSearchFieldValue = (u: unknown): u is string => t.string.is(u) && u.length >= 3 && u.length <= 256;
-const FindFilterSearchFieldValueIO: t.Type<string> = new t.Type(
-  'FindFilterSearchFieldValue',
-  (u): u is string => isSearchFieldValue(u),
-  (u, c) => isSearchFieldValue(u) ? t.success(u) : t.failure(u, c),
-  String,
-);
-
+const isSearchFieldValue = (u: unknown): u is string => t.string.is(u) && u.length >= SEARCH_FIELD_MIN_LENGTH && u.length <= SEARCH_FIELD_MAX_LENGTH;
 const isFindFilterWithSearchField = (u: unknown): u is FindFilterSearchField => t.object.is(u) && Object.prototype.hasOwnProperty.call(u, SEARCH_FIELD);
 
-const FindFilterSearchFieldIO: t.Type<FindFilterSearchField> = t.record(t.literal(SEARCH_FIELD), FindFilterSearchFieldValueIO, 'FindFilterSearchField');
 const FindFilterIO = new t.Type(
   'FindFilter',
   (u): u is FindFilter => {
     if (isFindFilterWithSearchField(u)) {
-      if (!FindFilterSearchFieldIO.is(pick(u, SEARCH_FIELD))) {
+      if (!isSearchFieldValue(u[SEARCH_FIELD])) {
         return false;
       }
       if (intersection(Object.keys(u), EXCLUDED_KEYS_WHEN_SEARCHING).length > 0) {
@@ -88,7 +81,7 @@ const FindFilterIO = new t.Type(
   },
   (u, c) => {
     if (isFindFilterWithSearchField(u)) {
-      if (!FindFilterSearchFieldIO.is(pick(u, SEARCH_FIELD))) {
+      if (!isSearchFieldValue(u[SEARCH_FIELD])) {
         return t.failure(u, c);
       }
       if (intersection(Object.keys(u), EXCLUDED_KEYS_WHEN_SEARCHING).length > 0) {
