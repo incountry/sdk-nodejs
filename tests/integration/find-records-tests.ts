@@ -18,6 +18,7 @@ const createRecordData = () => ({
   key1: uuid(),
   key2: uuid(),
   key3: uuid(),
+  key10: uuid(),
   profileKey: uuid(),
   rangeKey1: Math.floor(Math.random() * 100) + 1 as Int,
   body: JSON.stringify({ name: 'PersonName' }),
@@ -151,10 +152,21 @@ describe('Find records', () => {
       });
 
       xcontext('Records search by searchKeys', () => {
-        const searchableProperties: (keyof StorageRecordData)[] = ['key1', 'key2'];
+        let searchableStorage: Storage;
+        const record = createRecordData();
+        const searchableProperties: (keyof StorageRecordData)[] = ['key1', 'key10'];
+
+        before(async () => {
+          searchableStorage = await createStorage(encryption, undefined, undefined, undefined, false);
+          await searchableStorage.write(COUNTRY, record);
+        });
+
+        after(async () => {
+          await searchableStorage.delete(COUNTRY, record.recordKey).catch(noop);
+        });
 
         searchableProperties.forEach((property) => {
-          const value = (dataRequest as StorageRecordData)[property] as string;
+          const value = (record as StorageRecordData)[property] as string;
           const searchCriterias = [
             { description: 'full match', criteria: value },
             { description: 'partial match (prefix)', criteria: value.substring(0, value.length - 1) },
@@ -164,10 +176,10 @@ describe('Find records', () => {
 
           searchCriterias.forEach(({ description, criteria }) => {
             it(`should find record by ${property} ${description}`, async () => {
-              const { records, meta } = await storage.find(COUNTRY, { searchKeys: criteria }, {});
+              const { records, meta } = await searchableStorage.find(COUNTRY, { searchKeys: criteria }, {});
 
               expect(records).to.have.lengthOf(1);
-              expect(records[0]).to.deep.include(dataRequest);
+              expect(records[0]).to.deep.include(record);
               checkFindResponseMeta(meta, 1);
             });
           });
