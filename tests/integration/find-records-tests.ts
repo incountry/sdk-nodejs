@@ -118,7 +118,7 @@ describe('Find records', () => {
         const limit = 2;
         const offset = 2;
         const recordKeyList = [dataRequest, dataRequest2, dataRequest3].map((r) => r.recordKey);
-        const { records, meta } = await storage.find(COUNTRY, { recordKey: recordKeyList, rangeKey1: { $lt: 100 } },
+        const { records, meta } = await storage.find(COUNTRY, { recordKey: recordKeyList, rangeKey1: { $lte: 100 } },
           {
             limit,
             offset,
@@ -129,7 +129,8 @@ describe('Find records', () => {
       });
 
       it('Find records by filter with rangeKey1', async () => {
-        const { records } = await storage.find(COUNTRY, { rangeKey1: { $lt: 100 } }, {});
+        const recordKeyList = [dataRequest, dataRequest2, dataRequest3].map((r) => r.recordKey);
+        const { records } = await storage.find(COUNTRY, { recordKey: recordKeyList, rangeKey1: { $lte: 100 } }, {});
 
         expect(records.length).to.be.gte(3);
         const receivedKeys = records.map((r) => r.recordKey);
