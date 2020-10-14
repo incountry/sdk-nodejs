@@ -79,7 +79,7 @@ interface StringMax256Brand {
 
 const StringMax256 = t.brand(
   t.string,
-  (s): s is t.Branded<string, StringMax256Brand> => s.length < 256,
+  (s): s is t.Branded<string, StringMax256Brand> => s.length <= 256,
   'StringMax256',
 );
 

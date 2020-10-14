@@ -15,6 +15,7 @@ const VALID = [
   [{
     recordKey: '2', body: null, version: 0, precommitBody: null,
   }],
+  [{ recordKey: '1', key1: Array(5000).fill('x').join('') }],
 ];
 
 const INVALID = [
@@ -46,7 +47,7 @@ const VALID_NOT_HASHED = [
     recordKey: '2', body: null, version: 0, precommitBody: null,
   }],
   [{ recordKey: '1', key1: '123456890' }],
-
+  [{ recordKey: '1', key1: Array(256).fill('x').join('') }],
 ];
 
 const INVALID_NOT_HASHED = [
@@ -64,8 +65,8 @@ const INVALID_NOT_HASHED = [
   [{ record_key: '' }],
   [{ record_key: 1 }],
   [{ record_key: '', body: 1 }],
-  [{ recordKey: '1', key1: Array(256).fill('x').join('') }],
-  [{ recordKey: '1', key2: Array(256).fill('x').join('') }],
+  [{ recordKey: '1', key1: Array(260).fill('x').join('') }],
+  [{ recordKey: '1', key2: Array(500).fill('x').join('') }],
 ];
 
 describe('Records Array validation', () => {

@@ -806,8 +806,8 @@ describe('Storage', () => {
               const storage = await getDefaultStorage();
 
               await Promise.all([
-                { recordKey: '', key1: Array(256).fill('x').join('') },
-                { recordKey: '', key6: Array(256).fill('x').join('') },
+                { recordKey: '', key1: Array(500).fill('x').join('') },
+                { recordKey: '', key6: Array(5000).fill('x').join('') },
               ].map((recordData) => expect(storage.write(COUNTRY, recordData))
                 .to.not.be.rejectedWith(StorageError, 'Validation Error: <Record>')));
             });
@@ -818,8 +818,8 @@ describe('Storage', () => {
               const storage = await getDefaultStorage({ hashSearchKeys: false });
 
               await Promise.all([
-                { recordKey: '', key1: Array(256).fill('x').join('') },
-                { recordKey: '', key6: Array(256).fill('x').join('') },
+                { recordKey: '', key1: Array(500).fill('x').join('') },
+                { recordKey: '', key6: Array(5000).fill('x').join('') },
               ].map((recordData) => expect(storage.write(COUNTRY, recordData))
                 .to.be.rejectedWith(StorageError, 'Validation Error: <Record>')));
             });
@@ -2126,8 +2126,8 @@ describe('Storage', () => {
             const storage = await getDefaultStorage();
 
             await Promise.all([
-              [{ recordKey: '', key1: Array(256).fill('x').join('') }],
-              [{ recordKey: '', key6: Array(256).fill('x').join('') }],
+              [{ recordKey: '', key1: Array(500).fill('x').join('') }],
+              [{ recordKey: '', key6: Array(5000).fill('x').join('') }],
             ].map((recordsData) => expect(storage.batchWrite(COUNTRY, recordsData))
               .to.not.be.rejectedWith(StorageError, 'Validation Error: <RecordsArray>')));
           });
@@ -2138,8 +2138,8 @@ describe('Storage', () => {
             const storage = await getDefaultStorage({ hashSearchKeys: false });
 
             await Promise.all([
-              [{ recordKey: '', key1: Array(256).fill('x').join('') }],
-              [{ recordKey: '', key6: Array(256).fill('x').join('') }],
+              [{ recordKey: '', key1: Array(500).fill('x').join('') }],
+              [{ recordKey: '', key6: Array(5000).fill('x').join('') }],
             ].map((recordsData) => expect(storage.batchWrite(COUNTRY, recordsData))
               .to.be.rejectedWith(StorageError, 'Validation Error: <RecordsArray>')));
           });
