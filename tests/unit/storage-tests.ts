@@ -7,7 +7,7 @@ import { v4 as uuid } from 'uuid';
 import { identity } from 'fp-ts/lib/function';
 import * as _ from 'lodash';
 import {
-  createStorage, Storage, WriteResult, KEYS_TO_HASH, FIND_LIMIT, MigrateResult,
+  createStorage, Storage, WriteResult, KEYS_TO_HASH, FIND_LIMIT, MigrateResult, BatchWriteResult,
 } from '../../src/storage';
 import { StorageServerError, StorageClientError, StorageError } from '../../src/errors';
 import { CountriesCache } from '../../src/countries-cache';
@@ -238,7 +238,21 @@ const LOGGER_STUB = () => ({ write: (a: string, b: string, c: any) => [a, b, c] 
 
 const defaultGetSecretsCallback = () => SECRET_KEY;
 
-const getDefaultStorage = async (encrypt = false, normalizeKeys = false, getSecrets: Function = defaultGetSecretsCallback, customEncConfigs?: CustomEncryptionConfig[]) => createStorage({
+type GetDefaultStorageParams = {
+  encrypt?: boolean;
+  normalizeKeys?: boolean;
+  customEncConfigs?: CustomEncryptionConfig[];
+  getSecrets?: Function;
+  hashSearchKeys?: boolean;
+}
+
+const getDefaultStorage = async ({
+  encrypt = false,
+  normalizeKeys = false,
+  getSecrets = defaultGetSecretsCallback,
+  customEncConfigs,
+  hashSearchKeys,
+}: GetDefaultStorageParams = {}) => createStorage({
   apiKey: 'string',
   environmentId: 'string',
   endpoint: POPAPI_HOST,
@@ -246,6 +260,7 @@ const getDefaultStorage = async (encrypt = false, normalizeKeys = false, getSecr
   normalizeKeys,
   getSecrets,
   logger: LOGGER_STUB(),
+  hashSearchKeys,
 }, customEncConfigs);
 
 const getDefaultFindResponse = (data: ApiRecord[] = [], limit = 100, offset = 0): FindResponse => ({
@@ -294,8 +309,8 @@ describe('Storage', () => {
 
     beforeEach(async () => {
       nock.disableNetConnect();
-      encStorage = await getDefaultStorage(true);
-      noEncStorage = await getDefaultStorage(false);
+      encStorage = await getDefaultStorage({ encrypt: true });
+      noEncStorage = await getDefaultStorage({ encrypt: false });
     });
 
     afterEach(() => {
@@ -784,6 +799,32 @@ describe('Storage', () => {
             expect(spy.args[1][2]).to.deep.include(meta);
           });
         });
+
+        describe('record data', () => {
+          context('with "hashSearchKeys" enabled', () => {
+            it('should allow any length of key1...key10', async () => {
+              const storage = await getDefaultStorage();
+
+              await Promise.all([
+                { recordKey: '', key1: Array(500).fill('x').join('') },
+                { recordKey: '', key6: Array(5000).fill('x').join('') },
+              ].map((recordData) => expect(storage.write(COUNTRY, recordData))
+                .to.not.be.rejectedWith(StorageError, 'Validation Error: <Record>')));
+            });
+          });
+
+          context('with "hashSearchKeys" disabled', () => {
+            it('should allow maximum 256 symbols length of key1...key10', async () => {
+              const storage = await getDefaultStorage({ hashSearchKeys: false });
+
+              await Promise.all([
+                { recordKey: '', key1: Array(500).fill('x').join('') },
+                { recordKey: '', key6: Array(5000).fill('x').join('') },
+              ].map((recordData) => expect(storage.write(COUNTRY, recordData))
+                .to.be.rejectedWith(StorageError, 'Validation Error: <Record>')));
+            });
+          });
+        });
       });
 
       describe('should validate record', () => {
@@ -878,7 +919,7 @@ describe('Storage', () => {
                 isCurrent: true,
               }];
 
-              const storage = await getDefaultStorage(true, false, () => secrets, customEncConfigs);
+              const storage = await getDefaultStorage({ encrypt: true, getSecrets: () => secrets, customEncConfigs });
 
               const encryptedPayload = await storage.encryptPayload(testCase);
 
@@ -916,7 +957,7 @@ describe('Storage', () => {
 
         describe('when enabled', () => {
           it('should normalize', async () => {
-            const storage = await getDefaultStorage(true, true);
+            const storage = await getDefaultStorage({ encrypt: true, normalizeKeys: true });
             const record = { recordKey };
             const [bodyObj] = await Promise.all<any, WriteResult>([getNockedRequestBodyObject(popAPI), storage.write(COUNTRY, record)]);
             expect((bodyObj as ApiRecordData).record_key).to.equal(storage.createKeyHash(recordKeyNormalized));
@@ -926,7 +967,7 @@ describe('Storage', () => {
 
         describe('when not enabled', () => {
           it('should not normalize', async () => {
-            const storage = await getDefaultStorage(true);
+            const storage = await getDefaultStorage({ encrypt: true });
             const record = { recordKey };
             const [bodyObj] = await Promise.all<any, WriteResult>([getNockedRequestBodyObject(popAPI), storage.write(COUNTRY, record)]);
             expect((bodyObj as ApiRecordData).record_key).to.equal(storage.createKeyHash(recordKey));
@@ -977,6 +1018,52 @@ describe('Storage', () => {
 
           const storage = new Storage({ encrypt: true, getSecrets: () => secrets }, customEncConfigs);
           await expect(storage.write(COUNTRY, { ...EMPTY_API_RECORD, recordKey })).to.be.rejectedWith(StorageError, 'Storage.write()');
+        });
+      });
+
+      describe('writing search keys', () => {
+        context('with "hashSearchKeys" enabled', () => {
+          it('should write hashed search keys', async () => {
+            const storage = await getDefaultStorage();
+
+            const data = {
+              recordKey: '123',
+              key1: '1212',
+              key9: '1234567654',
+              profileKey: '1235',
+            };
+
+            const [bodyObj] = await Promise.all<any, WriteResult>([
+              getNockedRequestBodyObject(popAPI),
+              storage.write(COUNTRY, data),
+            ]);
+
+            expect(bodyObj.key1).to.equal(storage.createKeyHash(data.key1));
+            expect(bodyObj.key9).to.equal(storage.createKeyHash(data.key9));
+            expect(bodyObj.profile_key).to.equal(storage.createKeyHash(data.profileKey));
+          });
+        });
+
+        context('with "hashSearchKeys" disabled', () => {
+          it('should write non-hashed search keys', async () => {
+            const storage = await getDefaultStorage({ hashSearchKeys: false });
+
+            const data = {
+              recordKey: '123',
+              key1: '122212',
+              key9: '123456722433654',
+              profileKey: '12323225',
+            };
+
+            const [bodyObj] = await Promise.all<any, WriteResult>([
+              getNockedRequestBodyObject(popAPI),
+              storage.write(COUNTRY, data),
+            ]);
+
+            expect(bodyObj.key1).to.equal(data.key1);
+            expect(bodyObj.key9).to.equal(data.key9);
+            expect(bodyObj.profile_key).to.equal(storage.createKeyHash(data.profileKey));
+          });
         });
       });
     });
@@ -1080,7 +1167,7 @@ describe('Storage', () => {
                 isCurrent: true,
               }];
 
-              const storage = await getDefaultStorage(true, false, () => secrets, customEncConfigs);
+              const storage = await getDefaultStorage({ encrypt: true, getSecrets: () => secrets, customEncConfigs });
 
               const encryptedPayload = await storage.encryptPayload(testCase);
               nockEndpoint(POPAPI_HOST, 'read', COUNTRY, encryptedPayload.record_key)
@@ -1127,7 +1214,7 @@ describe('Storage', () => {
 
         describe('when enabled', () => {
           it('should normalize', async () => {
-            const storage = await getDefaultStorage(true, true);
+            const storage = await getDefaultStorage({ encrypt: true, normalizeKeys: true });
             const encryptedPayload = await storage.encryptPayload({ recordKey });
 
             const popAPI = nockEndpoint(POPAPI_HOST, 'read', COUNTRY, storage.createKeyHash(recordKeyNormalized))
@@ -1138,7 +1225,7 @@ describe('Storage', () => {
           });
 
           it('should return record with original keys', async () => {
-            const storage = await getDefaultStorage(true, true);
+            const storage = await getDefaultStorage({ encrypt: true, normalizeKeys: true });
             const encryptedPayload = await storage.encryptPayload({ recordKey });
             nockEndpoint(POPAPI_HOST, 'read', COUNTRY, storage.createKeyHash(recordKeyNormalized))
               .reply(200, { ...EMPTY_API_RECORD, ...encryptedPayload });
@@ -1150,7 +1237,7 @@ describe('Storage', () => {
 
         describe('when not enabled', () => {
           it('should not normalize', async () => {
-            const storage = await getDefaultStorage(true);
+            const storage = await getDefaultStorage({ encrypt: true });
             const encryptedPayload = await storage.encryptPayload({ recordKey });
             expect(encryptedPayload.record_key).to.equal(storage.createKeyHash(recordKey));
 
@@ -1303,7 +1390,7 @@ describe('Storage', () => {
 
         describe('when enabled', () => {
           it('should normalize', async () => {
-            const storage = await getDefaultStorage(true, true);
+            const storage = await getDefaultStorage({ encrypt: true, normalizeKeys: true });
             const popAPI = nockEndpoint(POPAPI_HOST, 'delete', COUNTRY, storage.createKeyHash(recordKeyNormalized))
               .reply(200, { success: true });
 
@@ -1314,7 +1401,7 @@ describe('Storage', () => {
 
         describe('when not enabled', () => {
           it('should not normalize', async () => {
-            const storage = await getDefaultStorage(true);
+            const storage = await getDefaultStorage({ encrypt: true });
             const popAPI = nockEndpoint(POPAPI_HOST, 'delete', COUNTRY, storage.createKeyHash(recordKey))
               .reply(200, { success: true });
 
@@ -1620,7 +1707,7 @@ describe('Storage', () => {
 
         describe('when enabled', () => {
           it('should normalize filter object', async () => {
-            const storage = await getDefaultStorage(true, true);
+            const storage = await getDefaultStorage({ encrypt: true, normalizeKeys: true });
             const [bodyObj] = await Promise.all<any>([getNockedRequestBodyObject(popAPI), storage.find(COUNTRY, { recordKey })]);
             expect(bodyObj.filter.record_key).to.equal(storage.createKeyHash(recordKeyNormalized));
           });
@@ -1628,7 +1715,7 @@ describe('Storage', () => {
 
         describe('when not enabled', () => {
           it('should not normalize filter object', async () => {
-            const storage = await getDefaultStorage(true);
+            const storage = await getDefaultStorage({ encrypt: true });
             const [bodyObj] = await Promise.all<any>([getNockedRequestBodyObject(popAPI), storage.find(COUNTRY, { recordKey })]);
             expect(bodyObj.filter.record_key).to.equal(storage.createKeyHash(recordKey));
           });
@@ -1664,6 +1751,54 @@ describe('Storage', () => {
           expect(spy.calledWith('info')).to.eq(true);
           const actualMeta = getLoggerCallMeta(spy);
           checkLoggerMeta(actualMeta, callMeta, 'find');
+        });
+      });
+
+      describe('hashing filter keys', () => {
+        context('with "hashSearchKeys" enabled', () => {
+          it('should hash key1...key10 in filter', async () => {
+            const storage = await getDefaultStorage();
+
+            const filter = {
+              key1: '121213',
+              key3: '1212ss2dd',
+              profileKey: 'Q1237',
+            };
+
+            const popAPI = nockEndpoint(POPAPI_HOST, 'find', COUNTRY).reply(200, getDefaultFindResponse());
+
+            const [bodyObj] = await Promise.all<any>([
+              getNockedRequestBodyObject(popAPI),
+              storage.find(COUNTRY, filter),
+            ]);
+
+            expect(bodyObj.filter.key1).to.equal(storage.createKeyHash(filter.key1));
+            expect(bodyObj.filter.key3).to.equal(storage.createKeyHash(filter.key3));
+            expect(bodyObj.filter.profile_key).to.equal(storage.createKeyHash(filter.profileKey));
+          });
+        });
+
+        context('with "hashSearchKeys" disabled', () => {
+          it('should not hash key1...key10 in filter', async () => {
+            const storage = await getDefaultStorage({ hashSearchKeys: false });
+
+            const filter = {
+              key1: '121213',
+              key3: '1212ss1dd',
+              profileKey: 'Q1237',
+            };
+
+            const popAPI = nockEndpoint(POPAPI_HOST, 'find', COUNTRY).reply(200, getDefaultFindResponse());
+
+            const [bodyObj] = await Promise.all<any>([
+              getNockedRequestBodyObject(popAPI),
+              storage.find(COUNTRY, filter),
+            ]);
+
+            expect(bodyObj.filter.key1).to.equal(filter.key1);
+            expect(bodyObj.filter.key3).to.equal(filter.key3);
+            expect(bodyObj.filter.profile_key).to.equal(storage.createKeyHash(filter.profileKey));
+          });
         });
       });
     });
@@ -1777,10 +1912,13 @@ describe('Storage', () => {
           const oldSecret = { secret: SECRET_KEY, version: 0 };
           const newSecret = { secret: 'newnew', version: 1 };
 
-          const encStorage2 = await getDefaultStorage(true, false, () => ({
-            secrets: [oldSecret, newSecret],
-            currentVersion: newSecret.version,
-          }));
+          const encStorage2 = await getDefaultStorage({
+            encrypt: true,
+            getSecrets: () => ({
+              secrets: [oldSecret, newSecret],
+              currentVersion: newSecret.version,
+            }),
+          });
 
           const popAPIFind = nockEndpoint(POPAPI_HOST, 'find', COUNTRY)
             .reply(200, getDefaultFindResponse(apiRecords));
@@ -1805,10 +1943,13 @@ describe('Storage', () => {
         const oldSecret = { secret: SECRET_KEY, version: 1 };
         const newSecret = { secret: 'keykey', version: 2 };
 
-        const encStorage2 = await getDefaultStorage(true, false, () => ({
-          secrets: [oldSecret, newSecret],
-          currentVersion: newSecret.version,
-        }));
+        const encStorage2 = await getDefaultStorage({
+          encrypt: true,
+          getSecrets: () => ({
+            secrets: [oldSecret, newSecret],
+            currentVersion: newSecret.version,
+          }),
+        });
 
         const response = getDefaultFindResponse(apiRecords);
         nockEndpoint(POPAPI_HOST, 'find', COUNTRY)
@@ -1831,10 +1972,13 @@ describe('Storage', () => {
         const oldSecret = { secret: SECRET_KEY, version: 0 };
         const newSecret = { secret: 'keykey', version: 2 };
 
-        const encStorage2 = await getDefaultStorage(true, false, () => ({
-          secrets: [oldSecret, newSecret],
-          currentVersion: newSecret.version,
-        }));
+        const encStorage2 = await getDefaultStorage({
+          encrypt: true,
+          getSecrets: () => ({
+            secrets: [oldSecret, newSecret],
+            currentVersion: newSecret.version,
+          }),
+        });
 
         const response = getDefaultFindResponse(apiRecords);
         nockEndpoint(POPAPI_HOST, 'find', COUNTRY)
@@ -1976,6 +2120,30 @@ describe('Storage', () => {
             await expect(encStorage.batchWrite(COUNTRY, errCase.arg)).to.be.rejectedWith(StorageError, errCase.error);
           });
         });
+
+        context('with "hashSearchKeys" enabled', () => {
+          it('should allow any length of key1...key10', async () => {
+            const storage = await getDefaultStorage();
+
+            await Promise.all([
+              [{ recordKey: '', key1: Array(500).fill('x').join('') }],
+              [{ recordKey: '', key6: Array(5000).fill('x').join('') }],
+            ].map((recordsData) => expect(storage.batchWrite(COUNTRY, recordsData))
+              .to.not.be.rejectedWith(StorageError, 'Validation Error: <RecordsArray>')));
+          });
+        });
+
+        context('with "hashSearchKeys" disabled', () => {
+          it('should allow maximum 256 symbols length of key1...key10', async () => {
+            const storage = await getDefaultStorage({ hashSearchKeys: false });
+
+            await Promise.all([
+              [{ recordKey: '', key1: Array(500).fill('x').join('') }],
+              [{ recordKey: '', key6: Array(5000).fill('x').join('') }],
+            ].map((recordsData) => expect(storage.batchWrite(COUNTRY, recordsData))
+              .to.be.rejectedWith(StorageError, 'Validation Error: <RecordsArray>')));
+          });
+        });
       });
 
       describe('encryption', () => {
@@ -2028,7 +2196,7 @@ describe('Storage', () => {
 
         describe('when enabled', () => {
           it('should normalize', async () => {
-            const storage = await getDefaultStorage(true, true);
+            const storage = await getDefaultStorage({ encrypt: true, normalizeKeys: true });
             const records = [{ recordKey: key1 }, { recordKey: key2 }];
             const [bodyObj] = await Promise.all<any>([getNockedRequestBodyObject(popAPI), storage.batchWrite(COUNTRY, records)]);
             expect(bodyObj.records[0].record_key).to.equal(storage.createKeyHash(key1Normalized));
@@ -2038,7 +2206,7 @@ describe('Storage', () => {
 
         describe('when not enabled', () => {
           it('should not normalize', async () => {
-            const storage = await getDefaultStorage(true);
+            const storage = await getDefaultStorage({ encrypt: true });
             const records = [{ recordKey: key1 }, { recordKey: key2 }];
             const [bodyObj] = await Promise.all<any>([getNockedRequestBodyObject(popAPI), storage.batchWrite(COUNTRY, records)]);
             expect(bodyObj.records[0].record_key).to.equal(storage.createKeyHash(key1));
@@ -2073,6 +2241,53 @@ describe('Storage', () => {
           expect(spy.calledWith('info')).to.eq(true);
           const actualMeta = getLoggerCallMeta(spy);
           checkLoggerMeta(actualMeta, callMeta, 'batchWrite');
+        });
+      });
+
+
+      describe('writing search keys', () => {
+        context('with "hashSearchKeys" enabled', () => {
+          it('should write hashed search keys', async () => {
+            const storage = await getDefaultStorage();
+
+            const data = [{
+              recordKey: '123',
+              key1: '1212',
+              key9: '1234567654',
+              profileKey: '1235',
+            }];
+
+            const [bodyObj] = await Promise.all<any, BatchWriteResult>([
+              getNockedRequestBodyObject(popAPI),
+              storage.batchWrite(COUNTRY, data),
+            ]);
+
+            expect(bodyObj.records[0].key1).to.equal(storage.createKeyHash(data[0].key1));
+            expect(bodyObj.records[0].key9).to.equal(storage.createKeyHash(data[0].key9));
+            expect(bodyObj.records[0].profile_key).to.equal(storage.createKeyHash(data[0].profileKey));
+          });
+        });
+
+        context('with "hashSearchKeys" disabled', () => {
+          it('should write non-hashed search keys', async () => {
+            const storage = await getDefaultStorage({ hashSearchKeys: false });
+
+            const data = [{
+              recordKey: '123',
+              key1: '122212',
+              key9: '123456722433654',
+              profileKey: '12323225',
+            }];
+
+            const [bodyObj] = await Promise.all<any, BatchWriteResult>([
+              getNockedRequestBodyObject(popAPI),
+              storage.batchWrite(COUNTRY, data),
+            ]);
+
+            expect(bodyObj.records[0].key1).to.equal(data[0].key1);
+            expect(bodyObj.records[0].key9).to.equal(data[0].key9);
+            expect(bodyObj.records[0].profile_key).to.equal(storage.createKeyHash(data[0].profileKey));
+          });
         });
       });
     });

@@ -63,6 +63,7 @@ type StorageOptions = {
   encrypt?: boolean;
   getSecrets?: Function;
   normalizeKeys?: boolean;
+  hashSearchKeys?: boolean;
   countriesCache?: CountriesCache;
   oauth?: OAuthOptions;
   endpointMask?: string;
@@ -85,6 +86,7 @@ const StorageOptionsIO: Codec<StorageOptionsValidated> = t.partial({
   normalizeKeys: t.boolean,
   logger: LoggerIO,
   getSecrets: t.Function,
+  hashSearchKeys: t.boolean,
   countriesCache: t.object,
   oauth: OAuthOptionsIO,
   endpointMask: t.string,
