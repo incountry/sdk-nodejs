@@ -1730,7 +1730,7 @@ describe('Storage', () => {
           });
 
           it(`should not normalize filter.${SEARCH_FIELD}`, async () => {
-            const storage = await getDefaultStorage(true, true);
+            const storage = await getDefaultStorage({ encrypt: true, normalizeKeys: true });
             const [bodyObj] = await Promise.all<any>([getNockedRequestBodyObject(popAPI), storage.find(COUNTRY, { [SEARCH_FIELD]: recordKey })]);
             expect(bodyObj.filter[API_RECORD_SEARCH_FIELD]).to.equal(recordKey);
           });
