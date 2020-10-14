@@ -152,7 +152,7 @@ describe('Find records', () => {
         checkFindResponseMeta(meta, 0);
       });
 
-      xcontext('Records search by searchKeys', () => {
+      context('Records search by searchKeys', () => {
         let searchableStorage: Storage;
         const record = createRecordData();
         const searchableProperties: (keyof StorageRecordData)[] = ['key1', 'key10'];
