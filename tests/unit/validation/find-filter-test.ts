@@ -1,5 +1,5 @@
 import * as chai from 'chai';
-import { FindFilterIO } from '../../../src/validation/api/find-filter';
+import { FindFilterIO, SEARCH_FIELD_MAX_LENGTH } from '../../../src/validation/api/find-filter';
 import { isValid } from '../../../src/validation/utils';
 
 const { expect } = chai;
@@ -21,7 +21,7 @@ const VALID_FIND_FILTER = [
   },
   { searchKeys: 'test' },
   { searchKeys: 'tes' },
-  { searchKeys: 't'.repeat(256) },
+  { searchKeys: 't'.repeat(SEARCH_FIELD_MAX_LENGTH) },
   { searchKeys: "te$t 1234567±!@#$%^&*()_+[]{}|\\/.,<>-';" },
   { aa: 1, searchKeys: 'test' },
   { aa: { $not: 1 }, searchKeys: 'test' },
@@ -50,7 +50,7 @@ const INVALID_FIND_FILTER = [
   { searchKeys: '' },
   { searchKeys: 't' },
   { searchKeys: 'tt' },
-  { searchKeys: 't'.repeat(256 + 1) },
+  { searchKeys: 't'.repeat(SEARCH_FIELD_MAX_LENGTH + 1) },
   { searchKeys: 1 },
   { searchKeys: { $gt: 1 } },
   { searchKeys: { $not: 'test' } },

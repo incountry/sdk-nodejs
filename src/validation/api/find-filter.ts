@@ -18,7 +18,7 @@ const EXCLUDED_KEYS_WHEN_SEARCHING = [
   'key10',
 ];
 const SEARCH_FIELD_MIN_LENGTH = 3;
-const SEARCH_FIELD_MAX_LENGTH = 256;
+const SEARCH_FIELD_MAX_LENGTH = 200;
 
 type FilterStringValue = string | string[];
 const FilterStringValueIO: t.Type<FilterStringValue> = t.union([t.string, t.array(t.string)]);
@@ -141,4 +141,5 @@ export {
   filterFromStorageDataKeys,
   API_RECORD_SEARCH_FIELD,
   SEARCH_FIELD,
+  SEARCH_FIELD_MAX_LENGTH,
 };
