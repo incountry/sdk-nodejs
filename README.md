@@ -45,6 +45,7 @@ type StorageOptions = {
   getSecrets?: Function;   // Used to fetch encryption secret
   normalizeKeys?: boolean;
   countriesCache?: CountriesCache;
+  hashSearchKeys?: boolean; // Set to false to enable partial match search among record's text fields `key1, key2, ..., key10`. Defaults to true.
 
   /**
    * Defines API base hostname part to use.
@@ -249,6 +250,14 @@ v3.0.0 release introduced a series of new fields available for storage. Below is
 ##### String fields, hashed:
 ```typescript
 recordKey
+profileKey
+serviceKey1
+serviceKey2
+```
+##### String fields, hashed if Storage options "hashSearchKeys" is set to true (by default it is):
+**WARNING** Also if `hashSearchKeys` is set to `false` this string fields has length limit 256
+
+```typescript
 key1
 key2
 key3
@@ -259,9 +268,6 @@ key7
 key8
 key9
 key10
-profileKey
-serviceKey1
-serviceKey2
 ```
 
 ##### String fields, encrypted:
@@ -288,16 +294,16 @@ rangeKey10
 type StorageRecordData = {
   recordKey: string;
   profileKey?: string | null;
-  key1?: string | null;
-  key2?: string | null;
-  key3?: string | null;
-  key4?: string | null;
-  key5?: string | null;
-  key6?: string | null;
-  key7?: string | null;
-  key8?: string | null;
-  key9?: string | null;
-  key10?: string | null;
+  key1?: string | null; // If `hashSearchKeys` is set to `false` key1 has length limit 256
+  key2?: string | null; // If `hashSearchKeys` is set to `false` key2 has length limit 256
+  key3?: string | null; // If `hashSearchKeys` is set to `false` key3 has length limit 256
+  key4?: string | null; // If `hashSearchKeys` is set to `false` key4 has length limit 256
+  key5?: string | null; // If `hashSearchKeys` is set to `false` key5 has length limit 256
+  key6?: string | null; // If `hashSearchKeys` is set to `false` key6 has length limit 256
+  key7?: string | null; // If `hashSearchKeys` is set to `false` key7 has length limit 256
+  key8?: string | null; // If `hashSearchKeys` is set to `false` key8 has length limit 256
+  key9?: string | null; // If `hashSearchKeys` is set to `false` key9 has length limit 256
+  key10?: string | null; // If `hashSearchKeys` is set to `false` key10 has length limit 256
   serviceKey1?: string | null;
   serviceKey2?: string | null;
   body?: string | null;
@@ -380,16 +386,16 @@ type StorageRecord = {
   body: string | null;
   profileKey: string | null;
   precommitBody: string | null;
-  key1: string | null;
-  key2: string | null;
-  key3: string | null;
-  key4: string | null;
-  key5: string | null;
-  key6: string | null;
-  key7: string | null;
-  key8: string | null;
-  key9: string | null;
-  key10: string | null;
+  key1?: string | null; // If `hashSearchKeys` is set to `false` key1 has length limit 256
+  key2?: string | null; // If `hashSearchKeys` is set to `false` key2 has length limit 256
+  key3?: string | null; // If `hashSearchKeys` is set to `false` key3 has length limit 256
+  key4?: string | null; // If `hashSearchKeys` is set to `false` key4 has length limit 256
+  key5?: string | null; // If `hashSearchKeys` is set to `false` key5 has length limit 256
+  key6?: string | null; // If `hashSearchKeys` is set to `false` key6 has length limit 256
+  key7?: string | null; // If `hashSearchKeys` is set to `false` key7 has length limit 256
+  key8?: string | null; // If `hashSearchKeys` is set to `false` key8 has length limit 256
+  key9?: string | null; // If `hashSearchKeys` is set to `false` key9 has length limit 256
+  key10?: string | null; // If `hashSearchKeys` is set to `false` key10 has length limit 256
   serviceKey1: string | null;
   serviceKey2: string | null;
   rangeKey1: t.Int | null;
