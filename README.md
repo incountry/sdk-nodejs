@@ -255,7 +255,7 @@ serviceKey1
 serviceKey2
 ```
 ##### String fields, hashed if Storage options "hashSearchKeys" is set to true (by default it is):
-**WARNING** Also if `hashSearchKeys` is set to `false` this string fields has length limit 256
+**WARNING** If `hashSearchKeys` is set to `false` the next string fields will have length limitation of 256 chars at most
 
 ```typescript
 key1
