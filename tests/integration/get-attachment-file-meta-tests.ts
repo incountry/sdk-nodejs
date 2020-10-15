@@ -25,12 +25,12 @@ describe('Get attachment meta by id', () => {
   });
 
   it('should get attachment meta by id', async () => {
-    const fileName1 = '1111';
-    const attachment = await storage.addAttachment(COUNTRY, recordData.recordKey, { file: './LICENSE', fileName: fileName1 });
+    const fileName = '1111';
+    const { attachmentMeta } = await storage.addAttachment(COUNTRY, recordData.recordKey, { file: './LICENSE', fileName });
 
-    const result = await storage.getAttachmentMeta(COUNTRY, recordData.recordKey, attachment.fileId);
+    const { attachmentMeta: result } = await storage.getAttachmentMeta(COUNTRY, recordData.recordKey, attachmentMeta.fileId);
 
-    expect(result.fileName).to.equal(fileName1);
-    expect(result).to.deep.equal(attachment);
+    expect(result.fileName).to.equal(fileName);
+    expect(result).to.deep.equal(attachmentMeta);
   });
 });

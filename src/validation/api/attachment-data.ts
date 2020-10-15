@@ -7,6 +7,7 @@ type File = Readable | Buffer | string;
 type AttachmentData = {
   fileName: string;
   file: File;
+  mimeType?: string;
 }
 
 const isFile = (o: unknown): o is File => typeof o === 'string' || Buffer.isBuffer(o) || o instanceof Readable;
@@ -18,10 +19,16 @@ const FileIO = new t.Type<File>(
   identity,
 );
 
-const AttachmentDataIO: t.Type<AttachmentData> = t.type({
-  fileName: t.string,
-  file: FileIO,
-});
+const AttachmentDataIO: t.Type<AttachmentData> = t.intersection([
+  t.type({
+    fileName: t.string,
+    file: FileIO,
+  }),
+  t.partial({
+    mimeType: t.string,
+  }),
+]);
+
 
 export {
   AttachmentData,

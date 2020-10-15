@@ -51,8 +51,7 @@ describe('Utils', () => {
     it('should return file name for right headers object', () => {
       const fileName = 'filename.jpg';
       [
-        { 'content-disposition': `form-data; name="fieldName"; filename="${fileName}"` },
-        { 'content-disposition': `attachment; filename="${fileName}"` },
+        { 'content-disposition': `attachment; filename*=UTF-8''${fileName}` },
       ].forEach((s) => {
         expect(getFileNameFromHeaders(s)).to.equal(fileName);
       });

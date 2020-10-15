@@ -26,8 +26,8 @@ describe('Delete attachment from record', () => {
   });
 
   it('should delete attachment from record', async () => {
-    const data1 = await storage.addAttachment(COUNTRY, recordData.recordKey, { file: './LICENSE', fileName: '' });
-    const data2 = await storage.addAttachment(COUNTRY, recordData.recordKey, { file: './README.md', fileName: '' });
+    const { attachmentMeta: data1 } = await storage.addAttachment(COUNTRY, recordData.recordKey, { file: './LICENSE', fileName: '' });
+    const { attachmentMeta: data2 } = await storage.addAttachment(COUNTRY, recordData.recordKey, { file: './README.md', fileName: '' });
 
     const { record: recordBefore } = await storage.read(COUNTRY, recordData.recordKey);
     expect(recordBefore.attachments).to.have.lengthOf(2);

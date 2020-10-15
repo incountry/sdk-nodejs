@@ -31,6 +31,7 @@ import { AttachmentWritableMeta } from './validation/attachment-writable-meta';
 import { UpdateAttachmentMetaResponse, UpdateAttachmentMetaResponseIO } from './validation/api/update-attachment-meta-response';
 import { GetAttachmentMetaResponse, GetAttachmentMetaResponseIO } from './validation/api/get-attachment-meta-response';
 import { getFileNameFromHeaders } from './utils';
+import { AttachmentData } from './validation/api/attachment-data';
 
 const pjson = require('../package.json');
 
@@ -44,10 +45,6 @@ type EndpointData = {
   region: string;
 };
 
-type AttachmentData = {
-  file: Readable | Buffer;
-  fileName: string;
-}
 
 type GetAttachmentFileResponse = {
   file: Readable;
@@ -290,7 +287,10 @@ class ApiClient {
     { headers, meta }: RequestOptions = {},
   ): Promise<AddAttachmentResponse> {
     const data = new FormData();
-    data.append('file', attachmentData.file, { filename: attachmentData.fileName });
+    data.append('file', attachmentData.file, {
+      filename: attachmentData.fileName,
+      contentType: attachmentData.mimeType,
+    });
 
     const { data: responseData } = await this.request(
       countryCode,
@@ -311,7 +311,11 @@ class ApiClient {
     { headers, meta }: RequestOptions = {},
   ): Promise<UpsertAttachmentResponse> {
     const data = new FormData();
-    data.append('file', attachmentData.file, { filename: attachmentData.fileName });
+    data.append('file', attachmentData.file, {
+      filename: attachmentData.fileName,
+      contentType: attachmentData.mimeType,
+    });
+
     const { data: responseData } = await this.request(
       countryCode,
       `v2/storage/records/${countryCode}/${recordKey}/attachments`,

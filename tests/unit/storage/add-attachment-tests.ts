@@ -184,6 +184,27 @@ describe('Storage', () => {
           expect(bodyObj).to.include(chunks.join(''));
           expect(bodyObj).to.include(fileName);
         });
+
+        it('should send provided mime-type', async () => {
+          const recordKey = '123';
+          const encryptedPayload = await encStorage.encryptPayload({ recordKey });
+          const popAPI = nockPopApi(POPAPI_HOST).addAttachment(COUNTRY, encryptedPayload.record_key).reply(200, EMPTY_API_ATTACHMENT_META);
+
+          const data = '1111111';
+          const fileName = 'test14';
+          const mimeType = 'text/aaabbbccc';
+
+          const file = Buffer.from(data);
+
+          const bodyPromise = getNockedRequestBodyRaw(popAPI);
+          const reqPromise = encStorage.addAttachment(COUNTRY, recordKey, { fileName, file, mimeType });
+          const [bodyObj] = await Promise.all([bodyPromise, reqPromise]);
+
+          assert.equal(popAPI.isDone(), true, 'Nock scope is done');
+          expect(bodyObj).to.include(data);
+          expect(bodyObj).to.include(`filename="${fileName}"`);
+          expect(bodyObj).to.include(`Content-Type: ${mimeType}`);
+        });
       });
     });
   });
