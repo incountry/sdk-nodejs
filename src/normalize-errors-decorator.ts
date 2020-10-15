@@ -20,7 +20,9 @@ function normalizeErrors() {
           e.message = message;
           throw e;
         } else {
-          throw new StorageError(message);
+          const error = new StorageError(message);
+          error.stack = e.stack;
+          throw error;
         }
       }
     };

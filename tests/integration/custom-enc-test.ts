@@ -38,7 +38,7 @@ describe('Custom encryption', () => {
       version: 'current',
     }];
 
-    storage = await createStorage(true, false, () => secrets, customEncConfigs);
+    storage = await createStorage(true, false, false, () => secrets, customEncConfigs);
 
     data = {
       recordKey: Math.random().toString(36).substr(2, 10),
