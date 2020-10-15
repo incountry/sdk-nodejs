@@ -183,10 +183,10 @@ describe('With OAuth authentication', () => {
     });
 
     it('updates attachment file name', async () => {
-      const attachment = await storage.addAttachment(COUNTRY, data.recordKey, attachmentData);
+      const { attachmentMeta } = await storage.addAttachment(COUNTRY, data.recordKey, attachmentData);
 
       const fileName2 = uuid();
-      await storage.updateAttachmentMeta(COUNTRY, data.recordKey, attachment.fileId, { fileName: fileName2 });
+      await storage.updateAttachmentMeta(COUNTRY, data.recordKey, attachmentMeta.fileId, { fileName: fileName2 });
 
       const { record } = await storage.read(COUNTRY, data.recordKey);
       expect(record.attachments).to.have.lengthOf(1);
@@ -194,19 +194,19 @@ describe('With OAuth authentication', () => {
     });
 
     it('returns attachment meta by id', async () => {
-      const attachment = await storage.addAttachment(COUNTRY, data.recordKey, attachmentData);
+      const { attachmentMeta } = await storage.addAttachment(COUNTRY, data.recordKey, attachmentData);
 
-      const result = await storage.getAttachmentMeta(COUNTRY, data.recordKey, attachment.fileId);
+      const { attachmentMeta: result } = await storage.getAttachmentMeta(COUNTRY, data.recordKey, attachmentMeta.fileId);
 
       expect(result.fileName).to.equal(fileName);
-      expect(result).to.deep.equal(attachment);
+      expect(result).to.deep.equal(attachmentMeta);
     });
 
     it('downloads attachment', async () => {
       const file = await fs.promises.readFile('./LICENSE');
-      const { fileId } = await storage.addAttachment(COUNTRY, data.recordKey, { file, fileName });
+      const { attachmentMeta } = await storage.addAttachment(COUNTRY, data.recordKey, { file, fileName });
 
-      const { file: fileDownloadStream, fileName: downloadedFileName } = await storage.getAttachmentFile(COUNTRY, data.recordKey, fileId);
+      const { attachmentData: { file: fileDownloadStream, fileName: downloadedFileName } } = await storage.getAttachmentFile(COUNTRY, data.recordKey, attachmentMeta.fileId);
       const receivedFile = await readStream(fileDownloadStream);
 
       expect(downloadedFileName).to.match(/file/);
@@ -214,14 +214,14 @@ describe('With OAuth authentication', () => {
     });
 
     it('deletes attachment', async () => {
-      const attachment = await storage.addAttachment(COUNTRY, data.recordKey, attachmentData);
+      const { attachmentMeta } = await storage.addAttachment(COUNTRY, data.recordKey, attachmentData);
 
       const { record: recordBefore } = await storage.read(COUNTRY, data.recordKey);
       expect(recordBefore.attachments).to.be.not.empty;
       expect(recordBefore.attachments).to.have.length(1);
       expect(recordBefore.attachments[0].fileName).to.equal(fileName);
 
-      await storage.deleteAttachment(COUNTRY, data.recordKey, attachment.fileId);
+      await storage.deleteAttachment(COUNTRY, data.recordKey, attachmentMeta.fileId);
 
       const { record: recordAfter } = await storage.read(COUNTRY, data.recordKey);
       expect(recordAfter.attachments).to.be.empty;
