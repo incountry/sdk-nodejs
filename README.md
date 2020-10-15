@@ -26,23 +26,23 @@ To access your data in InCountry using NodeJS SDK, you need to create an instanc
 
 ```typescript
 type StorageOptions = {
-  apiKey?: string;         // Required when using API key authorization, or as environment variable INC_API_KEY
-  environmentId?: string;  // Required to be passed in, or as environment variable INC_ENVIRONMENT_ID
+  apiKey?: string;          // Required when using API key authorization, or as environment variable INC_API_KEY
+  environmentId?: string;   // Required to be passed in, or as environment variable INC_ENVIRONMENT_ID
 
   oauth?: {
-    clientId?: string;     // Required when using oAuth authorization, can be also set via environment variable INC_CLIENT_ID
-    clientSecret?: string; // Required when using oAuth authorization, can be also set via environment variable INC_CLIENT_SECRET
-    authEndpoints?: {      // Custom endpoints regional map to use for fetching oAuth tokens
+    clientId?: string;      // Required when using oAuth authorization, can be also set via environment variable INC_CLIENT_ID
+    clientSecret?: string;  // Required when using oAuth authorization, can be also set via environment variable INC_CLIENT_SECRET
+    authEndpoints?: {       // Custom endpoints regional map to use for fetching oAuth tokens
       default: string;
       [key: string]: string;
     };
   };
 
-  endpoint?: string;       // Defines API URL
-  encrypt?: boolean;       // If false, encryption is not used. Defaults to true.
+  endpoint?: string;        // Defines API URL
+  encrypt?: boolean;        // If false, encryption is not used. Defaults to true.
 
   logger?: Logger;
-  getSecrets?: Function;   // Used to fetch encryption secret
+  getSecrets?: Function;    // Used to fetch encryption secret
   normalizeKeys?: boolean;
   countriesCache?: CountriesCache;
   hashSearchKeys?: boolean; // Set to false to enable partial match search among record's text fields `key1, key2, ..., key10`. Defaults to true.
@@ -255,7 +255,7 @@ serviceKey1
 serviceKey2
 ```
 ##### String fields, hashed if Storage options "hashSearchKeys" is set to true (by default it is):
-**WARNING** If `hashSearchKeys` is set to `false` the next string fields will have length limitation of 256 chars at most
+**WARNING** If `hashSearchKeys` is set to `false` the following string fields will have length limitation of 256 chars at most
 
 ```typescript
 key1
@@ -294,15 +294,15 @@ rangeKey10
 type StorageRecordData = {
   recordKey: string;
   profileKey?: string | null;
-  key1?: string | null; // If `hashSearchKeys` is set to `false` key1 has length limit 256
-  key2?: string | null; // If `hashSearchKeys` is set to `false` key2 has length limit 256
-  key3?: string | null; // If `hashSearchKeys` is set to `false` key3 has length limit 256
-  key4?: string | null; // If `hashSearchKeys` is set to `false` key4 has length limit 256
-  key5?: string | null; // If `hashSearchKeys` is set to `false` key5 has length limit 256
-  key6?: string | null; // If `hashSearchKeys` is set to `false` key6 has length limit 256
-  key7?: string | null; // If `hashSearchKeys` is set to `false` key7 has length limit 256
-  key8?: string | null; // If `hashSearchKeys` is set to `false` key8 has length limit 256
-  key9?: string | null; // If `hashSearchKeys` is set to `false` key9 has length limit 256
+  key1?: string | null;  // If `hashSearchKeys` is set to `false` key1 has length limit 256
+  key2?: string | null;  // If `hashSearchKeys` is set to `false` key2 has length limit 256
+  key3?: string | null;  // If `hashSearchKeys` is set to `false` key3 has length limit 256
+  key4?: string | null;  // If `hashSearchKeys` is set to `false` key4 has length limit 256
+  key5?: string | null;  // If `hashSearchKeys` is set to `false` key5 has length limit 256
+  key6?: string | null;  // If `hashSearchKeys` is set to `false` key6 has length limit 256
+  key7?: string | null;  // If `hashSearchKeys` is set to `false` key7 has length limit 256
+  key8?: string | null;  // If `hashSearchKeys` is set to `false` key8 has length limit 256
+  key9?: string | null;  // If `hashSearchKeys` is set to `false` key9 has length limit 256
   key10?: string | null; // If `hashSearchKeys` is set to `false` key10 has length limit 256
   serviceKey1?: string | null;
   serviceKey2?: string | null;
@@ -386,15 +386,15 @@ type StorageRecord = {
   body: string | null;
   profileKey: string | null;
   precommitBody: string | null;
-  key1?: string | null; // If `hashSearchKeys` is set to `false` key1 has length limit 256
-  key2?: string | null; // If `hashSearchKeys` is set to `false` key2 has length limit 256
-  key3?: string | null; // If `hashSearchKeys` is set to `false` key3 has length limit 256
-  key4?: string | null; // If `hashSearchKeys` is set to `false` key4 has length limit 256
-  key5?: string | null; // If `hashSearchKeys` is set to `false` key5 has length limit 256
-  key6?: string | null; // If `hashSearchKeys` is set to `false` key6 has length limit 256
-  key7?: string | null; // If `hashSearchKeys` is set to `false` key7 has length limit 256
-  key8?: string | null; // If `hashSearchKeys` is set to `false` key8 has length limit 256
-  key9?: string | null; // If `hashSearchKeys` is set to `false` key9 has length limit 256
+  key1?: string | null;  // If `hashSearchKeys` is set to `false` key1 has length limit 256
+  key2?: string | null;  // If `hashSearchKeys` is set to `false` key2 has length limit 256
+  key3?: string | null;  // If `hashSearchKeys` is set to `false` key3 has length limit 256
+  key4?: string | null;  // If `hashSearchKeys` is set to `false` key4 has length limit 256
+  key5?: string | null;  // If `hashSearchKeys` is set to `false` key5 has length limit 256
+  key6?: string | null;  // If `hashSearchKeys` is set to `false` key6 has length limit 256
+  key7?: string | null;  // If `hashSearchKeys` is set to `false` key7 has length limit 256
+  key8?: string | null;  // If `hashSearchKeys` is set to `false` key8 has length limit 256
+  key9?: string | null;  // If `hashSearchKeys` is set to `false` key9 has length limit 256
   key10?: string | null; // If `hashSearchKeys` is set to `false` key10 has length limit 256
   serviceKey1: string | null;
   serviceKey2: string | null;
