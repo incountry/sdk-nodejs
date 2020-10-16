@@ -52,6 +52,9 @@ describe('Utils', () => {
       const fileName = 'filename.jpg';
       [
         { 'content-disposition': `attachment; filename*=UTF-8''${fileName}` },
+        { 'content-disposition': `attachment; filename*=UTF-8''${fileName};` },
+        { 'content-disposition': `attachment; filename*=UTF-8''${fileName}; bar=baz` },
+        { 'content-disposition': `attachment; filename*=UTF-8''${fileName}; bar=baz;` },
       ].forEach((s) => {
         expect(getFileNameFromHeaders(s)).to.equal(fileName);
       });
