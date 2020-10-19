@@ -1,9 +1,9 @@
 import * as chai from 'chai';
 import * as sinon from 'sinon';
-import { ReadStream } from 'fs';
 import sinonChai from 'sinon-chai';
 import chaiAsPromised from 'chai-as-promised';
 import nock from 'nock';
+import { ReadStream } from 'fs';
 import { Readable } from 'stream';
 import {
   POPAPI_HOST,
@@ -22,6 +22,10 @@ const fs = require('fs');
 chai.use(chaiAsPromised);
 chai.use(sinonChai);
 const { expect, assert } = chai;
+
+class ReadStreamMock extends ReadStream {
+  open() {}
+}
 
 describe('Storage', () => {
   let clientId: string | undefined;
@@ -184,6 +188,33 @@ describe('Storage', () => {
           expect(bodyObj).to.include(chunks.join(''));
           expect(bodyObj).to.include(fileName);
         });
+
+        it('should get file name from stream', async () => {
+          const recordKey = '123';
+          const encryptedPayload = await encStorage.encryptPayload({ recordKey });
+          const popAPI = nockPopApi(POPAPI_HOST).addAttachment(COUNTRY, encryptedPayload.record_key).reply(200, EMPTY_API_ATTACHMENT_META);
+
+          const chunks = ['1111111', '2222222', '3333333'];
+          const fileName = 'test.jpg';
+
+          // @ts-ignore
+          const data$ = new ReadStreamMock(`aaaa/bbb/${fileName}`);
+
+          const bodyPromise = getNockedRequestBodyRaw(popAPI);
+          const reqPromise = encStorage.addAttachment(COUNTRY, recordKey, { file: data$ });
+
+          data$.push(chunks[0]);
+          data$.push(chunks[1]);
+          data$.push(chunks[2]);
+          data$.push(null);
+
+          const [bodyObj] = await Promise.all([bodyPromise, reqPromise]);
+
+          assert.equal(popAPI.isDone(), true, 'Nock scope is done');
+          expect(bodyObj).to.include(chunks.join(''));
+          expect(bodyObj).to.include(fileName);
+        });
+
 
         it('should send provided mime-type', async () => {
           const recordKey = '123';

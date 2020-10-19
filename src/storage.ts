@@ -1,7 +1,8 @@
 import 'dotenv/config';
 import crypto from 'crypto';
 import * as t from 'io-ts';
-import { createReadStream } from 'fs';
+import { createReadStream, ReadStream } from 'fs';
+import { basename } from 'path';
 import { ApiClient, GetAttachmentFileResponse } from './api-client';
 import * as defaultLogger from './logger';
 import { CountriesCache } from './countries-cache';
@@ -369,15 +370,24 @@ class Storage {
   async addAttachment(
     countryCode: string,
     recordKey: string,
-    { file: filePathOrData, fileName, mimeType }: AttachmentData,
+    { file: filePathOrData, mimeType, fileName: userFileName }: AttachmentData,
     upsert = false,
     requestOptions: RequestOptions = {},
   ): Promise<AddAttachmentResult> {
     const file = typeof filePathOrData === 'string' ? createReadStream(filePathOrData) : filePathOrData;
 
+    let fileName: string | undefined;
+    if (file instanceof ReadStream && typeof file.path === 'string') {
+      fileName = basename(file.path);
+    }
+
+    if (typeof userFileName === 'string') {
+      fileName = userFileName;
+    }
+
     const data = {
-      fileName,
       file,
+      fileName,
       mimeType,
     };
 

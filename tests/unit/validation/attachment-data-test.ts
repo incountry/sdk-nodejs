@@ -12,6 +12,7 @@ const createReadable = () => new Readable({
 });
 
 const VALID_ATTACHMENT_DATA: AttachmentData[] = [
+  { file: '' },
   { fileName: '', file: '' },
   { fileName: '', file: Buffer.from('') },
   { fileName: '', file: createReadable() },
@@ -19,6 +20,7 @@ const VALID_ATTACHMENT_DATA: AttachmentData[] = [
 ];
 const INVALID_ATTACHMENT_DATA = [
   {},
+  { file: 123 },
   { fileName: 123 },
   { fileName: '123', file: 123 },
   { fileName: '123', file: [] },

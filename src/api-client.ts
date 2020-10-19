@@ -37,6 +37,8 @@ const pjson = require('../package.json');
 
 const SDK_VERSION = pjson.version as string;
 
+const DEFAULT_FILE_NAME = 'file';
+
 type BasicRequestOptions<A> = { method: Method; data?: A; path?: string; responseType?: ResponseType };
 
 type EndpointData = {
@@ -44,7 +46,6 @@ type EndpointData = {
   audience: string;
   region: string;
 };
-
 
 type GetAttachmentFileResponse = {
   file: Readable;
@@ -283,13 +284,13 @@ class ApiClient {
   async addAttachment(
     countryCode: string,
     recordKey: string,
-    attachmentData: AttachmentData,
+    { file, fileName, mimeType }: AttachmentData,
     { headers, meta }: RequestOptions = {},
   ): Promise<AddAttachmentResponse> {
     const data = new FormData();
-    data.append('file', attachmentData.file, {
-      filename: attachmentData.fileName,
-      contentType: attachmentData.mimeType,
+    data.append('file', file, {
+      filename: typeof fileName === 'string' ? fileName : DEFAULT_FILE_NAME,
+      contentType: mimeType,
     });
 
     const { data: responseData } = await this.request(
@@ -361,7 +362,7 @@ class ApiClient {
 
     return {
       file,
-      fileName: getFileNameFromHeaders(responseHeaders) || 'file',
+      fileName: getFileNameFromHeaders(responseHeaders) || DEFAULT_FILE_NAME,
     };
   }
 
@@ -406,5 +407,6 @@ class ApiClient {
 export {
   ApiClient,
   DEFAULT_HTTP_TIMEOUT,
+  DEFAULT_FILE_NAME,
   GetAttachmentFileResponse,
 };

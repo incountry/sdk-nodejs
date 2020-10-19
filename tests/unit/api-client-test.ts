@@ -3,7 +3,7 @@ import chaiAsPromised from 'chai-as-promised';
 import nock from 'nock';
 import { Readable } from 'stream';
 
-import { ApiClient } from '../../src/api-client';
+import { ApiClient, DEFAULT_FILE_NAME } from '../../src/api-client';
 import { StorageServerError } from '../../src/errors';
 import { CountriesCache, Country } from '../../src/countries-cache';
 import { OAuthClient, getApiKeyAuthClient } from '../../src/auth-client';
@@ -390,7 +390,7 @@ describe('ApiClient', () => {
           const popAPI = nockPopApi(POPAPI_HOST).addAttachment(COUNTRY, recordKey).reply(200, EMPTY_API_ATTACHMENT_META);
 
           const chunks = ['1111111', '2222222', '3333333'];
-          const fileName = 'test';
+          const fileName = 'test123';
 
           const data$ = new Readable({
             objectMode: true,
@@ -410,6 +410,33 @@ describe('ApiClient', () => {
           assert.equal(popAPI.isDone(), true, 'Nock scope is done');
           expect(bodyObj).to.include(chunks.join(''));
           expect(bodyObj).to.include(fileName);
+        });
+
+
+        it('should send default file name if nothing has been provided', async () => {
+          const recordKey = '123';
+          const popAPI = nockPopApi(POPAPI_HOST).addAttachment(COUNTRY, recordKey).reply(200, EMPTY_API_ATTACHMENT_META);
+
+          const chunks = ['1111111', '2222222', '3333333'];
+
+          const data$ = new Readable({
+            objectMode: true,
+            read() {},
+          });
+
+          const bodyPromise = getNockedRequestBodyRaw(popAPI);
+          const reqPromise = apiClient.addAttachment(COUNTRY, recordKey, { file: data$ });
+
+          data$.push(chunks[0]);
+          data$.push(chunks[1]);
+          data$.push(chunks[2]);
+          data$.push(null);
+
+          const [bodyObj] = await Promise.all([bodyPromise, reqPromise]);
+
+          assert.equal(popAPI.isDone(), true, 'Nock scope is done');
+          expect(bodyObj).to.include(chunks.join(''));
+          expect(bodyObj).to.include(DEFAULT_FILE_NAME);
         });
       });
 

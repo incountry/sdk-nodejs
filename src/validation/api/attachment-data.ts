@@ -5,8 +5,8 @@ import { identity } from 'fp-ts/lib/function';
 type File = Readable | Buffer | string;
 
 type AttachmentData = {
-  fileName: string;
   file: File;
+  fileName?: string;
   mimeType?: string;
 }
 
@@ -21,10 +21,10 @@ const FileIO = new t.Type<File>(
 
 const AttachmentDataIO: t.Type<AttachmentData> = t.intersection([
   t.type({
-    fileName: t.string,
     file: FileIO,
   }),
   t.partial({
+    fileName: t.string,
     mimeType: t.string,
   }),
 ]);
