@@ -1,7 +1,8 @@
 import 'dotenv/config';
 import crypto from 'crypto';
 import * as t from 'io-ts';
-import { createReadStream } from 'fs';
+import { createReadStream, ReadStream } from 'fs';
+import { basename } from 'path';
 import { ApiClient, GetAttachmentFileResponse } from './api-client';
 import * as defaultLogger from './logger';
 import { CountriesCache } from './countries-cache';
@@ -39,7 +40,7 @@ import { StorageRecordData, StorageRecordDataIO } from './validation/storage-rec
 import { ApiRecordData, apiRecordDataFromStorageRecordData } from './validation/api/api-record-data';
 import { RequestOptionsIO, RequestOptions } from './validation/request-options';
 import { AttachmentWritableMeta, AttachmentWritableMetaIO } from './validation/attachment-writable-meta';
-import { AttachmentData, AttachmentDataIO } from './validation/attachment-data';
+import { AttachmentData, AttachmentDataIO } from './validation/api/attachment-data';
 
 const FIND_LIMIT = 100;
 
@@ -114,6 +115,22 @@ type ReadResult = {
 type DeleteResult = {
   success: true;
 };
+
+type AddAttachmentResult = {
+  attachmentMeta: StorageRecordAttachment;
+}
+
+type GetAttachmentMetaResult = {
+  attachmentMeta: StorageRecordAttachment;
+}
+
+type UpdateAttachmentMetaResult = {
+  attachmentMeta: StorageRecordAttachment;
+}
+
+type GetAttachmentFileResult = {
+  attachmentData: GetAttachmentFileResponse;
+}
 
 class Storage {
   envId: string;
@@ -210,7 +227,11 @@ class Storage {
 
   @validate(CountryCodeIO, RecordKeyIO, optional(RequestOptionsIO))
   @normalizeErrors()
-  async read(countryCode: string, recordKey: string, requestOptions: RequestOptions = {}): Promise<ReadResult> {
+  async read(
+    countryCode: string,
+    recordKey: string,
+    requestOptions: RequestOptions = {},
+  ): Promise<ReadResult> {
     const key = this.createKeyHash(this.normalizeKey(recordKey));
     const responseData = await this.apiClient.read(countryCode, key, requestOptions);
     const record = await this.decryptPayload(responseData, requestOptions.meta);
@@ -219,7 +240,11 @@ class Storage {
 
   @validate(CountryCodeIO, StorageRecordDataIO, optional(RequestOptionsIO))
   @normalizeErrors()
-  async write(countryCode: string, recordData: StorageRecordData, requestOptions: RequestOptions = {}): Promise<WriteResult> {
+  async write(
+    countryCode: string,
+    recordData: StorageRecordData,
+    requestOptions: RequestOptions = {},
+  ): Promise<WriteResult> {
     const data = await this.encryptPayload(recordData, requestOptions.meta);
     await this.apiClient.write(countryCode, data, requestOptions);
     return { record: recordData };
@@ -227,7 +252,11 @@ class Storage {
 
   @validate(CountryCodeIO, StorageRecordDataArrayIO, optional(RequestOptionsIO))
   @normalizeErrors()
-  async batchWrite(countryCode: string, records: Array<StorageRecordData>, requestOptions: RequestOptions = {}): Promise<BatchWriteResult> {
+  async batchWrite(
+    countryCode: string,
+    records: Array<StorageRecordData>,
+    requestOptions: RequestOptions = {},
+  ): Promise<BatchWriteResult> {
     const encryptedRecords = await Promise.all(records.map((r) => this.encryptPayload(r, requestOptions.meta)));
     await this.apiClient.batchWrite(countryCode, { records: encryptedRecords }, requestOptions);
     return { records };
@@ -235,7 +264,12 @@ class Storage {
 
   @validate(CountryCodeIO, optional(FindFilterIO), optional(FindOptionsIO), optional(RequestOptionsIO))
   @normalizeErrors()
-  async find(countryCode: string, filter: FindFilter = {}, options: FindOptions = {}, requestOptions: RequestOptions = {}): Promise<FindResult> {
+  async find(
+    countryCode: string,
+    filter: FindFilter = {},
+    options: FindOptions = {},
+    requestOptions: RequestOptions = {},
+  ): Promise<FindResult> {
     const data = {
       filter: this.hashFilterKeys(filterFromStorageDataKeys(filter), KEYS_TO_HASH),
       options: { limit: FIND_LIMIT, offset: 0, ...options },
@@ -270,7 +304,12 @@ class Storage {
 
   @validate(CountryCodeIO, optional(FindFilterIO), optional(FindOptionsIO), optional(RequestOptionsIO))
   @normalizeErrors()
-  async findOne(countryCode: string, filter: FindFilter = {}, options: FindOptions = {}, requestOptions: RequestOptions = {}): Promise<FindOneResult> {
+  async findOne(
+    countryCode: string,
+    filter: FindFilter = {},
+    options: FindOptions = {},
+    requestOptions: RequestOptions = {},
+  ): Promise<FindOneResult> {
     const optionsWithLimit = { ...options, limit: 1 };
     const result = await this.find(countryCode, filter, optionsWithLimit, requestOptions);
     const record = result.records.length ? result.records[0] : null;
@@ -280,21 +319,19 @@ class Storage {
   @validate(CountryCodeIO, RecordKeyIO, optional(RequestOptionsIO))
   @normalizeErrors()
   async delete(countryCode: string, recordKey: string, requestOptions: RequestOptions = {}): Promise<DeleteResult> {
-    try {
-      const key = this.createKeyHash(this.normalizeKey(recordKey));
-
-      await this.apiClient.delete(countryCode, key, requestOptions);
-
-      return { success: true };
-    } catch (err) {
-      this.logger.write('error', err.message, requestOptions.meta);
-      throw err;
-    }
+    const key = this.createKeyHash(this.normalizeKey(recordKey));
+    await this.apiClient.delete(countryCode, key, requestOptions);
+    return { success: true };
   }
 
   @validate(CountryCodeIO, optional(LimitIO), optional(FindFilterIO), optional(RequestOptionsIO))
   @normalizeErrors()
-  async migrate(countryCode: string, limit = FIND_LIMIT, _findFilter: FindFilter = {}, requestOptions: RequestOptions = {}): Promise<MigrateResult> {
+  async migrate(
+    countryCode: string,
+    limit = FIND_LIMIT,
+    _findFilter: FindFilter = {},
+    requestOptions: RequestOptions = {},
+  ): Promise<MigrateResult> {
     if (!this.encryptionEnabled) {
       throw new StorageClientError('Migration not supported when encryption is off');
     }
@@ -326,15 +363,25 @@ class Storage {
   async addAttachment(
     countryCode: string,
     recordKey: string,
-    { file: filePathOrData, fileName }: AttachmentData,
+    { file: filePathOrData, mimeType, fileName: userFileName }: AttachmentData,
     upsert = false,
     requestOptions: RequestOptions = {},
-  ): Promise<StorageRecordAttachment> {
+  ): Promise<AddAttachmentResult> {
     const file = typeof filePathOrData === 'string' ? createReadStream(filePathOrData) : filePathOrData;
 
+    let fileName: string | undefined;
+    if (file instanceof ReadStream && typeof file.path === 'string') {
+      fileName = basename(file.path);
+    }
+
+    if (typeof userFileName === 'string') {
+      fileName = userFileName;
+    }
+
     const data = {
-      fileName,
       file,
+      fileName,
+      mimeType,
     };
 
     const key = this.createKeyHash(this.normalizeKey(recordKey));
@@ -343,7 +390,7 @@ class Storage {
       ? await this.apiClient.upsertAttachment(countryCode, key, data, requestOptions)
       : await this.apiClient.addAttachment(countryCode, key, data, requestOptions);
 
-    return fromApiRecordAttachment(attachment);
+    return { attachmentMeta: fromApiRecordAttachment(attachment) };
   }
 
   @validate(CountryCodeIO, RecordKeyIO, t.string, optional(RequestOptionsIO))
@@ -353,9 +400,10 @@ class Storage {
     recordKey: string,
     fileId: string,
     requestOptions: RequestOptions = {},
-  ): Promise<unknown> {
+  ): Promise<DeleteResult> {
     const key = this.createKeyHash(this.normalizeKey(recordKey));
-    return this.apiClient.deleteAttachment(countryCode, key, fileId, requestOptions);
+    await this.apiClient.deleteAttachment(countryCode, key, fileId, requestOptions);
+    return { success: true };
   }
 
   @validate(CountryCodeIO, RecordKeyIO, t.string, optional(RequestOptionsIO))
@@ -365,9 +413,10 @@ class Storage {
     recordKey: string,
     fileId: string,
     requestOptions: RequestOptions = {},
-  ): Promise<GetAttachmentFileResponse> {
+  ): Promise<GetAttachmentFileResult> {
     const key = this.createKeyHash(this.normalizeKey(recordKey));
-    return this.apiClient.getAttachmentFile(countryCode, key, fileId, requestOptions);
+    const attachmentData = await this.apiClient.getAttachmentFile(countryCode, key, fileId, requestOptions);
+    return { attachmentData };
   }
 
   @validate(CountryCodeIO, RecordKeyIO, t.string, AttachmentWritableMetaIO, optional(RequestOptionsIO))
@@ -378,10 +427,10 @@ class Storage {
     fileId: string,
     fileMeta: AttachmentWritableMeta,
     requestOptions: RequestOptions = {},
-  ): Promise<StorageRecordAttachment> {
+  ): Promise<UpdateAttachmentMetaResult> {
     const key = this.createKeyHash(this.normalizeKey(recordKey));
     const attachment = await this.apiClient.updateAttachmentMeta(countryCode, key, fileId, fileMeta, requestOptions);
-    return fromApiRecordAttachment(attachment);
+    return { attachmentMeta: fromApiRecordAttachment(attachment) };
   }
 
   @validate(CountryCodeIO, RecordKeyIO, t.string, optional(RequestOptionsIO))
@@ -391,10 +440,10 @@ class Storage {
     recordKey: string,
     fileId: string,
     requestOptions: RequestOptions = {},
-  ): Promise<StorageRecordAttachment> {
+  ): Promise<GetAttachmentMetaResult> {
     const key = this.createKeyHash(this.normalizeKey(recordKey));
     const attachment = await this.apiClient.getAttachmentMeta(countryCode, key, fileId, requestOptions);
-    return fromApiRecordAttachment(attachment);
+    return { attachmentMeta: fromApiRecordAttachment(attachment) };
   }
 
   async validate(): Promise<void> {

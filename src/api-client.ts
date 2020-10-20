@@ -31,10 +31,13 @@ import { AttachmentWritableMeta } from './validation/attachment-writable-meta';
 import { UpdateAttachmentMetaResponse, UpdateAttachmentMetaResponseIO } from './validation/api/update-attachment-meta-response';
 import { GetAttachmentMetaResponse, GetAttachmentMetaResponseIO } from './validation/api/get-attachment-meta-response';
 import { getFileNameFromHeaders } from './utils';
+import { AttachmentData } from './validation/api/attachment-data';
 
 const pjson = require('../package.json');
 
 const SDK_VERSION = pjson.version as string;
+
+const DEFAULT_FILE_NAME = 'file';
 
 type BasicRequestOptions<A> = { method: Method; data?: A; path?: string; responseType?: ResponseType };
 
@@ -43,11 +46,6 @@ type EndpointData = {
   audience: string;
   region: string;
 };
-
-type AttachmentData = {
-  file: Readable | Buffer;
-  fileName: string;
-}
 
 type GetAttachmentFileResponse = {
   file: Readable;
@@ -286,11 +284,14 @@ class ApiClient {
   async addAttachment(
     countryCode: string,
     recordKey: string,
-    attachmentData: AttachmentData,
+    { file, fileName, mimeType }: AttachmentData,
     { headers, meta }: RequestOptions = {},
   ): Promise<AddAttachmentResponse> {
     const data = new FormData();
-    data.append('file', attachmentData.file, { filename: attachmentData.fileName });
+    data.append('file', file, {
+      filename: typeof fileName === 'string' ? fileName : DEFAULT_FILE_NAME,
+      contentType: mimeType,
+    });
 
     const { data: responseData } = await this.request(
       countryCode,
@@ -311,7 +312,11 @@ class ApiClient {
     { headers, meta }: RequestOptions = {},
   ): Promise<UpsertAttachmentResponse> {
     const data = new FormData();
-    data.append('file', attachmentData.file, { filename: attachmentData.fileName });
+    data.append('file', attachmentData.file, {
+      filename: attachmentData.fileName,
+      contentType: attachmentData.mimeType,
+    });
+
     const { data: responseData } = await this.request(
       countryCode,
       `v2/storage/records/${countryCode}/${recordKey}/attachments`,
@@ -357,7 +362,7 @@ class ApiClient {
 
     return {
       file,
-      fileName: getFileNameFromHeaders(responseHeaders) || 'file',
+      fileName: getFileNameFromHeaders(responseHeaders) || DEFAULT_FILE_NAME,
     };
   }
 
@@ -402,5 +407,6 @@ class ApiClient {
 export {
   ApiClient,
   DEFAULT_HTTP_TIMEOUT,
+  DEFAULT_FILE_NAME,
   GetAttachmentFileResponse,
 };

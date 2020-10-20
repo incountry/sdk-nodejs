@@ -41,11 +41,11 @@ describe('Update attachment meta for record', () => {
   });
 
   it('should update attachment mime type', async () => {
-    const data = await storage.addAttachment(COUNTRY, recordData.recordKey, { file: './LICENSE', fileName: '' });
+    const { attachmentMeta } = await storage.addAttachment(COUNTRY, recordData.recordKey, { file: './LICENSE', fileName: '' });
 
     const { record: recordBefore } = await storage.read(COUNTRY, recordData.recordKey);
     expect(recordBefore.attachments).to.have.lengthOf(1);
-    expect(recordBefore.attachments[0]).to.deep.include({ mimeType: data.mimeType });
+    expect(recordBefore.attachments[0]).to.deep.include({ mimeType: attachmentMeta.mimeType });
 
     const newMimeType = '123';
     await storage.updateAttachmentMeta(COUNTRY, recordData.recordKey, recordBefore.attachments[0].fileId, { mimeType: newMimeType });

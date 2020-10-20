@@ -51,11 +51,19 @@ describe('Utils', () => {
     it('should return file name for right headers object', () => {
       const fileName = 'filename.jpg';
       [
-        { 'content-disposition': `form-data; name="fieldName"; filename="${fileName}"` },
-        { 'content-disposition': `attachment; filename="${fileName}"` },
+        { 'content-disposition': `attachment; filename*=UTF-8''${fileName}` },
+        { 'content-disposition': `attachment; filename*=UTF-8''${fileName};` },
+        { 'content-disposition': `attachment; filename*=UTF-8''${fileName}; bar=baz` },
+        { 'content-disposition': `attachment; filename*=UTF-8''${fileName}; bar=baz;` },
       ].forEach((s) => {
         expect(getFileNameFromHeaders(s)).to.equal(fileName);
       });
+    });
+
+    it('should return decoded unicode file name', () => {
+      const fileName = 'Naïve file.txt';
+      const headers = { 'content-disposition': `attachment; filename*=UTF-8''${encodeURIComponent(fileName)};` };
+      expect(getFileNameFromHeaders(headers)).to.equal(fileName);
     });
   });
 });

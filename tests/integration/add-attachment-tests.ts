@@ -67,6 +67,21 @@ describe('Add attachment to record', () => {
     expect(recordAfter.attachments[0].fileName).to.equal(fileName);
   });
 
+  it('add attachment specified by file path with custom mime-type', async () => {
+    const { record: recordBefore } = await storage.read(COUNTRY, recordData.recordKey);
+    expect(recordBefore.attachments).to.be.empty;
+
+    const fileName = 'example license file';
+    const mimeType = 'text/whoa';
+    const attachmentData = { file: './LICENSE', fileName, mimeType };
+    await storage.addAttachment(COUNTRY, recordData.recordKey, attachmentData);
+
+    const { record: recordAfter } = await storage.read(COUNTRY, recordData.recordKey);
+    expect(recordAfter.attachments).to.be.not.empty;
+    expect(recordAfter.attachments[0].fileName).to.equal(fileName);
+    expect(recordAfter.attachments[0].mimeType).to.equal(mimeType);
+  });
+
   it('upsert attachment specified by file path', async () => {
     const { record: recordBefore } = await storage.read(COUNTRY, recordData.recordKey);
     expect(recordBefore.attachments).to.be.empty;

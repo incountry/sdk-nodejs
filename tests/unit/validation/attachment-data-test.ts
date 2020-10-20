@@ -1,7 +1,7 @@
 import * as chai from 'chai';
 import { Readable } from 'stream';
 import { isValid } from '../../../src/validation/utils';
-import { AttachmentDataIO, AttachmentData } from '../../../src/validation/attachment-data';
+import { AttachmentDataIO, AttachmentData } from '../../../src/validation/api/attachment-data';
 
 
 const { expect } = chai;
@@ -12,17 +12,22 @@ const createReadable = () => new Readable({
 });
 
 const VALID_ATTACHMENT_DATA: AttachmentData[] = [
+  { file: '' },
   { fileName: '', file: '' },
   { fileName: '', file: Buffer.from('') },
   { fileName: '', file: createReadable() },
+  { fileName: '', file: '', mimeType: '' },
 ];
 const INVALID_ATTACHMENT_DATA = [
   {},
+  { file: 123 },
   { fileName: 123 },
   { fileName: '123', file: 123 },
   { fileName: '123', file: [] },
   { fileName: '123', file: {} },
   { fileName: '123', file: () => {} },
+  { fileName: '', file: '', mimeType: 123 },
+  { fileName: '', file: '', mimeType: [] },
 ];
 
 describe('Attachment data validation', () => {
