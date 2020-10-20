@@ -319,16 +319,9 @@ class Storage {
   @validate(CountryCodeIO, RecordKeyIO, optional(RequestOptionsIO))
   @normalizeErrors()
   async delete(countryCode: string, recordKey: string, requestOptions: RequestOptions = {}): Promise<DeleteResult> {
-    try {
-      const key = this.createKeyHash(this.normalizeKey(recordKey));
-
-      await this.apiClient.delete(countryCode, key, requestOptions);
-
-      return { success: true };
-    } catch (err) {
-      this.logger.write('error', err.message, requestOptions.meta);
-      throw err;
-    }
+    const key = this.createKeyHash(this.normalizeKey(recordKey));
+    await this.apiClient.delete(countryCode, key, requestOptions);
+    return { success: true };
   }
 
   @validate(CountryCodeIO, optional(LimitIO), optional(FindFilterIO), optional(RequestOptionsIO))
@@ -408,14 +401,9 @@ class Storage {
     fileId: string,
     requestOptions: RequestOptions = {},
   ): Promise<DeleteResult> {
-    try {
-      const key = this.createKeyHash(this.normalizeKey(recordKey));
-      await this.apiClient.deleteAttachment(countryCode, key, fileId, requestOptions);
-      return { success: true };
-    } catch (err) {
-      this.logger.write('error', err.message, requestOptions.meta);
-      throw err;
-    }
+    const key = this.createKeyHash(this.normalizeKey(recordKey));
+    await this.apiClient.deleteAttachment(countryCode, key, fileId, requestOptions);
+    return { success: true };
   }
 
   @validate(CountryCodeIO, RecordKeyIO, t.string, optional(RequestOptionsIO))

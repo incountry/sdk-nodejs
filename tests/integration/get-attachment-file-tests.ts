@@ -38,4 +38,16 @@ describe('Get attachment file for record', () => {
     expect(receivedFileName).to.equal(fileName);
     expect(receivedFile).to.deep.equal(file);
   });
+
+  it('should get attachment file data with unicode filename', async () => {
+    const file = await fs.promises.readFile('./LICENSE');
+    const fileName = 'Naïve file.txt';
+    const { attachmentMeta } = await storage.addAttachment(COUNTRY, recordData.recordKey, { file, fileName });
+
+    const { attachmentData: { file: file$, fileName: receivedFileName } } = await storage.getAttachmentFile(COUNTRY, recordData.recordKey, attachmentMeta.fileId);
+    const receivedFile = await readStream(file$);
+
+    expect(receivedFileName).to.equal(fileName);
+    expect(receivedFile).to.deep.equal(file);
+  });
 });

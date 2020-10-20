@@ -47,7 +47,7 @@ function getFileNameFromHeaders(headers: Record<string, string|undefined>): stri
   if (match === null) return null;
   const fileName = match[1];
   if (fileName === undefined) return null;
-  return fileName;
+  return decodeURIComponent(fileName);
 }
 
 export {
