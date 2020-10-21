@@ -9,6 +9,9 @@
   },
   "bundleDependencies": [],
   "dependencies": {
+    "@types/lodash.get": "4.4.6",
+    "@types/node": "13.13.4",
+    "@types/uuid": "8.0.0",
     "axios": "0.19.0",
     "dotenv": "8.2.0",
     "form-data": "3.0.0",
@@ -39,19 +42,17 @@
     "validate-eslint": "eslint . --ext .js,.ts --ignore-path .gitignore",
     "build": "tsc -p ./tsconfig.build.json",
     "watch": "tsc -p ./tsconfig.build.json --watch",
-    "prepublish": "npm run build"
+    "prepublish": "npm run build",
+    "postinstall": "[ ! -f ./lib/storage.js ] && npm i typescript@3.8.3 && npm run build || true"
   },
   "version": "3.0.1",
   "devDependencies": {
     "@istanbuljs/nyc-config-typescript": "1.0.1",
     "@types/chai": "4.2.11",
     "@types/chai-as-promised": "7.1.2",
-    "@types/lodash.get": "4.4.6",
     "@types/mocha": "7.0.2",
-    "@types/node": "13.13.4",
     "@types/sinon": "9.0.4",
     "@types/sinon-chai": "3.2.4",
-    "@types/uuid": "8.0.0",
     "@typescript-eslint/eslint-plugin": "2.30.0",
     "@typescript-eslint/parser": "2.30.0",
     "chai": "4.2.0",
