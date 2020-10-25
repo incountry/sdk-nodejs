@@ -1,44 +1,41 @@
 import 'mocha';
 import * as chai from 'chai';
 import chaiAsPromised from 'chai-as-promised';
+import { v4 as uuid } from 'uuid';
 import { createStorage, COUNTRY, noop } from './common';
 import { Storage } from '../../src';
 import { Int } from '../../src/validation/utils';
+import { FindResponseMeta } from '../../src/validation/api/find-response';
+import { StorageRecordData } from '../../src/validation/storage-record-data';
 
 chai.use(chaiAsPromised);
 const { expect } = chai;
 
 let storage: Storage;
 
-const dataRequest = {
-  recordKey: Math.random().toString(36).substr(2, 10),
-  key1: Math.random().toString(36).substr(2, 10),
-  key2: Math.random().toString(36).substr(2, 10),
-  key3: Math.random().toString(36).substr(2, 10),
-  profileKey: Math.random().toString(36).substr(2, 10),
+const createRecordData = () => ({
+  recordKey: uuid(),
+  key1: uuid(),
+  key2: uuid(),
+  key3: uuid(),
+  key10: uuid(),
+  profileKey: uuid(),
   rangeKey1: Math.floor(Math.random() * 100) + 1 as Int,
   body: JSON.stringify({ name: 'PersonName' }),
+  serviceKey2: 'NodeJS SDK integration test data for find() method',
+});
+
+const checkFindResponseMeta = (meta: FindResponseMeta, total: number, count = total, offset = 0, limit = 100) => {
+  expect(meta).to.have.all.keys('count', 'limit', 'offset', 'total');
+  expect(meta.count).to.equal(count);
+  expect(meta.total).to.equal(total);
+  expect(meta.offset).to.equal(offset);
+  expect(meta.limit).to.equal(limit);
 };
 
-const dataRequest2 = {
-  recordKey: Math.random().toString(36).substr(2, 10),
-  key1: Math.random().toString(36).substr(2, 10),
-  key2: Math.random().toString(36).substr(2, 10),
-  key3: Math.random().toString(36).substr(2, 10),
-  profileKey: Math.random().toString(36).substr(2, 10),
-  rangeKey1: Math.floor(Math.random() * 100) + 1 as Int,
-  body: JSON.stringify({ name: 'PersonName2' }),
-};
-
-const dataRequest3 = {
-  recordKey: Math.random().toString(36).substr(2, 10),
-  key1: Math.random().toString(36).substr(2, 10),
-  key2: Math.random().toString(36).substr(2, 10),
-  key3: Math.random().toString(36).substr(2, 10),
-  profileKey: Math.random().toString(36).substr(2, 10),
-  rangeKey1: Math.floor(Math.random() * 100) + 1 as Int,
-  body: JSON.stringify({ name: 'PersonName3' }),
-};
+const dataRequest = createRecordData();
+const dataRequest2 = createRecordData();
+const dataRequest3 = createRecordData();
 
 describe('Find records', () => {
   after(async () => {
@@ -56,135 +53,138 @@ describe('Find records', () => {
         await storage.write(COUNTRY, dataRequest3);
       });
 
-      it.skip('Find records by country', async () => {
+      it('Find records by country', async () => {
         const { records, meta } = await storage.find(COUNTRY, {}, {});
 
-        expect(records).to.have.lengthOf(2);
-
         expect(meta).to.have.all.keys('count', 'limit', 'offset', 'total');
-        expect(meta.count).to.equal(2);
-        expect(meta.total).to.equal(2);
+        expect(meta.count).to.be.gte(3);
+        expect(meta.total).to.be.gte(3);
         expect(meta.offset).to.equal(0);
         expect(meta.limit).to.equal(100);
+
+        expect(records.length).to.be.gte(3);
+        const receivedKeys = records.map((r) => r.recordKey);
+        expect(receivedKeys).to.include.members([dataRequest.recordKey, dataRequest2.recordKey, dataRequest3.recordKey]);
       });
 
-      it.skip('Find records by key', async () => {
-        const { records, meta } = await storage.find(COUNTRY, { key: dataRequest.recordKey }, {});
+      it('Find records by key', async () => {
+        const { records, meta } = await storage.find(COUNTRY, { recordKey: dataRequest.recordKey }, {});
 
         expect(records).to.have.lengthOf(1);
-        expect(records[0].recordKey).to.equal(dataRequest.recordKey);
-        expect(records[0].body).to.equal(dataRequest.body);
-        expect(meta).to.have.all.keys('count', 'limit', 'offset', 'total');
-        expect(meta.count).to.equal(1);
-        expect(meta.total).to.equal(1);
-        expect(meta.offset).to.equal(0);
-        expect(meta.limit).to.equal(100);
+        expect(records[0]).to.deep.include(dataRequest);
+        checkFindResponseMeta(meta, 1);
       });
 
-      it.skip('Find records by key2', async () => {
+      it('Find records by key2', async () => {
         const { records, meta } = await storage.find(COUNTRY, { key2: dataRequest.key2 }, {});
 
         expect(records).to.have.lengthOf(1);
-        expect(records[0].recordKey).to.equal(dataRequest.recordKey);
-        expect(records[0].key1).to.equal(dataRequest.key1);
-        expect(records[0].body).to.equal(dataRequest.body);
-        expect(meta).to.have.all.keys('count', 'limit', 'offset', 'total');
-        expect(meta.count).to.equal(1);
-        expect(meta.total).to.equal(1);
-        expect(meta.offset).to.equal(0);
-        expect(meta.limit).to.equal(100);
+        expect(records[0]).to.deep.include(dataRequest);
+        checkFindResponseMeta(meta, 1);
       });
 
-      it.skip('Find records by key3', async () => {
+      it('Find records by key3', async () => {
         const { records, meta } = await storage.find(COUNTRY, { key3: dataRequest.key3 }, {});
 
         expect(records).to.have.lengthOf(1);
-        expect(records[0].key3).to.equal(dataRequest.key3);
-        expect(meta).to.have.all.keys('count', 'limit', 'offset', 'total');
-        expect(meta.count).to.equal(1);
-        expect(meta.total).to.equal(1);
-        expect(meta.offset).to.equal(0);
-        expect(meta.limit).to.equal(100);
+        expect(records[0]).to.deep.include(dataRequest);
+        checkFindResponseMeta(meta, 1);
       });
 
-      it.skip('Find records by profileKey', async () => {
+      it('Find records by profileKey', async () => {
         const { records, meta } = await storage.find(COUNTRY, { profileKey: dataRequest.profileKey }, {});
 
         expect(records).to.have.lengthOf(1);
-        expect(records[0].profileKey).to.equal(dataRequest.profileKey);
-        expect(meta).to.have.all.keys('count', 'limit', 'offset', 'total');
-        expect(meta.count).to.equal(1);
-        expect(meta.total).to.equal(1);
-        expect(meta.offset).to.equal(0);
-        expect(meta.limit).to.equal(100);
+        expect(records[0]).to.deep.include(dataRequest);
+        checkFindResponseMeta(meta, 1);
       });
 
-      it.skip('Find record list of keys', async () => {
-        const { records, meta } = await storage.find(COUNTRY, { key2: [dataRequest.key2, dataRequest2.key2] }, {});
+      it('Find record list of keys', async () => {
+        const recordsList = [dataRequest, dataRequest2];
+        const key2List = recordsList.map((r) => r.key2);
+        const recordKeyList = recordsList.map((r) => r.recordKey);
+        const { records, meta } = await storage.find(COUNTRY, { key2: key2List }, {});
 
         expect(records).to.have.lengthOf(2);
-        expect(meta).to.have.all.keys('count', 'limit', 'offset', 'total');
-        expect(meta.count).to.equal(2);
-        expect(meta.total).to.equal(2);
-        expect(meta.offset).to.equal(0);
-        expect(meta.limit).to.equal(100);
+        records.forEach((r) => {
+          const index = recordKeyList.indexOf(r.recordKey);
+          expect(index).to.be.gte(0);
+          expect(r).to.deep.include(recordsList[index]);
+        });
+        checkFindResponseMeta(meta, 2);
       });
 
-      it.skip('Find records with pagination', async () => {
-        const limit = 10;
-        const offset = 1;
-        const { records, meta } = await storage.find(COUNTRY, { rangeKey1: { $lt: 100 } },
+      it('Find records with pagination', async () => {
+        const limit = 2;
+        const offset = 2;
+        const recordKeyList = [dataRequest, dataRequest2, dataRequest3].map((r) => r.recordKey);
+        const { records, meta } = await storage.find(COUNTRY, { recordKey: recordKeyList, rangeKey1: { $lte: 100 } },
           {
             limit,
             offset,
           });
 
-        expect(records).to.be.lengthOf(1);
-        expect(records).to.be.lengthOf.at.most(limit);
-
-        expect(meta).to.have.all.keys('count', 'limit', 'offset', 'total');
-        expect(meta.count).to.be.not.above(limit);
-        expect(meta.offset).to.equal(offset);
-        expect(meta.limit).to.equal(limit);
-      });
-
-      it.skip('Find records by filter with rangeKey1', async () => {
-        const { records, meta } = await storage.find(COUNTRY,
-          { rangeKey1: { $lt: 100 } }, {});
-
-        expect(records).to.have.lengthOf(2);
-        expect(meta).to.have.all.keys('count', 'limit', 'offset', 'total');
-        expect(meta.offset).to.equal(0);
-        expect(meta.limit).to.equal(100);
-        expect(meta.count).to.equal(2);
-        expect(meta.total).to.equal(2);
-      });
-
-      it.skip('Find records by filter with $not', async () => {
-        const { records: allRecords } = await storage.find(COUNTRY, {}, {});
-        expect(allRecords).to.have.lengthOf(3);
-
-        const { records } = await storage.find(COUNTRY,
-          { key2: dataRequest.key2 }, {});
-
         expect(records).to.have.lengthOf(1);
-        expect(records[0]).to.include(dataRequest);
-
-        const { meta, records: recordsFound } = await storage.find(COUNTRY,
-          { key2: { $not: dataRequest.key2 } }, {});
-
-        expect(meta.count).to.equal(2);
-        expect(recordsFound.map((r) => r.recordKey)).to.include.members([dataRequest2.recordKey, dataRequest3.recordKey]);
+        checkFindResponseMeta(meta, 3, 1, offset, limit);
       });
 
-      it.skip('Records not found by key value', async () => {
+      it('Find records by filter with rangeKey1', async () => {
+        const recordKeyList = [dataRequest, dataRequest2, dataRequest3].map((r) => r.recordKey);
+        const { records } = await storage.find(COUNTRY, { recordKey: recordKeyList, rangeKey1: { $lte: 100 } }, {});
+
+        expect(records.length).to.be.gte(3);
+        const receivedKeys = records.map((r) => r.recordKey);
+        expect(receivedKeys).to.include.members([dataRequest.recordKey, dataRequest2.recordKey, dataRequest3.recordKey]);
+      });
+
+      it('Find records by filter with $not', async () => {
+        const { records: foundRecords } = await storage.find(COUNTRY, { key2: { $not: dataRequest.key2 } }, {});
+        const foundRecordKeys = foundRecords.map((r) => r.recordKey);
+
+        expect(foundRecordKeys).to.include.members([dataRequest2.recordKey, dataRequest3.recordKey]);
+        expect(foundRecordKeys).to.not.include(dataRequest.recordKey);
+      });
+
+      it('Records not found by random key2 value', async () => {
         const { records, meta } = await storage.find(COUNTRY, { key2: Math.random().toString(36).substr(2, 10) }, {});
 
         expect(records).to.have.lengthOf(0);
-        expect(meta.count).to.equal(0);
-        expect(meta.total).to.equal(0);
-        expect(meta.offset).to.equal(0);
-        expect(meta.limit).to.equal(100);
+        checkFindResponseMeta(meta, 0);
+      });
+
+      context('Records search by searchKeys', () => {
+        let searchableStorage: Storage;
+        const record = createRecordData();
+        const searchableProperties: (keyof StorageRecordData)[] = ['key1', 'key10'];
+
+        before(async () => {
+          searchableStorage = await createStorage(encryption, undefined, undefined, undefined, false);
+          await searchableStorage.write(COUNTRY, record);
+        });
+
+        after(async () => {
+          await searchableStorage.delete(COUNTRY, record.recordKey).catch(noop);
+        });
+
+        searchableProperties.forEach((property) => {
+          const value = (record as StorageRecordData)[property] as string;
+          const searchCriterias = [
+            { description: 'full match', criteria: value },
+            { description: 'partial match (prefix)', criteria: value.substring(0, value.length - 1) },
+            { description: 'partial match (suffix)', criteria: value.substring(1, value.length) },
+            { description: 'partial match (in the middle)', criteria: value.substring(1, value.length - 1) },
+          ];
+
+          searchCriterias.forEach(({ description, criteria }) => {
+            it(`should find record by ${property} ${description}`, async () => {
+              const { records, meta } = await searchableStorage.find(COUNTRY, { searchKeys: criteria }, {});
+
+              expect(records).to.have.lengthOf(1);
+              expect(records[0]).to.deep.include(record);
+              checkFindResponseMeta(meta, 1);
+            });
+          });
+        });
       });
     });
   });

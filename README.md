@@ -26,25 +26,26 @@ To access your data in InCountry using NodeJS SDK, you need to create an instanc
 
 ```typescript
 type StorageOptions = {
-  apiKey?: string;         // Required when using API key authorization, or as environment variable INC_API_KEY
-  environmentId?: string;  // Required to be passed in, or as environment variable INC_ENVIRONMENT_ID
+  apiKey?: string;          // Required when using API key authorization, or as environment variable INC_API_KEY
+  environmentId?: string;   // Required to be passed in, or as environment variable INC_ENVIRONMENT_ID
 
   oauth?: {
-    clientId?: string;     // Required when using oAuth authorization, can be also set via environment variable INC_CLIENT_ID
-    clientSecret?: string; // Required when using oAuth authorization, can be also set via environment variable INC_CLIENT_SECRET
-    authEndpoints?: {      // Custom endpoints regional map to use for fetching oAuth tokens
+    clientId?: string;      // Required when using oAuth authorization, can be also set via environment variable INC_CLIENT_ID
+    clientSecret?: string;  // Required when using oAuth authorization, can be also set via environment variable INC_CLIENT_SECRET
+    authEndpoints?: {       // Custom endpoints regional map to use for fetching oAuth tokens
       default: string;
       [key: string]: string;
     };
   };
 
-  endpoint?: string;       // Defines API URL
-  encrypt?: boolean;       // If false, encryption is not used. Defaults to true.
+  endpoint?: string;        // Defines API URL
+  encrypt?: boolean;        // If false, encryption is not used. Defaults to true.
 
   logger?: Logger;
-  getSecrets?: Function;   // Used to fetch encryption secret
+  getSecrets?: Function;    // Used to fetch encryption secret
   normalizeKeys?: boolean;
   countriesCache?: CountriesCache;
+  hashSearchKeys?: boolean; // Set to false to enable partial match search among record's text fields `key1, key2, ..., key10`. Defaults to true.
 
   /**
    * Defines API base hostname part to use.
@@ -249,6 +250,14 @@ v3.0.0 release introduced a series of new fields available for storage. Below is
 ##### String fields, hashed:
 ```typescript
 recordKey
+profileKey
+serviceKey1
+serviceKey2
+```
+##### String fields, hashed if Storage options "hashSearchKeys" is set to true (by default it is):
+**WARNING** If `hashSearchKeys` is set to `false` the following string fields will have length limitation of 256 chars at most
+
+```typescript
 key1
 key2
 key3
@@ -259,9 +268,6 @@ key7
 key8
 key9
 key10
-profileKey
-serviceKey1
-serviceKey2
 ```
 
 ##### String fields, encrypted:
@@ -288,16 +294,16 @@ rangeKey10
 type StorageRecordData = {
   recordKey: string;
   profileKey?: string | null;
-  key1?: string | null;
-  key2?: string | null;
-  key3?: string | null;
-  key4?: string | null;
-  key5?: string | null;
-  key6?: string | null;
-  key7?: string | null;
-  key8?: string | null;
-  key9?: string | null;
-  key10?: string | null;
+  key1?: string | null;  // If `hashSearchKeys` is set to `false` key1 has length limit 256
+  key2?: string | null;  // If `hashSearchKeys` is set to `false` key2 has length limit 256
+  key3?: string | null;  // If `hashSearchKeys` is set to `false` key3 has length limit 256
+  key4?: string | null;  // If `hashSearchKeys` is set to `false` key4 has length limit 256
+  key5?: string | null;  // If `hashSearchKeys` is set to `false` key5 has length limit 256
+  key6?: string | null;  // If `hashSearchKeys` is set to `false` key6 has length limit 256
+  key7?: string | null;  // If `hashSearchKeys` is set to `false` key7 has length limit 256
+  key8?: string | null;  // If `hashSearchKeys` is set to `false` key8 has length limit 256
+  key9?: string | null;  // If `hashSearchKeys` is set to `false` key9 has length limit 256
+  key10?: string | null; // If `hashSearchKeys` is set to `false` key10 has length limit 256
   serviceKey1?: string | null;
   serviceKey2?: string | null;
   body?: string | null;
@@ -380,16 +386,16 @@ type StorageRecord = {
   body: string | null;
   profileKey: string | null;
   precommitBody: string | null;
-  key1: string | null;
-  key2: string | null;
-  key3: string | null;
-  key4: string | null;
-  key5: string | null;
-  key6: string | null;
-  key7: string | null;
-  key8: string | null;
-  key9: string | null;
-  key10: string | null;
+  key1?: string | null;  // If `hashSearchKeys` is set to `false` key1 has length limit 256
+  key2?: string | null;  // If `hashSearchKeys` is set to `false` key2 has length limit 256
+  key3?: string | null;  // If `hashSearchKeys` is set to `false` key3 has length limit 256
+  key4?: string | null;  // If `hashSearchKeys` is set to `false` key4 has length limit 256
+  key5?: string | null;  // If `hashSearchKeys` is set to `false` key5 has length limit 256
+  key6?: string | null;  // If `hashSearchKeys` is set to `false` key6 has length limit 256
+  key7?: string | null;  // If `hashSearchKeys` is set to `false` key7 has length limit 256
+  key8?: string | null;  // If `hashSearchKeys` is set to `false` key8 has length limit 256
+  key9?: string | null;  // If `hashSearchKeys` is set to `false` key9 has length limit 256
+  key10?: string | null; // If `hashSearchKeys` is set to `false` key10 has length limit 256
   serviceKey1: string | null;
   serviceKey2: string | null;
   rangeKey1: t.Int | null;
@@ -426,30 +432,61 @@ const readResult = await storage.read(countryCode, recordKey);
 
 ### Find records
 
-It is possible to search by random keys using `find` method.
+You can search records either using exact match search operators or partial text match operators in almost any combinations. 
 
-You can specify filter object for every record key combining different queries:
+##### Exact match search
+
+The next exact match filtering criteria available:
 - single value
 ```typescript
+// Matches all records where record.key1 = 'abc' AND record.rangeKey = 1
 { key1: 'abc', rangeKey1: 1 }
 ```
 
 - multiple values as an array
 ```typescript
+// Matches all records where (record.key2 = 'def' OR record.key2 = 'jkl') AND (record.rangeKey = 1 OR record.rangeKey = 2)
 { key2: ['def', 'jkl'], rangeKey1: [1, 2] }
 ```
 
 - a logical NOT operator for [String fields](#string-fields-hashed) and `version`
 ```typescript
+// Matches all records where record.key3 <> 'abc'
 { key3: { $not: 'abc' } }
+
+// Matches all records where record.key3 <> 'abc' AND record.key3 <> 'def'
 { key3: { $not: ['abc', 'def'] } }
+
+// Matches all records where record.version <> 1
 { version: { $not: 1 }}
 ```
 
 - comparison operators for [Int fields](#int-fields-plain)
 ```typescript
+// Matches all records where record.rangeKey >= 5 AND record.rangeKey <= 100
 { rangeKey1: { $gte: 5, $lte: 100 } }
 ```
+
+##### Partial text match search
+
+Also you can search records by partial match using `searchKeys` operator, which performs partial match 
+search (similar to `LIKE` SQL operator) among record's text fields `key1, key2, ..., key10`.
+```typescript
+// Matches all records where record.key1 LIKE 'abc' OR record.key2 LIKE 'abc' OR ... OR record.key10 LIKE 'abc'
+{ searchKeys: 'abc' }
+```
+
+**Please note:** `searchKeys` operator cannot be used in combination with any of `key1, key2, ..., key10` keys and works only in combination with non-hashing Storage mode (hashSearchKeys param for Storage).
+
+```typescript
+// Matches all records where (record.key1 LIKE 'abc' OR record.key2 LIKE 'abc' OR ... OR record.key10 LIKE 'abc') AND (record.rangeKey = 1 OR record.rangeKey = 2)
+{ searchKeys: 'abc', rangeKey1: [1, 2] }
+
+// Causes validation error (StorageClientError)
+{ searchKeys: 'abc', key1: 'def' }
+```
+
+#### Search options
 
 The `options` parameter defines the `limit` - number of records to return and the `offset`- starting index.
 It can be used to implement pagination. Note: SDK returns 100 records at most.
@@ -498,7 +535,7 @@ async find(
 }
 ```
 
-Example of usage:
+#### Example of usage
 ```typescript
 const filter = {
   key1: 'abc',

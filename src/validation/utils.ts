@@ -5,6 +5,7 @@ import { getErrorMessage } from './get-error-message';
 import { StorageClientError, StorageServerError } from '../errors';
 import { isJSON } from '../utils';
 
+
 type Validation<A> = Either<t.Errors, A>;
 
 const toStorageClientError = (prefix = '') => (validation: Validation<unknown>): StorageClientError => {
@@ -72,6 +73,16 @@ const JSONIO = new t.Type<JSON, string, string>(
 type Codec<A> = t.Type<A, unknown>;
 type Int = t.Int;
 
+interface StringMax256Brand {
+  readonly StringMax256: unique symbol;
+}
+
+const StringMax256 = t.brand(
+  t.string,
+  (s): s is t.Branded<string, StringMax256Brand> => s.length <= 256,
+  'StringMax256',
+);
+
 export {
   Codec,
   toStorageClientError,
@@ -86,4 +97,5 @@ export {
   isRight as isValid,
   Validation,
   Int,
+  StringMax256,
 };
