@@ -36,6 +36,7 @@ const PT_VERSION = 'pt';
 const CUSTOM_ENCRYPTION_VERSION_PREFIX = 'c';
 
 const CUSTOM_ENCRYPTION_ERROR_MESSAGE_NO_SKA = 'Custom encryption not supported without secretKeyAccessor provided';
+const CUSTOM_ENCRYPTION_ERROR_MESSAGE_IS_KEY = 'Key cannot be used for custom encryption';
 
 class InCrypt {
   customEncryption: Record<string, CustomEncryptionConfig> | null = null;
@@ -113,7 +114,7 @@ class InCrypt {
 
   private async encryptCustom(text: string, encrypt: CustomEncryptionConfig['encrypt'], secretData: SecretOrKey): Promise<Encrypted> {
     if (isKey(secretData)) {
-      throw new StorageCryptoError('Key cannot be used for custom  encryption');
+      throw new StorageCryptoError(CUSTOM_ENCRYPTION_ERROR_MESSAGE_IS_KEY);
     }
 
     const { secret, version: secretVersion, isForCustomEncryption } = secretData;
@@ -221,7 +222,7 @@ class InCrypt {
 
   private async decryptCustom(encrypted: string, decrypt: CustomEncryptionConfig['decrypt'], secretData: SecretOrKey): Promise<string> {
     if (isKey(secretData)) {
-      throw new StorageCryptoError('Key cannot be used for custom  encryption');
+      throw new StorageCryptoError(CUSTOM_ENCRYPTION_ERROR_MESSAGE_IS_KEY);
     }
 
     const { secret, isForCustomEncryption, version: secretVersion } = secretData;
@@ -247,6 +248,7 @@ export {
   CUSTOM_ENCRYPTION_ERROR_MESSAGE_ENC,
   CUSTOM_ENCRYPTION_ERROR_MESSAGE_DEC,
   CUSTOM_ENCRYPTION_ERROR_MESSAGE_NO_SKA,
+  CUSTOM_ENCRYPTION_ERROR_MESSAGE_IS_KEY,
   KEY_SIZE,
   VERSION,
   CUSTOM_ENCRYPTION_VERSION_PREFIX,

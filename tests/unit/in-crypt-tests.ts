@@ -8,6 +8,7 @@ import {
   CUSTOM_ENCRYPTION_ERROR_MESSAGE_NO_SKA,
   CUSTOM_ENCRYPTION_ERROR_MESSAGE_ENC,
   CUSTOM_ENCRYPTION_ERROR_MESSAGE_DEC,
+  CUSTOM_ENCRYPTION_ERROR_MESSAGE_IS_KEY,
 } from '../../src/in-crypt';
 import { SecretKeyAccessor } from '../../src/secret-key-accessor';
 import { StorageCryptoError, StorageClientError } from '../../src/errors';
@@ -328,7 +329,7 @@ describe('InCrypt', () => {
       });
     });
 
-    it('should throw an error while encrypting if SecretKeyAccessor provides no key for custom encryption', async () => {
+    it('should throw an error while encrypting if SecretKeyAccessor provides no secret for custom encryption', async () => {
       const configs = [{
         encrypt: identity,
         decrypt: identity,
@@ -346,7 +347,25 @@ describe('InCrypt', () => {
       return expect(incrypt.encrypt('')).to.be.rejectedWith(StorageCryptoError, 'is not marked for custom encryption');
     });
 
-    it('should throw an error while decrypting if SecretKeyAccessor provides no key for custom encryption', async () => {
+    it('should throw an error while encrypting if SecretKeyAccessor provides key but not secret for custom encryption', async () => {
+      const configs = [{
+        encrypt: identity,
+        decrypt: identity,
+        version: 'customEncryption',
+        isCurrent: true,
+      }];
+
+      const secretKeyAccessor = new SecretKeyAccessor(() => ({
+        secrets: [{ version: 0, secret: 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=', isKey: true }], currentVersion: 0,
+      }));
+
+      const incrypt = new InCrypt(secretKeyAccessor);
+      incrypt.setCustomEncryption(configs as any);
+
+      return expect(incrypt.encrypt('')).to.be.rejectedWith(StorageCryptoError, CUSTOM_ENCRYPTION_ERROR_MESSAGE_IS_KEY);
+    });
+
+    it('should throw an error while decrypting if SecretKeyAccessor provides no secret for custom encryption', async () => {
       const configs = [{
         encrypt: identity,
         decrypt: identity,
@@ -363,6 +382,24 @@ describe('InCrypt', () => {
 
       const encrypted = { message: 'cY3VzdG9tRW5jcnlwdGlvbg==:aaa', secretVersion: 0 }; // "cY3VzdG9tRW5jcnlwdGlvbg==" is packed custom encryption version "customEncryption"
       return expect(incrypt.decrypt(encrypted.message, encrypted.secretVersion)).to.be.rejectedWith(StorageCryptoError, 'is not marked for custom encryption');
+    });
+
+    it('should throw an error while decrypting if SecretKeyAccessor provides key but not secret for custom encryption', async () => {
+      const configs = [{
+        encrypt: identity,
+        decrypt: identity,
+        version: 'customEncryption',
+        isCurrent: true,
+      }];
+
+      const secretKeyAccessor = new SecretKeyAccessor(() => ({
+        secrets: [{ version: 0, secret: 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=', isKey: true }], currentVersion: 0,
+      }));
+
+      const incrypt = new InCrypt(secretKeyAccessor);
+      incrypt.setCustomEncryption(configs as any);
+
+      return expect(incrypt.decrypt('cY3VzdG9tRW5jcnlwdGlvbg==:222')).to.be.rejectedWith(StorageCryptoError, CUSTOM_ENCRYPTION_ERROR_MESSAGE_IS_KEY); // "cY3VzdG9tRW5jcnlwdGlvbg==" is packed custom encryption version "customEncryption"
     });
 
     it('should throw an error if custom encryption "encrypt" function returns not string', async () => {
