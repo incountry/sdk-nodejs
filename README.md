@@ -177,7 +177,7 @@ type SecretsData = {
       version: 0
     },
     {
-      secret: 'bbbbbbbbbbbb...bbb', // Should be a base64-encoded key (32 byte key)
+      secret: 'base64...IHN0cmluZw==', // Should be a base64-encoded key (32 byte key)
       version: 1,
       isKey: true
     },
