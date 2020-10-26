@@ -45,7 +45,7 @@ function validateSecretOrKey(u: SecretOrKeyGeneral): Either<string, SecretOrKey>
   if (isKey(u)) {
     const decoded = Buffer.from(u.secret, 'base64');
     if (decoded.length !== KEY_SIZE) {
-      return left(`Key should be ${KEY_SIZE}-characters long. If it's a custom key, please provide 'isForCustomEncryption' param`);
+      return left(`Key should be ${KEY_SIZE} bytes-long buffer in a base64 encoded string. If it's a custom key, please provide 'isForCustomEncryption' param`);
     }
     return right({
       secret: decoded,
