@@ -562,9 +562,9 @@ describe('Storage', () => {
               apiKey: 'API_KEY',
               environmentId: 'ENVIRONMENT_ID',
               endpoint: 'URL',
-              getSecrets: () => ({ secrets: [{ version: -1, secret: '' }], currentVersion: -1 }),
+              getSecrets: () => ({ secrets: [{ version: '', secret: 123 }], currentVersion: 1 }),
             },
-          )).to.be.rejectedWith(StorageError, '<SecretsData>.secrets.0 should be SecretOrKey but got {"version":-1,"secret":""}');
+          )).to.be.rejectedWith(StorageError, '<SecretsData>.secrets.0.version should be NonNegativeInt but got ""');
         });
 
         it('should throw an error if not a getSecrets callback is provided', async () => {

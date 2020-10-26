@@ -106,8 +106,7 @@ describe('InCrypt', () => {
   });
 
   context('when custom encryption key used', () => {
-    const encryptionKeyHex = '2630104a4acfc5f8dca906be79acde7b5db9d95cfe4d9f794c8e62252854b374';
-    const encryptionKey = Buffer.from(encryptionKeyHex, 'hex').toString('ascii');
+    const encryptionKey = 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=';
     const secretKeyAccessor = new SecretKeyAccessor(() => ({
       secrets: [{ version: 0, secret: encryptionKey, isKey: true }], currentVersion: 0,
     }));
