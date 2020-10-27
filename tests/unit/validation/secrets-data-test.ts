@@ -6,7 +6,7 @@ const { expect } = chai;
 
 const VALID = [
   { secrets: [{ secret: '', version: 0 }], currentVersion: 0 },
-  { secrets: [{ secret: 'supersecret1supersecret1supersec', isKey: true, version: 0 }], currentVersion: 0 },
+  { secrets: [{ secret: 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=', isKey: true, version: 0 }], currentVersion: 0 },
 ];
 
 const INVALID = [
@@ -25,6 +25,14 @@ const INVALID = [
   { secrets: [{ secret: '', version: '' }] },
   { secrets: [], currentVersion: '' },
   { secrets: [{ secret: 'abc', isKey: true, version: 0 }], currentVersion: 0 },
+  { secrets: [{ secret: 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAA=', isKey: true, version: 0 }], currentVersion: 0 },
+  {
+    secrets: [{
+      secret: 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=', isKey: true, isForCustomEncryption: true, version: 0,
+    },
+    ],
+    currentVersion: 0,
+  },
 ];
 
 describe('Secrets Data validation', () => {

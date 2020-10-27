@@ -12,7 +12,7 @@ import {
   CustomEncryptionConfig,
 } from './validation/custom-encryption-configs';
 import { validateCustomEncryption } from './validation/custom-encryption-configs-deep';
-import { SecretOrKey } from './validation/secrets-data';
+import { SecretOrKey, isKey } from './validation/secrets-data';
 
 const pbkdf2 = util.promisify(crypto.pbkdf2);
 
@@ -22,7 +22,7 @@ type Encrypted = {
 };
 
 type Key = {
-  key: string | Buffer;
+  key: Buffer;
   version: NonNegativeInt;
 }
 
@@ -36,6 +36,7 @@ const PT_VERSION = 'pt';
 const CUSTOM_ENCRYPTION_VERSION_PREFIX = 'c';
 
 const CUSTOM_ENCRYPTION_ERROR_MESSAGE_NO_SKA = 'Custom encryption not supported without secretKeyAccessor provided';
+const CUSTOM_ENCRYPTION_ERROR_MESSAGE_IS_KEY = 'Key cannot be used for custom encryption';
 
 class InCrypt {
   customEncryption: Record<string, CustomEncryptionConfig> | null = null;
@@ -112,6 +113,10 @@ class InCrypt {
   }
 
   private async encryptCustom(text: string, encrypt: CustomEncryptionConfig['encrypt'], secretData: SecretOrKey): Promise<Encrypted> {
+    if (isKey(secretData)) {
+      throw new StorageCryptoError(CUSTOM_ENCRYPTION_ERROR_MESSAGE_IS_KEY);
+    }
+
     const { secret, version: secretVersion, isForCustomEncryption } = secretData;
     if (!isForCustomEncryption) {
       throw new StorageCryptoError(`Secret with version ${secretVersion} is not marked for custom encryption`);
@@ -216,6 +221,10 @@ class InCrypt {
   }
 
   private async decryptCustom(encrypted: string, decrypt: CustomEncryptionConfig['decrypt'], secretData: SecretOrKey): Promise<string> {
+    if (isKey(secretData)) {
+      throw new StorageCryptoError(CUSTOM_ENCRYPTION_ERROR_MESSAGE_IS_KEY);
+    }
+
     const { secret, isForCustomEncryption, version: secretVersion } = secretData;
     if (!isForCustomEncryption) {
       throw new StorageCryptoError(`Secret with version ${secretVersion} is not marked for custom encryption`);
@@ -229,8 +238,8 @@ class InCrypt {
   }
 
   private async getEncryptionKey(salt: Buffer, secretData: SecretOrKey): Promise<Key> {
-    const { secret, isKey, version } = secretData;
-    const key = isKey ? secret : (await pbkdf2(secret, salt, PBKDF2_ITERATIONS_COUNT, KEY_SIZE, 'sha512'));
+    const { version } = secretData;
+    const key = isKey(secretData) ? secretData.secret : (await pbkdf2(secretData.secret, salt, PBKDF2_ITERATIONS_COUNT, KEY_SIZE, 'sha512'));
     return { key, version };
   }
 }
@@ -239,6 +248,7 @@ export {
   CUSTOM_ENCRYPTION_ERROR_MESSAGE_ENC,
   CUSTOM_ENCRYPTION_ERROR_MESSAGE_DEC,
   CUSTOM_ENCRYPTION_ERROR_MESSAGE_NO_SKA,
+  CUSTOM_ENCRYPTION_ERROR_MESSAGE_IS_KEY,
   KEY_SIZE,
   VERSION,
   CUSTOM_ENCRYPTION_VERSION_PREFIX,
