@@ -54,7 +54,7 @@ describe('Find records', () => {
       });
 
       it('Find records by country', async () => {
-        const { records, meta } = await storage.find(COUNTRY, { recordKey: [dataRequest.recordKey, dataRequest2.recordKey, dataRequest3.recordKey]}, {});
+        const { records, meta } = await storage.find(COUNTRY, { recordKey: [dataRequest.recordKey, dataRequest2.recordKey, dataRequest3.recordKey] }, {});
 
         expect(meta).to.have.all.keys('count', 'limit', 'offset', 'total');
         expect(meta.count).to.be.gte(3);
