@@ -5,10 +5,10 @@ import {
   CUSTOM_ENCRYPTION_ERROR_MESSAGE_DEC,
   CustomEncryptionConfig,
 } from './custom-encryption-configs';
-import { SecretsData } from './secrets-data';
+import { SecretsData, Secret, isSecret } from './secrets-data';
 
 async function validateCustomEncryption(secretData: SecretsData, customEncryptionConfigs: CustomEncryptionConfig[]): Promise<Reflected<unknown>[]> {
-  const secrets = secretData.secrets.filter((s) => s.isForCustomEncryption);
+  const secrets: Secret[] = secretData.secrets.filter(isSecret).filter((s) => s.isForCustomEncryption);
   if (secrets.length === 0) {
     throw new StorageCryptoError('No secret for Custom Encryption');
   }

@@ -177,7 +177,7 @@ type SecretsData = {
       version: 0
     },
     {
-      secret: 'bbbbbbbbbbbb...bbb', // Should be a 32-characters 'utf8' encoded string
+      secret: 'base64...IHN0cmluZw==', // Should be a base64-encoded key (32 byte key)
       version: 1,
       isKey: true
     },
@@ -195,7 +195,7 @@ type SecretsData = {
 
 This enables the flexibility required to support Key Rotation policies when secrets/keys need to be changed with time. SDK will encrypt data using current secret/key while maintaining the ability to decrypt records encrypted with old keys/secrets. SDK also provides a method for data migration which allows to re-encrypt data with the newest key/secret. For details please see `migrate` method.
 
-SDK allows you to use custom encryption keys, instead of secrets. Please note that user-defined encryption key should be a 32-characters 'utf8' encoded string as it's required by AES-256 cryptographic algorithm.
+SDK allows you to use custom encryption keys, instead of secrets. Please note that user-defined encryption key should be a base64 encoded 32-bytes-long key as it's required by AES-256 cryptographic algorithm.
 
 Here are some examples of `GetSecretsCallback`.
 
@@ -432,7 +432,7 @@ const readResult = await storage.read(countryCode, recordKey);
 
 ### Find records
 
-You can search records either using exact match search operators or partial text match operators in almost any combinations. 
+You can search records either using exact match search operators or partial text match operators in almost any combinations.
 
 ##### Exact match search
 
@@ -469,7 +469,7 @@ The next exact match filtering criteria available:
 
 ##### Partial text match search
 
-Also you can search records by partial match using `searchKeys` operator, which performs partial match 
+Also you can search records by partial match using `searchKeys` operator, which performs partial match
 search (similar to `LIKE` SQL operator) among record's text fields `key1, key2, ..., key10`.
 ```typescript
 // Matches all records where record.key1 LIKE 'abc' OR record.key2 LIKE 'abc' OR ... OR record.key10 LIKE 'abc'
