@@ -14,7 +14,7 @@ let recordData: StorageRecordData;
 
 describe('Add attachment to record', () => {
   beforeEach(async () => {
-    storage = await createStorage(true);
+    storage = await createStorage({ encryption: true });
     recordData = {
       recordKey: Math.random().toString(36).substr(2, 10),
       body: JSON.stringify({ name: 'PersonName' }),

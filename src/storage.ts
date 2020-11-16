@@ -15,10 +15,10 @@ import {
 import {
   StorageRecord,
   fromApiRecord,
-  fromApiRecordAttachment,
   StorageRecordAttachment,
+  fromApiRecordAttachment,
 } from './validation/storage-record';
-import { StorageRecordDataArrayIO } from './validation/storage-record-data-array';
+import { getStorageRecordDataArrayIO } from './validation/storage-record-data-array';
 import { CountryCodeIO } from './validation/country-code';
 import { FindOptionsIO, FindOptions } from './validation/api/find-options';
 import {
@@ -36,7 +36,7 @@ import { AuthClient, getApiKeyAuthClient, OAuthClient } from './auth-client';
 import { normalizeErrors } from './normalize-errors-decorator';
 import { FindResponseMeta } from './validation/api/find-response';
 import { ApiRecord, ApiRecordBodyIO } from './validation/api/api-record';
-import { StorageRecordData, StorageRecordDataIO } from './validation/storage-record-data';
+import { StorageRecordData, getStorageRecordDataIO } from './validation/storage-record-data';
 import { ApiRecordData, apiRecordDataFromStorageRecordData } from './validation/api/api-record-data';
 import { RequestOptionsIO, RequestOptions } from './validation/request-options';
 import { AttachmentWritableMeta, AttachmentWritableMetaIO } from './validation/attachment-writable-meta';
@@ -44,8 +44,7 @@ import { AttachmentData, AttachmentDataIO } from './validation/api/attachment-da
 
 const FIND_LIMIT = 100;
 
-type KEY_TO_HASH =
-  | 'record_key'
+type SEARCH_KEY =
   | 'key1'
   | 'key2'
   | 'key3'
@@ -55,13 +54,9 @@ type KEY_TO_HASH =
   | 'key7'
   | 'key8'
   | 'key9'
-  | 'key10'
-  | 'service_key1'
-  | 'service_key2'
-  | 'profile_key';
+  | 'key10';
 
-const KEYS_TO_HASH: KEY_TO_HASH[] = [
-  'record_key',
+const SEARCH_KEYS: SEARCH_KEY[] = [
   'key1',
   'key2',
   'key3',
@@ -72,6 +67,16 @@ const KEYS_TO_HASH: KEY_TO_HASH[] = [
   'key8',
   'key9',
   'key10',
+];
+
+type KEY_TO_HASH =
+  | 'record_key'
+  | 'service_key1'
+  | 'service_key2'
+  | 'profile_key';
+
+const KEYS_TO_HASH: KEY_TO_HASH[] = [
+  'record_key',
   'service_key1',
   'service_key2',
   'profile_key',
@@ -141,6 +146,7 @@ class Storage {
   logger!: defaultLogger.Logger;
   countriesCache!: CountriesCache;
   authClient: AuthClient;
+  hashSearchKeys: boolean;
 
   constructor(options: StorageOptions, customEncryptionConfigs?: CustomEncryptionConfig[]) {
     const validationResult = StorageOptionsIO.decode(options);
@@ -181,6 +187,8 @@ class Storage {
       throw new StorageClientError('Please pass environmentId in options or set INC_ENVIRONMENT_ID env var');
     }
     this.envId = envId;
+
+    this.hashSearchKeys = options.hashSearchKeys === undefined ? true : options.hashSearchKeys;
 
     if (options.encrypt !== false) {
       if (options.getSecrets === undefined) {
@@ -238,7 +246,7 @@ class Storage {
     return { record };
   }
 
-  @validate(CountryCodeIO, StorageRecordDataIO, optional(RequestOptionsIO))
+  @validate(CountryCodeIO, getStorageRecordDataIO, optional(RequestOptionsIO))
   @normalizeErrors()
   async write(
     countryCode: string,
@@ -250,7 +258,7 @@ class Storage {
     return { record: recordData };
   }
 
-  @validate(CountryCodeIO, StorageRecordDataArrayIO, optional(RequestOptionsIO))
+  @validate(CountryCodeIO, getStorageRecordDataArrayIO, optional(RequestOptionsIO))
   @normalizeErrors()
   async batchWrite(
     countryCode: string,
@@ -270,8 +278,10 @@ class Storage {
     options: FindOptions = {},
     requestOptions: RequestOptions = {},
   ): Promise<FindResult> {
+    const keysToHash = this.getKeysToHash();
+
     const data = {
-      filter: this.hashFilterKeys(filterFromStorageDataKeys(filter), KEYS_TO_HASH),
+      filter: this.hashFilterKeys(filterFromStorageDataKeys(filter), keysToHash),
       options: { limit: FIND_LIMIT, offset: 0, ...options },
     };
 
@@ -454,6 +464,14 @@ class Storage {
     return this.normalizeKeys ? String(key).toLowerCase() : String(key);
   }
 
+  private getKeysToHash(): Array<KEY_TO_HASH | SEARCH_KEY> {
+    let keysToHash: Array<KEY_TO_HASH | SEARCH_KEY> = KEYS_TO_HASH;
+    if (this.hashSearchKeys) {
+      keysToHash = keysToHash.concat(SEARCH_KEYS);
+    }
+    return keysToHash;
+  }
+
   createKeyHash(s: string): string {
     const stringToHash = `${s}:${this.envId}`;
     return crypto
@@ -494,7 +512,8 @@ class Storage {
       payload: null,
     };
 
-    KEYS_TO_HASH.forEach((field) => {
+    const keysToHash = this.getKeysToHash();
+    keysToHash.forEach((field) => {
       const value = recordData[field];
       if (value !== undefined) {
         body.meta[field] = value;
@@ -543,7 +562,8 @@ class Storage {
     }
     const { payload, meta } = bodyObj.right;
 
-    KEYS_TO_HASH.forEach((field) => {
+    const keysToHash = [...KEYS_TO_HASH, ...SEARCH_KEYS];
+    keysToHash.forEach((field) => {
       const fieldValue = meta[field];
       if (typeof fieldValue === 'string') {
         record[field] = fieldValue;

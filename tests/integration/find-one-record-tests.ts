@@ -49,7 +49,7 @@ describe('Find one record', () => {
   [false, true].forEach(async (encryption) => {
     context(`${encryption ? 'with' : 'without'} encryption`, () => {
       before(async () => {
-        storage = await createStorage(encryption);
+        storage = await createStorage({ encryption });
         await storage.write(COUNTRY, dataRequest);
       });
 

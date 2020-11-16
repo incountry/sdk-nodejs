@@ -47,8 +47,8 @@ describe('SecretKeyAccessor', () => {
 
     it('should access specific version of secret key', async () => {
       const secret0 = 'supersecret0';
-      const secret1 = 'supersecret1supersecret1supersec';
-      const secret2 = 'supersecret2supersecret2supersec';
+      const secret1 = 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=';
+      const secret2 = 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=';
 
       const secretKeyAccessor10 = new SecretKeyAccessor(async () => ({
         secrets: [
@@ -62,7 +62,7 @@ describe('SecretKeyAccessor', () => {
       const secretObj10 = await secretKeyAccessor10.getSecret(0);
       expect(secretObj10.secret).to.equal(secret0);
       const secretObj11 = await secretKeyAccessor10.getSecret(1);
-      expect(secretObj11.secret).to.equal(secret1);
+      expect(secretObj11.secret).to.deep.equal(Buffer.from(secret1, 'base64'));
       const secretObj12 = await secretKeyAccessor10.getSecret(2);
       expect(secretObj12.secret).to.equal(secret2);
 
@@ -80,7 +80,7 @@ describe('SecretKeyAccessor', () => {
       const secretObj21 = await secretKeyAccessor20.getSecret(1);
       expect(secretObj21.secret).to.equal(secret1);
       const secretObj22 = await secretKeyAccessor20.getSecret(2);
-      expect(secretObj22.secret).to.equal(secret2);
+      expect(secretObj22.secret).to.deep.equal(Buffer.from(secret2, 'base64'));
     });
 
     it('should reject if exception occurred in callback', async () => {

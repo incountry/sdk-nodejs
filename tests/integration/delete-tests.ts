@@ -14,7 +14,7 @@ describe('Delete data from Storage', function () {
       let storage: Storage;
 
       before(async function () {
-        storage = await createStorage(encryption);
+        storage = await createStorage({ encryption });
       });
 
       it('Delete data', async function () {
