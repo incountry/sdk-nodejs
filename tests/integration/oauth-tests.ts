@@ -29,7 +29,10 @@ const createRecord = (profileKey = 'profileKey') => ({
 
 describe('With OAuth authentication', () => {
   beforeEach(async () => {
-    storage = await createStorage(true, true);
+    storage = await createStorage({
+      encryption: true,
+      useOAuth: true,
+    });
     dataList = [];
   });
 
@@ -153,7 +156,11 @@ describe('With OAuth authentication', () => {
       currentVersion: 1,
     });
 
-    const storage2 = await createStorage(true, true, false, secret2);
+    const storage2 = await createStorage({
+      encryption: true,
+      useOAuth: true,
+      getSecrets: secret2,
+    });
     const migrateRes = await storage2.migrate(COUNTRY, undefined, { recordKey: keys });
     expect(migrateRes.meta.migrated).to.eq(dataList.length);
 
@@ -234,7 +241,10 @@ describe('With OAuth authentication', () => {
     beforeEach(async () => {
       envIdOauth = process.env.INT_INC_ENVIRONMENT_ID_OAUTH;
       process.env.INT_INC_ENVIRONMENT_ID_OAUTH = uuid();
-      storage2 = await createStorage(true, true);
+      storage2 = await createStorage({
+        encryption: true,
+        useOAuth: true,
+      });
     });
 
     afterEach(() => {

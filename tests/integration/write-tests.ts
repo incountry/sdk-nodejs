@@ -18,8 +18,8 @@ describe('Write data to Storage', () => {
 
   [false, true].forEach(async (encryption) => {
     context(`${encryption ? 'with' : 'without'} encryption`, () => {
-      before(async () => {
-        storage = await createStorage(encryption);
+      beforeEach(async () => {
+        storage = await createStorage({ encryption });
       });
 
       it('Write data', async () => {
@@ -108,6 +108,51 @@ describe('Write data to Storage', () => {
 
         expect(result2.record.recordKey).to.equal(data.recordKey);
         expect(result2.record.body).to.equal(data.body);
+      });
+
+      describe('Write search keys', () => {
+        context('with "hashSearchKeys" enabled', () => {
+          it('should write search keys hashed', async () => {
+            data = {
+              recordKey: Math.random().toString(36).substr(2, 10),
+              key1: '123456',
+              key9: '123eszdsd',
+            };
+
+            await expect(storage.read(COUNTRY, data.recordKey)).to.be.rejected;
+            await storage.write(COUNTRY, data);
+
+            const record = await storage.apiClient.read(COUNTRY, storage.createKeyHash(data.recordKey));
+
+            expect(record.record_key).to.equal(storage.createKeyHash(data.recordKey), 'record key');
+            expect(record.key1).to.equal(storage.createKeyHash(data.key1 as string), 'key1');
+            expect(record.key9).to.equal(storage.createKeyHash(data.key9 as string), 'key9');
+          });
+        });
+
+        context('with "hashSearchKeys" disabled', () => {
+          it('should write search keys as is', async () => {
+            storage = await createStorage({
+              encryption,
+              hashSearchKeys: false,
+            });
+
+            data = {
+              recordKey: Math.random().toString(36).substr(2, 10),
+              key1: '123456',
+              key9: '123eszdsd',
+            };
+
+            await expect(storage.read(COUNTRY, data.recordKey)).to.be.rejected;
+            await storage.write(COUNTRY, data);
+
+            const record = await storage.apiClient.read(COUNTRY, storage.createKeyHash(data.recordKey));
+
+            expect(record.record_key).to.equal(storage.createKeyHash(data.recordKey), 'record key');
+            expect(record.key1).to.equal(data.key1, 'key1');
+            expect(record.key9).to.equal(data.key9, 'key9');
+          });
+        });
       });
     });
   });

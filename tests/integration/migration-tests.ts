@@ -25,7 +25,10 @@ describe('Migrate data with different secret version to current', () => {
       currentVersion: 1,
     });
 
-    storage = await createStorage(true, false, false, secret1);
+    storage = await createStorage({
+      encryption: true,
+      getSecrets: secret1,
+    });
 
     records = [{
       recordKey: generateKey(),
