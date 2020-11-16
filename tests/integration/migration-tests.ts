@@ -53,7 +53,11 @@ describe('Migrate data with different secret version to current', () => {
       currentVersion: 2,
     });
 
-    const storage2 = await createStorage(true, false, false, secret2);
+    const storage2 = await createStorage({
+      encryption: true,
+      getSecrets: secret2,
+    });
+
     await storage2.migrate(COUNTRY, 3, { recordKey: keys });
 
     const b = await storage2.find(COUNTRY, { recordKey: keys, version: 2 });
