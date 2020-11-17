@@ -37,7 +37,7 @@ fi
 # Run linters, and integration tests
 npm run validate-eslint
 
-# Run building from branch
+# Verify SDK building from branch
 npm pack --dry-run
 
 # Run Unit tests
