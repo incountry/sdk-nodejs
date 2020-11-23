@@ -654,7 +654,7 @@ type StorageRecordAttachment = {
 
 
 ### Adding attachment
-`addAttachment` method allows you to add or replace attachments.
+The `addAttachment` method allows you to add or replace attachments.
 File data can be provided either as `Readable` stream, `Buffer` or `string` with path to the file in file system.
 
 ```typescript
@@ -680,7 +680,7 @@ Example of usage:
 ```
 
 ### Deleting attachment
-`deleteAttachment` method allows you to delete attachments using attachment's `fileId`.
+The `deleteAttachment` method allows you to delete attachments using attachment's `fileId`.
 
 ```typescript
 deleteAttachment(
@@ -699,7 +699,7 @@ Example of usage:
 ```
 
 ### Downloading attachment
-`getAttachmentFile` method allows you to download attachment contents.
+The `getAttachmentFile` method allows you to download attachment contents.
 It returns readable stream.
 
 ```typescript
@@ -719,7 +719,7 @@ Example of usage:
 ```
 
 ### Working with attachment meta info
-`getAttachmentMeta` method allows you can to retrieve attachment's metadata using attachment's `fileId`.
+The `getAttachmentMeta` method allows you can to retrieve attachment's metadata using attachment's `fileId`.
 ```typescript
 async getAttachmentMeta(
   countryCode: string,
@@ -736,7 +736,7 @@ Example of usage:
 ???
 ```
 
-`updateAttachmentMeta` method allows you to update attachment's metadata (mimetype and filename).
+The `updateAttachmentMeta` method allows you to update attachment's metadata (mimetype and filename).
 
 ```typescript
 ??? AttachmentWritableMeta
