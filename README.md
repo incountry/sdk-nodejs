@@ -631,8 +631,8 @@ const deleteResult = await storage.delete(countryCode, recordKey);
 
 ## Attaching files to a record
 
-General info about files, limit and how they would be stored if one decided to upload.
-Attachment info will be available in record `StorageRecord` object `attachments` field.
+InCountry Storage allows to attach files to previously created records. Attachments meta information is available via `attachments` field of `StorageRecord` object.
+
 ```typescript
 type StorageRecord = {
   /* ... other fields ...  */
@@ -653,11 +653,10 @@ type StorageRecordAttachment = {
 
 
 ### Adding attachment
-Using `addAttachment` method you can add or replace attachment.
-Data can be provided as `Readable` stream, `Buffer` or via `string` with path to the file.
+`addAttachment` method allows you to add or replace attachments.
+File data can be provided either as `Readable` stream, `Buffer` or `string` with path to the file in file system.
 
 ```typescript
-
 type AttachmentData = {
   file: Readable | Buffer | string;
   fileName: string;
@@ -674,9 +673,15 @@ async addAttachment(
 }
 ```
 
-### Deleting attachment
+Example of usage:
 ```typescript
+???
+```
 
+### Deleting attachment
+`deleteAttachment` method allows you to delete attachments using attachment's `fileId`.
+
+```typescript
 deleteAttachment(
   countryCode: string,
   recordKey: string,
@@ -687,8 +692,13 @@ deleteAttachment(
 }
 ```
 
-### Downloading attachment content
-Using `getAttachmentFile` method you can download content of the attachment.
+Example of usage:
+```typescript
+???
+```
+
+### Downloading attachment
+`getAttachmentFile` method allows you to download attachment contents.
 It returns readable stream.
 
 ```typescript
@@ -702,7 +712,13 @@ async getAttachmentFile(
 }
 ```
 
+Example of usage:
+```typescript
+???
+```
+
 ### Working with attachment meta info
+`getAttachmentMeta` method allows you can to retrieve attachment's metadata using attachment's `fileId`.
 ```typescript
 async getAttachmentMeta(
   countryCode: string,
@@ -714,7 +730,16 @@ async getAttachmentMeta(
 }
 ```
 
+Example of usage:
 ```typescript
+???
+```
+
+`updateAttachmentMeta` method allows you to update attachment's metadata (mimetype and filename).
+
+```typescript
+??? AttachmentWritableMeta
+
 async updateAttachmentMeta(
   countryCode: string,
   recordKey: string,
