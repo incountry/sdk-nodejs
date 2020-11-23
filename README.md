@@ -677,7 +677,16 @@ async addAttachment(
 
 Example of usage:
 ```typescript
-???
+// with file path
+const attachmentData = { file: '../file', fileName: 'example file' };
+await storage.addAttachment(COUNTRY, recordData.recordKey, attachmentData);
+
+//with data in Stream
+import * as fs from 'fs';
+
+const file$ = fs.createReadStream('./LICENSE');
+const attachmentData = { file: file$, fileName: 'example file' };
+await storage.addAttachment(COUNTRY, recordData.recordKey, attachmentData);
 ```
 
 ### Deleting attachments
@@ -696,12 +705,15 @@ deleteAttachment(
 
 Example of usage:
 ```typescript
-???
+const attachmentData = { file: '../file', fileName: 'example file' };
+const addResult = await storage.addAttachment(COUNTRY, recordData.recordKey, attachmentData);
+
+await storage.deleteAttachment(COUNTRY, recordData.recordKey, addResult.attachmentMeta.fileId);
 ```
 
 ### Downloading attachments
 The `getAttachmentFile` method allows you to download attachment contents.
-It returns readable stream.
+It returns object with readable stream and filename.
 
 ```typescript
 async getAttachmentFile(
@@ -709,14 +721,20 @@ async getAttachmentFile(
   recordKey: string,
   fileId: string,
   requestOptions: RequestOptions = {},
-): Promise<Readable> {
+): Promise<GetAttachmentFileResult> {
   /* ... */
 }
 ```
 
 Example of usage:
 ```typescript
-???
+const attachmentData = { file: '../file', fileName: 'example file' };
+const addResult = await storage.addAttachment(COUNTRY, recordData.recordKey, attachmentData);
+
+const getResult = await storage.getAttachmentFile(COUNTRY, recordData.recordKey, addResult.attachmentMeta.fileId);
+
+console.log(getResult.attachmentData.fileName);
+getResult.attachmentData.file.pipe(process.stdout);
 ```
 
 ### Working with attachment meta info
@@ -734,14 +752,16 @@ async getAttachmentMeta(
 
 Example of usage:
 ```typescript
-???
+const attachmentData = { file: '../file', fileName: 'example file' };
+const addResult = await storage.addAttachment(COUNTRY, recordData.recordKey, attachmentData);
+
+const attachmentMeta = await storage.getAttachmentMeta(COUNTRY, recordData.recordKey, addResult.attachmentMeta.fileId);
+// addResult.attachmentMeta deep equals attachmentMeta
 ```
 
 The `updateAttachmentMeta` method allows you to update attachment's metadata (mimetype and filename).
 
 ```typescript
-??? AttachmentWritableMeta
-
 async updateAttachmentMeta(
   countryCode: string,
   recordKey: string,
@@ -751,6 +771,14 @@ async updateAttachmentMeta(
 ): Promise<StorageRecordAttachment> {
     /* ... */
 }
+```
+
+Example of usage:
+```typescript
+const attachmentData = { file: '../file', fileName: 'example file' };
+const addResult = await storage.addAttachment(COUNTRY, data.recordKey, attachmentData);
+
+await storage.updateAttachmentMeta(COUNTRY, data.recordKey, addResult.attachmentMeta.fileId, { fileName: 'new name!' });
 ```
 
 
