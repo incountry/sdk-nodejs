@@ -193,7 +193,7 @@ type SecretsData = {
 
 The `GetSecretsCallback` function allows you to specify multiple keys/secrets which the SDK will use for decryption based on the version of the key or secret used for encryption. Meanwhile SDK will encrypt data only by using a key (or secret) which matches the `currentVersion` parameter provided in the `SecretsData` object.
 
-This enables the flexibility required to support Key Rotation policies when secrets (or keys) must be changed with time. The SDK will encrypt data by using the current secret (or key) while maintaining the ability to decrypt data records that were encrypted with old secrets (or keys). The SDK also provides a method for data migration which allows to re-encrypt data with the newest secret (or key). For details please see the `migrate` method.
+This enables the flexibility required to support Key Rotation policies when secrets (or keys) must be changed with time. The SDK will encrypt data by using the current secret (or key) while maintaining the ability to decrypt data records that were encrypted with old secrets (or keys). The SDK also provides a method for data migration which allows you to re-encrypt data with the newest secret (or key). For details please see the `migrate` method.
 
 The SDK allows you to use custom encryption keys, instead of secrets. Please note that a user-defined encryption key should be a base64-encoded 32-bytes-long key as required by AES-256 cryptographic algorithm.
 
