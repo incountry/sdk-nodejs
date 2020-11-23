@@ -632,7 +632,8 @@ const deleteResult = await storage.delete(countryCode, recordKey);
 
 ## Attaching files to a record
 
-InCountry Storage allows to attach files to previously created records. Attachments meta information is available via `attachments` field of `StorageRecord` object.
+InCountry Storage allows you to attach files to the previously created records. Attachments' meta information is available through the `attachments` field of `StorageRecord` object.
+
 
 ```typescript
 type StorageRecord = {
@@ -653,9 +654,9 @@ type StorageRecordAttachment = {
 ```
 
 
-### Adding attachment
+### Adding attachments
 The `addAttachment` method allows you to add or replace attachments.
-File data can be provided either as `Readable` stream, `Buffer` or `string` with path to the file in file system.
+File data can be provided either as `Readable` stream, `Buffer` or `string` with a path to the file in the file system.
 
 ```typescript
 type AttachmentData = {
@@ -679,7 +680,7 @@ Example of usage:
 ???
 ```
 
-### Deleting attachment
+### Deleting attachments
 The `deleteAttachment` method allows you to delete attachments using attachment's `fileId`.
 
 ```typescript
@@ -698,7 +699,7 @@ Example of usage:
 ???
 ```
 
-### Downloading attachment
+### Downloading attachments
 The `getAttachmentFile` method allows you to download attachment contents.
 It returns readable stream.
 
