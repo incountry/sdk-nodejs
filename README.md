@@ -759,7 +759,7 @@ const attachmentMeta = await storage.getAttachmentMeta(COUNTRY, recordData.recor
 // addResult.attachmentMeta deep equals attachmentMeta
 ```
 
-The `updateAttachmentMeta` method allows you to update attachment's metadata (mimetype and filename).
+The `updateAttachmentMeta` method allows you to update attachment's metadata (MIME type and file name).
 
 ```typescript
 async updateAttachmentMeta(
