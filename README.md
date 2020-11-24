@@ -727,8 +727,8 @@ import * as fs from 'fs';
 
 const { attachmentData } = await storage.getAttachmentFile(COUNTRY, recordData.recordKey, attachmentMeta.fileId);
 
-console.log(attachmentData.fileName);
-const writeStream = fs.createWriteStream('./output');
+const { file, fileName } = attachmentData;
+const writeStream = fs.createWriteStream(`./output`);
 attachmentData.file.pipe(writeStream);
 ```
 
@@ -753,6 +753,11 @@ const meta: StorageRecordAttachment = await storage.getAttachmentMeta(COUNTRY, r
 The `updateAttachmentMeta` method allows you to update attachment's metadata (MIME type and file name).
 
 ```typescript
+type AttachmentWritableMeta = {
+  fileName?: string;
+  mimeType?: string;
+};
+
 async updateAttachmentMeta(
   countryCode: string,
   recordKey: string,
