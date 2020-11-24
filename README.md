@@ -126,7 +126,7 @@ The `validate` method fetches the secret using `GetSecretsCallback` and validate
 
 The SDK also supports oAuth authentication credentials instead of plain API key authorization. oAuth authentication flow is mutually exclusive with API key authentication - you will need to provide either API key or oAuth credentials.
 
-Below you can find the example of how to  create a storage instance with oAuth credentials (and also provide a custom oAuth endpoint):
+Below you can find the example of how to create a storage instance with oAuth credentials (and also provide a custom oAuth endpoint):
 ```typescript
 const { Storage } = require('incountry');
 const storage = new Storage({
@@ -333,7 +333,7 @@ async write(
 }
 ```
 
-Below you can find the example of how you can use the `write` method.
+Below you can find the example of how to use the `write` method.
 
 ```typescript
 const recordData = {
@@ -471,7 +471,7 @@ The following exact match search criteria are available:
 ##### Partial text match search
 
 You can also look up for data records by partial match using the `searchKeys` operator which performs partial match
-search (similar to the `LIKE` SQL operator, without special symbols) within records text fields `key1, key2, ..., key10`.
+search (similar to the `LIKE` SQL operator, without special characters) within records text fields `key1, key2, ..., key10`.
 ```typescript
 // Matches all records where record.key1 LIKE 'abc' OR record.key2 LIKE 'abc' OR ... OR record.key10 LIKE 'abc'
 { searchKeys: 'abc' }
@@ -677,10 +677,10 @@ async addAttachment(
 
 Example of usage:
 ```typescript
-// with file path
+// using file path
 await storage.addAttachment(COUNTRY, recordData.recordKey, { file: '../file' });
 
-//with data in Stream
+// using data Stream
 import * as fs from 'fs';
 
 const file = fs.createReadStream('./LICENSE');
@@ -688,7 +688,7 @@ await storage.addAttachment(COUNTRY, recordData.recordKey, { file });
 ```
 
 ### Deleting attachments
-The `deleteAttachment` method allows you to delete attachments using attachment's `fileId`.
+The `deleteAttachment` method allows you to delete attachment using its `fileId`.
 
 ```typescript
 deleteAttachment(
@@ -733,7 +733,7 @@ file.pipe(writeStream);
 ```
 
 ### Working with attachment meta info
-The `getAttachmentMeta` method allows you can to retrieve attachment's metadata using attachment's `fileId`.
+The `getAttachmentMeta` method allows you to retrieve attachment's metadata using its `fileId`.
 ```typescript
 async getAttachmentMeta(
   countryCode: string,
