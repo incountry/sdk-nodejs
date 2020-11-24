@@ -729,7 +729,7 @@ const { attachmentData } = await storage.getAttachmentFile(COUNTRY, recordData.r
 
 const { file, fileName } = attachmentData;
 const writeStream = fs.createWriteStream(`./${fileName}`);
-attachmentData.file.pipe(writeStream);
+file.pipe(writeStream);
 ```
 
 ### Working with attachment meta info
