@@ -471,7 +471,7 @@ The following exact match search criteria are available:
 ##### Partial text match search
 
 You can also look up for data records by partial match using the `searchKeys` operator which performs partial match
-search (similar to the `LIKE` SQL operator) within records text fields `key1, key2, ..., key10`.
+search (similar to the `LIKE` SQL operator, without special symbols) within records text fields `key1, key2, ..., key10`.
 ```typescript
 // Matches all records where record.key1 LIKE 'abc' OR record.key2 LIKE 'abc' OR ... OR record.key10 LIKE 'abc'
 { searchKeys: 'abc' }
