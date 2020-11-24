@@ -728,7 +728,7 @@ import * as fs from 'fs';
 const { attachmentData } = await storage.getAttachmentFile(COUNTRY, recordData.recordKey, attachmentMeta.fileId);
 
 const { file, fileName } = attachmentData;
-const writeStream = fs.createWriteStream(`./output`);
+const writeStream = fs.createWriteStream(`./${fileName}`);
 attachmentData.file.pipe(writeStream);
 ```
 
