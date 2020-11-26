@@ -238,6 +238,8 @@ await storage.validate();
 The `validate` method fetches the secret using `GetSecretsCallback` and validates it. If custom encryption configurations were provided they would also be checked with all the matching secrets.
 
 
+## Usage
+
 ### Writing data to Storage
 
 Use the `write` method to create/replace a record (by `recordKey`).
