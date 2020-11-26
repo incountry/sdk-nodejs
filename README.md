@@ -19,10 +19,28 @@ Countries List
 To get the full list of supported countries and their codes, please [follow this link](countries.md).
 
 
-Usage
+Quickstart guide
+----
+
+To access your data in InCountry Platform by using NodeJS SDK, you need to create an instance of the Storage class using the createStorage async factory method. You can retrieve the `oauth.clientId`, `oauth.clientSecret` and `environmentId` variables from your dashboard on InCountry Portal.
+
+```typescript
+const { createStorage } = require('incountry');
+const storage = await createStorage({
+  environmentId: '<environment_id>',
+    oauth: {
+      clientId: '<client_id>',
+      clientSecret: '<client_secret>',
+    },
+  },
+  getSecrets: () => '<encryption_secret>',
+});
+```
+
+Storage Configuration
 -----
 
-To access your data in InCountry Platform by using NodeJS SDK, you need to create an instance of the `Storage` class using the `createStorage` async factory method.
+Below you can find a full list of possible configuration options for creating a Storage instance.
 
 ```typescript
 type StorageOptions = {
@@ -71,27 +89,6 @@ async function createStorage(
 ): Promise<Storage> {
   /* ... */
 }
-
-const { createStorage } = require('incountry');
-const storage = await createStorage({
-  apiKey: 'API_KEY',
-  environmentId: 'ENVIRONMENT_ID',
-  oauth: {
-    clientId: '',
-    clientSecret: '',
-    authEndpoints: {
-      default: 'https://auth',
-    },
-  },
-  endpoint: 'INC_URL',
-  encrypt: true,
-  getSecrets: () => '',
-  endpointMask: '',
-  countriesEndpoint: '',
-  httpOptions: {
-    timeout: 5000,
-  },
-});
 ```
 
 ---
@@ -99,49 +96,37 @@ const storage = await createStorage({
 
 API Key authorization is being deprecated. The backward compatibility is preserved for the `apiKey` parameter but you no longer can access API keys (neither old nor new) from your dashboard.
 
----
-
-The `oauth.clientId`, `oauth.clientSecret` and `environmentId` variables can be fetched from your dashboard on InCountry Portal.
-
-
-Otherwise you can create an instance of the `Storage` class and run all asynchronous checks by yourself (or skip them at your own risk!).
+Below you can find API Key authorization usage example:
 
 ```typescript
-const { Storage } = require('incountry');
-const storage = new Storage({
-  apiKey: 'API_KEY',
-  environmentId: 'ENVIRONMENT_ID',
-  endpoint: 'INC_URL',
-  encrypt: true,
-  getSecrets: () => '',
+const { createStorage } = require('incountry');
+const storage = await createStorage({
+  apiKey: '<api_key>',
+  environmentId: '<environment_id>',
+  getSecrets: () => '<encryption_secret>',
 });
-
-await storage.validate();
 ```
 
-The `validate` method fetches the secret using `GetSecretsCallback` and validates it. If custom encryption configurations were provided they would also be checked with all the matching secrets.
+---
 
+#### oAuth options configuration
 
-#### oAuth Authentication
+The SDK allows to precisely configure oAuth authorization endpoints (if needed). Use this option only if your plan configuration requires so.
 
-The SDK also supports oAuth authentication credentials instead of plain API key authorization. oAuth authentication flow is mutually exclusive with API key authentication - you will need to provide either API key or oAuth credentials.
-
-Below you can find the example of how to create a storage instance with oAuth credentials (and also provide a custom oAuth endpoint):
+Below you can find the example of how to create a storage instance with custom oAuth endpoints:
 ```typescript
 const { Storage } = require('incountry');
 const storage = new Storage({
-  environmentId: 'ENVIRONMENT_ID',
-  endpoint: 'INC_URL',
-  encrypt: true,
-  getSecrets: () => '',
+  environmentId: '<environment_id>',
+  getSecrets: () => '<encryption_secret>',
   oauth: {
-    clientId: 'CLIENT_ID',
-    clientSecret: 'CLIENT_SECRET',
+    clientId: '<client_id>',
+    clientSecret: '<client_secret>',
     authEndpoints: {
-      "default": "https://auth-server-default.com",
-      "emea": "https://auth-server-emea.com",
-      "apac": "https://auth-server-apac.com",
-      "amer": "https://auth-server-amer.com",
+      "default": "<default_auth_endpoint>",
+      "emea": "<auth_endpoint_for_emea_region>",
+      "apac": "<auth_endpoint_for_apac_region>",
+      "amer": "<auth_endpoint_for_amer_region>",
     },
   },
 });
@@ -238,6 +223,20 @@ const storage = await createStorage({
   logger: customLogger
 });
 ```
+
+#### Skipping Storage validation
+
+You can create an instance of the `Storage` class and run all asynchronous checks by yourself (or skip them at your own risk!).
+
+```typescript
+const { Storage } = require('incountry');
+const storage = new Storage({...});
+
+await storage.validate();
+```
+
+The `validate` method fetches the secret using `GetSecretsCallback` and validates it. If custom encryption configurations were provided they would also be checked with all the matching secrets.
+
 
 ### Writing data to Storage
 
