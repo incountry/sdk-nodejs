@@ -23,10 +23,9 @@ To access your data in InCountry Platform by using NodeJS SDK, you need to creat
 const { createStorage } = require('incountry');
 const storage = await createStorage({
   environmentId: '<environment_id>',
-    oauth: {
-      clientId: '<client_id>',
-      clientSecret: '<client_secret>',
-    },
+  oauth: {
+    clientId: '<client_id>',
+    clientSecret: '<client_secret>',
   },
   getSecrets: () => '<encryption_secret>',
 });
