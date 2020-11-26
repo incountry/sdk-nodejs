@@ -5,23 +5,18 @@
 [![vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=incountry_sdk-nodejs&metric=vulnerabilities)](https://sonarcloud.io/dashboard?id=incountry_sdk-nodejs)
 
 
-Installation
------
-
+## Installation
 The SDK is available via NPM:
 
 ```
 npm install incountry --save
 ```
 
-Countries List
-----
+## Countries List
 To get the full list of supported countries and their codes, please [follow this link](countries.md).
 
 
-Quickstart guide
-----
-
+## Quickstart guide
 To access your data in InCountry Platform by using NodeJS SDK, you need to create an instance of the Storage class using the createStorage async factory method. You can retrieve the `oauth.clientId`, `oauth.clientSecret` and `environmentId` variables from your dashboard on InCountry Portal.
 
 ```typescript
@@ -37,8 +32,7 @@ const storage = await createStorage({
 });
 ```
 
-Storage Configuration
------
+## Storage Configuration
 
 Below you can find a full list of possible configuration options for creating a Storage instance.
 
@@ -809,8 +803,7 @@ const migrateResult = await storage.migrate(countryCode);
 ```
 
 
-Error Handling
------
+## Error Handling
 
 InCountry Node SDK throws following Exceptions:
 
