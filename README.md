@@ -128,11 +128,7 @@ const storage = new Storage({
 
 #### Encryption key/secret
 
-The `GetSecretsCallback` function is used to pass a key or secret used for encryption.
-
-Note: even though SDK uses PBKDF2 to generate a cryptographically strong encryption key, you must ensure that you provide a secret/password which follows the modern security best practices and standards.
-
-The `GetSecretsCallback` function returns either a string representing your secret or an object (we call it `SecretsData`) or a `Promise` which is resolved to that string or object:
+The `getSecrets` storage config option allows you to pass function which will be used to fetch an encryption key(s) or secret. This function should return either a string representing your secret or an object (we call it `SecretsData`) or a `Promise` which is resolved to that string or object:
 
 ```typescript
 type SecretOrKey = {
@@ -169,33 +165,45 @@ type SecretsData = {
 };
 ```
 
-The `GetSecretsCallback` function allows you to specify multiple keys/secrets which the SDK will use for decryption based on the version of the key or secret used for encryption. Meanwhile SDK will encrypt data only by using a key (or secret) which matches the `currentVersion` parameter provided in the `SecretsData` object.
+Note: even though SDK uses PBKDF2 to generate a cryptographically strong encryption key, you must ensure that you provide a secret/password which follows the modern security best practices and standards.
+
+The `SecretsData` object allows you to specify multiple keys/secrets which the SDK will use for decryption based on the version of the key or secret used for encryption. Meanwhile SDK will encrypt data only by using a key (or secret) which matches the `currentVersion` parameter provided in the `SecretsData` object.
 
 This enables the flexibility required to support Key Rotation policies when secrets (or keys) must be changed with time. The SDK will encrypt data by using the current secret (or key) while maintaining the ability to decrypt data records that were encrypted with old secrets (or keys). The SDK also provides a method for data migration which allows you to re-encrypt data with the newest secret (or key). For details please see the `migrate` method.
 
 The SDK allows you to use custom encryption keys, instead of secrets. Please note that a user-defined encryption key should be a base64-encoded 32-bytes-long key as required by AES-256 cryptographic algorithm.
 
-Below you can find several examples of how you can use the `GetSecretsCallback` function.
+Below you can find several examples of how you can use the `getSecrets` storage config option:
 
 ```typescript
-type GetSecretsCallback = () => string | SecretsData | Promise<string> | Promise<SecretsData>;
-
 // Synchronous
 const getSecretsSync = () => 'longAndStrongPassword';
+const storage = await createStorage({
+  ...,
+  getSecrets: getSecretsSync,
+});
 
 // Asynchronous
 const getSecretsAsync = async () => {
   const secretsData = await getSecretsDataFromSomewhere();
   return secretsData;
 };
+const storage = await createStorage({
+  ...,
+  getSecrets: getSecretsAsync,
+});
 
 // Using promises syntax
 const getSecretsPromise = () =>
   new Promise(resolve => {
-    getPasswordFromSomewhere(secretsData => {
+    getSecretsDataFromSomewhere(secretsData => {
       resolve(secretsData);
     });
   });
+const storage = await createStorage({
+  ...,
+  getSecrets: getSecretsPromise,
+});
 ```
 
 #### Logging
@@ -228,7 +236,7 @@ const storage = new Storage({...});
 await storage.validate();
 ```
 
-The `validate` method fetches the secret using `GetSecretsCallback` and validates it. If custom encryption configurations were provided they would also be checked with all the matching secrets.
+The `validate` method fetches the secret using `getSecrets` and validates it. If custom encryption configurations were provided they would also be checked with all the matching secrets.
 
 
 ## Usage
@@ -771,10 +779,10 @@ await storage.updateAttachmentMeta(COUNTRY, data.recordKey, attachmentMeta.fileI
 
 ## Data Migration and Key Rotation support
 
-Using `GetSecretCallback` that provides `secretsData` object enables key rotation and data migration support.
+Using `getSecrets` storage config options that provides `SecretsData` object enables key rotation and data migration support.
 
 SDK introduces `migrate` method which allows you to re-encrypt data encrypted with old versions of the secret.
-It returns an object which contains some information about the migration - the amount of records migrated (`migrated`) and the amount of records left to migrate (`totalLeft`) (which basically means the amount of records with version different from `currentVersion` provided by `GetSecretsCallback`).
+It returns an object which contains some information about the migration - the amount of records migrated (`migrated`) and the amount of records left to migrate (`totalLeft`) (which basically means the amount of records with version different from `currentVersion` provided by `SecretsData`).
 
 For a detailed example of a migration script please see [examples/migration.js](examples/migration.js)
 
