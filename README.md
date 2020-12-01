@@ -128,7 +128,7 @@ const storage = new Storage({
 
 #### Encryption key/secret
 
-The `getSecrets` storage config option allows you to pass function which will be used to fetch an encryption key(s) or secret. This function should return either a string representing your secret or an object (we call it `SecretsData`) or a `Promise` which is resolved to that string or object:
+The `getSecrets` storage config option allows you to pass function which will be used to fetch an encryption key(s) or secret. This function should return either a string representing your secret or an object (so-called `SecretsData`) or a `Promise` which is resolved to such string or object:
 
 ```typescript
 type SecretOrKey = {
