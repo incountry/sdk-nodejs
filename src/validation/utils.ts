@@ -3,7 +3,13 @@ import { clone } from 'io-ts-types/lib/clone';
 import { Readable } from 'stream';
 import { isLeft, isRight, Either } from 'fp-ts/lib/Either';
 import { getErrorMessage } from './get-error-message';
-import { StorageClientError, StorageServerError } from '../errors';
+import {
+  StorageClientError,
+  StorageServerError,
+  InputValidationError,
+  StorageConfigValidationError,
+  SecretsValidationError,
+} from '../errors';
 import { isJSON } from '../utils';
 
 
@@ -12,6 +18,21 @@ type Validation<A> = Either<t.Errors, A>;
 const toStorageClientError = (prefix = '') => (validation: Validation<unknown>): StorageClientError => {
   const errorMessage = getErrorMessage(validation);
   return new StorageClientError(`${prefix}${errorMessage}`, validation);
+};
+
+const toStorageConfigValidationError = (prefix = '') => (validation: Validation<unknown>): StorageConfigValidationError => {
+  const errorMessage = getErrorMessage(validation);
+  return new StorageConfigValidationError(`${prefix}${errorMessage}`, validation);
+};
+
+const toSecretsValidationError = (prefix = '') => (validation: Validation<unknown>): SecretsValidationError => {
+  const errorMessage = getErrorMessage(validation);
+  return new SecretsValidationError(`${prefix}${errorMessage}`, validation);
+};
+
+const toInputValidationError = (prefix = '') => (validation: Validation<unknown>): InputValidationError => {
+  const errorMessage = getErrorMessage(validation);
+  return new InputValidationError(`${prefix}${errorMessage}`, validation);
 };
 
 const toStorageServerError = (prefix = '') => (validation: Validation<unknown>): StorageServerError => {
@@ -97,6 +118,9 @@ const StringMax256 = t.brand(
 export {
   Codec,
   toStorageClientError,
+  toStorageConfigValidationError,
+  toSecretsValidationError,
+  toInputValidationError,
   toStorageServerError,
   validationToPromise,
   JSONIO,

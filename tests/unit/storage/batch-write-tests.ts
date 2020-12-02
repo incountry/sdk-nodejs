@@ -17,7 +17,7 @@ import {
   EMPTY_API_RECORD,
   getDefaultStorage,
 } from './common';
-import { StorageError, StorageServerError } from '../../../src/errors';
+import { InputValidationError, StorageServerError } from '../../../src/errors';
 import { nockPopApi, getNockedRequestBodyObject } from '../../test-helpers/popapi-nock';
 import { COUNTRY_CODE_ERROR_MESSAGE } from '../../../src/validation/country-code';
 import { VALID_REQUEST_OPTIONS, INVALID_REQUEST_OPTIONS } from '../validation/request-options';
@@ -71,7 +71,7 @@ describe('Storage', () => {
             const wrongCountries = [undefined, null, 1, {}, []];
             // @ts-ignore
             await Promise.all(wrongCountries.map((country) => expect(encStorage.batchWrite(country))
-              .to.be.rejectedWith(StorageError, COUNTRY_CODE_ERROR_MESSAGE)));
+              .to.be.rejectedWith(InputValidationError, `batchWrite() Validation Error: ${COUNTRY_CODE_ERROR_MESSAGE}`)));
           });
         });
 
@@ -80,17 +80,17 @@ describe('Storage', () => {
           it('should throw error with invalid request options', async () => {
             // @ts-ignore
             await Promise.all(INVALID_REQUEST_OPTIONS.map((requestOptions) => expect(encStorage.batchWrite(COUNTRY, recordsData, requestOptions))
-              .to.be.rejectedWith(StorageError, '<RequestOptionsIO>')));
+              .to.be.rejectedWith(InputValidationError, 'batchWrite() Validation Error: <RequestOptionsIO>')));
           });
 
           it('should not throw error with valid request options', async () => {
             await Promise.all(VALID_REQUEST_OPTIONS.map((requestOptions) => expect(encStorage.batchWrite(COUNTRY, recordsData, requestOptions))
-              .to.not.be.rejectedWith(StorageError, '<RequestOptionsIO>')));
+              .not.to.be.rejectedWith(InputValidationError)));
           });
 
           it('should not throw error without request options', async () => {
             expect(encStorage.batchWrite(COUNTRY, recordsData))
-              .to.not.be.rejectedWith(StorageError, '<RequestOptionsIO>');
+              .not.to.be.rejectedWith(InputValidationError);
           });
 
           it('should pass valid request options "meta" to logger', async () => {
@@ -134,7 +134,7 @@ describe('Storage', () => {
           it(`should throw an error ${errCase.name}`, async () => {
             // @ts-ignore
             await expect(encStorage.batchWrite(COUNTRY, errCase.arg))
-              .to.be.rejectedWith(StorageError, errCase.error);
+              .to.be.rejectedWith(InputValidationError, errCase.error);
           });
         });
       });

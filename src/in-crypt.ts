@@ -1,7 +1,7 @@
 import crypto from 'crypto';
 import util from 'util';
 import { SecretKeyAccessor } from './secret-key-accessor';
-import { StorageCryptoError, StorageClientError } from './errors';
+import { StorageCryptoError } from './errors';
 import {
   isValid, getErrorMessage, NonNegativeInt,
 } from './validation/utils';
@@ -70,7 +70,7 @@ class InCrypt {
     const validationResult = CustomEncryptionConfigsIO.decode(customEncryptionConfigs);
     if (!isValid(validationResult)) {
       const errorMessage = getErrorMessage(validationResult);
-      throw new StorageClientError(`Custom Encryption Validation Error: ${errorMessage}`);
+      throw new StorageCryptoError(`Custom Encryption Validation Error: ${errorMessage}`);
     }
 
     this.customEncryption = customEncryptionConfigs.reduce((result, item) => ({

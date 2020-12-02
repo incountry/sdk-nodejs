@@ -1,4 +1,4 @@
-import { validationToPromise, toStorageClientError, NonNegativeInt } from './validation/utils';
+import { validationToPromise, toSecretsValidationError, NonNegativeInt } from './validation/utils';
 import { SecretsDataIO, SecretsData, SecretOrKey } from './validation/secrets-data';
 import { StorageClientError } from './errors';
 
@@ -47,7 +47,7 @@ class SecretKeyAccessor {
       return wrapToSecretsData(secretData);
     }
 
-    return validationToPromise(SecretsDataIO.decode(secretData), toStorageClientError());
+    return validationToPromise(SecretsDataIO.decode(secretData), toSecretsValidationError());
   }
 }
 

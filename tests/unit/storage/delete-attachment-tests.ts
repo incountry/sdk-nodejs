@@ -8,7 +8,7 @@ import {
   REQUEST_TIMEOUT_ERROR,
   getDefaultStorage,
 } from './common';
-import { StorageError, StorageServerError } from '../../../src/errors';
+import { InputValidationError, StorageServerError } from '../../../src/errors';
 import { COUNTRY_CODE_ERROR_MESSAGE } from '../../../src/validation/country-code';
 import { nockPopApi } from '../../test-helpers/popapi-nock';
 import { Storage } from '../../../src/storage';
@@ -54,7 +54,7 @@ describe('Storage', () => {
             const wrongCountries = [undefined, null, 1, {}, []];
             // @ts-ignore
             await Promise.all(wrongCountries.map((country) => expect(encStorage.deleteAttachment(country))
-              .to.be.rejectedWith(StorageError, COUNTRY_CODE_ERROR_MESSAGE)));
+              .to.be.rejectedWith(InputValidationError, `deleteAttachment() Validation Error: ${COUNTRY_CODE_ERROR_MESSAGE}`)));
           });
         });
       });

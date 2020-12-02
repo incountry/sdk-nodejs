@@ -3,7 +3,7 @@ import * as chai from 'chai';
 import chaiAsPromised from 'chai-as-promised';
 import * as t from 'io-ts';
 
-import { StorageClientError } from '../../../src/errors';
+import { InputValidationError } from '../../../src/errors';
 import { validate } from '../../../src/validation/validate-decorator';
 
 chai.use(chaiAsPromised);
@@ -44,11 +44,11 @@ describe('Validate arguments decorator', () => {
     ].map(async (args) => {
       // @ts-ignore
       expect(() => a.syncMethod(...args))
-        .to.throw(StorageClientError, 'Validation Error', `sync method with ${JSON.stringify(args)}`);
+        .to.throw(InputValidationError, 'Validation Error', `sync method with ${JSON.stringify(args)}`);
 
       // @ts-ignore
       await expect(a.asyncMethod(...args))
-        .to.be.rejectedWith(StorageClientError, 'Validation Error', `async method with ${JSON.stringify(args)}`);
+        .to.be.rejectedWith(InputValidationError, 'Validation Error', `async method with ${JSON.stringify(args)}`);
     }));
   });
 });

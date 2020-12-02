@@ -22,6 +22,61 @@ class StorageClientError extends StorageError {
   }
 }
 
+class StorageConfigValidationError extends StorageClientError {
+  constructor(message: string, readonly data?: unknown) {
+    super(message);
+    Object.setPrototypeOf(this, StorageConfigValidationError.prototype);
+    this.name = 'StorageConfigValidationError';
+    if (Error.captureStackTrace) {
+      Error.captureStackTrace(this, StorageConfigValidationError);
+    }
+  }
+}
+
+class SecretsProviderError extends StorageClientError {
+  constructor(message: string, readonly data?: unknown) {
+    super(message);
+    Object.setPrototypeOf(this, SecretsProviderError.prototype);
+    this.name = 'SecretsProviderError';
+    if (Error.captureStackTrace) {
+      Error.captureStackTrace(this, SecretsProviderError);
+    }
+  }
+}
+
+class SecretsValidationError extends StorageClientError {
+  constructor(message: string, readonly data?: unknown) {
+    super(message);
+    Object.setPrototypeOf(this, SecretsValidationError.prototype);
+    this.name = 'SecretsValidationError';
+    if (Error.captureStackTrace) {
+      Error.captureStackTrace(this, SecretsValidationError);
+    }
+  }
+}
+
+class InputValidationError extends StorageClientError {
+  constructor(message: string, readonly data?: unknown) {
+    super(message);
+    Object.setPrototypeOf(this, InputValidationError.prototype);
+    this.name = 'InputValidationError';
+    if (Error.captureStackTrace) {
+      Error.captureStackTrace(this, InputValidationError);
+    }
+  }
+}
+
+class StorageAuthenticationError extends StorageClientError {
+  constructor(message: string, readonly data?: unknown) {
+    super(message);
+    Object.setPrototypeOf(this, StorageAuthenticationError.prototype);
+    this.name = 'StorageAuthenticationError';
+    if (Error.captureStackTrace) {
+      Error.captureStackTrace(this, StorageAuthenticationError);
+    }
+  }
+}
+
 class StorageServerError extends StorageError {
   constructor(message: string, readonly data?: unknown, readonly code?: number | string) {
     super(message);
@@ -47,6 +102,11 @@ class StorageCryptoError extends StorageError {
 export {
   StorageError,
   StorageClientError,
+  StorageConfigValidationError,
+  SecretsProviderError,
+  SecretsValidationError,
+  InputValidationError,
+  StorageAuthenticationError,
   StorageServerError,
   StorageCryptoError,
 };

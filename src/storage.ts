@@ -8,9 +8,16 @@ import * as defaultLogger from './logger';
 import { CountriesCache } from './countries-cache';
 import { SecretKeyAccessor } from './secret-key-accessor';
 import { InCrypt } from './in-crypt';
-import { StorageClientError, StorageCryptoError, StorageServerError } from './errors';
 import {
-  isValid, toStorageClientError, optional, getErrorMessage,
+  InputValidationError,
+  StorageConfigValidationError,
+  StorageClientError,
+  StorageCryptoError,
+  StorageServerError,
+} from './errors';
+import {
+  isValid, optional, getErrorMessage,
+  toStorageConfigValidationError,
 } from './validation/utils';
 import {
   StorageRecord,
@@ -151,7 +158,7 @@ class Storage {
   constructor(options: StorageOptions, customEncryptionConfigs?: CustomEncryptionConfig[]) {
     const validationResult = StorageOptionsIO.decode(options);
     if (!isValid(validationResult)) {
-      throw toStorageClientError('Storage.constructor() Validation Error: ')(validationResult);
+      throw toStorageConfigValidationError('Storage.constructor() Validation Error: ')(validationResult);
     }
 
     this.setLogger(options.logger || defaultLogger.withBaseLogLevel('info'));
@@ -167,24 +174,24 @@ class Storage {
     }
     if (clientId || clientSecret) {
       if (!clientId) {
-        throw new StorageClientError('Please pass clientId in options or set INC_CLIENT_ID env var');
+        throw new StorageConfigValidationError('Please pass clientId in options or set INC_CLIENT_ID env var');
       }
 
       if (!clientSecret) {
-        throw new StorageClientError('Please pass clientSecret in options or set INC_CLIENT_SECRET env var');
+        throw new StorageConfigValidationError('Please pass clientSecret in options or set INC_CLIENT_SECRET env var');
       }
 
       this.authClient = new OAuthClient(clientId, clientSecret, authEndpoints);
     } else {
       if (!apiKey) {
-        throw new StorageClientError('Please pass apiKey in options or set INC_API_KEY env var');
+        throw new StorageConfigValidationError('Please pass apiKey in options or set INC_API_KEY env var');
       }
       this.authClient = getApiKeyAuthClient(apiKey);
     }
 
     const envId = options.environmentId || process.env.INC_ENVIRONMENT_ID;
     if (!envId) {
-      throw new StorageClientError('Please pass environmentId in options or set INC_ENVIRONMENT_ID env var');
+      throw new StorageConfigValidationError('Please pass environmentId in options or set INC_ENVIRONMENT_ID env var');
     }
     this.envId = envId;
 
@@ -192,7 +199,7 @@ class Storage {
 
     if (options.encrypt !== false) {
       if (options.getSecrets === undefined) {
-        throw new StorageClientError('Provide callback function for secretData');
+        throw new StorageConfigValidationError('Provide callback function for secretData');
       }
       this.encryptionEnabled = true;
       this.crypto = new InCrypt(new SecretKeyAccessor(options.getSecrets));
@@ -201,13 +208,13 @@ class Storage {
       }
     } else {
       if (customEncryptionConfigs !== undefined) {
-        throw new StorageClientError('Cannot use custom encryption when encryption is off');
+        throw new StorageConfigValidationError('Cannot use custom encryption when encryption is off');
       }
       this.encryptionEnabled = false;
       this.crypto = new InCrypt();
     }
 
-    this.setCountriesCache(options.countriesCache || new CountriesCache(options.countriesEndpoint));
+    this.setCountriesCacheOrThrow(options.countriesCache || new CountriesCache(options.countriesEndpoint), StorageConfigValidationError);
 
     this.apiClient = new ApiClient(
       this.authClient,
@@ -226,11 +233,15 @@ class Storage {
     this.logger = logger;
   }
 
-  setCountriesCache(countriesCache: CountriesCache): void {
+  private setCountriesCacheOrThrow(countriesCache: CountriesCache, ErrorClass: typeof StorageClientError): void {
     if (!(countriesCache instanceof CountriesCache)) {
-      throw new StorageClientError('You must pass an instance of CountriesCache');
+      throw new ErrorClass('You must pass an instance of CountriesCache');
     }
     this.countriesCache = countriesCache;
+  }
+
+  setCountriesCache(countriesCache: CountriesCache): void {
+    this.setCountriesCacheOrThrow(countriesCache, InputValidationError);
   }
 
   @validate(CountryCodeIO, RecordKeyIO, optional(RequestOptionsIO))
@@ -343,7 +354,7 @@ class Storage {
     requestOptions: RequestOptions = {},
   ): Promise<MigrateResult> {
     if (!this.encryptionEnabled) {
-      throw new StorageClientError('Migration not supported when encryption is off');
+      throw new StorageConfigValidationError('Migration not supported when encryption is off');
     }
 
     const currentSecretVersion = await this.crypto.getCurrentSecretVersion();

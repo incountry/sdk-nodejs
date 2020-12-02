@@ -11,7 +11,7 @@ import {
   CUSTOM_ENCRYPTION_ERROR_MESSAGE_IS_KEY,
 } from '../../src/in-crypt';
 import { SecretKeyAccessor } from '../../src/secret-key-accessor';
-import { StorageCryptoError, StorageClientError } from '../../src/errors';
+import { StorageCryptoError } from '../../src/errors';
 
 chai.use(chaiAsPromised);
 const { expect } = chai;
@@ -162,7 +162,7 @@ describe('InCrypt', () => {
           }],
         ].map((configs) => {
           const incrypt = new InCrypt(secretKeyAccessor);
-          return expect(() => incrypt.setCustomEncryption(configs as any)).to.throw(StorageClientError, '<CustomEncryptionConfigs>');
+          return expect(() => incrypt.setCustomEncryption(configs as any)).to.throw(StorageCryptoError, 'Custom Encryption Validation Error: <CustomEncryptionConfigs>');
         }),
       );
     });

@@ -4,7 +4,7 @@ import 'reflect-metadata';
 import * as t from 'io-ts';
 import { identity } from 'fp-ts/lib/function';
 import { fold } from 'fp-ts/lib/Either';
-import { isInvalid, toStorageClientError } from './utils';
+import { isInvalid, toInputValidationError } from './utils';
 
 const foldValidation = fold(() => '', identity);
 
@@ -16,7 +16,7 @@ function validate(...getCodecs: Array<t.Mixed | getCodec>) {
       return descriptor;
     }
 
-    const toError = toStorageClientError(`${propertyKey}() Validation Error: `);
+    const toError = toInputValidationError(`${propertyKey}() Validation Error: `);
 
     const type: { name: string } | undefined = Reflect.getMetadata('design:returntype', target, propertyKey);
     const isPromise = type && type.name === 'Promise';
