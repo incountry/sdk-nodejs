@@ -637,7 +637,7 @@ const deleteResult = await storage.delete(countryCode, recordKey);
 ---
 **NOTE**
 
-File Storage is currently available for dedicated instances only. Please check your subscription plan for details. This may require specifying your dedicated instance endpoint when configuring Storage instance.
+Attachments are currently available for dedicated instances only. Please check your subscription plan for details. This may require specifying your dedicated instance endpoint when configuring Storage instance.
 
 ---
 
