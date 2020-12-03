@@ -634,6 +634,13 @@ const deleteResult = await storage.delete(countryCode, recordKey);
 
 ## Attaching files to a record
 
+---
+**NOTE**
+
+Attachments are currently available for InCountry dedicated instances only. Please check your subscription plan for details. This may require specifying your dedicated instance endpoint when configuring NodeJS SDK Storage.
+
+---
+
 InCountry Storage allows you to attach files to the previously created records. Attachments' meta information is available through the `attachments` field of `StorageRecord` object.
 
 
