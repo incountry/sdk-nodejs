@@ -569,7 +569,7 @@ class Storage {
 
     const bodyObj = ApiRecordBodyIO.decode(decryptedBody);
     if (!isValid(bodyObj)) {
-      throw new StorageServerError(`Invalid record body: ${getErrorMessage(bodyObj)}`);
+      throw new StorageServerError(`Invalid record body: ${getErrorMessage(bodyObj)}`, StorageServerError.HTTP_ERROR_UNPROCESSABLE_ENTITY);
     }
     const { payload, meta } = bodyObj.right;
 

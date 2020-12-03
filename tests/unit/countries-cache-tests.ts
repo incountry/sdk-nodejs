@@ -4,6 +4,7 @@ import chaiAsPromised from 'chai-as-promised';
 import nock from 'nock';
 import * as sinon from 'sinon';
 import { CountriesCache, Country } from '../../src/countries-cache';
+import { StorageServerError, NetworkError } from '../../src/errors';
 
 chai.use(chaiAsPromised);
 chai.use(sinonChai);
@@ -101,7 +102,7 @@ describe('Countries cache', () => {
 
       const nockPBCountriesAPIMultiple = () => {
         let requestCount = 0;
-        return nock(`${PORTAL_BACKEND_BASE_URL}`)
+        return nock(PORTAL_BACKEND_BASE_URL)
           .get(PORTAL_BACKEND_PATH)
           .times(apiMaxCalls)
           .reply(200, () => {
@@ -191,7 +192,7 @@ describe('Countries cache', () => {
 
     describe('should handle errors', () => {
       describe('no data in the response', () => {
-        const nockPBCountriesAPINoData = () => nock(`${PORTAL_BACKEND_BASE_URL}`).get(PORTAL_BACKEND_PATH).reply(200);
+        const nockPBCountriesAPINoData = () => nock(PORTAL_BACKEND_BASE_URL).get(PORTAL_BACKEND_PATH).reply(200);
 
         it('should return empty countries array', async () => {
           nockPBCountriesAPINoData();
@@ -203,10 +204,23 @@ describe('Countries cache', () => {
         });
       });
 
+      describe('when invalid response returned', () => {
+        const invalidCountriesResponses = [{}, { countries: 42 }, { countries: [1, 2, 3] }, { countries: [{ direct: true }] }];
+        invalidCountriesResponses.forEach((response) => {
+          it('should return empty countries array', async () => {
+            nockPBCountriesAPI(PORTAL_BACKEND_HOST, response);
+
+            const cache = new CountriesCache();
+            await expect(cache.getCountries())
+              .to.be.rejectedWith(StorageServerError, 'Countries provider response validation error: <CountriesProviderResponseIO>');
+          });
+        });
+      });
+
       describe('failed response', () => {
         const REQUEST_TIMEOUT_ERROR = { code: 'ETIMEDOUT' };
         const loggerStub = { write: (level: string, message: string, meta: unknown) => [level, message, meta] };
-        const nockPBCountriesAPIFails = () => nock(`${PORTAL_BACKEND_BASE_URL}`).get(PORTAL_BACKEND_PATH).replyWithError(REQUEST_TIMEOUT_ERROR);
+        const nockPBCountriesAPIFails = () => nock(PORTAL_BACKEND_BASE_URL).get(PORTAL_BACKEND_PATH).replyWithError(REQUEST_TIMEOUT_ERROR);
 
         it('should throw exception', async () => {
           nockPBCountriesAPIFails();
@@ -216,7 +230,10 @@ describe('Countries cache', () => {
           try {
             await cache.getCountries();
           } catch (e) {
-            expect(e).to.deep.equal(REQUEST_TIMEOUT_ERROR);
+            expect(e).to.be.instanceOf(NetworkError);
+            expect(e.message).to.eq(`Countries provider error: ${REQUEST_TIMEOUT_ERROR.code}`);
+            expect(e.code).to.eq(NetworkError.HTTP_ERROR_SERVICE_UNAVAILABLE);
+            expect(e.data).to.deep.equal(REQUEST_TIMEOUT_ERROR);
             return;
           }
 

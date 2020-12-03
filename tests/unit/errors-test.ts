@@ -38,7 +38,7 @@ describe('errors', () => {
   describe('StorageServerError', () => {
     const checkError = () => {
       const responseData = { data: 'data' };
-      const err = new StorageServerError('message', responseData, 500);
+      const err = new StorageServerError('message', 500, responseData);
       expect(err.name).to.eq('StorageServerError');
       expect(err.code).to.eq(500);
       expect(err.data).to.deep.equal(responseData);

@@ -4,7 +4,12 @@ import nock from 'nock';
 import * as sinon from 'sinon';
 import { v4 as uuid } from 'uuid';
 import { OAuthClient } from '../../src/auth-client';
-import { StorageClientError, StorageServerError } from '../../src/errors';
+import {
+  StorageAuthenticationError,
+  StorageConfigValidationError,
+  StorageServerError,
+  NetworkError,
+} from '../../src/errors';
 import {
   DEFAULT_AUTH_PATH,
   CUSTOM_AUTH_HOST,
@@ -133,7 +138,7 @@ describe('AuthClient', () => {
           nockDefaultAuth().reply(200, accessTokenResponse());
           // @ts-ignore
           await expect(authClient.getToken(audience))
-            .to.be.rejectedWith(StorageClientError, 'Invalid audience provided to AuthClient.getToken()');
+            .to.be.rejectedWith(StorageAuthenticationError, 'Invalid audience provided to AuthClient.getToken()');
         });
       });
 
@@ -142,7 +147,7 @@ describe('AuthClient', () => {
           nockDefaultAuth().reply(200, accessTokenResponse());
           // @ts-ignore
           await expect(authClient.getToken(DEFAULT_POPAPI_HOST, envId))
-            .to.be.rejectedWith(StorageClientError, 'Invalid envId provided to AuthClient.getToken()');
+            .to.be.rejectedWith(StorageConfigValidationError, 'Invalid envId provided to AuthClient.getToken()');
         });
       });
 
@@ -151,7 +156,7 @@ describe('AuthClient', () => {
           nockDefaultAuth().reply(200, accessTokenResponse());
           // @ts-ignore
           await expect(authClient.getToken(DEFAULT_POPAPI_HOST, ENV_ID, region))
-            .to.be.rejectedWith(StorageClientError, 'Invalid region provided to AuthClient.getToken()');
+            .to.be.rejectedWith(StorageAuthenticationError, 'Invalid region provided to AuthClient.getToken()');
         });
       });
     });
@@ -289,22 +294,28 @@ describe('AuthClient', () => {
           status_code: 401,
         };
         nockDefaultAuth().reply(401, invalidClientErr);
-        await expect(authClient.getToken(DEFAULT_POPAPI_HOST, ENV_ID, DEFAULT_REGION)).to.be.rejectedWith(StorageServerError, invalidClientErr.error_description);
+        await expect(authClient.getToken(DEFAULT_POPAPI_HOST, ENV_ID, DEFAULT_REGION)).to.be.rejectedWith(StorageAuthenticationError, invalidClientErr.error_description);
       });
 
       it('not found error', async () => {
         nockDefaultAuth().reply(404, { reason: 'not found' });
-        await expect(authClient.getToken(DEFAULT_POPAPI_HOST, ENV_ID, DEFAULT_REGION)).to.be.rejectedWith(StorageServerError, 'Request failed with status code 404');
+        await expect(authClient.getToken(DEFAULT_POPAPI_HOST, ENV_ID, DEFAULT_REGION)).to.be.rejectedWith(StorageServerError, 'Error obtaining OAuth token: Request failed with status code 404');
+      });
+
+      it('internal server error', async () => {
+        nockDefaultAuth().reply(500);
+        await expect(authClient.getToken(DEFAULT_POPAPI_HOST, ENV_ID, DEFAULT_REGION)).to.be.rejectedWith(StorageServerError, 'Error obtaining OAuth token: Request failed with status code 500');
       });
 
       it('network error', async () => {
-        nockDefaultAuth().reply(500);
-        await expect(authClient.getToken(DEFAULT_POPAPI_HOST, ENV_ID, DEFAULT_REGION)).to.be.rejectedWith(StorageServerError, 'Request failed with status code 500');
+        const REQUEST_TIMEOUT_ERROR = { code: 'ETIMEDOUT' };
+        nockDefaultAuth().replyWithError(REQUEST_TIMEOUT_ERROR);
+        await expect(authClient.getToken(DEFAULT_POPAPI_HOST, ENV_ID, DEFAULT_REGION)).to.be.rejectedWith(NetworkError, `Error obtaining OAuth token: ${REQUEST_TIMEOUT_ERROR.code}`);
       });
 
       it('should throw error if token data has wrong format', async () => {
         nockDefaultAuth().reply(200, { aaa: 111 });
-        await expect(authClient.getToken(DEFAULT_POPAPI_HOST, ENV_ID, DEFAULT_REGION)).to.be.rejectedWith(StorageServerError, 'AuthClient <TokenData>');
+        await expect(authClient.getToken(DEFAULT_POPAPI_HOST, ENV_ID, DEFAULT_REGION)).to.be.rejectedWith(StorageAuthenticationError, 'Error validating OAuth server response: <TokenData>');
       });
     });
   });

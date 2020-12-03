@@ -1,12 +1,7 @@
 import axios from 'axios';
 import * as defaultLogger from './logger';
-
-type Country = {
-  id: string;
-  name: string;
-  direct?: boolean;
-  region: string;
-}
+import { CountriesProviderResponseIO, Country } from './validation/api/countries-provider-response';
+import { isInvalid, toStorageServerError, toStorageServerValidationError } from './validation/utils';
 
 const COUNTRIES_CACHE_TIMEOUT = 60 * 1000;
 const DEFAULT_COUNTRIES_ENDPOINT = 'https://portal-backend.incountry.com/countries';
@@ -38,18 +33,24 @@ class CountriesCache {
   }
 
   private async updateCountries(loggingMeta?: {}): Promise<void> {
+    let response;
     try {
-      const response = await axios.get(this.endpoint);
-      if (response.data) {
-        this.countries = response.data.countries.filter((country: Country) => country.direct);
-      } else {
-        this.countries = [];
-      }
-      this.hasFetched = true;
-    } catch (exc) {
-      this.logger.write('error', exc.message || exc.code, { error: exc, ...loggingMeta });
-      throw (exc);
+      response = await axios.get(this.endpoint);
+    } catch (e) {
+      this.logger.write('error', e.message || e.code, { error: e, ...loggingMeta });
+      throw toStorageServerError('Countries provider error: ')(e);
     }
+
+    if (response.data) {
+      const countriesData = CountriesProviderResponseIO.decode(response.data);
+      if (isInvalid(countriesData)) {
+        throw toStorageServerValidationError('Countries provider response validation error: ')(countriesData);
+      }
+      this.countries = response.data.countries.filter((country: Country) => country.direct);
+    } else {
+      this.countries = [];
+    }
+    this.hasFetched = true;
   }
 }
 

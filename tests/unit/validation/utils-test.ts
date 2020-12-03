@@ -4,7 +4,7 @@ import chaiAsPromised from 'chai-as-promised';
 import * as t from 'io-ts';
 import {
   toStorageClientError,
-  toStorageServerError,
+  toStorageServerValidationError,
   validationToPromise,
   optional,
   isValid,
@@ -28,7 +28,7 @@ describe('Validation Utils', () => {
   describe('toStorageServerError', () => {
     it('should return StorageServerError', () => {
       const validationError = t.string.decode(123);
-      expect(toStorageServerError()(validationError)).to.be.instanceOf(StorageServerError);
+      expect(toStorageServerValidationError()(validationError)).to.be.instanceOf(StorageServerError);
     });
   });
 

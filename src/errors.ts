@@ -78,12 +78,26 @@ class StorageAuthenticationError extends StorageClientError {
 }
 
 class StorageServerError extends StorageError {
-  constructor(message: string, readonly data?: unknown, readonly code?: number | string) {
+  static HTTP_ERROR_UNPROCESSABLE_ENTITY = 422;
+  static HTTP_ERROR_SERVICE_UNAVAILABLE = 503;
+
+  constructor(message: string, readonly code: number, readonly data?: unknown) {
     super(message);
     Object.setPrototypeOf(this, StorageServerError.prototype);
     this.name = 'StorageServerError';
     if (Error.captureStackTrace) {
       Error.captureStackTrace(this, StorageServerError);
+    }
+  }
+}
+
+class NetworkError extends StorageServerError {
+  constructor(message: string, readonly code: number, readonly data?: unknown) {
+    super(message, code, data);
+    Object.setPrototypeOf(this, NetworkError.prototype);
+    this.name = 'NetworkError';
+    if (Error.captureStackTrace) {
+      Error.captureStackTrace(this, NetworkError);
     }
   }
 }
@@ -109,4 +123,5 @@ export {
   StorageAuthenticationError,
   StorageServerError,
   StorageCryptoError,
+  NetworkError,
 };

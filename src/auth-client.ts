@@ -1,8 +1,8 @@
 import axios from 'axios';
 import * as Querystring from 'querystring';
 import * as t from 'io-ts';
-import { StorageClientError, StorageServerError } from './errors';
-import { toStorageServerError, isInvalid } from './validation/utils';
+import { StorageAuthenticationError, StorageConfigValidationError } from './errors';
+import { toStorageAuthenticationError, toStorageServerError, isInvalid } from './validation/utils';
 import { OAuthEndpoints } from './validation/storage-options';
 
 const DEFAULT_REGIONAL_AUTH_ENDPOINTS: OAuthEndpoints = {
@@ -30,19 +30,27 @@ const ERROR_RESPONSES: Record<string, string> = {
 };
 
 
-const AuthErrorIO = t.partial({
-  error: t.string,
-  error_description: t.string,
-});
+const AuthErrorIO = t.intersection([
+  t.type({
+    error: t.string,
+    error_description: t.string,
+  }),
+  t.partial({
+    error_hint: t.string,
+    status_code: t.number,
+  }),
+]);
 
-function getAuthError(body: unknown): StorageServerError | null {
-  if (!AuthErrorIO.is(body)) {
+function getAuthError(body: unknown): StorageAuthenticationError | null {
+  const decodedBody = AuthErrorIO.decode(body);
+  if (isInvalid(decodedBody)) {
     return null;
   }
 
-  const { error = '', error_description } = body;
-  const message = ERROR_RESPONSES[error] || error_description || error;
-  return message ? new StorageServerError(message, body, 'EAUTH') : null;
+  const { error, error_description, error_hint } = decodedBody.right;
+  let message = ERROR_RESPONSES[error] || error_description || error;
+  message = `${message} ${error_hint}`;
+  return message ? new StorageAuthenticationError(message, body) : null;
 }
 
 const makeAuthHeader = (clientId: string, clientSecret: string) => {
@@ -59,7 +67,7 @@ type TokenData = {
 const parseTokenData = (tokenData: unknown): TokenData => {
   const tokenDecoded = TokenDataIO.decode(tokenData);
   if (isInvalid(tokenDecoded)) {
-    throw toStorageServerError('AuthClient ')(tokenDecoded);
+    throw toStorageAuthenticationError('Error validating OAuth server response: ')(tokenDecoded);
   }
 
   const { access_token: accessToken, expires_in } = tokenDecoded.right;
@@ -88,13 +96,13 @@ class OAuthClient implements AuthClient {
 
   async getToken(audience: string, envId: string, region: string, forceRenew = false): Promise<string> {
     if (!audience) {
-      throw new StorageClientError('Invalid audience provided to AuthClient.getToken()');
+      throw new StorageAuthenticationError('Invalid audience provided to AuthClient.getToken()');
     }
     if (!envId) {
-      throw new StorageClientError('Invalid envId provided to AuthClient.getToken()');
+      throw new StorageConfigValidationError('Invalid envId provided to AuthClient.getToken()');
     }
     if (!region) {
-      throw new StorageClientError('Invalid region provided to AuthClient.getToken()');
+      throw new StorageAuthenticationError('Invalid region provided to AuthClient.getToken()');
     }
 
     let token = this.tokens[audience];
@@ -129,7 +137,7 @@ class OAuthClient implements AuthClient {
       if (authErr) {
         throw authErr;
       }
-      throw new StorageServerError(e.message, e.data, e.code);
+      throw toStorageServerError('Error obtaining OAuth token: ')(e);
     }
 
     return res.data;

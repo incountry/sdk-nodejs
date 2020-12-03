@@ -9,6 +9,8 @@ import {
   InputValidationError,
   StorageConfigValidationError,
   SecretsValidationError,
+  NetworkError,
+  StorageAuthenticationError,
 } from '../errors';
 import { isJSON } from '../utils';
 
@@ -35,9 +37,24 @@ const toInputValidationError = (prefix = '') => (validation: Validation<unknown>
   return new InputValidationError(`${prefix}${errorMessage}`, validation);
 };
 
-const toStorageServerError = (prefix = '') => (validation: Validation<unknown>): StorageServerError => {
+const toStorageAuthenticationError = (prefix = '') => (validation: Validation<unknown>): StorageAuthenticationError => {
   const errorMessage = getErrorMessage(validation);
-  return new StorageServerError(`${prefix}${errorMessage}`, validation);
+  return new StorageAuthenticationError(`${prefix}${errorMessage}`, validation);
+};
+
+const toStorageServerValidationError = (prefix = '') => (validation: Validation<unknown>): StorageServerError => {
+  const errorMessage = getErrorMessage(validation);
+  return new StorageServerError(`${prefix}${errorMessage}`, StorageServerError.HTTP_ERROR_UNPROCESSABLE_ENTITY, validation);
+};
+
+const toStorageServerError = (prefix = '') => (originalError: Record<string, any> = {}): StorageServerError => {
+  if (originalError) {
+    const code = originalError.code || (originalError.response && originalError.response.status);
+    if (code && code !== '' && !Number.isNaN(+code)) {
+      return new StorageServerError(`${prefix}${originalError.message || code}`, +code, originalError);
+    }
+  }
+  return new NetworkError(`${prefix}${originalError.message || originalError.code}`, StorageServerError.HTTP_ERROR_SERVICE_UNAVAILABLE, originalError);
 };
 
 function validationToPromise<A, B>(validation: Validation<A>, prepareError?: (validation: Validation<A>) => B): Promise<A> {
@@ -121,6 +138,8 @@ export {
   toStorageConfigValidationError,
   toSecretsValidationError,
   toInputValidationError,
+  toStorageServerValidationError,
+  toStorageAuthenticationError,
   toStorageServerError,
   validationToPromise,
   JSONIO,
