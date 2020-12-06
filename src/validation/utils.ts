@@ -1,5 +1,6 @@
 import * as t from 'io-ts';
 import { clone } from 'io-ts-types/lib/clone';
+import { Readable } from 'stream';
 import { isLeft, isRight, Either } from 'fp-ts/lib/Either';
 import { getErrorMessage } from './get-error-message';
 import { StorageClientError, StorageServerError } from '../errors';
@@ -70,6 +71,16 @@ const JSONIO = new t.Type<JSON, string, string>(
   String,
 );
 
+const isReadable = (o: unknown): o is Readable => o instanceof Readable;
+
+const ReadableIO = new t.Type<Readable>(
+  'File',
+  isReadable,
+  (o, c) => isReadable(o) ? t.success(o) : t.failure(o, c),
+  t.identity,
+);
+
+
 type Codec<A> = t.Type<A, unknown>;
 type Int = t.Int;
 
@@ -91,6 +102,7 @@ export {
   JSONIO,
   PositiveInt,
   NonNegativeInt,
+  ReadableIO,
   optional,
   getErrorMessage,
   isLeft as isInvalid,

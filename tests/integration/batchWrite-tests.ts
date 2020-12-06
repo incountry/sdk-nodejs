@@ -27,7 +27,7 @@ describe('Batch write data to Storage', function () {
   [false, true].forEach((encryption) => {
     context(`${encryption ? 'with' : 'without'} encryption`, function () {
       beforeEach(async function () {
-        storage = await createStorage(encryption);
+        storage = await createStorage({ encryption });
         dataList = [];
       });
       it('Batch write data', async function () {

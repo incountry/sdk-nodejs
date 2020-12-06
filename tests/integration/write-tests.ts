@@ -19,7 +19,7 @@ describe('Write data to Storage', () => {
   [false, true].forEach(async (encryption) => {
     context(`${encryption ? 'with' : 'without'} encryption`, () => {
       beforeEach(async () => {
-        storage = await createStorage(encryption);
+        storage = await createStorage({ encryption });
       });
 
       it('Write data', async () => {
@@ -132,7 +132,10 @@ describe('Write data to Storage', () => {
 
         context('with "hashSearchKeys" disabled', () => {
           it('should write search keys as is', async () => {
-            storage = await createStorage(encryption, undefined, undefined, undefined, false);
+            storage = await createStorage({
+              encryption,
+              hashSearchKeys: false,
+            });
 
             data = {
               recordKey: Math.random().toString(36).substr(2, 10),

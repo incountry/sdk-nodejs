@@ -47,7 +47,7 @@ describe('Find records', () => {
   [false, true].forEach((encryption) => {
     context(`${encryption ? 'with' : 'without'} encryption`, () => {
       before(async () => {
-        storage = await createStorage(encryption);
+        storage = await createStorage({ encryption });
         await storage.write(COUNTRY, dataRequest);
         await storage.write(COUNTRY, dataRequest2);
         await storage.write(COUNTRY, dataRequest3);
@@ -157,7 +157,10 @@ describe('Find records', () => {
         const searchableProperties: (keyof StorageRecordData)[] = ['key1', 'key10'];
 
         before(async () => {
-          searchableStorage = await createStorage(encryption, undefined, undefined, undefined, false);
+          searchableStorage = await createStorage({
+            encryption,
+            hashSearchKeys: false,
+          });
           await searchableStorage.write(COUNTRY, record);
         });
 

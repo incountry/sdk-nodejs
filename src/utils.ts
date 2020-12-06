@@ -40,6 +40,16 @@ function reflect<T>(promiseLike: PromiseLike<T>): PromiseLike<Reflected<T>> {
   );
 }
 
+function getFileNameFromHeaders(headers: Record<string, string|undefined>): string | null {
+  const header = headers['content-disposition'];
+  if (!header) return null;
+  const match = header.match(/ filename\*=UTF-8''([^;]*)/);
+  if (match === null) return null;
+  const fileName = match[1];
+  if (fileName === undefined) return null;
+  return decodeURIComponent(fileName);
+}
+
 export {
   Override,
   Reflected,
@@ -48,4 +58,5 @@ export {
   omitUndefined,
   isRejected,
   reflect,
+  getFileNameFromHeaders,
 };

@@ -25,11 +25,12 @@ describe('Normalize keys records', () => {
   });
 
   [false, true].forEach(async (encryption) => {
-    storage = await createStorage(encryption, true);
-
     context(`${encryption ? 'with' : 'without'} encryption`, () => {
       before(async () => {
-        storage = await createStorage(encryption, true);
+        storage = await createStorage({
+          encryption,
+          normalizeKeys: true,
+        });
         await storage.write(COUNTRY, dataRequest);
       });
       it('Find records by key with lower case', async () => {

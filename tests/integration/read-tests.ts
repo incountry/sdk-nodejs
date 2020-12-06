@@ -19,7 +19,7 @@ describe('Read data from Storage', () => {
   [false, true].forEach((encryption) => {
     context(`${encryption ? 'with' : 'without'} encryption`, () => {
       before(async () => {
-        storage = await createStorage(encryption);
+        storage = await createStorage({ encryption });
       });
 
       it('Read data', async () => {
