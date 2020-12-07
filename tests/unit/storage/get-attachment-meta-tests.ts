@@ -9,7 +9,7 @@ import {
   getDefaultStorage,
   EMPTY_API_ATTACHMENT_META,
 } from './common';
-import { InputValidationError, StorageServerError } from '../../../src/errors';
+import { InputValidationError, NetworkError } from '../../../src/errors';
 import { COUNTRY_CODE_ERROR_MESSAGE } from '../../../src/validation/country-code';
 import { nockPopApi } from '../../test-helpers/popapi-nock';
 import { Storage } from '../../../src/storage';
@@ -69,8 +69,8 @@ describe('Storage', () => {
           nock.cleanAll();
           const scope = nockPopApi(POPAPI_HOST).getAttachmentMeta(COUNTRY, hashedKey, fileId)
             .replyWithError(REQUEST_TIMEOUT_ERROR);
-
-          await expect(encStorage.getAttachmentMeta(COUNTRY, recordKey, fileId)).to.be.rejectedWith(StorageServerError);
+          await expect(encStorage.getAttachmentMeta(COUNTRY, recordKey, fileId))
+            .to.be.rejectedWith(NetworkError, `GET ${POPAPI_HOST}/v2/storage/records/${COUNTRY}/${hashedKey}/attachments/${fileId}/meta ${REQUEST_TIMEOUT_ERROR.code}`);
           assert.equal(scope.isDone(), true, 'Nock scope is done');
         });
       });

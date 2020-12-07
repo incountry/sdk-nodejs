@@ -351,7 +351,8 @@ describe('ApiClient', () => {
           data: [],
         };
         const wrongPopAPI = nockPopApi(POPAPI_HOST).find(COUNTRY).reply(200, wrongFindResponse);
-        await expect(apiClient.find(COUNTRY, { filter }, {})).to.be.rejectedWith(StorageServerError);
+        await expect(apiClient.find(COUNTRY, { filter }, {}))
+          .to.be.rejectedWith(StorageServerError, 'Response Validation Error: <FindResponse>.meta.count should be Int but got undefined');
         assert.equal(wrongPopAPI.isDone(), true, 'Nock scope is done');
       });
     });

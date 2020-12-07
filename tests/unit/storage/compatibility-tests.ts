@@ -3,6 +3,7 @@ import chaiAsPromised from 'chai-as-promised';
 import * as _ from 'lodash';
 import { Storage, createStorage, KEYS_TO_HASH } from '../../../src/storage';
 import { Int } from '../../../src/validation/utils';
+import { StorageServerError } from '../../../src/errors';
 import {
   LOGGER_STUB,
   POPAPI_HOST,
@@ -130,7 +131,7 @@ describe('Storage', () => {
         const { message: emptyBody } = await storage.crypto.encrypt(JSON.stringify({}));
         const wrongData = { ...EMPTY_API_RECORD, ...data.enc, body: emptyBody };
 
-        await expect(storage.decryptPayload(wrongData)).to.be.rejectedWith('Invalid record body');
+        await expect(storage.decryptPayload(wrongData)).to.be.rejectedWith(StorageServerError, 'Invalid record body: ');
       });
     });
 

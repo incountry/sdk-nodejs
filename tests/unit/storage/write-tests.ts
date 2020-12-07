@@ -271,7 +271,6 @@ describe('Storage', () => {
               {
                 secret: 'longAndStrongPassword',
                 version: 0,
-                isForCustomEncryption: true,
               },
             ],
             currentVersion: 0,
@@ -279,14 +278,9 @@ describe('Storage', () => {
 
           const recordKey = '123';
 
-          const customEncConfigs = [{
-            encrypt: () => Promise.reject(new Error('blabla')),
-            decrypt: () => Promise.resolve(''),
-            version: 'customEncryption',
-            isCurrent: true,
-          }];
+          const logger = { write: () => { throw new Error('blabla'); } };
 
-          const storage = new Storage({ encrypt: true, getSecrets: () => secrets }, customEncConfigs);
+          const storage = new Storage({ encrypt: true, getSecrets: () => secrets, logger });
           await expect(storage.write(COUNTRY, { ...EMPTY_API_RECORD, recordKey })).to.be.rejectedWith(StorageError, 'Error during Storage.write() call: blabla');
         });
       });

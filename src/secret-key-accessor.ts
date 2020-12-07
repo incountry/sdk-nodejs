@@ -1,6 +1,6 @@
 import { validationToPromise, toSecretsValidationError, NonNegativeInt } from './validation/utils';
 import { SecretsDataIO, SecretsData, SecretOrKey } from './validation/secrets-data';
-import { StorageClientError } from './errors';
+import { SecretsValidationError, SecretsProviderError } from './errors';
 
 const DEFAULT_VERSION = 0 as NonNegativeInt;
 
@@ -22,7 +22,7 @@ class SecretKeyAccessor {
 
   constructor(getSecretsCallback: Function) {
     if (typeof getSecretsCallback !== 'function') {
-      throw new StorageClientError('Provide callback function for secretData');
+      throw new SecretsValidationError('Provide callback function for secretData');
     }
     this.getSecretsCallback = getSecretsCallback;
   }
@@ -36,13 +36,18 @@ class SecretKeyAccessor {
     const version = secretVersion !== undefined ? secretVersion : secretData.currentVersion;
     const secret = secretData.secrets.find((s) => s.version === version);
     if (!secret) {
-      throw new StorageClientError(`Secret not found for version ${secretVersion}`);
+      throw new SecretsValidationError(`Secret not found for version ${secretVersion}`);
     }
     return secret;
   }
 
   async getSecrets(): Promise<SecretsData> {
-    const secretData = await Promise.resolve<unknown>(this.getSecretsCallback());
+    let secretData;
+    try {
+      secretData = await Promise.resolve<unknown>(this.getSecretsCallback());
+    } catch (e) {
+      throw new SecretsProviderError(`Error calling getSecretsCallback(): ${e.message}`, e);
+    }
     if (typeof secretData === 'string') {
       return wrapToSecretsData(secretData);
     }

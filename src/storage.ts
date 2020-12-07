@@ -13,11 +13,11 @@ import {
   StorageConfigValidationError,
   StorageClientError,
   StorageCryptoError,
-  StorageServerError,
 } from './errors';
 import {
-  isValid, optional, getErrorMessage,
+  isInvalid, optional,
   toStorageConfigValidationError,
+  toStorageServerError,
 } from './validation/utils';
 import {
   StorageRecord,
@@ -157,7 +157,7 @@ class Storage {
 
   constructor(options: StorageOptions, customEncryptionConfigs?: CustomEncryptionConfig[]) {
     const validationResult = StorageOptionsIO.decode(options);
-    if (!isValid(validationResult)) {
+    if (isInvalid(validationResult)) {
       throw toStorageConfigValidationError('Storage.constructor() Validation Error: ')(validationResult);
     }
 
@@ -568,8 +568,8 @@ class Storage {
     const decryptedBody = await this.crypto.decrypt(apiRecord.body, apiRecord.version);
 
     const bodyObj = ApiRecordBodyIO.decode(decryptedBody);
-    if (!isValid(bodyObj)) {
-      throw new StorageServerError(`Invalid record body: ${getErrorMessage(bodyObj)}`, StorageServerError.HTTP_ERROR_UNPROCESSABLE_ENTITY);
+    if (isInvalid(bodyObj)) {
+      throw toStorageServerError('Invalid record body: ')(bodyObj);
     }
     const { payload, meta } = bodyObj.right;
 

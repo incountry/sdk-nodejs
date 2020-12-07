@@ -103,7 +103,7 @@ class NetworkError extends StorageServerError {
 }
 
 class StorageCryptoError extends StorageError {
-  constructor(message: string) {
+  constructor(message: string, readonly data?: unknown) {
     super(message);
     Object.setPrototypeOf(this, StorageCryptoError.prototype);
     this.name = 'StorageCryptoError';

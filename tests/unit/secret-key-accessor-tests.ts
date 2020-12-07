@@ -2,7 +2,7 @@ import * as chai from 'chai';
 import chaiAsPromised from 'chai-as-promised';
 
 import { SecretKeyAccessor } from '../../src/secret-key-accessor';
-import { StorageClientError } from '../../src/errors';
+import { SecretsProviderError, SecretsValidationError } from '../../src/errors';
 
 chai.use(chaiAsPromised);
 const { expect } = chai;
@@ -10,7 +10,8 @@ const { expect } = chai;
 describe('SecretKeyAccessor', () => {
   it('should throw error if no callback provided', () => {
     // @ts-ignore
-    expect(() => new SecretKeyAccessor()).throw(StorageClientError);
+    expect(() => new SecretKeyAccessor())
+      .to.throw(SecretsValidationError, 'Provide callback function for secretData');
   });
 
   context('with asynchronous callback', () => {
@@ -86,14 +87,16 @@ describe('SecretKeyAccessor', () => {
     it('should reject if exception occurred in callback', async () => {
       const error = new Error('custom error');
       const secretKeyAccessor = new SecretKeyAccessor(async () => { throw error; });
-      expect(secretKeyAccessor.getSecret()).to.be.rejectedWith(error);
+      expect(secretKeyAccessor.getSecret())
+        .to.be.rejectedWith(SecretsProviderError, 'Error calling getSecretsCallback(): custom error');
     });
 
     context('with malformed secret keys object', () => {
-      it('should reject if keys object has bad structure', () => {
+      it('should reject if keys object has bad structure', async () => {
         const secret = 'supersecret';
         const secretKeyAccessor1 = new SecretKeyAccessor(async () => ({ blabla: secret }));
-        expect(secretKeyAccessor1.getSecret()).to.be.rejectedWith(StorageClientError);
+        await expect(secretKeyAccessor1.getSecret())
+          .to.be.rejectedWith(SecretsValidationError, '<SecretsData>.secrets should be Array<SecretOrKey> but got');
       });
 
       it('should reject if isKey or isForCustomEncryption are set to true both', async () => {
@@ -105,19 +108,22 @@ describe('SecretKeyAccessor', () => {
         };
 
         const secretKeyAccessor = new SecretKeyAccessor(() => badSecretData);
-        return expect(secretKeyAccessor.getSecret()).to.be.rejectedWith(StorageClientError);
+        return expect(secretKeyAccessor.getSecret())
+          .to.be.rejectedWith(SecretsValidationError, 'Secret can either be "isKey" or "isForCustomEncryption", not both');
       });
 
-      it('should reject if there is no key of "currentVersion" in "keys"', () => {
+      it('should reject if there is no key of "currentVersion" in "keys"', async () => {
         const secret = 'supersecret';
         const secretKeyAccessor = new SecretKeyAccessor(async () => ({ secrets: [{ version: 0, secret }], currentVersion: 1 }));
-        expect(secretKeyAccessor.getSecret()).to.be.rejectedWith(StorageClientError);
+        await expect(secretKeyAccessor.getSecret())
+          .to.be.rejectedWith(SecretsValidationError, '<SecretsData> should be SecretsData but got');
 
         const secretKeyAccessor1 = new SecretKeyAccessor(async () => ({ secrets: [{ version: 1, secret }], currentVersion: 12 }));
-        expect(secretKeyAccessor1.getSecret()).to.be.rejectedWith(StorageClientError);
+        await expect(secretKeyAccessor1.getSecret())
+          .to.be.rejectedWith(SecretsValidationError, '<SecretsData> should be SecretsData but got');
       });
 
-      it('should reject if "currentVersion" or "version" is not an integer', () => {
+      it('should reject if "currentVersion" or "version" is not an integer', async () => {
         const secret = 'supersecret';
 
         const secretKeyAccessor1 = new SecretKeyAccessor(async () => ({
@@ -126,20 +132,23 @@ describe('SecretKeyAccessor', () => {
             { version: '2', secret }],
           currentVersion: 1,
         }));
-        expect(secretKeyAccessor1.getSecret()).to.be.rejectedWith(StorageClientError);
+        await expect(secretKeyAccessor1.getSecret())
+          .to.be.rejectedWith(SecretsValidationError, '<SecretsData>.secrets.1.version should be NonNegativeInt but got "2"');
 
         const secretKeyAccessor2 = new SecretKeyAccessor(async () => ({
           secrets: [{ version: '1', secret }], currentVersion: '1',
         }));
-        expect(secretKeyAccessor2.getSecret()).to.be.rejectedWith(StorageClientError);
+        await expect(secretKeyAccessor2.getSecret())
+          .to.be.rejectedWith(SecretsValidationError, '<SecretsData>.secrets.0.version should be NonNegativeInt but got "1"');
 
         const secretKeyAccessor3 = new SecretKeyAccessor(async () => ({
           secrets: [{ version: 11.11, secret }], currentVersion: 11.11,
         }));
-        expect(secretKeyAccessor3.getSecret()).to.be.rejectedWith(StorageClientError);
+        await expect(secretKeyAccessor3.getSecret())
+          .to.be.rejectedWith(SecretsValidationError, '<SecretsData>.secrets.0.version should be NonNegativeInt but got 11.11');
       });
 
-      it('should reject if "isKey" is present but is not a boolean', () => {
+      it('should reject if "isKey" is present but is not a boolean', async () => {
         /* eslint-disable no-unused-expressions */
 
         const secret = 'supersecret';
@@ -149,37 +158,44 @@ describe('SecretKeyAccessor', () => {
         });
 
         const secretKeyAccessor1 = new SecretKeyAccessor(async () => invalidCallbackResult(null));
-        expect(secretKeyAccessor1.getSecret()).to.be.rejectedWith(StorageClientError);
+        await expect(secretKeyAccessor1.getSecret())
+          .to.be.rejectedWith(SecretsValidationError, '<SecretsData>.secrets.0.isKey should be boolean but got null');
 
         const secretKeyAccessor2 = new SecretKeyAccessor(async () => invalidCallbackResult(''));
-        expect(secretKeyAccessor2.getSecret()).to.be.rejectedWith(StorageClientError);
+        await expect(secretKeyAccessor2.getSecret())
+          .to.be.rejectedWith(SecretsValidationError, '<SecretsData>.secrets.0.isKey should be boolean but got ""');
 
         const secretKeyAccessor3 = new SecretKeyAccessor(async () => invalidCallbackResult(42));
-        expect(secretKeyAccessor3.getSecret()).to.be.rejectedWith(StorageClientError);
+        await expect(secretKeyAccessor3.getSecret())
+          .to.be.rejectedWith(SecretsValidationError, '<SecretsData>.secrets.0.isKey should be boolean but got 42');
       });
 
-      it('should reject if custom encryption key has wrong format', () => {
+      it('should reject if encryption key has wrong format', async () => {
         /* eslint-disable no-unused-expressions */
 
-        const secret1 = 'supersecretsupersecretsupersecre';
-        const secret2 = secret1.substr(0, 31);
-        const secret3 = `${secret1}123`;
+        const superSecret = 'supersecretsupersecretsupersecre';
+        const secret1 = Buffer.from(superSecret).toString('base64');
+        const secret2 = Buffer.from(superSecret.substr(0, 31)).toString('base64');
+        const secret3 = Buffer.from(`${superSecret}123`).toString('base64');
         const invalidCallbackResult = (secret: unknown) => ({
           secrets: [{ version: 1, secret, isKey: true }],
           currentVersion: 1,
         });
 
         const secretKeyAccessor1 = new SecretKeyAccessor(async () => invalidCallbackResult(secret1));
-        expect(secretKeyAccessor1.getSecret()).not.to.be.rejected;
+        await expect(secretKeyAccessor1.getSecret()).not.to.be.rejected;
 
         const secretKeyAccessor2 = new SecretKeyAccessor(async () => invalidCallbackResult(secret2));
-        expect(secretKeyAccessor2.getSecret()).to.be.rejected;
+        await expect(secretKeyAccessor2.getSecret())
+          .to.be.rejectedWith(SecretsValidationError, "Key should be 32 bytes-long buffer in a base64 encoded string. If it's a custom key, please provide 'isForCustomEncryption' param");
 
         const secretKeyAccessor3 = new SecretKeyAccessor(async () => invalidCallbackResult(secret3));
-        expect(secretKeyAccessor3.getSecret()).to.be.rejected;
+        await expect(secretKeyAccessor3.getSecret())
+          .to.be.rejectedWith(SecretsValidationError, "Key should be 32 bytes-long buffer in a base64 encoded string. If it's a custom key, please provide 'isForCustomEncryption' param");
       });
     });
   });
+
   context('with synchronous callback', () => {
     it('should access secret key if string has passed', async () => {
       const secret = 'supersecret';
@@ -255,22 +271,26 @@ describe('SecretKeyAccessor', () => {
       it('should reject if secret keys object has bad structure', async () => {
         const secret = 'supersecret';
         const secretKeyAccessor1 = new SecretKeyAccessor(() => ({ blabla: secret }));
-        await expect(secretKeyAccessor1.getSecret()).to.be.rejectedWith(StorageClientError);
+        await expect(secretKeyAccessor1.getSecret())
+          .to.be.rejectedWith(SecretsValidationError, '<SecretsData>.secrets should be Array<SecretOrKey> but got undefined');
 
         const secretKeyAccessor2 = new SecretKeyAccessor(() => ({ blabla: secret }));
-        await expect(secretKeyAccessor2.validate()).to.be.rejectedWith(StorageClientError);
+        await expect(secretKeyAccessor2.validate())
+          .to.be.rejectedWith(SecretsValidationError, '<SecretsData>.secrets should be Array<SecretOrKey> but got undefined');
       });
 
-      it('should reject if there is no key of "currentVersion"', () => {
+      it('should reject if there is no key of "currentVersion"', async () => {
         const secret = 'supersecret';
         const secretKeyAccessor = new SecretKeyAccessor(() => ({ secrets: [{ version: 0, secret }], currentVersion: 1 }));
-        expect(secretKeyAccessor.getSecret()).to.be.rejectedWith(StorageClientError);
+        await expect(secretKeyAccessor.getSecret())
+          .to.be.rejectedWith(SecretsValidationError, '<SecretsData> should be SecretsData');
 
         const secretKeyAccessor1 = new SecretKeyAccessor(() => ({ secrets: [{ version: 1, secret }], currentVersion: 12 }));
-        expect(secretKeyAccessor1.getSecret()).to.be.rejectedWith(StorageClientError);
+        await expect(secretKeyAccessor1.getSecret())
+          .to.be.rejectedWith(SecretsValidationError, '<SecretsData> should be SecretsData');
       });
 
-      it('should reject if "currentVersion" or "version" is not an integer', () => {
+      it('should reject if "currentVersion" or "version" is not an integer', async () => {
         const secret = 'supersecret';
 
         const secretKeyAccessor1 = new SecretKeyAccessor(() => ({
@@ -279,17 +299,20 @@ describe('SecretKeyAccessor', () => {
             { version: '2', secret }],
           currentVersion: 1,
         }));
-        expect(secretKeyAccessor1.getSecret()).to.be.rejectedWith(StorageClientError);
+        await expect(secretKeyAccessor1.getSecret())
+          .to.be.rejectedWith(SecretsValidationError, '<SecretsData>.secrets.1.version should be NonNegativeInt but got "2"');
 
         const secretKeyAccessor2 = new SecretKeyAccessor(() => ({
           secrets: [{ version: '1', secret }], currentVersion: '1',
         }));
-        expect(secretKeyAccessor2.getSecret()).to.be.rejectedWith(StorageClientError);
+        await expect(secretKeyAccessor2.getSecret())
+          .to.be.rejectedWith(SecretsValidationError, '<SecretsData>.secrets.0.version should be NonNegativeInt but got "1"');
 
         const secretKeyAccessor3 = new SecretKeyAccessor(() => ({
           secrets: [{ version: 11.11, secret }], currentVersion: 11.11,
         }));
-        expect(secretKeyAccessor3.getSecret()).to.be.rejectedWith(StorageClientError);
+        await expect(secretKeyAccessor3.getSecret())
+          .to.be.rejectedWith(SecretsValidationError, '<SecretsData>.secrets.0.version should be NonNegativeInt but got 11.11');
       });
 
       it('should reject if secret keys object does not contain requested version of secret key', async () => {
@@ -304,7 +327,8 @@ describe('SecretKeyAccessor', () => {
           currentVersion: 1,
         }));
 
-        await expect(secretKeyAccessor1.getSecret(secretVersion)).to.be.rejectedWith(StorageClientError, `Secret not found for version ${secretVersion}`);
+        await expect(secretKeyAccessor1.getSecret(secretVersion))
+          .to.be.rejectedWith(SecretsValidationError, `Secret not found for version ${secretVersion}`);
       });
     });
   });

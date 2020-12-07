@@ -134,9 +134,11 @@ describe('Storage', () => {
       describe('errors handling', () => {
         it('should throw an error when record not found', async () => {
           const key = 'invalid';
-          const scope = nockPopApi(POPAPI_HOST).delete(COUNTRY, encStorage.createKeyHash(key)).reply(404);
+          const hashedKey = encStorage.createKeyHash(key);
+          const scope = nockPopApi(POPAPI_HOST).delete(COUNTRY, hashedKey).reply(404);
 
-          await expect(encStorage.delete(COUNTRY, key)).to.be.rejectedWith(StorageServerError);
+          await expect(encStorage.delete(COUNTRY, key))
+            .to.be.rejectedWith(StorageServerError, `Error during Storage.delete() call: DELETE ${POPAPI_HOST}/v2/storage/records/${COUNTRY}/${hashedKey} 404`);
           assert.equal(scope.isDone(), true, 'Nock scope is done');
         });
       });
