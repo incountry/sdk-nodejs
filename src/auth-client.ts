@@ -49,11 +49,11 @@ function getAuthError(body: unknown): StorageAuthenticationError | null {
 
   const { error, error_description, error_hint } = decodedBody.right;
   let message = ERROR_RESPONSES[error] || error_description || error;
-  message = `${message} ${error_hint}`;
+  message = error_hint ? `${message} ${error_hint}` : message;
   return message ? new StorageAuthenticationError(message, body) : null;
 }
 
-const makeAuthHeader = (clientId: string, clientSecret: string) => {
+const makeAuthHeader = (clientId: string, clientSecret: string): string => {
   const authString = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
   return `Basic ${authString}`;
 };

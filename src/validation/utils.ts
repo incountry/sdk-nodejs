@@ -4,7 +4,6 @@ import { Readable } from 'stream';
 import { isLeft, isRight, Either } from 'fp-ts/lib/Either';
 import { getErrorMessage } from './get-error-message';
 import {
-  StorageClientError,
   StorageServerError,
   InputValidationError,
   StorageConfigValidationError,
@@ -16,11 +15,6 @@ import { isJSON } from '../utils';
 
 
 type Validation<A> = Either<t.Errors, A>;
-
-const toStorageClientError = (prefix = '') => (validation: Validation<unknown>): StorageClientError => {
-  const errorMessage = getErrorMessage(validation);
-  return new StorageClientError(`${prefix}${errorMessage}`, validation);
-};
 
 const toStorageConfigValidationError = (prefix = '') => (validation: Validation<unknown>): StorageConfigValidationError => {
   const errorMessage = getErrorMessage(validation);
@@ -48,11 +42,9 @@ const toStorageServerValidationError = (prefix = '') => (validation: Validation<
 };
 
 const toStorageServerError = (prefix = '') => (originalError: Record<string, any> = {}): StorageServerError => {
-  if (originalError) {
-    const code = originalError.code || (originalError.response && originalError.response.status);
-    if (code && code !== '' && !Number.isNaN(+code)) {
-      return new StorageServerError(`${prefix}${originalError.message || code}`, +code, originalError);
-    }
+  const code = originalError.code || (originalError.response && originalError.response.status);
+  if (code && code !== '' && !Number.isNaN(+code)) {
+    return new StorageServerError(`${prefix}${originalError.message || code}`, +code, originalError);
   }
   return new NetworkError(`${prefix}${originalError.message || originalError.code}`, StorageServerError.HTTP_ERROR_SERVICE_UNAVAILABLE, originalError);
 };
@@ -134,7 +126,6 @@ const StringMax256 = t.brand(
 
 export {
   Codec,
-  toStorageClientError,
   toStorageConfigValidationError,
   toSecretsValidationError,
   toInputValidationError,
