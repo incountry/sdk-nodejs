@@ -102,7 +102,7 @@ const getError = (e: DetailedErrorDescription, prefix: string) => {
       return new StorageConfigValidationError(`${prefix} ${e.errorMessage || e.code}`, e);
     }
 
-    if (!Number.isNaN(+e.code) && e.code === 401) {
+    if (e.code === 401) {
       return new StorageAuthenticationError(`${prefix} ${e.errorMessage || e.code}`, e);
     }
   }

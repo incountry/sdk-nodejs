@@ -43,7 +43,7 @@ const toStorageServerValidationError = (prefix = '') => (validation: Validation<
 
 const toStorageServerError = (prefix = '') => (originalError: Record<string, any> = {}): StorageServerError => {
   const code = originalError.code || (originalError.response && originalError.response.status);
-  if (code && code !== '' && !Number.isNaN(+code)) {
+  if (Number.isInteger(code)) {
     return new StorageServerError(`${prefix}${originalError.message || code}`, +code, originalError);
   }
   return new NetworkError(`${prefix}${originalError.message || originalError.code}`, StorageServerError.HTTP_ERROR_SERVICE_UNAVAILABLE, originalError);
