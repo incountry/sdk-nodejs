@@ -311,6 +311,18 @@ describe('Storage', () => {
         });
       });
 
+      describe('countriesCache', () => {
+        it('should throw an error if provided countriesCache is not object or is not instance of CountriesCache', async () => {
+          // @ts-ignore
+          const expectStorageConstructorThrowsError = async (wrongCache) => expect(createStorage({ encrypt: false, countriesCache: wrongCache }))
+            .to.be.rejectedWith(StorageConfigValidationError);
+
+
+          const wrongCaches = [null, 'foo', 42, () => null, {}, { foo: 'bar' }, new SecretsValidationError('foo', 'bar')];
+          await Promise.all(wrongCaches.map((item) => expectStorageConstructorThrowsError(item)));
+        });
+      });
+
       describe('endpointMask', () => {
         it('should throw an error if provided endpointMask is not string', async () => {
           const expectStorageConstructorThrowsError = async (wrongMask: string) => expect(createStorage({ encrypt: false, endpointMask: wrongMask }))

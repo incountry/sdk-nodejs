@@ -14,7 +14,7 @@ describe('Storage', () => {
           environmentId: 'envId',
           encrypt: false,
         });
-        const wrongCountriesCaches = [null, undefined, false, {}];
+        const wrongCountriesCaches = [null, undefined, false, {}, storage];
         wrongCountriesCaches.forEach((item) => {
           // @ts-ignore
           expect(() => storage.setCountriesCache(item))
