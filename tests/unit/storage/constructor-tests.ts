@@ -2,6 +2,7 @@ import * as chai from 'chai';
 import sinonChai from 'sinon-chai';
 import chaiAsPromised from 'chai-as-promised';
 import { createStorage } from '../../../src/storage';
+import { CountriesCache } from '../../../src/countries-cache';
 import { SecretsValidationError, StorageConfigValidationError } from '../../../src/errors';
 
 
@@ -315,11 +316,15 @@ describe('Storage', () => {
         it('should throw an error if provided countriesCache is not object or is not instance of CountriesCache', async () => {
           // @ts-ignore
           const expectStorageConstructorThrowsError = async (wrongCache) => expect(createStorage({ encrypt: false, countriesCache: wrongCache }))
-            .to.be.rejectedWith(StorageConfigValidationError);
-
+            .to.be.rejectedWith(StorageConfigValidationError, 'Storage.constructor() Validation Error: <StorageOptions>.countriesCache should be CountriesCache');
 
           const wrongCaches = [null, 'foo', 42, () => null, {}, { foo: 'bar' }, new SecretsValidationError('foo', 'bar')];
           await Promise.all(wrongCaches.map((item) => expectStorageConstructorThrowsError(item)));
+        });
+
+        it('should not throw an error if provided countriesCache is instance of CountriesCache', async () => {
+          await expect(createStorage({ encrypt: false, countriesCache: new CountriesCache() }))
+            .to.be.not.rejected;
         });
       });
 

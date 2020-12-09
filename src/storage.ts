@@ -11,7 +11,6 @@ import { InCrypt } from './in-crypt';
 import {
   InputValidationError,
   StorageConfigValidationError,
-  StorageClientError,
   StorageCryptoError,
 } from './errors';
 import {
@@ -214,7 +213,7 @@ class Storage {
       this.crypto = new InCrypt();
     }
 
-    this.setCountriesCacheOrThrow(options.countriesCache || new CountriesCache(options.countriesEndpoint), StorageConfigValidationError);
+    this.setCountriesCache(options.countriesCache || new CountriesCache(options.countriesEndpoint));
 
     this.apiClient = new ApiClient(
       this.authClient,
@@ -233,15 +232,11 @@ class Storage {
     this.logger = logger;
   }
 
-  private setCountriesCacheOrThrow(countriesCache: CountriesCache, ErrorClass: typeof StorageClientError): void {
+  setCountriesCache(countriesCache: CountriesCache): void {
     if (!(countriesCache instanceof CountriesCache)) {
-      throw new ErrorClass('You must pass an instance of CountriesCache');
+      throw new InputValidationError('You must pass an instance of CountriesCache');
     }
     this.countriesCache = countriesCache;
-  }
-
-  setCountriesCache(countriesCache: CountriesCache): void {
-    this.setCountriesCacheOrThrow(countriesCache, InputValidationError);
   }
 
   @validate(CountryCodeIO, RecordKeyIO, optional(RequestOptionsIO))
