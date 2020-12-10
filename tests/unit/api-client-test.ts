@@ -5,7 +5,7 @@ import { Readable } from 'stream';
 
 import { ApiClient, DEFAULT_FILE_NAME } from '../../src/api-client';
 import {
-  NetworkError,
+  StorageNetworkError,
   StorageAuthenticationError,
   StorageServerError,
   StorageConfigValidationError,
@@ -310,13 +310,13 @@ describe('ApiClient', () => {
         {
           name: 'in case of network error (REQUEST_TIMEOUT)',
           respond: (popAPI: nock.Interceptor) => popAPI.replyWithError(REQUEST_TIMEOUT_ERROR),
-          errorClass: NetworkError,
+          errorClass: StorageNetworkError,
           errorMessage: `POST ${POPAPI_HOST}/v2/storage/records/${COUNTRY} ${REQUEST_TIMEOUT_ERROR.code}`,
         },
         {
           name: 'in case of network error (CONNECTION_REFUSED)',
           respond: (popAPI: nock.Interceptor) => popAPI.replyWithError(CONNECTION_REFUSED_ERROR),
-          errorClass: NetworkError,
+          errorClass: StorageNetworkError,
           errorMessage: `POST ${POPAPI_HOST}/v2/storage/records/${COUNTRY} ${CONNECTION_REFUSED_ERROR.code}`,
         },
         {

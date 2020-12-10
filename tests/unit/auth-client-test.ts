@@ -8,7 +8,7 @@ import {
   StorageAuthenticationError,
   StorageConfigValidationError,
   StorageServerError,
-  NetworkError,
+  StorageNetworkError,
 } from '../../src/errors';
 import {
   DEFAULT_AUTH_PATH,
@@ -331,7 +331,7 @@ describe('AuthClient', () => {
       it('network error', async () => {
         const REQUEST_TIMEOUT_ERROR = { code: 'ETIMEDOUT' };
         nockDefaultAuth().replyWithError(REQUEST_TIMEOUT_ERROR);
-        await expect(authClient.getToken(DEFAULT_POPAPI_HOST, ENV_ID, DEFAULT_REGION)).to.be.rejectedWith(NetworkError, `Error obtaining OAuth token: ${REQUEST_TIMEOUT_ERROR.code}`);
+        await expect(authClient.getToken(DEFAULT_POPAPI_HOST, ENV_ID, DEFAULT_REGION)).to.be.rejectedWith(StorageNetworkError, `Error obtaining OAuth token: ${REQUEST_TIMEOUT_ERROR.code}`);
       });
 
       it('should throw error if token data has wrong format', async () => {

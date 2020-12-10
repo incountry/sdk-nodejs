@@ -8,7 +8,7 @@ import {
   InputValidationError,
   StorageConfigValidationError,
   SecretsValidationError,
-  NetworkError,
+  StorageNetworkError,
   StorageAuthenticationError,
 } from '../errors';
 import { isJSON } from '../utils';
@@ -46,7 +46,7 @@ const toStorageServerError = (prefix = '') => (originalError: Record<string, any
   if (Number.isInteger(code)) {
     return new StorageServerError(`${prefix}${originalError.message || code}`, +code, originalError);
   }
-  return new NetworkError(`${prefix}${originalError.message || originalError.code}`, StorageServerError.HTTP_ERROR_SERVICE_UNAVAILABLE, originalError);
+  return new StorageNetworkError(`${prefix}${originalError.message || originalError.code}`, StorageServerError.HTTP_ERROR_SERVICE_UNAVAILABLE, originalError);
 };
 
 function validationToPromise<A, B>(validation: Validation<A>, prepareError?: (validation: Validation<A>) => B): Promise<A> {

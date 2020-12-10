@@ -8,7 +8,7 @@ import {
   SecretsValidationError,
   InputValidationError,
   StorageAuthenticationError,
-  NetworkError,
+  StorageNetworkError,
   StorageServerError,
   StorageCryptoError,
 } from '../../src/errors';
@@ -140,11 +140,11 @@ describe('errors', () => {
     });
   });
 
-  describe('NetworkError', () => {
+  describe('StorageNetworkError', () => {
     const checkError = () => {
       const errData = { error: 'ETIMEDOUT' };
-      const err = new NetworkError('message', 503, errData);
-      expect(err.name).to.eq('NetworkError');
+      const err = new StorageNetworkError('message', 503, errData);
+      expect(err.name).to.eq('StorageNetworkError');
       expect(err.code).to.eq(503);
       expect(err.data).to.deep.equal(errData);
       expect(err.message).to.eq('message');

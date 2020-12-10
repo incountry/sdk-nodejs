@@ -12,7 +12,7 @@ import {
   getDefaultStorage,
   EMPTY_API_ATTACHMENT_META,
 } from './common';
-import { InputValidationError, NetworkError } from '../../../src/errors';
+import { InputValidationError, StorageNetworkError } from '../../../src/errors';
 import { COUNTRY_CODE_ERROR_MESSAGE } from '../../../src/validation/country-code';
 import { nockPopApi, getNockedRequestBodyRaw } from '../../test-helpers/popapi-nock';
 import { Storage } from '../../../src/storage';
@@ -80,7 +80,7 @@ describe('Storage', () => {
             .replyWithError(REQUEST_TIMEOUT_ERROR);
 
           await expect(encStorage.addAttachment(COUNTRY, recordKey, attachment))
-            .to.be.rejectedWith(NetworkError, `POST ${POPAPI_HOST}/v2/storage/records/${COUNTRY}/${encryptedPayload.record_key}/attachments ${REQUEST_TIMEOUT_ERROR.code}`);
+            .to.be.rejectedWith(StorageNetworkError, `POST ${POPAPI_HOST}/v2/storage/records/${COUNTRY}/${encryptedPayload.record_key}/attachments ${REQUEST_TIMEOUT_ERROR.code}`);
 
           assert.equal(scope.isDone(), true, 'Nock scope is done');
         });

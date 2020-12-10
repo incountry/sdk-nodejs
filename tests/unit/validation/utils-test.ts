@@ -16,7 +16,7 @@ import {
 } from '../../../src/validation/utils';
 import {
   InputValidationError,
-  NetworkError,
+  StorageNetworkError,
   SecretsValidationError,
   StorageConfigValidationError,
   StorageAuthenticationError,
@@ -73,25 +73,25 @@ describe('Validation Utils', () => {
       expect(toStorageServerError()(error)).to.be.instanceOf(StorageServerError);
     });
 
-    it('should return NetworkError when called without params', () => {
-      expect(toStorageServerError()()).to.be.instanceOf(NetworkError);
+    it('should return StorageNetworkError when called without params', () => {
+      expect(toStorageServerError()()).to.be.instanceOf(StorageNetworkError);
     });
 
-    it('should return NetworkError if error has neither "code" nor "response.status"', () => {
+    it('should return StorageNetworkError if error has neither "code" nor "response.status"', () => {
       const error = { aaa: '123' };
-      expect(toStorageServerError()(error)).to.be.instanceOf(NetworkError);
+      expect(toStorageServerError()(error)).to.be.instanceOf(StorageNetworkError);
       expect(toStorageServerError()(error).data).to.deep.eq(error);
     });
 
-    it('should return NetworkError if error has non-integer "code"', () => {
+    it('should return StorageNetworkError if error has non-integer "code"', () => {
       const error = { code: 'ERROR', response: { status: 123 } };
-      expect(toStorageServerError()(error)).to.be.instanceOf(NetworkError);
+      expect(toStorageServerError()(error)).to.be.instanceOf(StorageNetworkError);
       expect(toStorageServerError()(error).data).to.deep.eq(error);
     });
 
-    it('should return NetworkError if error.response has non-integer "status"', () => {
+    it('should return StorageNetworkError if error.response has non-integer "status"', () => {
       const error = { response: { status: 'ERROR' } };
-      expect(toStorageServerError()(error)).to.be.instanceOf(NetworkError);
+      expect(toStorageServerError()(error)).to.be.instanceOf(StorageNetworkError);
       expect(toStorageServerError()(error).data).to.deep.eq(error);
     });
   });

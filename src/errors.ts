@@ -91,13 +91,13 @@ class StorageServerError extends StorageError {
   }
 }
 
-class NetworkError extends StorageServerError {
+class StorageNetworkError extends StorageServerError {
   constructor(message: string, readonly code: number, readonly data?: unknown) {
     super(message, code, data);
-    Object.setPrototypeOf(this, NetworkError.prototype);
-    this.name = 'NetworkError';
+    Object.setPrototypeOf(this, StorageNetworkError.prototype);
+    this.name = 'StorageNetworkError';
     if (Error.captureStackTrace) {
-      Error.captureStackTrace(this, NetworkError);
+      Error.captureStackTrace(this, StorageNetworkError);
     }
   }
 }
@@ -123,5 +123,5 @@ export {
   StorageAuthenticationError,
   StorageServerError,
   StorageCryptoError,
-  NetworkError,
+  StorageNetworkError,
 };
