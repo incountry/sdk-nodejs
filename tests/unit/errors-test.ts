@@ -143,9 +143,9 @@ describe('errors', () => {
   describe('StorageNetworkError', () => {
     const checkError = () => {
       const errData = { error: 'ETIMEDOUT' };
-      const err = new StorageNetworkError('message', 503, errData);
+      const err = new StorageNetworkError('message', errData);
       expect(err.name).to.eq('StorageNetworkError');
-      expect(err.code).to.eq(503);
+      expect(err.code).to.eq(undefined);
       expect(err.data).to.deep.equal(errData);
       expect(err.message).to.eq('message');
       expect(err.stack).to.have.length.greaterThan(0);

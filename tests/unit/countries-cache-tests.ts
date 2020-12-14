@@ -232,7 +232,7 @@ describe('Countries cache', () => {
           } catch (e) {
             expect(e).to.be.instanceOf(StorageNetworkError);
             expect(e.message).to.eq(`Countries provider error: ${REQUEST_TIMEOUT_ERROR.code}`);
-            expect(e.code).to.eq(StorageNetworkError.HTTP_ERROR_SERVICE_UNAVAILABLE);
+            expect(e.code).to.eq(undefined);
             expect(e.data).to.deep.equal(REQUEST_TIMEOUT_ERROR);
             return;
           }

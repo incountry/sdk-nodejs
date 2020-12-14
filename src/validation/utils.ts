@@ -38,7 +38,7 @@ const toStorageAuthenticationError = (prefix = '') => (validation: Validation<un
 
 const toStorageServerValidationError = (prefix = '') => (validation: Validation<unknown>): StorageServerError => {
   const errorMessage = getErrorMessage(validation);
-  return new StorageServerError(`${prefix}${errorMessage}`, StorageServerError.HTTP_ERROR_UNPROCESSABLE_ENTITY, validation);
+  return new StorageServerError(`${prefix}${errorMessage}`, undefined, validation);
 };
 
 const toStorageServerError = (prefix = '') => (originalError: Record<string, any> = {}): StorageServerError => {
@@ -46,7 +46,7 @@ const toStorageServerError = (prefix = '') => (originalError: Record<string, any
   if (Number.isInteger(code)) {
     return new StorageServerError(`${prefix}${originalError.message || code}`, +code, originalError);
   }
-  return new StorageNetworkError(`${prefix}${originalError.message || originalError.code}`, StorageServerError.HTTP_ERROR_SERVICE_UNAVAILABLE, originalError);
+  return new StorageNetworkError(`${prefix}${originalError.message || originalError.code}`, originalError);
 };
 
 function validationToPromise<A, B>(validation: Validation<A>, prepareError?: (validation: Validation<A>) => B): Promise<A> {
