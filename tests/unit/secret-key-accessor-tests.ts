@@ -88,7 +88,7 @@ describe('SecretKeyAccessor', () => {
       const error = new Error('custom error');
       const secretKeyAccessor = new SecretKeyAccessor(async () => { throw error; });
       expect(secretKeyAccessor.getSecret())
-        .to.be.rejectedWith(SecretsProviderError, 'Error calling getSecretsCallback(): custom error');
+        .to.be.rejectedWith(SecretsProviderError, 'Error calling getSecrets(): custom error');
     });
 
     context('with malformed secret keys object', () => {

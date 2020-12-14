@@ -46,7 +46,7 @@ class SecretKeyAccessor {
     try {
       secretData = await Promise.resolve<unknown>(this.getSecretsCallback());
     } catch (e) {
-      throw new SecretsProviderError(`Error calling getSecretsCallback(): ${e.message}`, e);
+      throw new SecretsProviderError(`Error calling getSecrets(): ${e.message}`, e);
     }
     if (typeof secretData === 'string') {
       return wrapToSecretsData(secretData);
