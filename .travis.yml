@@ -10,9 +10,6 @@ jobs:
     - stage: build
       name: "Build the code, scan with Snyk, run all tests & linters"
       before_install:
-        # Install Sonar-scanner
-        - wget -q https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-${SONARSCANNER_VERSION}-linux.zip
-        - unzip -q sonar-scanner-cli-${SONARSCANNER_VERSION}-linux.zip -d /home/travis/bin
         # We need the target branch to be present in order to allow Sonar properly build the test coverage difference bw current branch and target branch
         - if [ "$TRAVIS_PULL_REQUEST" != "false" ]; then git fetch --no-tags https://github.com/${TRAVIS_PULL_REQUEST_SLUG}.git +refs/heads/${TRAVIS_BRANCH}:refs/remotes/origin/${TRAVIS_BRANCH}; fi
       script:
@@ -44,4 +41,3 @@ stages:
 env:
   global:
     - APP_NAME=sdk-nodejs
-    - SONARSCANNER_VERSION=4.3.0.2102
