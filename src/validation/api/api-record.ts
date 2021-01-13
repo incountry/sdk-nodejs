@@ -45,6 +45,17 @@ type ApiRecord = {
   key8: null | string;
   key9: null | string;
   key10: null | string;
+  key11: null | string;
+  key12: null | string;
+  key13: null | string;
+  key14: null | string;
+  key15: null | string;
+  key16: null | string;
+  key17: null | string;
+  key18: null | string;
+  key19: null | string;
+  key20: null | string;
+  parent_key: null | string;
   attachments: ApiRecordAttachment[];
 }
 
@@ -79,6 +90,17 @@ const ApiRecordIO: Codec<ApiRecord> = t.type({
   key8: t.union([t.null, t.string]),
   key9: t.union([t.null, t.string]),
   key10: t.union([t.null, t.string]),
+  key11: t.union([t.null, t.string]),
+  key12: t.union([t.null, t.string]),
+  key13: t.union([t.null, t.string]),
+  key14: t.union([t.null, t.string]),
+  key15: t.union([t.null, t.string]),
+  key16: t.union([t.null, t.string]),
+  key17: t.union([t.null, t.string]),
+  key18: t.union([t.null, t.string]),
+  key19: t.union([t.null, t.string]),
+  key20: t.union([t.null, t.string]),
+  parent_key: t.union([t.null, t.string]),
   attachments: t.array(ApiRecordAttachmentIO),
 }, 'ApiRecord');
 

@@ -35,6 +35,17 @@ function apiRecordDataFromStorageRecordData<A extends StorageRecordData>(r: A): 
     key8: r.key8,
     key9: r.key9,
     key10: r.key10,
+    key11: r.key11,
+    key12: r.key12,
+    key13: r.key13,
+    key14: r.key14,
+    key15: r.key15,
+    key16: r.key16,
+    key17: r.key17,
+    key18: r.key18,
+    key19: r.key19,
+    key20: r.key20,
+    parent_key: r.parentKey,
   });
 }
 

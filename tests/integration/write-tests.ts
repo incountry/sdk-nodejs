@@ -39,6 +39,7 @@ describe('Write data to Storage', () => {
       it('Write data with optional keys and range value', async () => {
         data = {
           recordKey: Math.random().toString(36).substr(2, 10),
+          parentKey: Math.random().toString(36).substr(2, 10),
           body: JSON.stringify({ name: 'PersonName' }),
           precommitBody: JSON.stringify({ name: 'aaa' }),
           profileKey: 'profileKey',
@@ -62,6 +63,16 @@ describe('Write data to Storage', () => {
           key8: 'optional key value 8',
           key9: 'optional key value 9',
           key10: 'optional key value 10',
+          key11: 'optional key value 11',
+          key12: 'optional key value 12',
+          key13: 'optional key value 13',
+          key14: 'optional key value 14',
+          key15: 'optional key value 15',
+          key16: 'optional key value 16',
+          key17: 'optional key value 17',
+          key18: 'optional key value 18',
+          key19: 'optional key value 19',
+          key20: 'optional key value 20',
           serviceKey1: 'optional service key value 1',
           serviceKey2: 'optional service key value 2',
         };
