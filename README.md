@@ -252,6 +252,7 @@ v3.0.0 release introduced a series of new fields available for data storage. Bel
 ##### String fields, hashed:
 ```typescript
 recordKey
+parentKey
 profileKey
 serviceKey1
 serviceKey2
@@ -270,6 +271,16 @@ key7
 key8
 key9
 key10
+key11
+key12
+key13
+key14
+key15
+key16
+key17
+key18
+key19
+key20
 ```
 
 ##### String fields, encrypted:
@@ -295,6 +306,7 @@ rangeKey10
 ```typescript
 type StorageRecordData = {
   recordKey: string;
+  parentKey?: string | null;
   profileKey?: string | null;
   key1?: string | null;  // If `hashSearchKeys` is set to `false` key1 has length limit 256
   key2?: string | null;  // If `hashSearchKeys` is set to `false` key2 has length limit 256
@@ -306,6 +318,16 @@ type StorageRecordData = {
   key8?: string | null;  // If `hashSearchKeys` is set to `false` key8 has length limit 256
   key9?: string | null;  // If `hashSearchKeys` is set to `false` key9 has length limit 256
   key10?: string | null; // If `hashSearchKeys` is set to `false` key10 has length limit 256
+  key11?: string | null; // If `hashSearchKeys` is set to `false` key11 has length limit 256
+  key12?: string | null; // If `hashSearchKeys` is set to `false` key12 has length limit 256
+  key13?: string | null; // If `hashSearchKeys` is set to `false` key13 has length limit 256
+  key14?: string | null; // If `hashSearchKeys` is set to `false` key14 has length limit 256
+  key15?: string | null; // If `hashSearchKeys` is set to `false` key15 has length limit 256
+  key16?: string | null; // If `hashSearchKeys` is set to `false` key16 has length limit 256
+  key17?: string | null; // If `hashSearchKeys` is set to `false` key17 has length limit 256
+  key18?: string | null; // If `hashSearchKeys` is set to `false` key18 has length limit 256
+  key19?: string | null; // If `hashSearchKeys` is set to `false` key19 has length limit 256
+  key20?: string | null; // If `hashSearchKeys` is set to `false` key20 has length limit 256
   serviceKey1?: string | null;
   serviceKey2?: string | null;
   body?: string | null;
@@ -386,6 +408,7 @@ You can use the `createdAt` and `updatedAt` fields to access date-related inform
 type StorageRecord = {
   recordKey: string;
   body: string | null;
+  parentKey: string | null;
   profileKey: string | null;
   precommitBody: string | null;
   key1?: string | null;  // If `hashSearchKeys` is set to `false` key1 has length limit 256
@@ -398,6 +421,16 @@ type StorageRecord = {
   key8?: string | null;  // If `hashSearchKeys` is set to `false` key8 has length limit 256
   key9?: string | null;  // If `hashSearchKeys` is set to `false` key9 has length limit 256
   key10?: string | null; // If `hashSearchKeys` is set to `false` key10 has length limit 256
+  key11?: string | null; // If `hashSearchKeys` is set to `false` key11 has length limit 256
+  key12?: string | null; // If `hashSearchKeys` is set to `false` key12 has length limit 256
+  key13?: string | null; // If `hashSearchKeys` is set to `false` key13 has length limit 256
+  key14?: string | null; // If `hashSearchKeys` is set to `false` key14 has length limit 256
+  key15?: string | null; // If `hashSearchKeys` is set to `false` key15 has length limit 256
+  key16?: string | null; // If `hashSearchKeys` is set to `false` key16 has length limit 256
+  key17?: string | null; // If `hashSearchKeys` is set to `false` key17 has length limit 256
+  key18?: string | null; // If `hashSearchKeys` is set to `false` key18 has length limit 256
+  key19?: string | null; // If `hashSearchKeys` is set to `false` key19 has length limit 256
+  key20?: string | null; // If `hashSearchKeys` is set to `false` key20 has length limit 256
   serviceKey1: string | null;
   serviceKey2: string | null;
   rangeKey1: t.Int | null;
