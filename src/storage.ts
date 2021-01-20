@@ -54,7 +54,17 @@ type SEARCH_KEY =
   | 'key7'
   | 'key8'
   | 'key9'
-  | 'key10';
+  | 'key10'
+  | 'key11'
+  | 'key12'
+  | 'key13'
+  | 'key14'
+  | 'key15'
+  | 'key16'
+  | 'key17'
+  | 'key18'
+  | 'key19'
+  | 'key20';
 
 const SEARCH_KEYS: SEARCH_KEY[] = [
   'key1',
@@ -67,19 +77,31 @@ const SEARCH_KEYS: SEARCH_KEY[] = [
   'key8',
   'key9',
   'key10',
+  'key11',
+  'key12',
+  'key13',
+  'key14',
+  'key15',
+  'key16',
+  'key17',
+  'key18',
+  'key19',
+  'key20',
 ];
 
 type KEY_TO_HASH =
   | 'record_key'
   | 'service_key1'
   | 'service_key2'
-  | 'profile_key';
+  | 'profile_key'
+  | 'parent_key';
 
 const KEYS_TO_HASH: KEY_TO_HASH[] = [
   'record_key',
   'service_key1',
   'service_key2',
   'profile_key',
+  'parent_key',
 ];
 
 type BodyForEncryption = {

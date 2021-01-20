@@ -180,8 +180,19 @@ describe('Storage', () => {
           | 'key8'
           | 'key9'
           | 'key10'
+          | 'key11'
+          | 'key12'
+          | 'key13'
+          | 'key14'
+          | 'key15'
+          | 'key16'
+          | 'key17'
+          | 'key18'
+          | 'key19'
+          | 'key20'
           | 'serviceKey1'
           | 'serviceKey2'
+          | 'parentKey'
           | 'profileKey';
 
         const keys: KEY[] = [
@@ -196,14 +207,25 @@ describe('Storage', () => {
           'key8',
           'key9',
           'key10',
+          'key11',
+          'key12',
+          'key13',
+          'key14',
+          'key15',
+          'key16',
+          'key17',
+          'key18',
+          'key19',
+          'key20',
           'serviceKey1',
           'serviceKey2',
+          'parentKey',
           'profileKey',
         ];
 
         keys.forEach((key) => {
           it(`should hash ${key} in filters request and decrypt returned data correctly`, async () => {
-            const filter = { [key]: TEST_RECORDS[4][key] as string };
+            const filter = { [key]: TEST_RECORDS[5][key] as string };
             const hashedFilter = { [key]: encStorage.createKeyHash(filter[key]) };
             let requestedFilter;
 

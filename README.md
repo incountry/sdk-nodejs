@@ -5,24 +5,35 @@
 [![vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=incountry_sdk-nodejs&metric=vulnerabilities)](https://sonarcloud.io/dashboard?id=incountry_sdk-nodejs)
 
 
-Installation
------
-
+## Installation
 The SDK is available via NPM:
 
 ```
 npm install incountry --save
 ```
 
-Countries List
-----
+## Countries List
 To get the full list of supported countries and their codes, please [follow this link](countries.md).
 
 
-Usage
------
+## Quickstart guide
+To access your data in InCountry Platform by using NodeJS SDK, you need to create an instance of the Storage class using the createStorage async factory method. You can retrieve the `oauth.clientId`, `oauth.clientSecret` and `environmentId` variables from your dashboard on InCountry Portal.
 
-To access your data in InCountry Platform by using NodeJS SDK, you need to create an instance of the `Storage` class using the `createStorage` async factory method.
+```typescript
+const { createStorage } = require('incountry');
+const storage = await createStorage({
+  environmentId: '<environment_id>',
+  oauth: {
+    clientId: '<client_id>',
+    clientSecret: '<client_secret>',
+  },
+  getSecrets: () => '<encryption_secret>',
+});
+```
+
+## Storage Configuration
+
+Below you can find a full list of possible configuration options for creating a Storage instance.
 
 ```typescript
 type StorageOptions = {
@@ -71,27 +82,6 @@ async function createStorage(
 ): Promise<Storage> {
   /* ... */
 }
-
-const { createStorage } = require('incountry');
-const storage = await createStorage({
-  apiKey: 'API_KEY',
-  environmentId: 'ENVIRONMENT_ID',
-  oauth: {
-    clientId: '',
-    clientSecret: '',
-    authEndpoints: {
-      default: 'https://auth',
-    },
-  },
-  endpoint: 'INC_URL',
-  encrypt: true,
-  getSecrets: () => '',
-  endpointMask: '',
-  countriesEndpoint: '',
-  httpOptions: {
-    timeout: 5000,
-  },
-});
 ```
 
 ---
@@ -99,49 +89,37 @@ const storage = await createStorage({
 
 API Key authorization is being deprecated. The backward compatibility is preserved for the `apiKey` parameter but you no longer can access API keys (neither old nor new) from your dashboard.
 
----
-
-The `oauth.clientId`, `oauth.clientSecret` and `environmentId` variables can be fetched from your dashboard on InCountry Portal.
-
-
-Otherwise you can create an instance of the `Storage` class and run all asynchronous checks by yourself (or skip them at your own risk!).
+Below you can find API Key authorization usage example:
 
 ```typescript
-const { Storage } = require('incountry');
-const storage = new Storage({
-  apiKey: 'API_KEY',
-  environmentId: 'ENVIRONMENT_ID',
-  endpoint: 'INC_URL',
-  encrypt: true,
-  getSecrets: () => '',
+const { createStorage } = require('incountry');
+const storage = await createStorage({
+  apiKey: '<api_key>',
+  environmentId: '<environment_id>',
+  getSecrets: () => '<encryption_secret>',
 });
-
-await storage.validate();
 ```
 
-The `validate` method fetches the secret using `GetSecretsCallback` and validates it. If custom encryption configurations were provided they would also be checked with all the matching secrets.
+---
 
+#### oAuth options configuration
 
-#### oAuth Authentication
+The SDK allows to precisely configure oAuth authorization endpoints (if needed). Use this option only if your plan configuration requires so.
 
-The SDK also supports oAuth authentication credentials instead of plain API key authorization. oAuth authentication flow is mutually exclusive with API key authentication - you will need to provide either API key or oAuth credentials.
-
-Below you can find the example of how to create a storage instance with oAuth credentials (and also provide a custom oAuth endpoint):
+Below you can find the example of how to create a storage instance with custom oAuth endpoints:
 ```typescript
 const { Storage } = require('incountry');
 const storage = new Storage({
-  environmentId: 'ENVIRONMENT_ID',
-  endpoint: 'INC_URL',
-  encrypt: true,
-  getSecrets: () => '',
+  environmentId: '<environment_id>',
+  getSecrets: () => '<encryption_secret>',
   oauth: {
-    clientId: 'CLIENT_ID',
-    clientSecret: 'CLIENT_SECRET',
+    clientId: '<client_id>',
+    clientSecret: '<client_secret>',
     authEndpoints: {
-      "default": "https://auth-server-default.com",
-      "emea": "https://auth-server-emea.com",
-      "apac": "https://auth-server-apac.com",
-      "amer": "https://auth-server-amer.com",
+      "default": "<default_auth_endpoint>",
+      "emea": "<auth_endpoint_for_emea_region>",
+      "apac": "<auth_endpoint_for_apac_region>",
+      "amer": "<auth_endpoint_for_amer_region>",
     },
   },
 });
@@ -150,11 +128,7 @@ const storage = new Storage({
 
 #### Encryption key/secret
 
-The `GetSecretsCallback` function is used to pass a key or secret used for encryption.
-
-Note: even though SDK uses PBKDF2 to generate a cryptographically strong encryption key, you must ensure that you provide a secret/password which follows the modern security best practices and standards.
-
-The `GetSecretsCallback` function returns either a string representing your secret or an object (we call it `SecretsData`) or a `Promise` which is resolved to that string or object:
+The `getSecrets` storage config option allows you to pass function which will be used to fetch an encryption key(s) or secret. This function should return either a string representing your secret or an object (so-called `SecretsData`) or a `Promise` which is resolved to such string or object:
 
 ```typescript
 type SecretOrKey = {
@@ -191,33 +165,45 @@ type SecretsData = {
 };
 ```
 
-The `GetSecretsCallback` function allows you to specify multiple keys/secrets which the SDK will use for decryption based on the version of the key or secret used for encryption. Meanwhile SDK will encrypt data only by using a key (or secret) which matches the `currentVersion` parameter provided in the `SecretsData` object.
+Note: even though SDK uses PBKDF2 to generate a cryptographically strong encryption key, you must ensure that you provide a secret/password which follows the modern security best practices and standards.
+
+The `SecretsData` object allows you to specify multiple keys/secrets which the SDK will use for decryption based on the version of the key or secret used for encryption. Meanwhile SDK will encrypt data only by using a key (or secret) which matches the `currentVersion` parameter provided in the `SecretsData` object.
 
 This enables the flexibility required to support Key Rotation policies when secrets (or keys) must be changed with time. The SDK will encrypt data by using the current secret (or key) while maintaining the ability to decrypt data records that were encrypted with old secrets (or keys). The SDK also provides a method for data migration which allows you to re-encrypt data with the newest secret (or key). For details please see the `migrate` method.
 
 The SDK allows you to use custom encryption keys, instead of secrets. Please note that a user-defined encryption key should be a base64-encoded 32-bytes-long key as required by AES-256 cryptographic algorithm.
 
-Below you can find several examples of how you can use the `GetSecretsCallback` function.
+Below you can find several examples of how you can use the `getSecrets` storage config option:
 
 ```typescript
-type GetSecretsCallback = () => string | SecretsData | Promise<string> | Promise<SecretsData>;
-
 // Synchronous
 const getSecretsSync = () => 'longAndStrongPassword';
+const storage = await createStorage({
+  ...,
+  getSecrets: getSecretsSync,
+});
 
 // Asynchronous
 const getSecretsAsync = async () => {
   const secretsData = await getSecretsDataFromSomewhere();
   return secretsData;
 };
+const storage = await createStorage({
+  ...,
+  getSecrets: getSecretsAsync,
+});
 
 // Using promises syntax
 const getSecretsPromise = () =>
   new Promise(resolve => {
-    getPasswordFromSomewhere(secretsData => {
+    getSecretsDataFromSomewhere(secretsData => {
       resolve(secretsData);
     });
   });
+const storage = await createStorage({
+  ...,
+  getSecrets: getSecretsPromise,
+});
 ```
 
 #### Logging
@@ -239,6 +225,22 @@ const storage = await createStorage({
 });
 ```
 
+#### Skipping Storage validation
+
+You can create an instance of the `Storage` class and run all asynchronous checks by yourself (or skip them at your own risk!).
+
+```typescript
+const { Storage } = require('incountry');
+const storage = new Storage({...});
+
+await storage.validate();
+```
+
+The `validate` method fetches the secret using `getSecrets` and validates it. If custom encryption configurations were provided they would also be checked with all the matching secrets.
+
+
+## Usage
+
 ### Writing data to Storage
 
 Use the `write` method to create/replace a record (by `recordKey`).
@@ -250,6 +252,7 @@ v3.0.0 release introduced a series of new fields available for data storage. Bel
 ##### String fields, hashed:
 ```typescript
 recordKey
+parentKey
 profileKey
 serviceKey1
 serviceKey2
@@ -268,6 +271,16 @@ key7
 key8
 key9
 key10
+key11
+key12
+key13
+key14
+key15
+key16
+key17
+key18
+key19
+key20
 ```
 
 ##### String fields, encrypted:
@@ -293,6 +306,7 @@ rangeKey10
 ```typescript
 type StorageRecordData = {
   recordKey: string;
+  parentKey?: string | null;
   profileKey?: string | null;
   key1?: string | null;  // If `hashSearchKeys` is set to `false` key1 has length limit 256
   key2?: string | null;  // If `hashSearchKeys` is set to `false` key2 has length limit 256
@@ -304,6 +318,16 @@ type StorageRecordData = {
   key8?: string | null;  // If `hashSearchKeys` is set to `false` key8 has length limit 256
   key9?: string | null;  // If `hashSearchKeys` is set to `false` key9 has length limit 256
   key10?: string | null; // If `hashSearchKeys` is set to `false` key10 has length limit 256
+  key11?: string | null; // If `hashSearchKeys` is set to `false` key11 has length limit 256
+  key12?: string | null; // If `hashSearchKeys` is set to `false` key12 has length limit 256
+  key13?: string | null; // If `hashSearchKeys` is set to `false` key13 has length limit 256
+  key14?: string | null; // If `hashSearchKeys` is set to `false` key14 has length limit 256
+  key15?: string | null; // If `hashSearchKeys` is set to `false` key15 has length limit 256
+  key16?: string | null; // If `hashSearchKeys` is set to `false` key16 has length limit 256
+  key17?: string | null; // If `hashSearchKeys` is set to `false` key17 has length limit 256
+  key18?: string | null; // If `hashSearchKeys` is set to `false` key18 has length limit 256
+  key19?: string | null; // If `hashSearchKeys` is set to `false` key19 has length limit 256
+  key20?: string | null; // If `hashSearchKeys` is set to `false` key20 has length limit 256
   serviceKey1?: string | null;
   serviceKey2?: string | null;
   body?: string | null;
@@ -384,6 +408,7 @@ You can use the `createdAt` and `updatedAt` fields to access date-related inform
 type StorageRecord = {
   recordKey: string;
   body: string | null;
+  parentKey: string | null;
   profileKey: string | null;
   precommitBody: string | null;
   key1?: string | null;  // If `hashSearchKeys` is set to `false` key1 has length limit 256
@@ -396,6 +421,16 @@ type StorageRecord = {
   key8?: string | null;  // If `hashSearchKeys` is set to `false` key8 has length limit 256
   key9?: string | null;  // If `hashSearchKeys` is set to `false` key9 has length limit 256
   key10?: string | null; // If `hashSearchKeys` is set to `false` key10 has length limit 256
+  key11?: string | null; // If `hashSearchKeys` is set to `false` key11 has length limit 256
+  key12?: string | null; // If `hashSearchKeys` is set to `false` key12 has length limit 256
+  key13?: string | null; // If `hashSearchKeys` is set to `false` key13 has length limit 256
+  key14?: string | null; // If `hashSearchKeys` is set to `false` key14 has length limit 256
+  key15?: string | null; // If `hashSearchKeys` is set to `false` key15 has length limit 256
+  key16?: string | null; // If `hashSearchKeys` is set to `false` key16 has length limit 256
+  key17?: string | null; // If `hashSearchKeys` is set to `false` key17 has length limit 256
+  key18?: string | null; // If `hashSearchKeys` is set to `false` key18 has length limit 256
+  key19?: string | null; // If `hashSearchKeys` is set to `false` key19 has length limit 256
+  key20?: string | null; // If `hashSearchKeys` is set to `false` key20 has length limit 256
   serviceKey1: string | null;
   serviceKey2: string | null;
   rangeKey1: t.Int | null;
@@ -632,6 +667,13 @@ const deleteResult = await storage.delete(countryCode, recordKey);
 
 ## Attaching files to a record
 
+---
+**NOTE**
+
+Attachments are currently available for InCountry dedicated instances only. Please check your subscription plan for details. This may require specifying your dedicated instance endpoint when configuring NodeJS SDK Storage.
+
+---
+
 InCountry Storage allows you to attach files to the previously created records. Attachments' meta information is available through the `attachments` field of `StorageRecord` object.
 
 
@@ -777,10 +819,10 @@ await storage.updateAttachmentMeta(COUNTRY, data.recordKey, attachmentMeta.fileI
 
 ## Data Migration and Key Rotation support
 
-Using `GetSecretCallback` that provides `secretsData` object enables key rotation and data migration support.
+Using `getSecrets` storage config options that provides `SecretsData` object enables key rotation and data migration support.
 
 SDK introduces `migrate` method which allows you to re-encrypt data encrypted with old versions of the secret.
-It returns an object which contains some information about the migration - the amount of records migrated (`migrated`) and the amount of records left to migrate (`totalLeft`) (which basically means the amount of records with version different from `currentVersion` provided by `GetSecretsCallback`).
+It returns an object which contains some information about the migration - the amount of records migrated (`migrated`) and the amount of records left to migrate (`totalLeft`) (which basically means the amount of records with version different from `currentVersion` provided by `SecretsData`).
 
 For a detailed example of a migration script please see [examples/migration.js](examples/migration.js)
 
@@ -808,8 +850,7 @@ const migrateResult = await storage.migrate(countryCode);
 ```
 
 
-Error Handling
------
+## Error Handling
 
 InCountry Node SDK throws following Exceptions:
 
