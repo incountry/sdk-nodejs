@@ -120,11 +120,11 @@ const SortingKey = t.keyof({
 
 const sortItemValidate = (i: { [key: string]: unknown }): Either<string, SortingItem> => {
   if (Object.keys(i).length < 1) {
-    return left('At least one key per sorting item is required');
+    return left('One key per sorting item is required');
   }
 
   if (Object.keys(i).length > 1) {
-    return left('Only one key per sorting item is allowed');
+    return left('Not more than one key per sorting item is allowed');
   }
 
   if (!SortingKey.is(Object.keys(i)[0])) {
