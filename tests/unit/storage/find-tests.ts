@@ -1,4 +1,5 @@
 import * as chai from 'chai';
+import chaiAsPromised from 'chai-as-promised';
 import * as sinon from 'sinon';
 import nock from 'nock';
 import { v4 as uuid } from 'uuid';
@@ -24,6 +25,7 @@ import { Int } from '../../../src/validation/utils';
 import { COUNTRY_CODE_ERROR_MESSAGE } from '../../../src/validation/country-code';
 import { INVALID_FIND_FILTER, VALID_FIND_FILTER } from '../validation/find-filter-test';
 
+chai.use(chaiAsPromised);
 const { expect, assert } = chai;
 
 
@@ -102,6 +104,23 @@ describe('Storage', () => {
               .to.be.rejectedWith(StorageError, LIMIT_ERROR_MESSAGE_MAX);
 
             await expect(encStorage.find(COUNTRY, {}, { limit: 10 })).not.to.be.rejected;
+          });
+
+          it('should throw an error when options.sort has invalid format', async () => {
+            const INVALID_SORT = [
+              -123,
+              123.124,
+              'sdsd',
+              [],
+              [{}],
+              [{ aaa: 'asc' }],
+              [{ rangeKey1: 'test' }],
+              [{ rangeKey1: 'asc', rangeKey2: 'asc' }],
+            ];
+
+            // @ts-ignore
+            await Promise.all(INVALID_SORT.map((sort) => expect(encStorage.find(COUNTRY, {}, { sort }))
+              .to.be.rejectedWith(StorageError, '<FindOptions>.sort', `Failed with ${JSON.stringify(sort)}`)));
           });
 
           it('should not throw an error when find options are not provided', async () => {

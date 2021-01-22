@@ -185,7 +185,7 @@ describe('Storage', () => {
                   encrypt: false,
                   oauth: { clientId: 'clientId', clientSecret: 'clientSecret', authEndpoints },
                 };
-                const errorMsg = 'Storage.constructor() Validation Error: authEndpoints should be an object containing "default" key';
+                const errorMsg = 'authEndpoints should be an object containing "default" key';
                 // @ts-ignore
                 await expect(createStorage(options))
                   .to.be.rejectedWith(StorageClientError, errorMsg);
@@ -193,8 +193,8 @@ describe('Storage', () => {
             });
 
             it('should be an object with string values and the default key', async () => {
-              const errStringValue = 'Storage.constructor() Validation Error: authEndpoints values should be a string';
-              const errObjectFormat = 'Storage.constructor() Validation Error: authEndpoints should be an object containing "default" key';
+              const errStringValue = 'authEndpoints values should be a string';
+              const errObjectFormat = 'authEndpoints should be an object containing "default" key';
               const invalidAuthEndpoints = [
                 [{}, errObjectFormat],
                 [{ key: 'value' }, errObjectFormat],

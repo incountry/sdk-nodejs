@@ -107,12 +107,12 @@ describe('Storage', () => {
         const errorCases = [{
           name: 'when the records has wrong type',
           arg: 'recordzzz',
-          error: 'batchWrite() Validation Error: You must pass non-empty array of records',
+          error: 'You must pass non-empty array of records',
         },
         {
           name: 'when the records is empty array',
           arg: [],
-          error: 'batchWrite() Validation Error: You must pass non-empty array of records',
+          error: 'You must pass non-empty array of records',
         },
         {
           name: 'when any record has no key field',

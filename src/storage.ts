@@ -20,7 +20,9 @@ import {
 } from './validation/storage-record';
 import { getStorageRecordDataArrayIO } from './validation/storage-record-data-array';
 import { CountryCodeIO } from './validation/country-code';
-import { FindOptionsIO, FindOptions } from './validation/api/find-options';
+import {
+  FindOptionsIO, FindOptions, SEARCH_KEYS, SearchKey,
+} from './validation/find-options';
 import {
   FindFilterIO, FindFilter, FilterStringValue, FilterStringQueryIO, FilterStringValueIO, filterFromStorageDataKeys,
 } from './validation/api/find-filter';
@@ -41,62 +43,18 @@ import { ApiRecordData, apiRecordDataFromStorageRecordData } from './validation/
 import { RequestOptionsIO, RequestOptions } from './validation/request-options';
 import { AttachmentWritableMeta, AttachmentWritableMetaIO } from './validation/attachment-writable-meta';
 import { AttachmentData, AttachmentDataIO } from './validation/api/attachment-data';
+import { findOptionsFromStorageDataKeys } from './validation/api/api-find-options';
 
 const FIND_LIMIT = 100;
 
-type SEARCH_KEY =
-  | 'key1'
-  | 'key2'
-  | 'key3'
-  | 'key4'
-  | 'key5'
-  | 'key6'
-  | 'key7'
-  | 'key8'
-  | 'key9'
-  | 'key10'
-  | 'key11'
-  | 'key12'
-  | 'key13'
-  | 'key14'
-  | 'key15'
-  | 'key16'
-  | 'key17'
-  | 'key18'
-  | 'key19'
-  | 'key20';
-
-const SEARCH_KEYS: SEARCH_KEY[] = [
-  'key1',
-  'key2',
-  'key3',
-  'key4',
-  'key5',
-  'key6',
-  'key7',
-  'key8',
-  'key9',
-  'key10',
-  'key11',
-  'key12',
-  'key13',
-  'key14',
-  'key15',
-  'key16',
-  'key17',
-  'key18',
-  'key19',
-  'key20',
-];
-
-type KEY_TO_HASH =
+type KeyToHash =
   | 'record_key'
   | 'service_key1'
   | 'service_key2'
   | 'profile_key'
   | 'parent_key';
 
-const KEYS_TO_HASH: KEY_TO_HASH[] = [
+const KEYS_TO_HASH: KeyToHash[] = [
   'record_key',
   'service_key1',
   'service_key2',
@@ -304,7 +262,7 @@ class Storage {
 
     const data = {
       filter: this.hashFilterKeys(filterFromStorageDataKeys(filter), keysToHash),
-      options: { limit: FIND_LIMIT, offset: 0, ...options },
+      options: { limit: FIND_LIMIT, offset: 0, ...findOptionsFromStorageDataKeys(options) },
     };
 
     const responseData = await this.apiClient.find(countryCode, data, requestOptions);
@@ -486,8 +444,8 @@ class Storage {
     return this.normalizeKeys ? String(key).toLowerCase() : String(key);
   }
 
-  private getKeysToHash(): Array<KEY_TO_HASH | SEARCH_KEY> {
-    let keysToHash: Array<KEY_TO_HASH | SEARCH_KEY> = KEYS_TO_HASH;
+  private getKeysToHash(): Array<KeyToHash | SearchKey> {
+    let keysToHash: Array<KeyToHash | SearchKey> = KEYS_TO_HASH;
     if (this.hashSearchKeys) {
       keysToHash = keysToHash.concat(SEARCH_KEYS);
     }
@@ -622,7 +580,7 @@ export {
   ReadResult,
   DeleteResult,
   Storage,
-  KEY_TO_HASH,
+  KeyToHash,
   KEYS_TO_HASH,
   createStorage,
   FIND_LIMIT,
