@@ -61,7 +61,6 @@ async function run() {
     profileKey: 'profileKey',
     rangeKey1: 125,
     body: JSON.stringify({ test: 'Test AWS KMS keys in Node.js SDK' }),
-    serviceKey2: 'Test AWS KMS keys in Node.js SDK',
   };
 
   const storage = await createStorage(storageOptions);

@@ -854,7 +854,7 @@ const migrateResult = await storage.migrate(countryCode);
 
 InCountry NodeJS SDK supports usage of AWS KMS encryption keys of type `AES_256` produced by symmetric master key (CMK).
 
-In the suggested use-case SDK user produces encrypted AWS KMS key by its own and then provides decrypted key to NodeJS SDK in the `getSecrets()` function.
+The suggested use case assumes that AWS user already got his KMS encrypted data key generated. Afterwards the key gets decrypted using AWS Node.js client library (`aws-sdk/clients/kms`) and then provided to InCountry NodeJS SDK's `getSecrets()` function.
 
 For a detailed example of AWS KMS keys usage please see [examples/aws-kms.js](examples/aws-kms.js)
 
