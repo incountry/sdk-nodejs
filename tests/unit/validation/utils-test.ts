@@ -140,39 +140,40 @@ describe('Validation Utils', () => {
   });
 
   describe('chainValidate', () => {
-    const codec1 = chainValidate(t.string, (u) => right(u));
+    const codec1 = chainValidate(t.UnknownRecord, (u) => right(u));
 
-    const errorMessage = 'This should be string with length than 10';
-    const codec2 = chainValidate(t.string, (u) => u.length > 10 ? right(u) : left(`${errorMessage} but got ${JSON.stringify(u)}`), 'StringMoreThan10');
-    const validString = 'aaaaaaaaaaa';
+    const errorMessage = 'This should have .test prop';
+    const codec2 = chainValidate(t.UnknownRecord, (u) => (u as any).test ? right(u) : left(`${errorMessage} but got ${JSON.stringify(u)}`), 'SuperObject');
+    const validData = { test: 1 };
 
     it('should have original codec error', () => {
       const result = codec1.decode(123);
       expect(isLeft(result)).to.equal(true);
-      expect(getErrorMessage(result)).to.equal('<string> should be string but got 123');
+      expect(getErrorMessage(result)).to.equal('<UnknownRecord> should be UnknownRecord but got 123');
     });
 
     it('should have original codec result', () => {
-      expect(codec1.decode('test')).to.deep.equal(right('test'));
+      expect(codec1.decode({})).to.deep.equal(right({}));
     });
 
     it('should return error for invalid data', () => {
-      const result = codec2.decode('aaa');
+      const result = codec2.decode({});
       expect(isLeft(result)).to.equal(true);
       expect(getErrorMessage(result)).to.include(errorMessage);
     });
 
     it('should return success for valid data', () => {
-      expect(codec2.decode(validString)).to.deep.equal(right(validString));
+      expect(codec2.decode(validData)).to.deep.equal(right(validData));
     });
 
     it('should return true for valid data with .is()', () => {
-      expect(codec2.is(validString)).to.equal(true);
+      expect(codec2.is(validData)).to.equal(true);
     });
 
     it('should return false for invalid data with .is()', () => {
       expect(codec2.is('aaaaaa')).to.equal(false);
       expect(codec2.is(123)).to.equal(false);
+      expect(codec2.is({})).to.equal(false);
     });
   });
 
