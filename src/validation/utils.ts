@@ -3,20 +3,50 @@ import { clone } from 'io-ts-types/lib/clone';
 import { Readable } from 'stream';
 import { isLeft, isRight, Either } from 'fp-ts/lib/Either';
 import { getErrorMessage } from './get-error-message';
-import { StorageClientError, StorageServerError } from '../errors';
+import {
+  StorageServerError,
+  InputValidationError,
+  StorageConfigValidationError,
+  SecretsValidationError,
+  StorageNetworkError,
+  StorageAuthenticationError,
+} from '../errors';
 import { isJSON } from '../utils';
 
 
 type Validation<A> = Either<t.Errors, A>;
 
-const toStorageClientError = (prefix = '') => (validation: Validation<unknown>): StorageClientError => {
+const toStorageConfigValidationError = (prefix = '') => (validation: Validation<unknown>): StorageConfigValidationError => {
   const errorMessage = getErrorMessage(validation);
-  return new StorageClientError(`${prefix}${errorMessage}`, validation);
+  return new StorageConfigValidationError(`${prefix}${errorMessage}`, validation);
 };
 
-const toStorageServerError = (prefix = '') => (validation: Validation<unknown>): StorageServerError => {
+const toSecretsValidationError = (prefix = '') => (validation: Validation<unknown>): SecretsValidationError => {
   const errorMessage = getErrorMessage(validation);
-  return new StorageServerError(`${prefix}${errorMessage}`, validation);
+  return new SecretsValidationError(`${prefix}${errorMessage}`, validation);
+};
+
+const toInputValidationError = (prefix = '') => (validation: Validation<unknown>): InputValidationError => {
+  const errorMessage = getErrorMessage(validation);
+  return new InputValidationError(`${prefix}${errorMessage}`, validation);
+};
+
+const toStorageAuthenticationError = (prefix = '') => (validation: Validation<unknown>): StorageAuthenticationError => {
+  const errorMessage = getErrorMessage(validation);
+  return new StorageAuthenticationError(`${prefix}${errorMessage}`, validation);
+};
+
+const toStorageServerValidationError = (prefix = '') => (validation: Validation<unknown>): StorageServerError => {
+  const errorMessage = getErrorMessage(validation);
+  return new StorageServerError(`${prefix}${errorMessage}`, undefined, validation);
+};
+
+const toStorageServerError = (prefix = '') => (originalError: Record<string, any> = {}): StorageServerError => {
+  const code = originalError.code || (originalError.response && originalError.response.status);
+  if (Number.isInteger(code)) {
+    return new StorageServerError(`${prefix}${originalError.message || code}`, +code, originalError);
+  }
+  return new StorageNetworkError(`${prefix}${originalError.message || originalError.code}`, originalError);
 };
 
 function validationToPromise<A, B>(validation: Validation<A>, prepareError?: (validation: Validation<A>) => B): Promise<A> {
@@ -96,7 +126,11 @@ const StringMax256 = t.brand(
 
 export {
   Codec,
-  toStorageClientError,
+  toStorageConfigValidationError,
+  toSecretsValidationError,
+  toInputValidationError,
+  toStorageServerValidationError,
+  toStorageAuthenticationError,
   toStorageServerError,
   validationToPromise,
   JSONIO,
