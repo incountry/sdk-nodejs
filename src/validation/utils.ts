@@ -146,7 +146,7 @@ const chainValidate = <A, B, BO, I>(type: t.Type<B, BO, I>, validate: (u: B) => 
       ),
     ),
   ),
-  (i) => i,
+  Object,
 );
 
 export {
