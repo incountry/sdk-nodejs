@@ -16,7 +16,7 @@ import {
   popapiResponseHeaders,
   getDefaultStorage,
 } from './common';
-import { StorageError, StorageServerError } from '../../../src/errors';
+import { InputValidationError, StorageServerError } from '../../../src/errors';
 import { nockPopApi, getNockedRequestHeaders } from '../../test-helpers/popapi-nock';
 import { VALID_REQUEST_OPTIONS, INVALID_REQUEST_OPTIONS } from '../validation/request-options';
 import { COUNTRY_CODE_ERROR_MESSAGE } from '../../../src/validation/country-code';
@@ -64,7 +64,7 @@ describe('Storage', () => {
           it('should throw an error when no country provided', async () => {
             // @ts-ignore
             await expect(encStorage.delete(undefined, ''))
-              .to.be.rejectedWith(StorageError, COUNTRY_CODE_ERROR_MESSAGE);
+              .to.be.rejectedWith(InputValidationError, COUNTRY_CODE_ERROR_MESSAGE);
           });
         });
 
@@ -72,7 +72,7 @@ describe('Storage', () => {
           it('should throw an error when no key provided', async () => {
             // @ts-ignore
             await expect(encStorage.delete(COUNTRY, undefined))
-              .to.be.rejectedWith(StorageError, RECORD_KEY_ERROR_MESSAGE);
+              .to.be.rejectedWith(InputValidationError, RECORD_KEY_ERROR_MESSAGE);
           });
         });
 
@@ -80,17 +80,17 @@ describe('Storage', () => {
           it('should throw error with invalid request options', async () => {
             // @ts-ignore
             await Promise.all(INVALID_REQUEST_OPTIONS.map((requestOptions) => expect(encStorage.delete(COUNTRY, '123', requestOptions))
-              .to.be.rejectedWith(StorageError, '<RequestOptionsIO>')));
+              .to.be.rejectedWith(InputValidationError, 'delete() Validation Error: <RequestOptionsIO>')));
           });
 
           it('should not throw error with valid request options', async () => {
             await Promise.all(VALID_REQUEST_OPTIONS.map((requestOptions) => expect(encStorage.delete(COUNTRY, '123', requestOptions))
-              .to.not.be.rejectedWith(StorageError, '<RequestOptionsIO>')));
+              .not.to.be.rejectedWith(InputValidationError)));
           });
 
           it('should not throw error without request options', async () => {
             expect(encStorage.delete(COUNTRY, '123'))
-              .to.not.be.rejectedWith(StorageError, '<RequestOptionsIO>');
+              .not.to.be.rejectedWith(InputValidationError);
           });
 
           it('should pass valid request options "meta" to logger', async () => {
@@ -134,9 +134,11 @@ describe('Storage', () => {
       describe('errors handling', () => {
         it('should throw an error when record not found', async () => {
           const key = 'invalid';
-          const scope = nockPopApi(POPAPI_HOST).delete(COUNTRY, encStorage.createKeyHash(key)).reply(404);
+          const hashedKey = encStorage.createKeyHash(key);
+          const scope = nockPopApi(POPAPI_HOST).delete(COUNTRY, hashedKey).reply(404);
 
-          await expect(encStorage.delete(COUNTRY, key)).to.be.rejectedWith(StorageServerError);
+          await expect(encStorage.delete(COUNTRY, key))
+            .to.be.rejectedWith(StorageServerError, `Error during Storage.delete() call: DELETE ${POPAPI_HOST}/v2/storage/records/${COUNTRY}/${hashedKey} 404`);
           assert.equal(scope.isDone(), true, 'Nock scope is done');
         });
       });

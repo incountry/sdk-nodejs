@@ -75,8 +75,17 @@ type StorageOptions = {
 
 type StorageOptionsValidated = Override<StorageOptions, {
   logger?: { write: Function };
-  countriesCache?: {};
+  countriesCache?: CountriesCache;
 }>;
+
+const isCountriesCache = (o: unknown): o is CountriesCache => o instanceof CountriesCache;
+
+const CountriesCacheIO = new t.Type<CountriesCache>(
+  'CountriesCache',
+  isCountriesCache,
+  (o, c) => isCountriesCache(o) ? t.success(o) : t.failure(o, c),
+  t.identity,
+);
 
 const StorageOptionsIO: Codec<StorageOptionsValidated> = t.partial({
   endpoint: t.string,
@@ -87,7 +96,7 @@ const StorageOptionsIO: Codec<StorageOptionsValidated> = t.partial({
   logger: LoggerIO,
   getSecrets: t.Function,
   hashSearchKeys: t.boolean,
-  countriesCache: t.object,
+  countriesCache: CountriesCacheIO,
   oauth: OAuthOptionsIO,
   endpointMask: t.string,
   countriesEndpoint: t.string,

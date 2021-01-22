@@ -3,7 +3,7 @@ import chaiAsPromised from 'chai-as-promised';
 import * as sinon from 'sinon';
 import nock from 'nock';
 import { v4 as uuid } from 'uuid';
-import { Storage, StorageError } from '../../../src';
+import { Storage, InputValidationError } from '../../../src';
 import {
   getDefaultStorage,
   COUNTRY, POPAPI_HOST,
@@ -67,7 +67,7 @@ describe('Storage', () => {
             const wrongCountries = [undefined, null, 1, {}, []];
             // @ts-ignore
             await Promise.all(wrongCountries.map((country) => expect(encStorage.find(country))
-              .to.be.rejectedWith(StorageError, COUNTRY_CODE_ERROR_MESSAGE)));
+              .to.be.rejectedWith(InputValidationError, COUNTRY_CODE_ERROR_MESSAGE)));
           });
         });
 
@@ -75,18 +75,18 @@ describe('Storage', () => {
           it('should throw an error when filter has wrong format', async () => Promise.all(
             // @ts-ignore
             INVALID_FIND_FILTER.map((filter) => expect(encStorage.find(COUNTRY, filter))
-              .to.be.rejectedWith(StorageError, 'FindFilter', `wrong filter format: ${JSON.stringify(filter)}`)),
+              .to.be.rejectedWith(InputValidationError, 'find() Validation Error: <FindFilter>', `wrong filter format: ${JSON.stringify(filter)}`)),
           ));
 
           it('should not throw an error when filter has correct format', async () => Promise.all(
             // @ts-ignore
             VALID_FIND_FILTER.map((filter) => expect(encStorage.find(COUNTRY, filter))
-              .not.to.be.rejectedWith(StorageError, '<FindFilter>', `wrong filter format: ${JSON.stringify(filter)}`)),
+              .not.to.be.rejectedWith(InputValidationError)),
           ));
 
           it('should not throw an error when find filter is not provided', async () => {
             expect(encStorage.find(COUNTRY))
-              .not.to.be.rejectedWith(StorageError, '<FindFilter>');
+              .not.to.be.rejectedWith(InputValidationError);
           });
         });
 
@@ -98,10 +98,10 @@ describe('Storage', () => {
             const nonPositiveLimits = [-123, 123.124, 'sdsd'];
             // @ts-ignore
             await Promise.all(nonPositiveLimits.map((limit) => expect(encStorage.find(COUNTRY, {}, { limit }))
-              .to.be.rejectedWith(StorageError, LIMIT_ERROR_MESSAGE_INT)));
+              .to.be.rejectedWith(InputValidationError, LIMIT_ERROR_MESSAGE_INT)));
 
             await expect(encStorage.find(COUNTRY, {}, { limit: MAX_LIMIT + 1 }))
-              .to.be.rejectedWith(StorageError, LIMIT_ERROR_MESSAGE_MAX);
+              .to.be.rejectedWith(InputValidationError, LIMIT_ERROR_MESSAGE_MAX);
 
             await expect(encStorage.find(COUNTRY, {}, { limit: 10 })).not.to.be.rejected;
           });
@@ -120,12 +120,12 @@ describe('Storage', () => {
 
             // @ts-ignore
             await Promise.all(INVALID_SORT.map((sort) => expect(encStorage.find(COUNTRY, {}, { sort }))
-              .to.be.rejectedWith(StorageError, '<FindOptions>.sort', `Failed with ${JSON.stringify(sort)}`)));
+              .to.be.rejectedWith(InputValidationError, '<FindOptions>.sort', `Failed with ${JSON.stringify(sort)}`)));
           });
 
           it('should not throw an error when find options are not provided', async () => {
             expect(encStorage.find(COUNTRY, {}))
-              .not.to.be.rejectedWith(StorageError, '<FindOptions>');
+              .not.to.be.rejectedWith(InputValidationError);
           });
         });
 
@@ -133,17 +133,17 @@ describe('Storage', () => {
           it('should throw error with invalid request options', async () => {
             // @ts-ignore
             await Promise.all(INVALID_REQUEST_OPTIONS.map((requestOptions) => expect(encStorage.find(COUNTRY, {}, {}, requestOptions))
-              .to.be.rejectedWith(StorageError, '<RequestOptionsIO>')));
+              .to.be.rejectedWith(InputValidationError, 'find() Validation Error: <RequestOptionsIO>')));
           });
 
           it('should not throw error with valid request options', async () => {
             await Promise.all(VALID_REQUEST_OPTIONS.map((requestOptions) => expect(encStorage.find(COUNTRY, {}, {}, requestOptions))
-              .to.not.be.rejectedWith(StorageError, '<RequestOptionsIO>')));
+              .not.to.be.rejectedWith(InputValidationError)));
           });
 
           it('should not throw error without request options', async () => {
             expect(encStorage.find(COUNTRY, {}, {}))
-              .to.not.be.rejectedWith(StorageError, '<RequestOptionsIO>');
+              .not.to.be.rejectedWith(InputValidationError);
           });
 
           it('should pass valid request options "meta" to logger', async () => {

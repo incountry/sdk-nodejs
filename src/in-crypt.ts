@@ -1,7 +1,7 @@
 import crypto from 'crypto';
 import util from 'util';
 import { SecretKeyAccessor } from './secret-key-accessor';
-import { StorageCryptoError, StorageClientError } from './errors';
+import { StorageCryptoError } from './errors';
 import {
   isValid, getErrorMessage, NonNegativeInt,
 } from './validation/utils';
@@ -70,7 +70,7 @@ class InCrypt {
     const validationResult = CustomEncryptionConfigsIO.decode(customEncryptionConfigs);
     if (!isValid(validationResult)) {
       const errorMessage = getErrorMessage(validationResult);
-      throw new StorageClientError(`Custom Encryption Validation Error: ${errorMessage}`);
+      throw new StorageCryptoError(`Custom Encryption Validation Error: ${errorMessage}`);
     }
 
     this.customEncryption = customEncryptionConfigs.reduce((result, item) => ({
@@ -122,7 +122,13 @@ class InCrypt {
       throw new StorageCryptoError(`Secret with version ${secretVersion} is not marked for custom encryption`);
     }
 
-    const ciphertext = await encrypt(text, secret, secretVersion);
+    let ciphertext;
+    try {
+      ciphertext = await encrypt(text, secret, secretVersion);
+    } catch (e) {
+      throw new StorageCryptoError(`Error calling custom encryption "encrypt" method [Secret version: ${secretData.version}]: ${e.message}`, e);
+    }
+
     if (typeof ciphertext !== 'string') {
       throw new StorageCryptoError(`${CUSTOM_ENCRYPTION_ERROR_MESSAGE_ENC}. Got ${typeof ciphertext}`);
     }
@@ -230,7 +236,13 @@ class InCrypt {
       throw new StorageCryptoError(`Secret with version ${secretVersion} is not marked for custom encryption`);
     }
 
-    const decrypted = await decrypt(encrypted, secret, secretVersion);
+    let decrypted;
+    try {
+      decrypted = await decrypt(encrypted, secret, secretVersion);
+    } catch (e) {
+      throw new StorageCryptoError(`Error calling custom encryption "decrypt" method [Secret version: ${secretData.version}]: ${e.message}`, e);
+    }
+
     if (typeof decrypted !== 'string') {
       throw new StorageCryptoError(`${CUSTOM_ENCRYPTION_ERROR_MESSAGE_DEC}. Got ${typeof decrypted}`);
     }

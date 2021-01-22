@@ -14,7 +14,7 @@ import {
   SECRET_KEY,
   getDefaultStorage,
 } from './common';
-import { StorageError } from '../../../src/errors';
+import { InputValidationError, StorageConfigValidationError, StorageError } from '../../../src/errors';
 import { nockPopApi, getNockedRequestBodyObject } from '../../test-helpers/popapi-nock';
 import { ApiRecord } from '../../../src/validation/api/api-record';
 import { VALID_REQUEST_OPTIONS, INVALID_REQUEST_OPTIONS } from '../validation/request-options';
@@ -58,7 +58,7 @@ describe('Storage', () => {
     describe('migrate', () => {
       describe('when encryption disabled', () => {
         it('should throw an error', async () => {
-          await expect(noEncStorage.migrate(COUNTRY, 10)).to.be.rejectedWith(StorageError, 'Migration not supported when encryption is off');
+          await expect(noEncStorage.migrate(COUNTRY, 10)).to.be.rejectedWith(StorageConfigValidationError, 'Migration not supported when encryption is off');
         });
       });
 
@@ -172,17 +172,17 @@ describe('Storage', () => {
           it('should throw error with invalid request options', async () => {
             // @ts-ignore
             await Promise.all(INVALID_REQUEST_OPTIONS.map((requestOptions) => expect(encStorage.migrate(COUNTRY, 1, {}, requestOptions))
-              .to.be.rejectedWith(StorageError, '<RequestOptionsIO>')));
+              .to.be.rejectedWith(InputValidationError, 'migrate() Validation Error: <RequestOptionsIO>')));
           });
 
           it('should not throw error with valid request options', async () => {
             await Promise.all(VALID_REQUEST_OPTIONS.map((requestOptions) => expect(encStorage.migrate(COUNTRY, 1, {}, requestOptions))
-              .to.not.be.rejectedWith(StorageError, '<RequestOptionsIO>')));
+              .not.to.be.rejectedWith(InputValidationError)));
           });
 
           it('should not throw error without request options', async () => {
             expect(encStorage.migrate(COUNTRY, 1, {}))
-              .to.not.be.rejectedWith(StorageError, '<RequestOptionsIO>');
+              .not.to.be.rejectedWith(InputValidationError);
           });
 
           it('should pass valid request options "meta" to logger', async () => {

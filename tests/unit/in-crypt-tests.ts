@@ -11,7 +11,7 @@ import {
   CUSTOM_ENCRYPTION_ERROR_MESSAGE_IS_KEY,
 } from '../../src/in-crypt';
 import { SecretKeyAccessor } from '../../src/secret-key-accessor';
-import { StorageCryptoError, StorageClientError } from '../../src/errors';
+import { StorageCryptoError } from '../../src/errors';
 
 chai.use(chaiAsPromised);
 const { expect } = chai;
@@ -101,7 +101,14 @@ describe('InCrypt', () => {
       it(`should throw an error for '${ciphertext}'`, async () => {
         const secretKeyAccessor = new SecretKeyAccessor(() => 'supersecret');
         const incrypt = new InCrypt(secretKeyAccessor);
-        await expect(incrypt.decrypt(ciphertext)).to.be.rejected;
+        await expect(incrypt.decrypt(ciphertext)).to.be.rejected.then((error) => {
+          expect(error).to.be.instanceOf(StorageCryptoError);
+          if (ciphertext === wrongCiphertexts[0]) {
+            expect(error.message).to.eq('Unknown decryptor version requested');
+          } else {
+            expect(error.message).to.eq('Invalid ciphertext');
+          }
+        });
       });
     });
   });
@@ -162,7 +169,7 @@ describe('InCrypt', () => {
           }],
         ].map((configs) => {
           const incrypt = new InCrypt(secretKeyAccessor);
-          return expect(() => incrypt.setCustomEncryption(configs as any)).to.throw(StorageClientError, '<CustomEncryptionConfigs>');
+          return expect(() => incrypt.setCustomEncryption(configs as any)).to.throw(StorageCryptoError, 'Custom Encryption Validation Error: <CustomEncryptionConfigs>');
         }),
       );
     });
@@ -247,6 +254,24 @@ describe('InCrypt', () => {
     });
 
     describe('custom encryption deep validation', () => {
+      it('should throw an error if SecretKeyAccessor is undefined', async () => {
+        const configs = [{
+          encrypt: identity,
+          decrypt: identity,
+          version: 'customEncryption',
+          isCurrent: true,
+        }];
+
+        const secretKeyAccessor = new SecretKeyAccessor(() => ({
+          secrets: [{ version: 0, secret: 'supersecret' }], currentVersion: 0,
+        }));
+
+        const incrypt = new InCrypt(secretKeyAccessor);
+        incrypt.setCustomEncryption(configs as any);
+        (incrypt as any).secretKeyAccessor = undefined;
+        await expect(incrypt.validate()).to.be.rejectedWith(StorageCryptoError, CUSTOM_ENCRYPTION_ERROR_MESSAGE_NO_SKA);
+      });
+
       it('should throw an error if SecretKeyAccessor provides no key for custom encryption', async () => {
         const configs = [{
           encrypt: identity,
@@ -284,6 +309,24 @@ describe('InCrypt', () => {
           expect(errors[0]).to.be.instanceOf(StorageCryptoError);
           expect(errors[0].message).to.contain(CUSTOM_ENCRYPTION_ERROR_MESSAGE_ENC);
         });
+      });
+
+      it('should throw original error if custom encryption "encrypt" function throws', async () => {
+        const configs = [{
+          encrypt: () => { throw new Error('asas'); },
+          decrypt: () => '',
+          version: 'customEncryption',
+          isCurrent: true,
+        }];
+
+        const secretKeyAccessor = new SecretKeyAccessor(() => ({
+          secrets: [{ version: 0, secret: 'supersecret', isForCustomEncryption: true }], currentVersion: 0,
+        }));
+
+        const incrypt = new InCrypt(secretKeyAccessor);
+        incrypt.setCustomEncryption(configs as any);
+
+        await expect(incrypt.encrypt('test')).to.be.rejectedWith(StorageCryptoError, 'Error calling custom encryption "encrypt" method [Secret version: 0]: asas');
       });
 
       it('should throw an error if custom encryption "decrypt" function returns not string', async () => {
@@ -327,6 +370,25 @@ describe('InCrypt', () => {
           expect(errors[0].message).to.contain('decrypted data doesn\'t match the original input');
         });
       });
+
+      it('should throw original error if custom encryption "decrypt" function throws', async () => {
+        const configs = [{
+          encrypt: (v: string) => v,
+          decrypt: () => { throw new Error('asas'); },
+          version: 'customEncryption',
+          isCurrent: true,
+        }];
+
+        const secretKeyAccessor = new SecretKeyAccessor(() => ({
+          secrets: [{ version: 0, secret: 'supersecret', isForCustomEncryption: true }], currentVersion: 0,
+        }));
+
+        const incrypt = new InCrypt(secretKeyAccessor);
+        incrypt.setCustomEncryption(configs as any);
+
+        const { message: enc } = await incrypt.encrypt('test');
+        await expect(incrypt.decrypt(enc)).to.be.rejectedWith(StorageCryptoError, 'Error calling custom encryption "decrypt" method [Secret version: 0]: asas');
+      });
     });
 
     it('should throw an error while encrypting if SecretKeyAccessor provides no secret for custom encryption', async () => {
@@ -345,6 +407,26 @@ describe('InCrypt', () => {
       incrypt.setCustomEncryption(configs as any);
 
       return expect(incrypt.encrypt('')).to.be.rejectedWith(StorageCryptoError, 'is not marked for custom encryption');
+    });
+
+    it('should encrypt text using default encryption if custom encryption version does not match existing custom encryption configs', async () => {
+      const configs = [{
+        encrypt: identity,
+        decrypt: identity,
+        version: 'customEncryption',
+        isCurrent: true,
+      }];
+
+      const secretKeyAccessor = new SecretKeyAccessor(() => ({
+        secrets: [{ version: 0, secret: 'supersecret', isForCustomEncryption: true }], currentVersion: 0,
+      }));
+
+      const incrypt = new InCrypt(secretKeyAccessor);
+      incrypt.setCustomEncryption(configs as any);
+      (incrypt as any).currentCustomEncryptionVersion = 'test';
+
+      const encrypted = await incrypt.encrypt('');
+      expect(encrypted.message.includes(`${VERSION}:`)).equal(true);
     });
 
     it('should throw an error while encrypting if SecretKeyAccessor provides key but not secret for custom encryption', async () => {
@@ -382,6 +464,25 @@ describe('InCrypt', () => {
 
       const encrypted = { message: 'cY3VzdG9tRW5jcnlwdGlvbg==:aaa', secretVersion: 0 }; // "cY3VzdG9tRW5jcnlwdGlvbg==" is packed custom encryption version "customEncryption"
       return expect(incrypt.decrypt(encrypted.message, encrypted.secretVersion)).to.be.rejectedWith(StorageCryptoError, 'is not marked for custom encryption');
+    });
+
+    it('should throw an error while decrypting if ciphertext version does not match existing custom encryption configs', async () => {
+      const configs = [{
+        encrypt: identity,
+        decrypt: identity,
+        version: 'customEncryption1',
+        isCurrent: true,
+      }];
+
+      const secretKeyAccessor = new SecretKeyAccessor(() => ({
+        secrets: [{ version: 0, secret: 'supersecret', isForCustomEncryption: true }], currentVersion: 0,
+      }));
+
+      const incrypt = new InCrypt(secretKeyAccessor);
+      incrypt.setCustomEncryption(configs as any);
+
+      const encrypted = { message: 'cY3VzdG9tRW5jcnlwdGlvbg==:aaa', secretVersion: 0 }; // "cY3VzdG9tRW5jcnlwdGlvbg==" is packed custom encryption version "customEncryption"
+      return expect(incrypt.decrypt(encrypted.message, encrypted.secretVersion)).to.be.rejectedWith(StorageCryptoError, 'Unknown decryptor version requested');
     });
 
     it('should throw an error while decrypting if SecretKeyAccessor provides key but not secret for custom encryption', async () => {
@@ -484,6 +585,7 @@ describe('InCrypt', () => {
 
   it('should not return current secret version and throw error if secretKeyAccessor is not defined', async () => {
     const incrypt = new InCrypt();
-    await expect(incrypt.getCurrentSecretVersion()).to.be.rejectedWith(StorageCryptoError);
+    await expect(incrypt.getCurrentSecretVersion())
+      .to.be.rejectedWith(StorageCryptoError, 'No secretKeyAccessor provided. Cannot get secret version');
   });
 });

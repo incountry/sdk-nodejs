@@ -6,15 +6,21 @@ import { Readable } from 'stream';
 import * as t from 'io-ts';
 import FormData from 'form-data';
 import { Left } from 'fp-ts/lib/Either';
-import { StorageServerError } from './errors';
+import {
+  StorageError,
+  StorageAuthenticationError,
+  StorageConfigValidationError,
+  StorageServerError,
+} from './errors';
 import { Country } from './countries-cache';
 import { LogLevel } from './logger';
 import { AuthClient } from './auth-client';
 import {
-  getErrorMessage,
   isInvalid,
   Codec,
   ReadableIO,
+  toStorageServerError,
+  toStorageServerValidationError,
 } from './validation/utils';
 import { ReadResponseIO, ReadResponse } from './validation/api/read-response';
 import { FindResponseIO, FindResponse } from './validation/api/find-response';
@@ -52,6 +58,14 @@ type GetAttachmentFileResponse = {
   fileName: string;
 };
 
+type DetailedErrorDescription = {
+  errorMessage: string;
+  requestHeaders?: unknown;
+  responseHeaders?: unknown;
+  responseData?: unknown;
+  code?: string | number;
+};
+
 const DEFAULT_ENDPOINT_COUNTRY = 'us';
 const DEFAULT_ENDPOINT_SUFFIX = '-mt-01.api.incountry.io';
 const DEFAULT_HTTP_TIMEOUT = 30 * 1000;
@@ -62,11 +76,11 @@ const PoPErrorArray = t.array(t.partial({
   detail: t.string,
 }));
 
-const parsePoPError = (e: Error) => {
+const parsePoPError = (e: Error): DetailedErrorDescription => {
   const responseData = get(e, 'response.data', {});
   const requestHeaders = get(e, 'config.headers');
   const responseHeaders = get(e, 'response.headers');
-  const code = get(e, 'response.status');
+  const code = get(e, 'response.status') || get(e, 'code');
   const errors = get(e, 'response.data.errors', []);
   const errorMessages = PoPErrorArray.is(errors)
     ? errors.map((error) => `${code} ${error.title}: ${error.source} ${error.detail}`)
@@ -79,6 +93,21 @@ const parsePoPError = (e: Error) => {
     responseData,
     code,
   };
+};
+
+const getError = (e: DetailedErrorDescription, prefix: string) => {
+  if (e.code && e.code.toString().length) {
+    const strCode = e.code.toString();
+    if (strCode.match('EHOSTUNREACH') || strCode.match('ENOTFOUND')) {
+      return new StorageConfigValidationError(`${prefix} ${e.errorMessage || e.code}`, e);
+    }
+
+    if (e.code === 401) {
+      return new StorageAuthenticationError(`${prefix} ${e.errorMessage || e.code}`, e);
+    }
+  }
+
+  return toStorageServerError(`${prefix} `)(e);
 };
 
 class ApiClient {
@@ -115,9 +144,11 @@ class ApiClient {
       const countriesList = await this.countriesProviderFn(loggingMeta);
       midpop = countriesList.find((country) => countryRegex.test(country.id));
     } catch (err) {
-      const popError = parsePoPError(err);
-      this.loggerFn('error', popError.errorMessage, { error: err, ...loggingMeta });
-      throw new StorageServerError(`Unable to retrieve countries list: ${popError.errorMessage}`, popError.responseData, popError.code);
+      this.loggerFn('error', err.message, { error: err, ...loggingMeta });
+      if (err instanceof StorageError) {
+        throw err;
+      }
+      throw toStorageServerError('Unable to retrieve countries list: ')(err);
     }
 
     return midpop;
@@ -150,8 +181,7 @@ class ApiClient {
   }
 
   prepareValidationError(validationFailedResult: Left<t.Errors>, loggingMeta: {}): StorageServerError {
-    const validationErrorMessage = getErrorMessage(validationFailedResult);
-    const error = new StorageServerError(`Response Validation Error: ${validationErrorMessage}`, validationFailedResult);
+    const error = toStorageServerValidationError('Response Validation Error: ')(validationFailedResult);
     this.loggerFn('error', error.message, loggingMeta);
     return error;
   }
@@ -199,7 +229,7 @@ class ApiClient {
         message: popError.errorMessage,
       });
 
-      throw new StorageServerError(`${method} ${url} ${popError.errorMessage}`, popError.responseData, popError.code);
+      throw getError(popError, `${method} ${url}`);
     }
 
     this.loggerFn('info', `Finished ${method} ${url}`, {

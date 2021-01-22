@@ -933,10 +933,13 @@ const getSecretsCallback = () => {
 }
 
 const options = {
-  apiKey: 'API_KEY',
   environmentId: 'ENVIRONMENT_ID',
+  oauth: {
+    clientId: '<client_id>',
+    clientSecret: '<client_secret>',
+  },
   getSecrets: getSecretsCallback,
-}};
+};
 
 const storage = await createStorage(options, [config]);
 
