@@ -143,8 +143,8 @@ describe('Validation Utils', () => {
     const codec1 = chainValidate(t.UnknownRecord, (u) => right(u));
 
     const errorMessage = 'This should have .test prop';
-    const codec2 = chainValidate(t.UnknownRecord, (u) => (u as any).test ? right(u) : left(`${errorMessage} but got ${JSON.stringify(u)}`), 'SuperObject');
-    const validData = { test: 1 };
+    const codec2 = chainValidate(t.UnknownRecord, (u) => (u as any).test.test ? right(u) : left(`${errorMessage} but got ${JSON.stringify(u)}`), 'SuperObject');
+    const validData = { test: { test: 1 } };
 
     it('should have original codec error', () => {
       const result = codec1.decode(123);
@@ -153,11 +153,11 @@ describe('Validation Utils', () => {
     });
 
     it('should have original codec result', () => {
-      expect(codec1.decode({})).to.deep.equal(right({}));
+      expect(codec1.decode({ test: 1 })).to.deep.equal(right({ test: 1 }));
     });
 
     it('should return error for invalid data', () => {
-      const result = codec2.decode({});
+      const result = codec2.decode({ test: '' });
       expect(isLeft(result)).to.equal(true);
       expect(getErrorMessage(result)).to.include(errorMessage);
     });
