@@ -852,11 +852,23 @@ const migrateResult = await storage.migrate(countryCode);
 
 ## Error Handling
 
-InCountry Node SDK throws following Exceptions:
+InCountry NodeJS SDK throws the following Exceptions:
 
-- **StorageClientError** - used for various input validation errors. Can be thrown by all public methods.
+- **StorageConfigValidationError** - used for Storage options validation errors. Can be thrown by any public method.
+
+- **SecretsProviderError** - can be thrown during the call of `getSecrets()` function. Wraps the original error which occurred in `getSecrets()`.
+
+- **SecretsValidationError** - can be thrown if `getSecrets()` function returned secrets in wrong format. 
+
+- **InputValidationError** - used for input validation errors. Can be thrown by all public methods except Storage constructor.
+
+- **StorageAuthenticationError** - can be thrown if SDK failed to authenticate in InCountry system with the provided credentials.
+
+- **StorageClientError** - used for various errors related to Storage configuration. All of the errors classes `StorageConfigValidationError`, `SecretsProviderError`, `SecretsValidationError`, `InputValidationError`, `StorageAuthenticationError` inherits from `StorageClientError`.
 
 - **StorageServerError** - thrown if SDK failed to communicate with InCountry servers or if server response validation failed.
+
+- **StorageNetworkError** - thrown if SDK failed to communicate with InCountry servers due to network issues, such as request timeout, unreachable `endpoint` etc. Inherits from `StorageServerError`.
 
 - **StorageCryptoError** - thrown during encryption/decryption procedures (both default and custom). This may be a sign of malformed/corrupt data or a wrong encryption key provided to the SDK.
 
@@ -870,8 +882,27 @@ try {
 } catch(e) {
   if (e instanceof StorageClientError) {
     // some input validation error
+
+    // if you need to handle configuration errors more precisely:
+    if (e instanceof StorageConfigValidationError) {
+      // something is wrong with Storage options
+    } else if (e instanceof SecretsProviderError) {
+      // something is wrong with `getSecrets()` function. The original error is available in `e.data`
+    } else if (e instanceof SecretsValidationError) {
+      // something is wrong with `getSecrets()` function result
+    } else if (e instanceof InputValidationError) {
+      // something is wrong with input data passed to Storage public method
+    } else if (e instanceof StorageAuthenticationError) {
+      // something is wrong with the credentials provided in Storage options
+    }
   } else if (e instanceof StorageServerError) {
     // some server error
+
+    if (e instanceof StorageNetworkError) {
+      // something is wrong with network connection
+    } else {
+      // server error or server response validation failed
+    }
   } else if (e instanceof StorageCryptoError) {
     // some encryption error
   } else {
