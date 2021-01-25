@@ -16,6 +16,7 @@ import { InputValidationError, StorageNetworkError } from '../../../src/errors';
 import { COUNTRY_CODE_ERROR_MESSAGE } from '../../../src/validation/country-code';
 import { nockPopApi, getNockedRequestBodyRaw } from '../../test-helpers/popapi-nock';
 import { Storage } from '../../../src/storage';
+import { errorMessageRegExp } from '../../test-helpers/utils';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const fs = require('fs');
 
@@ -64,7 +65,7 @@ describe('Storage', () => {
             const wrongCountries = [undefined, null, 1, {}, []];
             // @ts-ignore
             await Promise.all(wrongCountries.map((country) => expect(encStorage.addAttachment(country))
-              .to.be.rejectedWith(InputValidationError, COUNTRY_CODE_ERROR_MESSAGE)));
+              .to.be.rejectedWith(InputValidationError, errorMessageRegExp('addAttachment() Validation Error:', COUNTRY_CODE_ERROR_MESSAGE))));
           });
         });
       });

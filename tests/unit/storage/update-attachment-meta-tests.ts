@@ -14,6 +14,7 @@ import { COUNTRY_CODE_ERROR_MESSAGE } from '../../../src/validation/country-code
 import { nockPopApi } from '../../test-helpers/popapi-nock';
 import { Storage } from '../../../src/storage';
 import { AttachmentWritableMeta } from '../../../src/validation/attachment-writable-meta';
+import { errorMessageRegExp } from '../../test-helpers/utils';
 
 chai.use(chaiAsPromised);
 chai.use(sinonChai);
@@ -56,7 +57,7 @@ describe('Storage', () => {
             const wrongCountries = [undefined, null, 1, {}, []];
             // @ts-ignore
             await Promise.all(wrongCountries.map((country) => expect(encStorage.updateAttachmentMeta(country))
-              .to.be.rejectedWith(InputValidationError, COUNTRY_CODE_ERROR_MESSAGE)));
+              .to.be.rejectedWith(InputValidationError, errorMessageRegExp('updateAttachmentMeta() Validation Error:', COUNTRY_CODE_ERROR_MESSAGE))));
           });
         });
       });

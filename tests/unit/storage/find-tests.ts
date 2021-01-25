@@ -24,6 +24,7 @@ import { VALID_REQUEST_OPTIONS, INVALID_REQUEST_OPTIONS } from '../validation/re
 import { Int } from '../../../src/validation/utils';
 import { COUNTRY_CODE_ERROR_MESSAGE } from '../../../src/validation/country-code';
 import { INVALID_FIND_FILTER, VALID_FIND_FILTER } from '../validation/find-filter-test';
+import { errorMessageRegExp } from '../../test-helpers/utils';
 
 chai.use(chaiAsPromised);
 const { expect, assert } = chai;
@@ -67,7 +68,7 @@ describe('Storage', () => {
             const wrongCountries = [undefined, null, 1, {}, []];
             // @ts-ignore
             await Promise.all(wrongCountries.map((country) => expect(encStorage.find(country))
-              .to.be.rejectedWith(InputValidationError, COUNTRY_CODE_ERROR_MESSAGE)));
+              .to.be.rejectedWith(InputValidationError, errorMessageRegExp('find() Validation Error:', COUNTRY_CODE_ERROR_MESSAGE))));
           });
         });
 
@@ -98,10 +99,10 @@ describe('Storage', () => {
             const nonPositiveLimits = [-123, 123.124, 'sdsd'];
             // @ts-ignore
             await Promise.all(nonPositiveLimits.map((limit) => expect(encStorage.find(COUNTRY, {}, { limit }))
-              .to.be.rejectedWith(InputValidationError, LIMIT_ERROR_MESSAGE_INT)));
+              .to.be.rejectedWith(InputValidationError, errorMessageRegExp('find() Validation Error:', LIMIT_ERROR_MESSAGE_INT))));
 
             await expect(encStorage.find(COUNTRY, {}, { limit: MAX_LIMIT + 1 }))
-              .to.be.rejectedWith(InputValidationError, LIMIT_ERROR_MESSAGE_MAX);
+              .to.be.rejectedWith(InputValidationError, errorMessageRegExp('find() Validation Error:', LIMIT_ERROR_MESSAGE_MAX));
 
             await expect(encStorage.find(COUNTRY, {}, { limit: 10 })).not.to.be.rejected;
           });

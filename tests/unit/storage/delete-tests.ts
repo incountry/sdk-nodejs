@@ -21,6 +21,7 @@ import { nockPopApi, getNockedRequestHeaders } from '../../test-helpers/popapi-n
 import { VALID_REQUEST_OPTIONS, INVALID_REQUEST_OPTIONS } from '../validation/request-options';
 import { COUNTRY_CODE_ERROR_MESSAGE } from '../../../src/validation/country-code';
 import { RECORD_KEY_ERROR_MESSAGE } from '../../../src/validation/record-key';
+import { errorMessageRegExp } from '../../test-helpers/utils';
 
 chai.use(chaiAsPromised);
 chai.use(sinonChai);
@@ -64,7 +65,7 @@ describe('Storage', () => {
           it('should throw an error when no country provided', async () => {
             // @ts-ignore
             await expect(encStorage.delete(undefined, ''))
-              .to.be.rejectedWith(InputValidationError, COUNTRY_CODE_ERROR_MESSAGE);
+              .to.be.rejectedWith(InputValidationError, errorMessageRegExp('delete() Validation Error:', COUNTRY_CODE_ERROR_MESSAGE));
           });
         });
 
@@ -72,7 +73,7 @@ describe('Storage', () => {
           it('should throw an error when no key provided', async () => {
             // @ts-ignore
             await expect(encStorage.delete(COUNTRY, undefined))
-              .to.be.rejectedWith(InputValidationError, RECORD_KEY_ERROR_MESSAGE);
+              .to.be.rejectedWith(InputValidationError, errorMessageRegExp('delete() Validation Error:', RECORD_KEY_ERROR_MESSAGE));
           });
         });
 

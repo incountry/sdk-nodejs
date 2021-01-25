@@ -8,6 +8,7 @@ import {
   CUSTOM_ENCRYPTION_CONFIG_ERROR_MESSAGE_VERSIONS,
 } from '../../../src/validation/custom-encryption-configs';
 import { createStorage } from '../../../src/storage';
+import { errorMessageRegExp } from '../../test-helpers/utils';
 
 const { expect } = chai;
 
@@ -42,7 +43,7 @@ describe('Storage', () => {
 
           // @ts-ignore
           await expect(createStorage(options, configs), `with ${JSON.stringify(configs)}`)
-            .to.be.rejectedWith(StorageCryptoError, CUSTOM_ENCRYPTION_CONFIG_ERROR_MESSAGE_ARRAY);
+            .to.be.rejectedWith(StorageCryptoError, errorMessageRegExp('Custom Encryption Validation Error:', CUSTOM_ENCRYPTION_CONFIG_ERROR_MESSAGE_ARRAY));
         })));
 
       it('should throw an error if 2 configs are marked as current', async () => {
@@ -62,7 +63,7 @@ describe('Storage', () => {
 
         // @ts-ignore
         await expect(createStorage(options, configs))
-          .to.be.rejectedWith(StorageCryptoError, CUSTOM_ENCRYPTION_CONFIG_ERROR_MESSAGE_CURRENT);
+          .to.be.rejectedWith(StorageCryptoError, errorMessageRegExp('Custom Encryption Validation Error:', CUSTOM_ENCRYPTION_CONFIG_ERROR_MESSAGE_CURRENT));
       });
 
       it('should throw an error if 2 configs have same version', async () => {
@@ -82,7 +83,7 @@ describe('Storage', () => {
 
         // @ts-ignore
         await expect(createStorage(options, configs))
-          .to.be.rejectedWith(StorageCryptoError, CUSTOM_ENCRYPTION_CONFIG_ERROR_MESSAGE_VERSIONS);
+          .to.be.rejectedWith(StorageCryptoError, errorMessageRegExp('Custom Encryption Validation Error:', CUSTOM_ENCRYPTION_CONFIG_ERROR_MESSAGE_VERSIONS));
       });
     });
   });

@@ -1,4 +1,5 @@
 import { Stream } from 'stream';
+import { escapeRegExp } from 'lodash';
 
 function readStream(stream: Stream) {
   return new Promise((resolve, reject) => {
@@ -9,6 +10,9 @@ function readStream(stream: Stream) {
   });
 }
 
+const errorMessageRegExp = (...parts: string[]) => new RegExp(`^${parts.map(escapeRegExp).join('.*')}$`);
+
 export {
   readStream,
+  errorMessageRegExp,
 };
