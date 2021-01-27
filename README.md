@@ -864,11 +864,11 @@ InCountry NodeJS SDK throws the following Exceptions:
 
 - **StorageAuthenticationError** - can be thrown if SDK failed to authenticate in InCountry system with the provided credentials.
 
-- **StorageClientError** - used for various errors related to Storage configuration. All of the errors classes `StorageConfigValidationError`, `SecretsProviderError`, `SecretsValidationError`, `InputValidationError`, `StorageAuthenticationError` inherits from `StorageClientError`.
+- **StorageClientError** - used for various errors related to Storage configuration. All of the errors classes `StorageConfigValidationError`, `SecretsProviderError`, `SecretsValidationError`, `InputValidationError`, `StorageAuthenticationError` are inherited from `StorageClientError`.
 
 - **StorageServerError** - thrown if SDK failed to communicate with InCountry servers or if server response validation failed.
 
-- **StorageNetworkError** - thrown if SDK failed to communicate with InCountry servers due to network issues, such as request timeout, unreachable `endpoint` etc. Inherits from `StorageServerError`.
+- **StorageNetworkError** - thrown if SDK failed to communicate with InCountry servers due to network issues, such as request timeout, unreachable `endpoint` etc. Inherited from `StorageServerError`.
 
 - **StorageCryptoError** - thrown during encryption/decryption procedures (both default and custom). This may be a sign of malformed/corrupt data or a wrong encryption key provided to the SDK.
 
