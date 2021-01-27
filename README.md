@@ -524,7 +524,44 @@ search (similar to the `LIKE` SQL operator, without special characters) within r
 
 #### Search options
 
-The `options` parameter defines the `limit` - number of records that are returned, and the `offset`- the starting index used for record pagination.
+The `options` parameter defines the `limit` - number of records that are returned, the `offset`- the starting index used for record pagination, and the `sort` - for the list of keys to sort the results.
+
+##### Fields that records can be sorted by:
+```typescript
+type SortKey =
+  | 'createdAt'
+  | 'updatedAt'
+  | 'key1'
+  | 'key2'
+  | 'key3'
+  | 'key4'
+  | 'key5'
+  | 'key6'
+  | 'key7'
+  | 'key8'
+  | 'key9'
+  | 'key10'
+  | 'key11'
+  | 'key12'
+  | 'key13'
+  | 'key14'
+  | 'key15'
+  | 'key16'
+  | 'key17'
+  | 'key18'
+  | 'key19'
+  | 'key20'
+  | 'rangeKey1'
+  | 'rangeKey2'
+  | 'rangeKey3'
+  | 'rangeKey4'
+  | 'rangeKey5'
+  | 'rangeKey6'
+  | 'rangeKey7'
+  | 'rangeKey8'
+  | 'rangeKey9'
+  | 'rangeKey10';
+```
 
 Note: The SDK returns 100 records at most.
 
@@ -546,9 +583,12 @@ type FilterNumberQuery =
 
 type FindFilter = Record<string, FilterStringQuery | FilterNumberQuery>;
 
+type SortItem = Partial<Record<SortKey, 'asc' | 'desc'>>; // each sort item should describe only one key!
+
 type FindOptions = {
   limit?: number;
   offset?: number;
+  sort?: NonEmptyArray<SortItem>;
 };
 
 type FindResult = {
@@ -585,6 +625,7 @@ const filter = {
 const options = {
   limit: 100,
   offset: 0,
+  sort: [{ createdAt: 'asc' }],
 };
 
 const findResult = await storage.find(countryCode, filter, options);
