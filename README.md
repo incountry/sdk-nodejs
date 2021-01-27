@@ -567,10 +567,10 @@ Note: The SDK returns 100 records at most.
 
 
 ```typescript
-type FilterStringValue = string | string[];
+type FilterStringValue = string | string[] | null;
 type FilterStringQuery = FilterStringValue | { $not?: FilterStringValue };
 
-type FilterNumberValue = number | number[];
+type FilterNumberValue = number | number[] | null;
 type FilterNumberQuery =
   FilterNumberValue |
   {
@@ -617,6 +617,7 @@ async find(
 const filter = {
   key1: 'abc',
   key2: ['def', 'jkl'],
+  key3: { $not: null },
   profileKey: 'test2',
   rangeKey1: { $gte: 5, $lte: 100 },
   rangeKey2: { $not: [0, 1] },

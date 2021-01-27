@@ -20,8 +20,8 @@ const EXCLUDED_KEYS_WHEN_SEARCHING = [
 const SEARCH_FIELD_MIN_LENGTH = 3;
 const SEARCH_FIELD_MAX_LENGTH = 200;
 
-type FilterStringValue = string | string[];
-const FilterStringValueIO: t.Type<FilterStringValue> = t.union([t.string, t.array(t.string)]);
+type FilterStringValue = string | string[] | null;
+const FilterStringValueIO: t.Type<FilterStringValue> = t.union([t.string, t.array(t.string), t.null]);
 
 type FilterStringQuery = FilterStringValue | { $not?: FilterStringValue };
 const FilterStringQueryIO: t.Type<FilterStringQuery> = t.union([
@@ -29,8 +29,8 @@ const FilterStringQueryIO: t.Type<FilterStringQuery> = t.union([
   exact(t.partial({ $not: FilterStringValueIO })),
 ]);
 
-type FilterNumberValue = number | number[];
-const FilterNumberValueIO: t.Type<FilterNumberValue> = t.union([t.number, t.array(t.number)]);
+type FilterNumberValue = number | number[] | null;
+const FilterNumberValueIO: t.Type<FilterNumberValue> = t.union([t.number, t.array(t.number), t.null]);
 
 type FindFilterValue = FilterStringValue | FilterNumberValue;
 const FindFilterValueIO: t.Type<FindFilterValue> = t.union([FilterNumberValueIO, FilterStringValueIO]);

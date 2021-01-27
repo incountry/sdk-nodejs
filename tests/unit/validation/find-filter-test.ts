@@ -31,6 +31,10 @@ const VALID_FIND_FILTER = [
   { serviceKey1: 'test', searchKeys: 'test' },
   { rangeKey1: 1, searchKeys: 'test' },
   { version: 1, searchKeys: 'test' },
+  { key1: null },
+  { key1: { $not: null } },
+  { rangeKey1: null },
+  { rangeKey1: { $not: null } },
 ];
 
 const INVALID_FIND_FILTER = [

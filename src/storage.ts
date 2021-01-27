@@ -470,7 +470,12 @@ class Storage {
     if (Array.isArray(filterKeyValue)) {
       return filterKeyValue.map((v) => this.createKeyHash(this.normalizeKey(v)));
     }
-    return this.createKeyHash(this.normalizeKey(filterKeyValue));
+
+    if (filterKeyValue !== null) {
+      return this.createKeyHash(this.normalizeKey(filterKeyValue));
+    }
+
+    return null;
   }
 
   private hashFilterKeys(filter: FindFilter, keys: Array<keyof FindFilter>): FindFilter {

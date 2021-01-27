@@ -82,7 +82,7 @@ describe('Find records', () => {
       });
 
       it('Find records by key2', async () => {
-        const { records, meta } = await storage.find(COUNTRY, { key2: dataRequest.key2 }, {});
+        const { records, meta } = await storage.find(COUNTRY, { key2: dataRequest.key2, key3: { $not: null } }, {});
 
         expect(records).to.have.lengthOf(1);
         expect(records[0]).to.deep.include(dataRequest);
@@ -90,7 +90,7 @@ describe('Find records', () => {
       });
 
       it('Find records by key3', async () => {
-        const { records, meta } = await storage.find(COUNTRY, { key3: dataRequest.key3 }, {});
+        const { records, meta } = await storage.find(COUNTRY, { key3: dataRequest.key3, key4: null }, {});
 
         expect(records).to.have.lengthOf(1);
         expect(records[0]).to.deep.include(dataRequest);
