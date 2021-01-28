@@ -524,7 +524,10 @@ search (similar to the `LIKE` SQL operator, without special characters) within r
 
 #### Search options
 
-The `options` parameter defines the `limit` - number of records that are returned, the `offset`- the starting index used for record pagination, and the `sort` - for the list of keys to sort the results.
+The `options` parameter provides the following choices to manipulate the search results:
+- `limit` allows to limit the total number of records returned;
+- `offset` allows to specify the starting index used for records pagination;
+- `sort` allows to sort the returned records by one or multiple keys;
 
 ##### Fields that records can be sorted by:
 ```typescript
