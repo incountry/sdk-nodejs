@@ -1,7 +1,10 @@
 import * as t from 'io-ts';
 import { clone } from 'io-ts-types/lib/clone';
 import { Readable } from 'stream';
-import { isLeft, isRight, Either } from 'fp-ts/lib/Either';
+import { pipe } from 'fp-ts/lib/pipeable';
+import {
+  isLeft, isRight, Either, fold, either,
+} from 'fp-ts/lib/Either';
 import { getErrorMessage } from './get-error-message';
 import {
   StorageServerError,
@@ -124,6 +127,28 @@ const StringMax256 = t.brand(
   'StringMax256',
 );
 
+const chainValidate = <A, B, BO, I>(type: t.Type<B, BO, I>, validate: (u: B) => Either<string | undefined, A>, name?: string): t.Type<A, A, I> => new t.Type(
+  name || type.name,
+  (u): u is A => {
+    try {
+      return isRight(validate(u as any));
+    } catch (e) {
+      return false;
+    }
+  },
+  (i, c) => either.chain(
+    type.validate(i, c),
+    (b) => pipe(
+      validate(b),
+      fold(
+        (error) => t.failure(b, c, error),
+        (a) => t.success(a),
+      ),
+    ),
+  ),
+  Object,
+);
+
 export {
   Codec,
   toStorageConfigValidationError,
@@ -144,4 +169,5 @@ export {
   Validation,
   Int,
   StringMax256,
+  chainValidate,
 };

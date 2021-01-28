@@ -20,6 +20,7 @@ import { InputValidationError } from '../../../src/errors';
 import { nockPopApi, getNockedRequestHeaders } from '../../test-helpers/popapi-nock';
 import { COUNTRY_CODE_ERROR_MESSAGE } from '../../../src/validation/country-code';
 import { RECORD_KEY_ERROR_MESSAGE } from '../../../src/validation/record-key';
+import { errorMessageRegExp } from '../../test-helpers/utils';
 
 
 const { expect, assert } = chai;
@@ -62,7 +63,7 @@ describe('Storage', () => {
           it('should throw an error', async () => {
             // @ts-ignore
             await expect(encStorage.read(undefined, ''))
-              .to.be.rejectedWith(InputValidationError, `read() Validation Error: ${COUNTRY_CODE_ERROR_MESSAGE}`);
+              .to.be.rejectedWith(InputValidationError, errorMessageRegExp('read() Validation Error:', COUNTRY_CODE_ERROR_MESSAGE));
           });
         });
 
@@ -70,7 +71,7 @@ describe('Storage', () => {
           it('should throw an error', async () => {
             // @ts-ignore
             await expect(encStorage.read(COUNTRY, undefined))
-              .to.be.rejectedWith(InputValidationError, `read() Validation Error: ${RECORD_KEY_ERROR_MESSAGE}`);
+              .to.be.rejectedWith(InputValidationError, errorMessageRegExp('read() Validation Error:', RECORD_KEY_ERROR_MESSAGE));
           });
         });
 

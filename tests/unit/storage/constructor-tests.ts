@@ -4,6 +4,7 @@ import chaiAsPromised from 'chai-as-promised';
 import { createStorage } from '../../../src/storage';
 import { CountriesCache } from '../../../src/countries-cache';
 import { SecretsValidationError, StorageConfigValidationError } from '../../../src/errors';
+import { errorMessageRegExp } from '../../test-helpers/utils';
 
 
 chai.use(chaiAsPromised);
@@ -186,7 +187,8 @@ describe('Storage', () => {
                   encrypt: false,
                   oauth: { clientId: 'clientId', clientSecret: 'clientSecret', authEndpoints },
                 };
-                const errorMsg = 'Storage.constructor() Validation Error: authEndpoints should be an object containing "default" key';
+                const errorMsg = errorMessageRegExp('Storage.constructor() Validation Error:', 'authEndpoints should be an object containing "default" key');
+
                 // @ts-ignore
                 await expect(createStorage(options))
                   .to.be.rejectedWith(StorageConfigValidationError, errorMsg);
@@ -194,8 +196,8 @@ describe('Storage', () => {
             });
 
             it('should be an object with string values and the default key', async () => {
-              const errStringValue = 'Storage.constructor() Validation Error: authEndpoints values should be a string';
-              const errObjectFormat = 'Storage.constructor() Validation Error: authEndpoints should be an object containing "default" key';
+              const errStringValue = errorMessageRegExp('Storage.constructor() Validation Error:', 'authEndpoints values should be a string');
+              const errObjectFormat = errorMessageRegExp('Storage.constructor() Validation Error:', 'authEndpoints should be an object containing "default" key');
               const invalidAuthEndpoints = [
                 [{}, errObjectFormat],
                 [{ key: 'value' }, errObjectFormat],
@@ -213,6 +215,7 @@ describe('Storage', () => {
                   encrypt: false,
                   oauth: { clientId: 'clientId', clientSecret: 'clientSecret', authEndpoints },
                 };
+
                 // @ts-ignore
                 await expect(createStorage(options))
                   .to.be.rejectedWith(StorageConfigValidationError, err);

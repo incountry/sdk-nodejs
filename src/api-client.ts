@@ -30,7 +30,7 @@ import { DeleteResponseIO, DeleteResponse } from './validation/api/delete-respon
 import { AddAttachmentResponseIO, AddAttachmentResponse } from './validation/api/add-attachment-response';
 import { UpsertAttachmentResponse, UpsertAttachmentResponseIO } from './validation/api/upsert-attachment-response';
 import { FindFilter } from './validation/api/find-filter';
-import { FindOptions } from './validation/api/find-options';
+import { ApiFindOptions } from './validation/api/api-find-options';
 import { ApiRecordData } from './validation/api/api-record-data';
 import { RequestOptions } from './validation/request-options';
 import { AttachmentWritableMeta } from './validation/attachment-writable-meta';
@@ -282,7 +282,7 @@ class ApiClient {
 
   async find(
     countryCode: string,
-    data: { filter?: FindFilter; options?: FindOptions },
+    data: { filter?: FindFilter; options?: ApiFindOptions },
     { headers, meta }: RequestOptions = {},
   ): Promise<FindResponse> {
     const { data: responseData } = await this.request(

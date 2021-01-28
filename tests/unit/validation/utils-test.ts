@@ -2,6 +2,7 @@
 import chai from 'chai';
 import chaiAsPromised from 'chai-as-promised';
 import * as t from 'io-ts';
+import { left, right, isLeft } from 'fp-ts/lib/Either';
 import {
   toInputValidationError,
   toSecretsValidationError,
@@ -12,6 +13,8 @@ import {
   validationToPromise,
   optional,
   isValid,
+  chainValidate,
+  getErrorMessage,
   JSONIO,
 } from '../../../src/validation/utils';
 import {
@@ -22,6 +25,7 @@ import {
   StorageAuthenticationError,
   StorageServerError,
 } from '../../../src/errors';
+
 
 chai.use(chaiAsPromised);
 const { expect, assert } = chai;
@@ -132,6 +136,44 @@ describe('Validation Utils', () => {
         }
         expect(result.right).to.equal(undefined);
       });
+    });
+  });
+
+  describe('chainValidate', () => {
+    const codec1 = chainValidate(t.UnknownRecord, (u) => right(u));
+
+    const errorMessage = 'This should have .test prop';
+    const codec2 = chainValidate(t.UnknownRecord, (u) => (u as any).test.test ? right(u) : left(`${errorMessage} but got ${JSON.stringify(u)}`), 'SuperObject');
+    const validData = { test: { test: 1 } };
+
+    it('should have original codec error', () => {
+      const result = codec1.decode(123);
+      expect(isLeft(result)).to.equal(true);
+      expect(getErrorMessage(result)).to.equal('<UnknownRecord> should be UnknownRecord but got 123');
+    });
+
+    it('should have original codec result', () => {
+      expect(codec1.decode({ test: 1 })).to.deep.equal(right({ test: 1 }));
+    });
+
+    it('should return error for invalid data', () => {
+      const result = codec2.decode({ test: '' });
+      expect(isLeft(result)).to.equal(true);
+      expect(getErrorMessage(result)).to.include(errorMessage);
+    });
+
+    it('should return success for valid data', () => {
+      expect(codec2.decode(validData)).to.deep.equal(right(validData));
+    });
+
+    it('should return true for valid data with .is()', () => {
+      expect(codec2.is(validData)).to.equal(true);
+    });
+
+    it('should return false for invalid data with .is()', () => {
+      expect(codec2.is('aaaaaa')).to.equal(false);
+      expect(codec2.is(123)).to.equal(false);
+      expect(codec2.is({})).to.equal(false);
     });
   });
 

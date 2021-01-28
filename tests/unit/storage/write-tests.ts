@@ -23,6 +23,7 @@ import { Storage, WriteResult } from '../../../src/storage';
 import { InputValidationError, StorageError } from '../../../src/errors';
 import { COUNTRY_CODE_ERROR_MESSAGE } from '../../../src/validation/country-code';
 import { ApiRecordData } from '../../../src/validation/api/api-record-data';
+import { errorMessageRegExp } from '../../test-helpers/utils';
 
 chai.use(chaiAsPromised);
 chai.use(sinonChai);
@@ -102,7 +103,7 @@ describe('Storage', () => {
           it('should throw an error', async () => {
             // @ts-ignore
             await expect(encStorage.write(undefined, {}))
-              .to.be.rejectedWith(InputValidationError, `write() Validation Error: ${COUNTRY_CODE_ERROR_MESSAGE}`);
+              .to.be.rejectedWith(InputValidationError, errorMessageRegExp('write() Validation Error:', COUNTRY_CODE_ERROR_MESSAGE));
           });
         });
 

@@ -524,16 +524,56 @@ search (similar to the `LIKE` SQL operator, without special characters) within r
 
 #### Search options
 
-The `options` parameter defines the `limit` - number of records that are returned, and the `offset`- the starting index used for record pagination.
+The `options` parameter provides the following choices to manipulate the search results:
+- `limit` allows to limit the total number of records returned;
+- `offset` allows to specify the starting index used for records pagination;
+- `sort` allows to sort the returned records by one or multiple keys;
+
+##### Fields that records can be sorted by:
+```typescript
+type SortKey =
+  | 'createdAt'
+  | 'updatedAt'
+  | 'key1'
+  | 'key2'
+  | 'key3'
+  | 'key4'
+  | 'key5'
+  | 'key6'
+  | 'key7'
+  | 'key8'
+  | 'key9'
+  | 'key10'
+  | 'key11'
+  | 'key12'
+  | 'key13'
+  | 'key14'
+  | 'key15'
+  | 'key16'
+  | 'key17'
+  | 'key18'
+  | 'key19'
+  | 'key20'
+  | 'rangeKey1'
+  | 'rangeKey2'
+  | 'rangeKey3'
+  | 'rangeKey4'
+  | 'rangeKey5'
+  | 'rangeKey6'
+  | 'rangeKey7'
+  | 'rangeKey8'
+  | 'rangeKey9'
+  | 'rangeKey10';
+```
 
 Note: The SDK returns 100 records at most.
 
 
 ```typescript
-type FilterStringValue = string | string[];
+type FilterStringValue = string | string[] | null;
 type FilterStringQuery = FilterStringValue | { $not?: FilterStringValue };
 
-type FilterNumberValue = number | number[];
+type FilterNumberValue = number | number[] | null;
 type FilterNumberQuery =
   FilterNumberValue |
   {
@@ -546,9 +586,12 @@ type FilterNumberQuery =
 
 type FindFilter = Record<string, FilterStringQuery | FilterNumberQuery>;
 
+type SortItem = Partial<Record<SortKey, 'asc' | 'desc'>>; // each sort item should describe only one key!
+
 type FindOptions = {
   limit?: number;
   offset?: number;
+  sort?: NonEmptyArray<SortItem>;
 };
 
 type FindResult = {
@@ -577,6 +620,7 @@ async find(
 const filter = {
   key1: 'abc',
   key2: ['def', 'jkl'],
+  key3: { $not: null },
   profileKey: 'test2',
   rangeKey1: { $gte: 5, $lte: 100 },
   rangeKey2: { $not: [0, 1] },
@@ -585,6 +629,7 @@ const filter = {
 const options = {
   limit: 100,
   offset: 0,
+  sort: [{ createdAt: 'asc' }, { rangeKey1: 'desc' }],
 };
 
 const findResult = await storage.find(countryCode, filter, options);
@@ -602,6 +647,11 @@ The returned `findResult` object looks like the following:
     total: 24
   }
 }
+```
+
+with `findResult.records` sorted according to the following pseudo-sql:
+```sql
+SELECT * FROM record WHERE ...  ORDER BY createdAt asc, rangeKey1 desc
 ```
 
 #### Error handling

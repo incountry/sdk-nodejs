@@ -21,6 +21,7 @@ import { InputValidationError, StorageNetworkError } from '../../../src/errors';
 import { nockPopApi, getNockedRequestBodyObject } from '../../test-helpers/popapi-nock';
 import { COUNTRY_CODE_ERROR_MESSAGE } from '../../../src/validation/country-code';
 import { VALID_REQUEST_OPTIONS, INVALID_REQUEST_OPTIONS } from '../validation/request-options';
+import { errorMessageRegExp } from '../../test-helpers/utils';
 
 
 chai.use(chaiAsPromised);
@@ -71,7 +72,7 @@ describe('Storage', () => {
             const wrongCountries = [undefined, null, 1, {}, []];
             // @ts-ignore
             await Promise.all(wrongCountries.map((country) => expect(encStorage.batchWrite(country))
-              .to.be.rejectedWith(InputValidationError, `batchWrite() Validation Error: ${COUNTRY_CODE_ERROR_MESSAGE}`)));
+              .to.be.rejectedWith(InputValidationError, errorMessageRegExp('batchWrite() Validation Error:', COUNTRY_CODE_ERROR_MESSAGE))));
           });
         });
 
@@ -107,12 +108,12 @@ describe('Storage', () => {
         const errorCases = [{
           name: 'when the records has wrong type',
           arg: 'recordzzz',
-          error: 'batchWrite() Validation Error: You must pass non-empty array of records',
+          error: ['batchWrite() Validation Error:', 'You must pass non-empty array of records'],
         },
         {
           name: 'when the records is empty array',
           arg: [],
-          error: 'batchWrite() Validation Error: You must pass non-empty array of records',
+          error: ['batchWrite() Validation Error:', 'You must pass non-empty array of records'],
         },
         {
           name: 'when any record has no key field',
@@ -134,7 +135,7 @@ describe('Storage', () => {
           it(`should throw an error ${errCase.name}`, async () => {
             // @ts-ignore
             await expect(encStorage.batchWrite(COUNTRY, errCase.arg))
-              .to.be.rejectedWith(InputValidationError, errCase.error);
+              .to.be.rejectedWith(InputValidationError, errorMessageRegExp(...errCase.error));
           });
         });
       });
