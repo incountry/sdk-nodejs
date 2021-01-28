@@ -629,7 +629,7 @@ const filter = {
 const options = {
   limit: 100,
   offset: 0,
-  sort: [{ createdAt: 'asc' }, { range_key1: 'desc' }],
+  sort: [{ createdAt: 'asc' }, { rangeKey1: 'desc' }],
 };
 
 const findResult = await storage.find(countryCode, filter, options);
@@ -650,7 +650,7 @@ The returned `findResult` object looks like the following:
 ```
 With records sorted according to the following pseudo-sql
 ```sql
-SELECT * FROM record WHERE ...  ORDER BY created_at asc, range_key1 desc
+SELECT * FROM record WHERE ...  ORDER BY createdAt asc, rangeKey1 desc
 ```
 
 #### Error handling
