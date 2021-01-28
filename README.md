@@ -648,7 +648,8 @@ The returned `findResult` object looks like the following:
   }
 }
 ```
-With records sorted according to the following pseudo-sql
+
+with `findResult.records` sorted according to the following pseudo-sql
 ```sql
 SELECT * FROM record WHERE ...  ORDER BY createdAt asc, rangeKey1 desc
 ```
