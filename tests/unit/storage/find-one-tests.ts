@@ -111,7 +111,7 @@ describe('Storage', () => {
 
         const [bodyObj] = await Promise.all<any>([
           getNockedRequestBodyObject(popAPI),
-          encStorage.findOne(COUNTRY, { key: '' }, { limit: 100, offset: 0 }),
+          encStorage.findOne(COUNTRY, { recordKey: '' }, { limit: 100, offset: 0 }),
         ]);
         expect(bodyObj.options).to.deep.equal({ limit: 1, offset: 0 });
       });
