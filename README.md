@@ -56,7 +56,7 @@ type StorageOptions = {
   getSecrets?: Function;    // Used to fetch an encryption secret
   normalizeKeys?: boolean;
   countriesCache?: CountriesCache;
-  hashSearchKeys?: boolean; // Set to false to enable partial match search among record's text fields `key1, key2, ..., key10`. Defaults to true.
+  hashSearchKeys?: boolean; // Set to false to enable partial match search among record's text fields `key1, key2, ..., key20`. Defaults to true.
 
   /**
    * Defines API base hostname part to use.
@@ -506,16 +506,16 @@ The following exact match search criteria are available:
 ##### Partial text match search
 
 You can also look up for data records by partial match using the `searchKeys` operator which performs partial match
-search (similar to the `LIKE` SQL operator, without special characters) within records text fields `key1, key2, ..., key10`.
+search (similar to the `LIKE` SQL operator, without special characters) within records text fields `key1, key2, ..., key20`.
 ```typescript
-// Matches all records where record.key1 LIKE 'abc' OR record.key2 LIKE 'abc' OR ... OR record.key10 LIKE 'abc'
+// Matches all records where record.key1 LIKE 'abc' OR record.key2 LIKE 'abc' OR ... OR record.key20 LIKE 'abc'
 { searchKeys: 'abc' }
 ```
 
-**Please note:** The `searchKeys` operator cannot be used in combination with any of `key1, key2, ..., key10` keys and works only in combination with the non-hashing Storage mode (hashSearchKeys param for Storage).
+**Please note:** The `searchKeys` operator cannot be used in combination with any of `key1, key2, ..., key20` keys and works only in combination with the non-hashing Storage mode (hashSearchKeys param for Storage).
 
 ```typescript
-// Matches all records where (record.key1 LIKE 'abc' OR record.key2 LIKE 'abc' OR ... OR record.key10 LIKE 'abc') AND (record.rangeKey1 = 1 OR record.rangeKey1 = 2)
+// Matches all records where (record.key1 LIKE 'abc' OR record.key2 LIKE 'abc' OR ... OR record.key20 LIKE 'abc') AND (record.rangeKey1 = 1 OR record.rangeKey1 = 2)
 { searchKeys: 'abc', rangeKey1: [1, 2] }
 
 // Causes validation error (StorageClientError)

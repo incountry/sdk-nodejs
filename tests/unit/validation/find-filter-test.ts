@@ -17,7 +17,7 @@ const VALID_FIND_FILTER = [
   { aa: '' },
   { aa: [''] },
   {
-    key1: 'k', key2: 'k', key3: 'k', key4: 'k', key5: 'k', key6: 'k', key7: 'k', key8: 'k', key9: 'k', key10: 'k',
+    key1: 'k', key2: 'k', key3: 'k', key4: 'k', key5: 'k', key6: 'k', key7: 'k', key8: 'k', key9: 'k', key10: 'k', key11: 'k', key12: 'k', key13: 'k', key14: 'k', key15: 'k', key16: 'k', key17: 'k', key18: 'k', key19: 'k', key20: 'k',
   },
   { searchKeys: 'test' },
   { searchKeys: 'tes' },
@@ -28,6 +28,7 @@ const VALID_FIND_FILTER = [
   { aa: { $not: 'aa' }, searchKeys: 'test' },
   { aa: { $not: [1] }, searchKeys: 'test' },
   { recordKey: 'test', searchKeys: 'test' },
+  { parentKey: 'test', searchKeys: 'test' },
   { serviceKey1: 'test', searchKeys: 'test' },
   { rangeKey1: 1, searchKeys: 'test' },
   { version: 1, searchKeys: 'test' },
@@ -71,6 +72,16 @@ const INVALID_FIND_FILTER = [
   { key8: 'k', searchKeys: 'test' },
   { key9: 'k', searchKeys: 'test' },
   { key10: 'k', searchKeys: 'test' },
+  { key11: 'k', searchKeys: 'test' },
+  { key12: 'k', searchKeys: 'test' },
+  { key13: 'k', searchKeys: 'test' },
+  { key14: 'k', searchKeys: 'test' },
+  { key15: 'k', searchKeys: 'test' },
+  { key16: 'k', searchKeys: 'test' },
+  { key17: 'k', searchKeys: 'test' },
+  { key18: 'k', searchKeys: 'test' },
+  { key19: 'k', searchKeys: 'test' },
+  { key20: 'k', searchKeys: 'test' },
 ];
 
 describe('Find Filter validation', () => {
