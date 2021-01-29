@@ -19,7 +19,9 @@ const createRecordData = (data?: {}) => ({
   key2: uuid(),
   key3: uuid(),
   key10: uuid(),
+  key15: uuid(),
   profileKey: uuid(),
+  parentKey: uuid(),
   rangeKey1: Math.floor(Math.random() * 100) + 1 as Int,
   body: JSON.stringify({ name: 'PersonName' }),
   serviceKey2: 'NodeJS SDK integration test data for find() method',
@@ -97,8 +99,24 @@ describe('Find records', () => {
         checkFindResponseMeta(meta, 1);
       });
 
+      it('Find records by key15', async () => {
+        const { records, meta } = await storage.find(COUNTRY, { key15: dataRequest.key15, parentKey: { $not: null } }, {});
+
+        expect(records).to.have.lengthOf(1);
+        expect(records[0]).to.deep.include(dataRequest);
+        checkFindResponseMeta(meta, 1);
+      });
+
       it('Find records by profileKey', async () => {
         const { records, meta } = await storage.find(COUNTRY, { profileKey: dataRequest.profileKey }, {});
+
+        expect(records).to.have.lengthOf(1);
+        expect(records[0]).to.deep.include(dataRequest);
+        checkFindResponseMeta(meta, 1);
+      });
+
+      it('Find records by parentKey', async () => {
+        const { records, meta } = await storage.find(COUNTRY, { parentKey: dataRequest.parentKey }, {});
 
         expect(records).to.have.lengthOf(1);
         expect(records[0]).to.deep.include(dataRequest);
@@ -186,7 +204,7 @@ describe('Find records', () => {
       context('Records search by searchKeys', () => {
         let searchableStorage: Storage;
         const record = createRecordData();
-        const searchableProperties: (keyof StorageRecordData)[] = ['key1', 'key10'];
+        const searchableProperties: (keyof StorageRecordData)[] = ['key1', 'key10', 'key15'];
 
         before(async () => {
           searchableStorage = await createStorage({

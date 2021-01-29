@@ -16,6 +16,16 @@ const EXCLUDED_KEYS_WHEN_SEARCHING = [
   'key8',
   'key9',
   'key10',
+  'key11',
+  'key12',
+  'key13',
+  'key14',
+  'key15',
+  'key16',
+  'key17',
+  'key18',
+  'key19',
+  'key20',
 ];
 const SEARCH_FIELD_MIN_LENGTH = 3;
 const SEARCH_FIELD_MAX_LENGTH = 200;
