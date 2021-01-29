@@ -287,7 +287,7 @@ describe('Storage', () => {
           nockPopApi(POPAPI_HOST).find(COUNTRY)
             .reply(200, getDefaultFindResponse(apiRecords));
 
-          const { records } = await noEncStorage.find(COUNTRY, { key: 'key1' });
+          const { records } = await noEncStorage.find(COUNTRY, { recordKey: 'key1' });
 
           records.forEach((record, index) => expect(record).to.own.include(TEST_RECORDS[index]));
         });
@@ -400,13 +400,13 @@ describe('Storage', () => {
           const storage = await getDefaultStorage();
 
           nockPopApi(POPAPI_HOST).find(country).reply(200, getDefaultFindResponse());
-          await storage.find('uS', { key: '123' });
+          await storage.find('uS', { recordKey: '123' });
 
           nockPopApi(POPAPI_HOST).find(country).reply(200, getDefaultFindResponse());
-          await storage.find('Us', { key: '123' });
+          await storage.find('Us', { recordKey: '123' });
 
           nockPopApi(POPAPI_HOST).find(country).reply(200, getDefaultFindResponse());
-          await storage.find('US', { key: '123' });
+          await storage.find('US', { recordKey: '123' });
         });
       });
 
@@ -418,7 +418,7 @@ describe('Storage', () => {
           nockPopApi(POPAPI_HOST).find(COUNTRY)
             .reply(200, getDefaultFindResponse(), popapiResponseHeaders);
 
-          await encStorage.find(COUNTRY, { key: uuid() }, undefined, { meta: callMeta });
+          await encStorage.find(COUNTRY, { recordKey: uuid() }, undefined, { meta: callMeta });
           expect(spy.calledWith('info')).to.eq(true);
           const actualMeta = getLoggerCallMeta(spy);
           checkLoggerMeta(actualMeta, callMeta, 'find');

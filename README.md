@@ -475,13 +475,13 @@ You can look up for data records either by using exact match search operators or
 The following exact match search criteria are available:
 - single value:
 ```typescript
-// Matches all records where record.key1 = 'abc' AND record.rangeKey = 1
+// Matches all records where record.key1 = 'abc' AND record.rangeKey1 = 1
 { key1: 'abc', rangeKey1: 1 }
 ```
 
 - multiple values as an array:
 ```typescript
-// Matches all records where (record.key2 = 'def' OR record.key2 = 'jkl') AND (record.rangeKey = 1 OR record.rangeKey = 2)
+// Matches all records where (record.key2 = 'def' OR record.key2 = 'jkl') AND (record.rangeKey1 = 1 OR record.rangeKey1 = 2)
 { key2: ['def', 'jkl'], rangeKey1: [1, 2] }
 ```
 
@@ -499,7 +499,7 @@ The following exact match search criteria are available:
 
 - comparison operators for [Int fields](#int-fields-plain):
 ```typescript
-// Matches all records where record.rangeKey >= 5 AND record.rangeKey <= 100
+// Matches all records where record.rangeKey1 >= 5 AND record.rangeKey1 <= 100
 { rangeKey1: { $gte: 5, $lte: 100 } }
 ```
 
@@ -515,7 +515,7 @@ search (similar to the `LIKE` SQL operator, without special characters) within r
 **Please note:** The `searchKeys` operator cannot be used in combination with any of `key1, key2, ..., key10` keys and works only in combination with the non-hashing Storage mode (hashSearchKeys param for Storage).
 
 ```typescript
-// Matches all records where (record.key1 LIKE 'abc' OR record.key2 LIKE 'abc' OR ... OR record.key10 LIKE 'abc') AND (record.rangeKey = 1 OR record.rangeKey = 2)
+// Matches all records where (record.key1 LIKE 'abc' OR record.key2 LIKE 'abc' OR ... OR record.key10 LIKE 'abc') AND (record.rangeKey1 = 1 OR record.rangeKey1 = 2)
 { searchKeys: 'abc', rangeKey1: [1, 2] }
 
 // Causes validation error (StorageClientError)
