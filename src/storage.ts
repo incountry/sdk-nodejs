@@ -40,7 +40,7 @@ import {
 import { CustomEncryptionConfig } from './validation/custom-encryption-configs';
 import { validate } from './validation/validate-decorator';
 import { LoggerIO } from './validation/logger';
-import { AuthClient, getApiKeyAuthClient, OAuthClient } from './auth-client';
+import { AuthClient, getStaticTokenAuthClient, OAuthClient } from './auth-client';
 import { normalizeErrors } from './normalize-errors-decorator';
 import { FindResponseMeta } from './validation/api/find-response';
 import { ApiRecord, ApiRecordBodyIO } from './validation/api/api-record';
@@ -146,26 +146,30 @@ class Storage {
     let clientId = process.env.INC_CLIENT_ID;
     let clientSecret = process.env.INC_CLIENT_SECRET;
     let authEndpoints;
-    if (options.oauth) {
-      clientId = options.oauth.clientId || clientId;
-      clientSecret = options.oauth.clientSecret || clientSecret;
-      authEndpoints = options.oauth.authEndpoints;
-    }
-    if (clientId || clientSecret) {
-      if (!clientId) {
-        throw new StorageConfigValidationError('Please pass clientId in options or set INC_CLIENT_ID env var');
-      }
-
-      if (!clientSecret) {
-        throw new StorageConfigValidationError('Please pass clientSecret in options or set INC_CLIENT_SECRET env var');
-      }
-
-      this.authClient = new OAuthClient(clientId, clientSecret, authEndpoints);
+    if (options.oauth && 'token' in options.oauth) {
+      this.authClient = getStaticTokenAuthClient(options.oauth.token);
     } else {
-      if (!apiKey) {
-        throw new StorageConfigValidationError('Please pass apiKey in options or set INC_API_KEY env var');
+      if (options.oauth) {
+        clientId = options.oauth.clientId || clientId;
+        clientSecret = options.oauth.clientSecret || clientSecret;
+        authEndpoints = options.oauth.authEndpoints;
       }
-      this.authClient = getApiKeyAuthClient(apiKey);
+      if (clientId || clientSecret) {
+        if (!clientId) {
+          throw new StorageConfigValidationError('Please pass clientId in options or set INC_CLIENT_ID env var');
+        }
+
+        if (!clientSecret) {
+          throw new StorageConfigValidationError('Please pass clientSecret in options or set INC_CLIENT_SECRET env var');
+        }
+
+        this.authClient = new OAuthClient(clientId, clientSecret, authEndpoints);
+      } else {
+        if (!apiKey) {
+          throw new StorageConfigValidationError('Please pass apiKey in options or set INC_API_KEY env var');
+        }
+        this.authClient = getStaticTokenAuthClient(apiKey);
+      }
     }
 
     const envId = options.environmentId || process.env.INC_ENVIRONMENT_ID;

@@ -80,8 +80,8 @@ interface AuthClient {
   getToken: (audience: string, envId: string, region: string, forceRenew?: boolean) => Promise<string>;
 }
 
-const getApiKeyAuthClient = (apiKey: string): AuthClient => ({
-  getToken: () => Promise.resolve(apiKey),
+const getStaticTokenAuthClient = (token: string): AuthClient => ({
+  getToken: () => Promise.resolve(token),
 });
 
 class OAuthClient implements AuthClient {
@@ -154,6 +154,6 @@ class OAuthClient implements AuthClient {
 
 export {
   AuthClient,
-  getApiKeyAuthClient,
+  getStaticTokenAuthClient,
   OAuthClient,
 };

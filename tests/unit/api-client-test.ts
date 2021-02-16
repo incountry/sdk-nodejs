@@ -11,7 +11,7 @@ import {
   StorageConfigValidationError,
 } from '../../src/errors';
 import { CountriesCache, Country } from '../../src/countries-cache';
-import { OAuthClient, getApiKeyAuthClient } from '../../src/auth-client';
+import { OAuthClient, getStaticTokenAuthClient } from '../../src/auth-client';
 import { accessTokenResponse, nockDefaultAuth, nockDefaultAuthMultiple } from '../test-helpers/auth-nock';
 import { getNockedRequestHeaders, nockPopApi, getNockedRequestBodyRaw } from '../test-helpers/popapi-nock';
 import { Int } from '../../src/validation/utils';
@@ -83,7 +83,7 @@ const getApiClient = (host?: string, cache?: CountriesCache, useApiKey = true, e
   const apiKey = 'string';
   const environmentId = 'string';
   const loggerFn = (level: string, message: string, meta?: any) => [level, message, meta];
-  const authClient = useApiKey ? getApiKeyAuthClient(apiKey) : new OAuthClient('clientId', 'clientSecret');
+  const authClient = useApiKey ? getStaticTokenAuthClient(apiKey) : new OAuthClient('clientId', 'clientSecret');
   const countryFn = cache ? cache.getCountries.bind(cache, undefined) : () => Promise.resolve([]);
 
   return new ApiClient(authClient, environmentId, host, loggerFn, countryFn, endpointMask);
@@ -575,6 +575,22 @@ describe('ApiClient', () => {
       const [headers] = await Promise.all<Record<string, string>, unknown>([getNockedRequestHeaders(popAPI), apiClient.write(COUNTRY, { record_key: '123' })]);
       const { authorization } = headers;
       expect(authorization).to.eq('Bearer access_token');
+      assert.equal(popAPI.isDone(), true, 'Nock scope is done');
+    });
+  });
+
+  describe('authorization with OAuth token provided in options', () => {
+    let apiClient: ApiClient;
+
+    beforeEach(() => {
+      apiClient = getApiClient(POPAPI_HOST, undefined, true);
+    });
+
+    it('should send token in Authorization header', async () => {
+      const popAPI = nockPopApi(POPAPI_HOST).write(COUNTRY).reply(200, 'OK');
+      const [headers] = await Promise.all<Record<string, string>, unknown>([getNockedRequestHeaders(popAPI), apiClient.write(COUNTRY, { record_key: '123' })]);
+      const { authorization } = headers;
+      expect(authorization).to.eq('Bearer string');
       assert.equal(popAPI.isDone(), true, 'Nock scope is done');
     });
   });
