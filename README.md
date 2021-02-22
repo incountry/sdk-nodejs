@@ -529,6 +529,8 @@ The `options` parameter provides the following choices to manipulate the search 
 - `offset` allows to specify the starting index used for records pagination;
 - `sort` allows to sort the returned records by one or multiple keys;
 
+**WARNING** To use `sort` in find() call for string keys `key1...key20` you need to set  `hashSearchKeys` option to `false`.
+
 ##### Fields that records can be sorted by:
 ```typescript
 type SortKey =
@@ -917,7 +919,7 @@ InCountry NodeJS SDK throws the following Exceptions:
 
 - **SecretsProviderError** - can be thrown during the call of `getSecrets()` function. Wraps the original error which occurred in `getSecrets()`.
 
-- **SecretsValidationError** - can be thrown if `getSecrets()` function returned secrets in wrong format. 
+- **SecretsValidationError** - can be thrown if `getSecrets()` function returned secrets in wrong format.
 
 - **InputValidationError** - used for input validation errors. Can be thrown by all public methods except Storage constructor.
 
