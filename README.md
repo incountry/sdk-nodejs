@@ -47,7 +47,7 @@ type StorageOptions = {
       default: string;
       [key: string]: string;
     };
-    token?: string;         // Used when OAuth token is already received by SDK user. Mutually exclusive with clientId, clientSecret, authEndpoints
+    token?: string;         // Used when OAuth token is already acquired prior to Storage initialization. Mutually exclusive with clientId, clientSecret, authEndpoints
   };
 
   endpoint?: string;        // Defines API URL
@@ -127,9 +127,9 @@ const storage = new Storage({
 ```
 
 
-The SDK also allows to use already received OAuth tokens if needed. In this mode SDK user is responsible for OAuth token receiving and renewal. Use this option only at your own risk.
+The SDK also allows to use previously acquired oAuth tokens if needed. In this mode SDK is not responsible for oAuth token renewal and it should be done by SDK user himself.
 
-Below you can find the example of how to specify OAuth token while creating a storage instance:
+Below you can find the example of how to specify OAuth token while creating a Storage instance:
 ```typescript
 const { Storage } = require('incountry');
 const storage = new Storage({
