@@ -1,4 +1,5 @@
 import * as t from 'io-ts';
+// import { withMessage } from 'io-ts-types/lib/withMessage';
 import { Override } from '../utils';
 import { CountriesCache } from '../countries-cache';
 import { Logger, LoggerIO } from './logger';
@@ -66,17 +67,7 @@ const OAuthTokenIO: t.Type<OAuthToken> = exact(t.type({
   token: t.string,
 }, 'OAuthToken'));
 
-const OAuthOptionsIO: t.Type<OAuthOptions> = new t.Type(
-  'OAuthOptions',
-  (u): u is OAuthOptions => OAuthCredentialsIO.is(u) || OAuthTokenIO.is(u),
-  (u, c) => {
-    if (t.UnknownRecord.is(u) && 'token' in u) {
-      return OAuthTokenIO.validate(u, c);
-    }
-    return OAuthCredentialsIO.validate(u, c);
-  },
-  Object,
-);
+const OAuthOptionsIO: t.Type<OAuthOptions> = t.union([OAuthTokenIO, OAuthCredentialsIO], 'OAuthOptions');
 
 type StorageOptions = {
   endpoint?: string;
