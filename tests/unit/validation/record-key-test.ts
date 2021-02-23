@@ -1,5 +1,5 @@
 import * as chai from 'chai';
-import { RecordKeyIO } from '../../../src/validation/record-key';
+import { RecordKeyIO } from '../../../src/validation/user-input/record-key';
 import { isValid } from '../../../src/validation/utils';
 
 const { expect } = chai;

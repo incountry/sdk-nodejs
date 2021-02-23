@@ -20,11 +20,11 @@ import {
   toApiRecord,
 } from './common';
 import { nockPopApi, getNockedRequestBodyObject } from '../../test-helpers/popapi-nock';
-import { LIMIT_ERROR_MESSAGE_MAX, LIMIT_ERROR_MESSAGE_INT, MAX_LIMIT } from '../../../src/validation/limit';
-import { filterFromStorageDataKeys } from '../../../src/validation/find-filter';
+import { LIMIT_ERROR_MESSAGE_MAX, LIMIT_ERROR_MESSAGE_INT, MAX_LIMIT } from '../../../src/validation/user-input/limit';
+import { filterFromStorageDataKeys } from '../../../src/validation/user-input/find-filter';
 import { VALID_REQUEST_OPTIONS, INVALID_REQUEST_OPTIONS } from '../validation/request-options';
 import { Int } from '../../../src/validation/utils';
-import { COUNTRY_CODE_ERROR_MESSAGE } from '../../../src/validation/country-code';
+import { COUNTRY_CODE_ERROR_MESSAGE } from '../../../src/validation/user-input/country-code';
 import { INVALID_FIND_FILTER, VALID_FIND_FILTER } from '../validation/find-filter-test';
 import { errorMessageRegExp } from '../../test-helpers/utils';
 

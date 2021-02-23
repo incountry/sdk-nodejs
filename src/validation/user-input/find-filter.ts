@@ -1,7 +1,7 @@
 import intersection from 'lodash.intersection';
 import * as t from 'io-ts';
-import { exact } from './exact';
-import { omitUndefined } from '../utils';
+import { exact } from '../exact';
+import { omitUndefined } from '../../utils';
 // import { DateIO } from './utils';
 
 const SEARCH_FIELD = 'searchKeys';

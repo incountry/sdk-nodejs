@@ -1,7 +1,7 @@
 import * as chai from 'chai';
 import { fold } from 'fp-ts/lib/Either';
 import { identity } from 'fp-ts/lib/function';
-import { OAuthEndpointsIO, OAuthEndpoints, OAuthOptionsIO } from '../../../src/validation/storage-options';
+import { OAuthEndpointsIO, OAuthEndpoints, OAuthOptionsIO } from '../../../src/validation/user-input/storage-options';
 import { isValid } from '../../../src/validation/utils';
 
 

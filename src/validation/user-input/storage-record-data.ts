@@ -1,5 +1,5 @@
 import * as t from 'io-ts';
-import { Codec, StringMax256, DateIO } from './utils';
+import { Codec, StringMax256, DateIO } from '../utils';
 
 type StorageRecordData = {
   recordKey: string;

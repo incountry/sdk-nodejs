@@ -10,7 +10,7 @@ import {
   defaultGetSecretsCallback,
   EMPTY_API_RECORD,
 } from './common';
-import { StorageRecordData } from '../../../src/validation/storage-record-data';
+import { StorageRecordData } from '../../../src/validation/user-input/storage-record-data';
 import { ApiRecord } from '../../../src/validation/api/api-record';
 
 chai.use(chaiAsPromised);

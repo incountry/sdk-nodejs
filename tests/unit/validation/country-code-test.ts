@@ -1,7 +1,7 @@
 import * as chai from 'chai';
 import { fold } from 'fp-ts/lib/Either';
 import { identity } from 'fp-ts/lib/function';
-import { CountryCodeIO } from '../../../src/validation/country-code';
+import { CountryCodeIO } from '../../../src/validation/user-input/country-code';
 import { isValid } from '../../../src/validation/utils';
 
 

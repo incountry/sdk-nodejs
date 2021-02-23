@@ -7,7 +7,7 @@ import {
   getErrorMessage,
 } from '../../../src/validation/utils';
 import { ApiRecordIO } from '../../../src/validation/api/api-record';
-import { CustomEncryptionConfig } from '../../../src/validation/custom-encryption-configs';
+import { CustomEncryptionConfig } from '../../../src/validation/user-input/custom-encryption-configs';
 import { createStorage } from '../../../src/storage';
 
 

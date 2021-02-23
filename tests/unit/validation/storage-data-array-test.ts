@@ -1,5 +1,5 @@
 import * as chai from 'chai';
-import { getStorageRecordDataArrayIO } from '../../../src/validation/storage-record-data-array';
+import { getStorageRecordDataArrayIO } from '../../../src/validation/user-input/storage-record-data-array';
 import { isValid } from '../../../src/validation/utils';
 
 const { expect } = chai;

@@ -1,5 +1,5 @@
 import * as t from 'io-ts';
-import { exact } from './exact';
+import { exact } from '../exact';
 
 type RequestOptions = {
   headers?: Record<string, string>;

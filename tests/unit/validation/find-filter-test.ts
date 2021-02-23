@@ -1,5 +1,5 @@
 import * as chai from 'chai';
-import { FindFilterIO, SEARCH_FIELD_MAX_LENGTH } from '../../../src/validation/find-filter';
+import { FindFilterIO, SEARCH_FIELD_MAX_LENGTH } from '../../../src/validation/user-input/find-filter';
 import { isValid } from '../../../src/validation/utils';
 
 const { expect } = chai;

@@ -20,8 +20,8 @@ import {
 import { VALID_REQUEST_OPTIONS, INVALID_REQUEST_OPTIONS } from '../validation/request-options';
 import { InputValidationError } from '../../../src/errors';
 import { nockPopApi, getNockedRequestHeaders } from '../../test-helpers/popapi-nock';
-import { COUNTRY_CODE_ERROR_MESSAGE } from '../../../src/validation/country-code';
-import { RECORD_KEY_ERROR_MESSAGE } from '../../../src/validation/record-key';
+import { COUNTRY_CODE_ERROR_MESSAGE } from '../../../src/validation/user-input/country-code';
+import { RECORD_KEY_ERROR_MESSAGE } from '../../../src/validation/user-input/record-key';
 import { errorMessageRegExp } from '../../test-helpers/utils';
 
 chai.use(chaiDateTime);

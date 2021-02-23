@@ -2,7 +2,7 @@ import { omitUndefined } from '../../utils';
 import {
   SearchKey,
   FindOptions, SortingItem,
-} from '../find-options';
+} from '../user-input/find-options';
 
 const SORT_ASC = 'asc';
 const SORT_DESC = 'desc';

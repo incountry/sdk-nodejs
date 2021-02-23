@@ -1,5 +1,5 @@
 import * as t from 'io-ts';
-import { StorageRecordData } from './storage-record-data';
+import { StorageRecordData } from './user-input/storage-record-data';
 import { ApiRecord } from './api/api-record';
 import { ApiRecordAttachment } from './api/api-record-attachment';
 

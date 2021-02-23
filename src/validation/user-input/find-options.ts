@@ -1,7 +1,7 @@
 import * as t from 'io-ts';
 import { nonEmptyArray } from 'io-ts-types/lib/nonEmptyArray';
 import { Either, right, left } from 'fp-ts/lib/Either';
-import { NonNegativeInt, chainValidate } from './utils';
+import { NonNegativeInt, chainValidate } from '../utils';
 import { LimitIO } from './limit';
 
 

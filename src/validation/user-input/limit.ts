@@ -1,5 +1,5 @@
 import * as t from 'io-ts';
-import { PositiveInt } from './utils';
+import { PositiveInt } from '../utils';
 
 const MAX_LIMIT = 100;
 const LIMIT_ERROR_MESSAGE_INT = 'Limit should be a positive integer';

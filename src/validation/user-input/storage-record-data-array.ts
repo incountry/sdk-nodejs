@@ -1,6 +1,6 @@
 import * as t from 'io-ts';
 import { getStorageRecordDataIO, StorageRecordData } from './storage-record-data';
-import { Codec } from './utils';
+import { Codec } from '../utils';
 
 const getStorageRecordDataArrayIO = (params: { hashSearchKeys: boolean }): Codec<StorageRecordData[]> => {
   const StorageRecordDataIO = getStorageRecordDataIO(params);

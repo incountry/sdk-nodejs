@@ -1,5 +1,5 @@
 import * as chai from 'chai';
-import { FindOptionsIO } from '../../../src/validation/find-options';
+import { FindOptionsIO } from '../../../src/validation/user-input/find-options';
 import { isValid } from '../../../src/validation/utils';
 import { findOptionsFromStorageDataKeys } from '../../../src/validation/api/api-find-options';
 

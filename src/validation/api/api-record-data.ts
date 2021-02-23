@@ -1,5 +1,5 @@
 import * as t from 'io-ts';
-import { StorageRecordData } from '../storage-record-data';
+import { StorageRecordData } from '../user-input/storage-record-data';
 import { omitUndefined } from '../../utils';
 
 type ApiRecordData = {

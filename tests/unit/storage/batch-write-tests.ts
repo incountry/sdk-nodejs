@@ -22,7 +22,7 @@ import {
 } from './common';
 import { InputValidationError, StorageNetworkError } from '../../../src/errors';
 import { nockPopApi, getNockedRequestBodyObject } from '../../test-helpers/popapi-nock';
-import { COUNTRY_CODE_ERROR_MESSAGE } from '../../../src/validation/country-code';
+import { COUNTRY_CODE_ERROR_MESSAGE } from '../../../src/validation/user-input/country-code';
 import { VALID_REQUEST_OPTIONS, INVALID_REQUEST_OPTIONS } from '../validation/request-options';
 import { errorMessageRegExp } from '../../test-helpers/utils';
 import { StorageRecord } from '../../../src/validation/storage-record';
