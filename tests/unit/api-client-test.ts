@@ -4,7 +4,12 @@ import nock from 'nock';
 import { Readable } from 'stream';
 
 import { ApiClient, DEFAULT_FILE_NAME } from '../../src/api-client';
-import { StorageServerError } from '../../src/errors';
+import {
+  StorageNetworkError,
+  StorageAuthenticationError,
+  StorageServerError,
+  StorageConfigValidationError,
+} from '../../src/errors';
 import { CountriesCache, Country } from '../../src/countries-cache';
 import { OAuthClient, getApiKeyAuthClient } from '../../src/auth-client';
 import { accessTokenResponse, nockDefaultAuth, nockDefaultAuthMultiple } from '../test-helpers/auth-nock';
@@ -22,6 +27,9 @@ const POPAPI_HOST = `https://${COUNTRY}-mt-01.api.incountry.io`;
 const PORTAL_BACKEND_COUNTRIES_LIST_PATH = '/countries';
 const PORTAL_BACKEND_HOST = 'portal-backend.incountry.com';
 const REQUEST_TIMEOUT_ERROR = { code: 'ETIMEDOUT' };
+const HOST_NOT_FOUND_ERROR = { code: 'ENOTFOUND' };
+const HOST_UNREACHABLE_ERROR = { code: 'EHOSTUNREACH' };
+const CONNECTION_REFUSED_ERROR = { code: 'ECONNREFUSED' };
 
 const EMPTY_RECORD = {
   body: '',
@@ -39,6 +47,16 @@ const EMPTY_RECORD = {
   key8: null,
   key9: null,
   key10: null,
+  key11: null,
+  key12: null,
+  key13: null,
+  key14: null,
+  key15: null,
+  key16: null,
+  key17: null,
+  key18: null,
+  key19: null,
+  key20: null,
   serviceKey1: null,
   serviceKey2: null,
   profileKey: null,
@@ -260,7 +278,7 @@ describe('ApiClient', () => {
         const workingCache = new CountriesCache(countriesProviderEndpoint, 1000, Date.now() + 1000);
         const country = 'ae';
         const apiClient = getApiClient(undefined, workingCache);
-        await expect(apiClient.getEndpoint(country, 'testPath', {})).to.be.rejectedWith(StorageServerError, 'Unable to retrieve countries list: Request failed with status code 500');
+        await expect(apiClient.getEndpoint(country, 'testPath', {})).to.be.rejectedWith(StorageServerError, 'Countries provider error: Request failed with status code 500');
         assert.equal(countriesProviderNock.isDone(), true, 'Countries provider was called');
       });
     });
@@ -278,29 +296,58 @@ describe('ApiClient', () => {
         {
           name: 'on 404',
           respond: (popAPI: nock.Interceptor) => popAPI.reply(404),
+          errorClass: StorageServerError,
+          errorMessage: `POST ${POPAPI_HOST}/v2/storage/records/${COUNTRY} 404`,
         },
         {
           name: 'on 500',
           respond: (popAPI: nock.Interceptor) => popAPI.reply(500),
+          errorClass: StorageServerError,
+          errorMessage: `POST ${POPAPI_HOST}/v2/storage/records/${COUNTRY} 500`,
         },
         {
           name: 'on 500 with error data',
           respond: (popAPI: nock.Interceptor) => popAPI.reply(500, { errors: '' }),
+          errorClass: StorageServerError,
+          errorMessage: `POST ${POPAPI_HOST}/v2/storage/records/${COUNTRY} 500`,
         },
         {
           name: 'on 500 with error data',
           respond: (popAPI: nock.Interceptor) => popAPI.reply(500, { errors: [{ message: 'b' }] }),
+          errorClass: StorageServerError,
+          errorMessage: `POST ${POPAPI_HOST}/v2/storage/records/${COUNTRY} 500`,
         },
         {
-          name: 'in case of network error',
+          name: 'in case of network error (REQUEST_TIMEOUT)',
           respond: (popAPI: nock.Interceptor) => popAPI.replyWithError(REQUEST_TIMEOUT_ERROR),
+          errorClass: StorageNetworkError,
+          errorMessage: `POST ${POPAPI_HOST}/v2/storage/records/${COUNTRY} ${REQUEST_TIMEOUT_ERROR.code}`,
+        },
+        {
+          name: 'in case of network error (CONNECTION_REFUSED)',
+          respond: (popAPI: nock.Interceptor) => popAPI.replyWithError(CONNECTION_REFUSED_ERROR),
+          errorClass: StorageNetworkError,
+          errorMessage: `POST ${POPAPI_HOST}/v2/storage/records/${COUNTRY} ${CONNECTION_REFUSED_ERROR.code}`,
+        },
+        {
+          name: 'in case of network error (HOST_NOT_FOUND)',
+          respond: (popAPI: nock.Interceptor) => popAPI.replyWithError(HOST_NOT_FOUND_ERROR),
+          errorClass: StorageConfigValidationError,
+          errorMessage: `POST ${POPAPI_HOST}/v2/storage/records/${COUNTRY} ${HOST_NOT_FOUND_ERROR.code}`,
+        },
+        {
+          name: 'in case of network error (HOST_UNREACHABLE)',
+          respond: (popAPI: nock.Interceptor) => popAPI.replyWithError(HOST_UNREACHABLE_ERROR),
+          errorClass: StorageConfigValidationError,
+          errorMessage: `POST ${POPAPI_HOST}/v2/storage/records/${COUNTRY} ${HOST_UNREACHABLE_ERROR.code}`,
         },
       ];
 
       errorCases.forEach((errCase) => {
-        it(`should throw StorageServerError ${errCase.name}`, async () => {
+        it(`should throw ${errCase.errorClass.name} ${errCase.name}`, async () => {
           const scope = errCase.respond(nockPopApi(POPAPI_HOST).write(COUNTRY));
-          await expect(apiClient.write(COUNTRY, { record_key: '' })).to.be.rejectedWith(StorageServerError);
+          await expect(apiClient.write(COUNTRY, { record_key: '' }))
+            .to.be.rejectedWith(errCase.errorClass, errCase.errorMessage);
           assert.equal(scope.isDone(), true, 'Nock scope is done');
         });
       });
@@ -314,7 +361,8 @@ describe('ApiClient', () => {
           data: [],
         };
         const wrongPopAPI = nockPopApi(POPAPI_HOST).find(COUNTRY).reply(200, wrongFindResponse);
-        await expect(apiClient.find(COUNTRY, { filter }, {})).to.be.rejectedWith(StorageServerError);
+        await expect(apiClient.find(COUNTRY, { filter }, {}))
+          .to.be.rejectedWith(StorageServerError, 'Response Validation Error: <FindResponse>.meta.count should be Int but got undefined');
         assert.equal(wrongPopAPI.isDone(), true, 'Nock scope is done');
       });
     });
@@ -569,7 +617,8 @@ describe('ApiClient', () => {
 
       collectAuthHeaders(popAPI);
 
-      await expect(apiClient.write(COUNTRY, { record_key: '123' })).to.be.rejectedWith(StorageServerError);
+      await expect(apiClient.write(COUNTRY, { record_key: '123' }))
+        .to.be.rejectedWith(StorageAuthenticationError, `POST ${POPAPI_HOST}${writePath} Request failed with status code 401`);
       expect(authHeaders).to.deep.equal(['Bearer access_token1', 'Bearer access_token2']);
       assert.equal(popAPI.pendingMocks().length, 1, 'Nock scope is done');
     });

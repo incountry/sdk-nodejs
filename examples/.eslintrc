@@ -3,6 +3,7 @@
     "rules": {
         "no-await-in-loop": "off",
         "import/no-unresolved": "off",
+        "import/no-extraneous-dependencies": "off",
         "@typescript-eslint/explicit-function-return-type": "off",
         "@typescript-eslint/no-var-requires": "off",
         "@typescript-eslint/camelcase": "off",

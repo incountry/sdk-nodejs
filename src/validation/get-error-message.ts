@@ -55,9 +55,7 @@ function getMessage(e: ValidationError): string {
   const decoder = last(filtered);
   const desiredType = decoder ? formatType(decoder.type) : '';
 
-  return e.message !== undefined
-    ? e.message
-    : `${formatContextPath(filtered)} should be ${desiredType} but got ${stringify(e.value)}`;
+  return `${formatContextPath(filtered)} should be ${desiredType} but got ${stringify(e.value)}${e.message ? `: ${e.message}` : ''}`;
 }
 
 

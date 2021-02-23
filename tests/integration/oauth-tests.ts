@@ -6,7 +6,7 @@ import {
   createStorage, COUNTRY, DEFAULT_SECRET, noop,
 } from './common';
 import { Storage } from '../../src';
-import { StorageServerError } from '../../src/errors';
+import { StorageAuthenticationError, StorageServerError } from '../../src/errors';
 import { Int } from '../../src/validation/utils';
 import { StorageRecordData } from '../../src/validation/storage-record-data';
 import { readStream } from '../test-helpers/utils';
@@ -254,10 +254,16 @@ describe('With OAuth authentication', () => {
     it('should throw error on any storage operation', async () => {
       data = createRecord();
 
-      const error = await expect(storage2.write(COUNTRY, data)).to.be.rejectedWith(StorageServerError);
-      expect(error.code).to.eq('EAUTH');
-      expect(error.data.error).to.eq('invalid_scope');
-      expect(error.data.status_code).to.eq(400);
+      const error = await expect(storage2.write(COUNTRY, data))
+        .to.be.rejectedWith(
+          StorageAuthenticationError,
+          'Error during Storage.write() call: The requested scope is invalid, unknown, or malformed.',
+        );
+      expect(error.data).to.deep.include({
+        error: 'invalid_scope',
+        error_description: 'The requested scope is invalid, unknown, or malformed',
+        status_code: 400,
+      });
       data = undefined as any;
     });
   });

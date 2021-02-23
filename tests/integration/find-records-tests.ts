@@ -13,16 +13,19 @@ const { expect } = chai;
 
 let storage: Storage;
 
-const createRecordData = () => ({
+const createRecordData = (data?: {}) => ({
   recordKey: uuid(),
   key1: uuid(),
   key2: uuid(),
   key3: uuid(),
   key10: uuid(),
+  key15: uuid(),
   profileKey: uuid(),
+  parentKey: uuid(),
   rangeKey1: Math.floor(Math.random() * 100) + 1 as Int,
   body: JSON.stringify({ name: 'PersonName' }),
   serviceKey2: 'NodeJS SDK integration test data for find() method',
+  ...data,
 });
 
 const checkFindResponseMeta = (meta: FindResponseMeta, total: number, count = total, offset = 0, limit = 100) => {
@@ -33,9 +36,11 @@ const checkFindResponseMeta = (meta: FindResponseMeta, total: number, count = to
   expect(meta.limit).to.equal(limit);
 };
 
-const dataRequest = createRecordData();
-const dataRequest2 = createRecordData();
-const dataRequest3 = createRecordData();
+const dataRequest = createRecordData({ key12: 'a', rangeKey6: 3 });
+const dataRequest2 = createRecordData({ key12: 'b', rangeKey6: 2 });
+const dataRequest3 = createRecordData({ key12: 'c', rangeKey6: 1 });
+
+const toRecordKey = (record: { recordKey: string }) => record.recordKey;
 
 describe('Find records', () => {
   after(async () => {
@@ -44,10 +49,13 @@ describe('Find records', () => {
     await storage.delete(COUNTRY, dataRequest3.recordKey).catch(noop);
   });
 
-  [false, true].forEach((encryption) => {
+  [
+    false,
+    true,
+  ].forEach((encryption) => {
     context(`${encryption ? 'with' : 'without'} encryption`, () => {
       before(async () => {
-        storage = await createStorage({ encryption });
+        storage = await createStorage({ encryption, hashSearchKeys: false });
         await storage.write(COUNTRY, dataRequest);
         await storage.write(COUNTRY, dataRequest2);
         await storage.write(COUNTRY, dataRequest3);
@@ -63,7 +71,7 @@ describe('Find records', () => {
         expect(meta.limit).to.equal(100);
 
         expect(records.length).to.be.gte(3);
-        const receivedKeys = records.map((r) => r.recordKey);
+        const receivedKeys = records.map(toRecordKey);
         expect(receivedKeys).to.include.members([dataRequest.recordKey, dataRequest2.recordKey, dataRequest3.recordKey]);
       });
 
@@ -76,7 +84,7 @@ describe('Find records', () => {
       });
 
       it('Find records by key2', async () => {
-        const { records, meta } = await storage.find(COUNTRY, { key2: dataRequest.key2 }, {});
+        const { records, meta } = await storage.find(COUNTRY, { key2: dataRequest.key2, key3: { $not: null } }, {});
 
         expect(records).to.have.lengthOf(1);
         expect(records[0]).to.deep.include(dataRequest);
@@ -84,7 +92,15 @@ describe('Find records', () => {
       });
 
       it('Find records by key3', async () => {
-        const { records, meta } = await storage.find(COUNTRY, { key3: dataRequest.key3 }, {});
+        const { records, meta } = await storage.find(COUNTRY, { key3: dataRequest.key3, key4: null }, {});
+
+        expect(records).to.have.lengthOf(1);
+        expect(records[0]).to.deep.include(dataRequest);
+        checkFindResponseMeta(meta, 1);
+      });
+
+      it('Find records by key15', async () => {
+        const { records, meta } = await storage.find(COUNTRY, { key15: dataRequest.key15, parentKey: { $not: null } }, {});
 
         expect(records).to.have.lengthOf(1);
         expect(records[0]).to.deep.include(dataRequest);
@@ -99,10 +115,18 @@ describe('Find records', () => {
         checkFindResponseMeta(meta, 1);
       });
 
+      it('Find records by parentKey', async () => {
+        const { records, meta } = await storage.find(COUNTRY, { parentKey: dataRequest.parentKey }, {});
+
+        expect(records).to.have.lengthOf(1);
+        expect(records[0]).to.deep.include(dataRequest);
+        checkFindResponseMeta(meta, 1);
+      });
+
       it('Find record list of keys', async () => {
         const recordsList = [dataRequest, dataRequest2];
         const key2List = recordsList.map((r) => r.key2);
-        const recordKeyList = recordsList.map((r) => r.recordKey);
+        const recordKeyList = recordsList.map(toRecordKey);
         const { records, meta } = await storage.find(COUNTRY, { key2: key2List }, {});
 
         expect(records).to.have.lengthOf(2);
@@ -114,32 +138,58 @@ describe('Find records', () => {
         checkFindResponseMeta(meta, 2);
       });
 
-      it('Find records with pagination', async () => {
-        const limit = 2;
-        const offset = 2;
-        const recordKeyList = [dataRequest, dataRequest2, dataRequest3].map((r) => r.recordKey);
-        const { records, meta } = await storage.find(COUNTRY, { recordKey: recordKeyList, rangeKey1: { $lte: 100 } },
-          {
-            limit,
-            offset,
+      describe('Find options', () => {
+        it('Find records with pagination', async () => {
+          const limit = 2;
+          const offset = 2;
+          const recordKeyList = [dataRequest, dataRequest2, dataRequest3].map(toRecordKey);
+          const { records, meta } = await storage.find(COUNTRY, { recordKey: recordKeyList, rangeKey1: { $lte: 100 } },
+            {
+              limit,
+              offset,
+            });
+
+          expect(records).to.have.lengthOf(1);
+          checkFindResponseMeta(meta, 3, 1, offset, limit);
+        });
+
+        describe('Sorting', () => {
+          it('Find records with sorting by key', async () => {
+            const recordKeyList = [dataRequest, dataRequest2, dataRequest3].map(toRecordKey);
+            const { records } = await storage.find(COUNTRY, { recordKey: recordKeyList }, { sort: [{ key12: 'desc' }] });
+
+            expect(records.map((record) => record.recordKey)).to.deep.equal([dataRequest3, dataRequest2, dataRequest].map(toRecordKey));
           });
 
-        expect(records).to.have.lengthOf(1);
-        checkFindResponseMeta(meta, 3, 1, offset, limit);
+          it('Find records with sorting by range_key', async () => {
+            const recordKeyList = [dataRequest, dataRequest2, dataRequest3].map(toRecordKey);
+            const { records } = await storage.find(COUNTRY, { recordKey: recordKeyList }, { sort: [{ rangeKey6: 'asc' }] });
+
+            expect(records.map((record) => record.recordKey)).to.deep.equal([dataRequest3, dataRequest2, dataRequest].map(toRecordKey));
+          });
+
+
+          it('Find records with sorting by created_at', async () => {
+            const recordKeyList = [dataRequest, dataRequest2, dataRequest3].map(toRecordKey);
+            const { records } = await storage.find(COUNTRY, { recordKey: recordKeyList }, { sort: [{ createdAt: 'desc' }] });
+
+            expect(records.map((record) => record.recordKey)).to.deep.equal([dataRequest3, dataRequest2, dataRequest].map(toRecordKey));
+          });
+        });
       });
 
       it('Find records by filter with rangeKey1', async () => {
-        const recordKeyList = [dataRequest, dataRequest2, dataRequest3].map((r) => r.recordKey);
+        const recordKeyList = [dataRequest, dataRequest2, dataRequest3].map(toRecordKey);
         const { records } = await storage.find(COUNTRY, { recordKey: recordKeyList, rangeKey1: { $lte: 100 } }, {});
 
         expect(records.length).to.be.gte(3);
-        const receivedKeys = records.map((r) => r.recordKey);
+        const receivedKeys = records.map(toRecordKey);
         expect(receivedKeys).to.include.members([dataRequest.recordKey, dataRequest2.recordKey, dataRequest3.recordKey]);
       });
 
       it('Find records by filter with $not', async () => {
         const { records: foundRecords } = await storage.find(COUNTRY, { key2: { $not: dataRequest.key2 } }, {});
-        const foundRecordKeys = foundRecords.map((r) => r.recordKey);
+        const foundRecordKeys = foundRecords.map(toRecordKey);
 
         expect(foundRecordKeys).to.not.include(dataRequest.recordKey);
       });
@@ -154,7 +204,7 @@ describe('Find records', () => {
       context('Records search by searchKeys', () => {
         let searchableStorage: Storage;
         const record = createRecordData();
-        const searchableProperties: (keyof StorageRecordData)[] = ['key1', 'key10'];
+        const searchableProperties: (keyof StorageRecordData)[] = ['key1', 'key10', 'key15'];
 
         before(async () => {
           searchableStorage = await createStorage({

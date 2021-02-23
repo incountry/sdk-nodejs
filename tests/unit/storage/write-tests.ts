@@ -20,9 +20,10 @@ import {
 } from './common';
 import { VALID_REQUEST_OPTIONS, INVALID_REQUEST_OPTIONS } from '../validation/request-options';
 import { Storage, WriteResult } from '../../../src/storage';
-import { StorageError } from '../../../src/errors';
+import { InputValidationError, StorageError } from '../../../src/errors';
 import { COUNTRY_CODE_ERROR_MESSAGE } from '../../../src/validation/country-code';
 import { ApiRecordData } from '../../../src/validation/api/api-record-data';
+import { errorMessageRegExp } from '../../test-helpers/utils';
 
 chai.use(chaiAsPromised);
 chai.use(sinonChai);
@@ -74,17 +75,17 @@ describe('Storage', () => {
           it('should throw error with invalid request options', async () => {
             // @ts-ignore
             await Promise.all(INVALID_REQUEST_OPTIONS.map((requestOptions) => expect(encStorage.write(COUNTRY, recordData, requestOptions))
-              .to.be.rejectedWith(StorageError, '<RequestOptionsIO>')));
+              .to.be.rejectedWith(InputValidationError, 'write() Validation Error: <RequestOptionsIO>')));
           });
 
           it('should not throw error with valid request options', async () => {
             await Promise.all(VALID_REQUEST_OPTIONS.map((requestOptions) => expect(encStorage.write(COUNTRY, recordData, requestOptions))
-              .to.not.be.rejectedWith(StorageError, '<RequestOptionsIO>')));
+              .not.to.be.rejectedWith(InputValidationError)));
           });
 
           it('should not throw error without request options', async () => {
             expect(encStorage.write(COUNTRY, recordData))
-              .to.not.be.rejectedWith(StorageError, '<RequestOptionsIO>');
+              .not.to.be.rejectedWith(InputValidationError);
           });
 
           it('should pass valid request options "meta" to logger', async () => {
@@ -102,7 +103,7 @@ describe('Storage', () => {
           it('should throw an error', async () => {
             // @ts-ignore
             await expect(encStorage.write(undefined, {}))
-              .to.be.rejectedWith(StorageError, COUNTRY_CODE_ERROR_MESSAGE);
+              .to.be.rejectedWith(InputValidationError, errorMessageRegExp('write() Validation Error:', COUNTRY_CODE_ERROR_MESSAGE));
           });
         });
 
@@ -110,7 +111,7 @@ describe('Storage', () => {
           it('should throw an error', async () => {
             // @ts-ignore
             await expect(encStorage.write(COUNTRY, {}))
-              .to.be.rejectedWith(StorageError, 'write() Validation Error: <Record>.recordKey should be string but got undefined');
+              .to.be.rejectedWith(InputValidationError, 'write() Validation Error: <Record>.recordKey should be string but got undefined');
           });
         });
       });
@@ -263,7 +264,7 @@ describe('Storage', () => {
       });
 
       describe('normalized errors', () => {
-        it('should wrap any error into StorageError and add method info', async () => {
+        it('should wrap any unhandled error into StorageError and add method info', async () => {
           nock(POPAPI_HOST);
 
           const secrets = {
@@ -271,7 +272,6 @@ describe('Storage', () => {
               {
                 secret: 'longAndStrongPassword',
                 version: 0,
-                isForCustomEncryption: true,
               },
             ],
             currentVersion: 0,
@@ -279,15 +279,10 @@ describe('Storage', () => {
 
           const recordKey = '123';
 
-          const customEncConfigs = [{
-            encrypt: () => Promise.reject(new Error('blabla')),
-            decrypt: () => Promise.resolve(''),
-            version: 'customEncryption',
-            isCurrent: true,
-          }];
+          const logger = { write: () => { throw new Error('blabla'); } };
 
-          const storage = new Storage({ encrypt: true, getSecrets: () => secrets }, customEncConfigs);
-          await expect(storage.write(COUNTRY, { ...EMPTY_API_RECORD, recordKey })).to.be.rejectedWith(StorageError, 'Storage.write()');
+          const storage = new Storage({ encrypt: true, getSecrets: () => secrets, logger });
+          await expect(storage.write(COUNTRY, { ...EMPTY_API_RECORD, recordKey })).to.be.rejectedWith(StorageError, 'Error during Storage.write() call: blabla');
         });
       });
     });

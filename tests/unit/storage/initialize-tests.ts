@@ -1,13 +1,14 @@
 import * as chai from 'chai';
 import { identity } from 'fp-ts/lib/function';
 import { POPAPI_HOST, LOGGER_STUB } from './common';
-import { StorageClientError } from '../../../src/errors';
+import { StorageConfigValidationError, StorageCryptoError } from '../../../src/errors';
 import {
   CUSTOM_ENCRYPTION_CONFIG_ERROR_MESSAGE_ARRAY,
   CUSTOM_ENCRYPTION_CONFIG_ERROR_MESSAGE_CURRENT,
   CUSTOM_ENCRYPTION_CONFIG_ERROR_MESSAGE_VERSIONS,
 } from '../../../src/validation/custom-encryption-configs';
 import { createStorage } from '../../../src/storage';
+import { errorMessageRegExp } from '../../test-helpers/utils';
 
 const { expect } = chai;
 
@@ -27,7 +28,7 @@ describe('Storage', () => {
 
         // @ts-ignore
         await expect(createStorage(options, customEncryptionConfigs))
-          .to.be.rejectedWith(StorageClientError, 'Cannot use custom encryption when encryption is off');
+          .to.be.rejectedWith(StorageConfigValidationError, 'Cannot use custom encryption when encryption is off');
       });
 
       it('should throw an error if configs object is malformed', () => Promise.all(['', {}, () => { }]
@@ -42,7 +43,7 @@ describe('Storage', () => {
 
           // @ts-ignore
           await expect(createStorage(options, configs), `with ${JSON.stringify(configs)}`)
-            .to.be.rejectedWith(CUSTOM_ENCRYPTION_CONFIG_ERROR_MESSAGE_ARRAY);
+            .to.be.rejectedWith(StorageCryptoError, errorMessageRegExp('Custom Encryption Validation Error:', CUSTOM_ENCRYPTION_CONFIG_ERROR_MESSAGE_ARRAY));
         })));
 
       it('should throw an error if 2 configs are marked as current', async () => {
@@ -62,7 +63,7 @@ describe('Storage', () => {
 
         // @ts-ignore
         await expect(createStorage(options, configs))
-          .to.be.rejectedWith(CUSTOM_ENCRYPTION_CONFIG_ERROR_MESSAGE_CURRENT);
+          .to.be.rejectedWith(StorageCryptoError, errorMessageRegExp('Custom Encryption Validation Error:', CUSTOM_ENCRYPTION_CONFIG_ERROR_MESSAGE_CURRENT));
       });
 
       it('should throw an error if 2 configs have same version', async () => {
@@ -82,7 +83,7 @@ describe('Storage', () => {
 
         // @ts-ignore
         await expect(createStorage(options, configs))
-          .to.be.rejectedWith(CUSTOM_ENCRYPTION_CONFIG_ERROR_MESSAGE_VERSIONS);
+          .to.be.rejectedWith(StorageCryptoError, errorMessageRegExp('Custom Encryption Validation Error:', CUSTOM_ENCRYPTION_CONFIG_ERROR_MESSAGE_VERSIONS));
       });
     });
   });

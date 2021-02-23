@@ -16,6 +16,17 @@ type StorageRecordData = {
   key8?: string | null;
   key9?: string | null;
   key10?: string | null;
+  key11?: string | null;
+  key12?: string | null;
+  key13?: string | null;
+  key14?: string | null;
+  key15?: string | null;
+  key16?: string | null;
+  key17?: string | null;
+  key18?: string | null;
+  key19?: string | null;
+  key20?: string | null;
+  parentKey?: string | null;
   serviceKey1?: string | null;
   serviceKey2?: string | null;
   rangeKey1?: t.Int | null;
@@ -49,6 +60,17 @@ const getStorageRecordDataIO = (params: { hashSearchKeys: boolean }): Codec<Stor
       key8: t.union([keyStringIO, t.null]),
       key9: t.union([keyStringIO, t.null]),
       key10: t.union([keyStringIO, t.null]),
+      key11: t.union([keyStringIO, t.null]),
+      key12: t.union([keyStringIO, t.null]),
+      key13: t.union([keyStringIO, t.null]),
+      key14: t.union([keyStringIO, t.null]),
+      key15: t.union([keyStringIO, t.null]),
+      key16: t.union([keyStringIO, t.null]),
+      key17: t.union([keyStringIO, t.null]),
+      key18: t.union([keyStringIO, t.null]),
+      key19: t.union([keyStringIO, t.null]),
+      key20: t.union([keyStringIO, t.null]),
+      parentKey: t.union([keyStringIO, t.null]),
       precommitBody: t.union([t.string, t.null]),
       serviceKey1: t.union([t.string, t.null]),
       serviceKey2: t.union([t.string, t.null]),

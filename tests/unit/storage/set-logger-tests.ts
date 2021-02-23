@@ -1,6 +1,6 @@
 import * as chai from 'chai';
 import { Storage, createStorage } from '../../../src/storage';
-import { StorageError } from '../../../src/errors';
+import { InputValidationError } from '../../../src/errors';
 
 const { expect } = chai;
 
@@ -21,7 +21,7 @@ describe('Storage', () => {
         [null, undefined, false].forEach((logger) => {
         // @ts-ignore
           expect(() => storage.setLogger(logger))
-            .to.throw(StorageError, '<Logger> should be { write: Function }');
+            .to.throw(InputValidationError, 'setLogger() Validation Error: <Logger> should be { write: Function }');
         });
       });
 
@@ -30,7 +30,7 @@ describe('Storage', () => {
         wrongLoggers.forEach((logger) => {
         // @ts-ignore
           expect(() => storage.setLogger(logger))
-            .to.throw(StorageError, '<Logger> should be { write: Function }');
+            .to.throw(InputValidationError, 'setLogger() Validation Error: <Logger> should be { write: Function }');
         });
       });
 
@@ -39,7 +39,7 @@ describe('Storage', () => {
         wrongLoggers.forEach((logger) => {
         // @ts-ignore
           expect(() => storage.setLogger(logger))
-            .to.throw(StorageError, '<Logger>.write should be Function');
+            .to.throw(InputValidationError, 'setLogger() Validation Error: <Logger>.write should be Function');
         });
       });
     });

@@ -17,10 +17,11 @@ import {
   EMPTY_API_RECORD,
   getDefaultStorage,
 } from './common';
-import { StorageError, StorageServerError } from '../../../src/errors';
+import { InputValidationError, StorageNetworkError } from '../../../src/errors';
 import { nockPopApi, getNockedRequestBodyObject } from '../../test-helpers/popapi-nock';
 import { COUNTRY_CODE_ERROR_MESSAGE } from '../../../src/validation/country-code';
 import { VALID_REQUEST_OPTIONS, INVALID_REQUEST_OPTIONS } from '../validation/request-options';
+import { errorMessageRegExp } from '../../test-helpers/utils';
 
 
 chai.use(chaiAsPromised);
@@ -71,7 +72,7 @@ describe('Storage', () => {
             const wrongCountries = [undefined, null, 1, {}, []];
             // @ts-ignore
             await Promise.all(wrongCountries.map((country) => expect(encStorage.batchWrite(country))
-              .to.be.rejectedWith(StorageError, COUNTRY_CODE_ERROR_MESSAGE)));
+              .to.be.rejectedWith(InputValidationError, errorMessageRegExp('batchWrite() Validation Error:', COUNTRY_CODE_ERROR_MESSAGE))));
           });
         });
 
@@ -80,17 +81,17 @@ describe('Storage', () => {
           it('should throw error with invalid request options', async () => {
             // @ts-ignore
             await Promise.all(INVALID_REQUEST_OPTIONS.map((requestOptions) => expect(encStorage.batchWrite(COUNTRY, recordsData, requestOptions))
-              .to.be.rejectedWith(StorageError, '<RequestOptionsIO>')));
+              .to.be.rejectedWith(InputValidationError, 'batchWrite() Validation Error: <RequestOptionsIO>')));
           });
 
           it('should not throw error with valid request options', async () => {
             await Promise.all(VALID_REQUEST_OPTIONS.map((requestOptions) => expect(encStorage.batchWrite(COUNTRY, recordsData, requestOptions))
-              .to.not.be.rejectedWith(StorageError, '<RequestOptionsIO>')));
+              .not.to.be.rejectedWith(InputValidationError)));
           });
 
           it('should not throw error without request options', async () => {
             expect(encStorage.batchWrite(COUNTRY, recordsData))
-              .to.not.be.rejectedWith(StorageError, '<RequestOptionsIO>');
+              .not.to.be.rejectedWith(InputValidationError);
           });
 
           it('should pass valid request options "meta" to logger', async () => {
@@ -107,12 +108,12 @@ describe('Storage', () => {
         const errorCases = [{
           name: 'when the records has wrong type',
           arg: 'recordzzz',
-          error: 'batchWrite() Validation Error: You must pass non-empty array of records',
+          error: ['batchWrite() Validation Error:', 'You must pass non-empty array of records'],
         },
         {
           name: 'when the records is empty array',
           arg: [],
-          error: 'batchWrite() Validation Error: You must pass non-empty array of records',
+          error: ['batchWrite() Validation Error:', 'You must pass non-empty array of records'],
         },
         {
           name: 'when any record has no key field',
@@ -134,7 +135,7 @@ describe('Storage', () => {
           it(`should throw an error ${errCase.name}`, async () => {
             // @ts-ignore
             await expect(encStorage.batchWrite(COUNTRY, errCase.arg))
-              .to.be.rejectedWith(StorageError, errCase.error);
+              .to.be.rejectedWith(InputValidationError, errorMessageRegExp(...errCase.error));
           });
         });
       });
@@ -175,8 +176,8 @@ describe('Storage', () => {
           nock.cleanAll();
           const scope = nockPopApi(POPAPI_HOST).batchWrite(COUNTRY)
             .replyWithError(REQUEST_TIMEOUT_ERROR);
-
-          await expect(encStorage.batchWrite(COUNTRY, TEST_RECORDS)).to.be.rejectedWith(StorageServerError);
+          await expect(encStorage.batchWrite(COUNTRY, TEST_RECORDS))
+            .to.be.rejectedWith(StorageNetworkError, `POST ${POPAPI_HOST}/v2/storage/records/${COUNTRY}/batchWrite ${REQUEST_TIMEOUT_ERROR.code}`);
           assert.equal(scope.isDone(), true, 'Nock scope is done');
         });
       });

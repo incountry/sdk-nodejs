@@ -1,8 +1,9 @@
 import * as chai from 'chai';
+import chaiAsPromised from 'chai-as-promised';
 import * as sinon from 'sinon';
 import nock from 'nock';
 import { v4 as uuid } from 'uuid';
-import { Storage, StorageError } from '../../../src';
+import { Storage, InputValidationError } from '../../../src';
 import {
   getDefaultStorage,
   COUNTRY, POPAPI_HOST,
@@ -23,7 +24,9 @@ import { VALID_REQUEST_OPTIONS, INVALID_REQUEST_OPTIONS } from '../validation/re
 import { Int } from '../../../src/validation/utils';
 import { COUNTRY_CODE_ERROR_MESSAGE } from '../../../src/validation/country-code';
 import { INVALID_FIND_FILTER, VALID_FIND_FILTER } from '../validation/find-filter-test';
+import { errorMessageRegExp } from '../../test-helpers/utils';
 
+chai.use(chaiAsPromised);
 const { expect, assert } = chai;
 
 
@@ -65,7 +68,7 @@ describe('Storage', () => {
             const wrongCountries = [undefined, null, 1, {}, []];
             // @ts-ignore
             await Promise.all(wrongCountries.map((country) => expect(encStorage.find(country))
-              .to.be.rejectedWith(StorageError, COUNTRY_CODE_ERROR_MESSAGE)));
+              .to.be.rejectedWith(InputValidationError, errorMessageRegExp('find() Validation Error:', COUNTRY_CODE_ERROR_MESSAGE))));
           });
         });
 
@@ -73,18 +76,18 @@ describe('Storage', () => {
           it('should throw an error when filter has wrong format', async () => Promise.all(
             // @ts-ignore
             INVALID_FIND_FILTER.map((filter) => expect(encStorage.find(COUNTRY, filter))
-              .to.be.rejectedWith(StorageError, 'FindFilter', `wrong filter format: ${JSON.stringify(filter)}`)),
+              .to.be.rejectedWith(InputValidationError, 'find() Validation Error: <FindFilter>', `wrong filter format: ${JSON.stringify(filter)}`)),
           ));
 
           it('should not throw an error when filter has correct format', async () => Promise.all(
             // @ts-ignore
             VALID_FIND_FILTER.map((filter) => expect(encStorage.find(COUNTRY, filter))
-              .not.to.be.rejectedWith(StorageError, '<FindFilter>', `wrong filter format: ${JSON.stringify(filter)}`)),
+              .not.to.be.rejectedWith(InputValidationError)),
           ));
 
           it('should not throw an error when find filter is not provided', async () => {
             expect(encStorage.find(COUNTRY))
-              .not.to.be.rejectedWith(StorageError, '<FindFilter>');
+              .not.to.be.rejectedWith(InputValidationError);
           });
         });
 
@@ -96,17 +99,34 @@ describe('Storage', () => {
             const nonPositiveLimits = [-123, 123.124, 'sdsd'];
             // @ts-ignore
             await Promise.all(nonPositiveLimits.map((limit) => expect(encStorage.find(COUNTRY, {}, { limit }))
-              .to.be.rejectedWith(StorageError, LIMIT_ERROR_MESSAGE_INT)));
+              .to.be.rejectedWith(InputValidationError, errorMessageRegExp('find() Validation Error:', LIMIT_ERROR_MESSAGE_INT))));
 
             await expect(encStorage.find(COUNTRY, {}, { limit: MAX_LIMIT + 1 }))
-              .to.be.rejectedWith(StorageError, LIMIT_ERROR_MESSAGE_MAX);
+              .to.be.rejectedWith(InputValidationError, errorMessageRegExp('find() Validation Error:', LIMIT_ERROR_MESSAGE_MAX));
 
             await expect(encStorage.find(COUNTRY, {}, { limit: 10 })).not.to.be.rejected;
           });
 
+          it('should throw an error when options.sort has invalid format', async () => {
+            const INVALID_SORT = [
+              -123,
+              123.124,
+              'sdsd',
+              [],
+              [{}],
+              [{ aaa: 'asc' }],
+              [{ rangeKey1: 'test' }],
+              [{ rangeKey1: 'asc', rangeKey2: 'asc' }],
+            ];
+
+            // @ts-ignore
+            await Promise.all(INVALID_SORT.map((sort) => expect(encStorage.find(COUNTRY, {}, { sort }))
+              .to.be.rejectedWith(InputValidationError, '<FindOptions>.sort', `Failed with ${JSON.stringify(sort)}`)));
+          });
+
           it('should not throw an error when find options are not provided', async () => {
             expect(encStorage.find(COUNTRY, {}))
-              .not.to.be.rejectedWith(StorageError, '<FindOptions>');
+              .not.to.be.rejectedWith(InputValidationError);
           });
         });
 
@@ -114,17 +134,17 @@ describe('Storage', () => {
           it('should throw error with invalid request options', async () => {
             // @ts-ignore
             await Promise.all(INVALID_REQUEST_OPTIONS.map((requestOptions) => expect(encStorage.find(COUNTRY, {}, {}, requestOptions))
-              .to.be.rejectedWith(StorageError, '<RequestOptionsIO>')));
+              .to.be.rejectedWith(InputValidationError, 'find() Validation Error: <RequestOptionsIO>')));
           });
 
           it('should not throw error with valid request options', async () => {
             await Promise.all(VALID_REQUEST_OPTIONS.map((requestOptions) => expect(encStorage.find(COUNTRY, {}, {}, requestOptions))
-              .to.not.be.rejectedWith(StorageError, '<RequestOptionsIO>')));
+              .not.to.be.rejectedWith(InputValidationError)));
           });
 
           it('should not throw error without request options', async () => {
             expect(encStorage.find(COUNTRY, {}, {}))
-              .to.not.be.rejectedWith(StorageError, '<RequestOptionsIO>');
+              .not.to.be.rejectedWith(InputValidationError);
           });
 
           it('should pass valid request options "meta" to logger', async () => {
@@ -180,8 +200,19 @@ describe('Storage', () => {
           | 'key8'
           | 'key9'
           | 'key10'
+          | 'key11'
+          | 'key12'
+          | 'key13'
+          | 'key14'
+          | 'key15'
+          | 'key16'
+          | 'key17'
+          | 'key18'
+          | 'key19'
+          | 'key20'
           | 'serviceKey1'
           | 'serviceKey2'
+          | 'parentKey'
           | 'profileKey';
 
         const keys: KEY[] = [
@@ -196,14 +227,25 @@ describe('Storage', () => {
           'key8',
           'key9',
           'key10',
+          'key11',
+          'key12',
+          'key13',
+          'key14',
+          'key15',
+          'key16',
+          'key17',
+          'key18',
+          'key19',
+          'key20',
           'serviceKey1',
           'serviceKey2',
+          'parentKey',
           'profileKey',
         ];
 
         keys.forEach((key) => {
           it(`should hash ${key} in filters request and decrypt returned data correctly`, async () => {
-            const filter = { [key]: TEST_RECORDS[4][key] as string };
+            const filter = { [key]: TEST_RECORDS[5][key] as string };
             const hashedFilter = { [key]: encStorage.createKeyHash(filter[key]) };
             let requestedFilter;
 
@@ -245,7 +287,7 @@ describe('Storage', () => {
           nockPopApi(POPAPI_HOST).find(COUNTRY)
             .reply(200, getDefaultFindResponse(apiRecords));
 
-          const { records } = await noEncStorage.find(COUNTRY, { key: 'key1' });
+          const { records } = await noEncStorage.find(COUNTRY, { recordKey: 'key1' });
 
           records.forEach((record, index) => expect(record).to.own.include(TEST_RECORDS[index]));
         });
@@ -358,13 +400,13 @@ describe('Storage', () => {
           const storage = await getDefaultStorage();
 
           nockPopApi(POPAPI_HOST).find(country).reply(200, getDefaultFindResponse());
-          await storage.find('uS', { key: '123' });
+          await storage.find('uS', { recordKey: '123' });
 
           nockPopApi(POPAPI_HOST).find(country).reply(200, getDefaultFindResponse());
-          await storage.find('Us', { key: '123' });
+          await storage.find('Us', { recordKey: '123' });
 
           nockPopApi(POPAPI_HOST).find(country).reply(200, getDefaultFindResponse());
-          await storage.find('US', { key: '123' });
+          await storage.find('US', { recordKey: '123' });
         });
       });
 
@@ -376,7 +418,7 @@ describe('Storage', () => {
           nockPopApi(POPAPI_HOST).find(COUNTRY)
             .reply(200, getDefaultFindResponse(), popapiResponseHeaders);
 
-          await encStorage.find(COUNTRY, { key: uuid() }, undefined, { meta: callMeta });
+          await encStorage.find(COUNTRY, { recordKey: uuid() }, undefined, { meta: callMeta });
           expect(spy.calledWith('info')).to.eq(true);
           const actualMeta = getLoggerCallMeta(spy);
           checkLoggerMeta(actualMeta, callMeta, 'find');

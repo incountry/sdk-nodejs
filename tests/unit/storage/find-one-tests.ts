@@ -14,7 +14,7 @@ import {
 } from './common';
 import { VALID_REQUEST_OPTIONS, INVALID_REQUEST_OPTIONS } from '../validation/request-options';
 import { INVALID_FIND_FILTER, VALID_FIND_FILTER } from '../validation/find-filter-test';
-import { StorageError } from '../../../src/errors';
+import { InputValidationError } from '../../../src/errors';
 import { nockPopApi, getNockedRequestBodyObject } from '../../test-helpers/popapi-nock';
 
 
@@ -58,17 +58,17 @@ describe('Storage', () => {
           it('should throw error with invalid request options', async () => {
             // @ts-ignore
             await Promise.all(INVALID_REQUEST_OPTIONS.map((requestOptions) => expect(encStorage.findOne(COUNTRY, {}, {}, requestOptions))
-              .to.be.rejectedWith(StorageError, '<RequestOptionsIO>')));
+              .to.be.rejectedWith(InputValidationError, 'findOne() Validation Error: <RequestOptionsIO>')));
           });
 
           it('should not throw error with valid request options', async () => {
             await Promise.all(VALID_REQUEST_OPTIONS.map((requestOptions) => expect(encStorage.findOne(COUNTRY, {}, {}, requestOptions))
-              .to.not.be.rejectedWith(StorageError, '<RequestOptionsIO>')));
+              .not.to.be.rejectedWith(InputValidationError)));
           });
 
           it('should not throw error without request options', async () => {
             expect(encStorage.findOne(COUNTRY, {}, {}))
-              .to.not.be.rejectedWith(StorageError, '<RequestOptionsIO>');
+              .not.to.be.rejectedWith(InputValidationError);
           });
 
           it('should pass valid request options "meta" to logger', async () => {
@@ -84,18 +84,18 @@ describe('Storage', () => {
           it('should throw an error when filter has wrong format', async () => Promise.all(
             // @ts-ignore
             INVALID_FIND_FILTER.map((filter) => expect(encStorage.findOne(COUNTRY, filter))
-              .to.be.rejectedWith(StorageError, 'FindFilter', `wrong filter format: ${JSON.stringify(filter)}`)),
+              .to.be.rejectedWith(InputValidationError, 'findOne() Validation Error: <FindFilter>', `wrong filter format: ${JSON.stringify(filter)}`)),
           ));
 
           it('should not throw an error when filter has correct format', async () => Promise.all(
             // @ts-ignore
             VALID_FIND_FILTER.map((filter) => expect(encStorage.findOne(COUNTRY, filter))
-              .not.to.be.rejectedWith(StorageError, '<FindFilter>', `wrong filter format: ${JSON.stringify(filter)}`)),
+              .not.to.be.rejectedWith(InputValidationError)),
           ));
 
           it('should not throw an error when find filter is not provided', async () => {
             expect(encStorage.findOne(COUNTRY))
-              .not.to.be.rejectedWith(StorageError, '<FindFilter>');
+              .not.to.be.rejectedWith(InputValidationError);
           });
         });
       });
@@ -111,7 +111,7 @@ describe('Storage', () => {
 
         const [bodyObj] = await Promise.all<any>([
           getNockedRequestBodyObject(popAPI),
-          encStorage.findOne(COUNTRY, { key: '' }, { limit: 100, offset: 0 }),
+          encStorage.findOne(COUNTRY, { recordKey: '' }, { limit: 100, offset: 0 }),
         ]);
         expect(bodyObj.options).to.deep.equal({ limit: 1, offset: 0 });
       });

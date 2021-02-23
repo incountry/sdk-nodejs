@@ -2,7 +2,9 @@ import * as chai from 'chai';
 import sinonChai from 'sinon-chai';
 import chaiAsPromised from 'chai-as-promised';
 import { createStorage } from '../../../src/storage';
-import { StorageError, StorageClientError } from '../../../src/errors';
+import { CountriesCache } from '../../../src/countries-cache';
+import { SecretsValidationError, StorageConfigValidationError } from '../../../src/errors';
+import { errorMessageRegExp } from '../../test-helpers/utils';
 
 
 chai.use(chaiAsPromised);
@@ -48,7 +50,7 @@ describe('Storage', () => {
           it('should be string ', async () => {
             await Promise.all([{ endpoint: [] }, { endpoint: 123 }].map(async (options) => {
               await expect(createStorage(options as any))
-                .to.be.rejectedWith(StorageError, 'endpoint should be string');
+                .to.be.rejectedWith(StorageConfigValidationError, `Storage.constructor() Validation Error: <StorageOptions>.endpoint should be string but got ${options.endpoint}`);
             }));
           });
 
@@ -74,18 +76,18 @@ describe('Storage', () => {
           it('should be provided via either options or environment variable', async () => {
             await Promise.all([{}, { apiKey: undefined }].map(async (options) => {
               await expect(createStorage(options))
-                .to.be.rejectedWith(StorageError, 'Please pass apiKey in options or set INC_API_KEY env var');
+                .to.be.rejectedWith(StorageConfigValidationError, 'Please pass apiKey in options or set INC_API_KEY env var');
             }));
 
             await expect(createStorage({
               apiKey: 'apiKey',
               environmentId: 'envId',
               encrypt: false,
-            })).not.to.be.rejectedWith(StorageError);
+            })).not.to.be.rejected;
 
             process.env.INC_API_KEY = 'apiKey';
 
-            await expect(createStorage({ environmentId: 'envId', encrypt: false })).not.to.be.rejectedWith(StorageError);
+            await expect(createStorage({ environmentId: 'envId', encrypt: false })).not.to.be.rejected;
           });
         });
 
@@ -104,7 +106,7 @@ describe('Storage', () => {
           it('should be provided via either options or environment variable', async () => {
             await Promise.all([{ apiKey: 'apiKey' }, { apiKey: 'apiKey', environmentId: undefined }].map(async (options) => {
               await expect(createStorage(options))
-                .to.be.rejectedWith(StorageError, 'Please pass environmentId in options or set INC_ENVIRONMENT_ID env var');
+                .to.be.rejectedWith(StorageConfigValidationError, 'Please pass environmentId in options or set INC_ENVIRONMENT_ID env var');
             }));
 
             await expect(createStorage({
@@ -116,7 +118,7 @@ describe('Storage', () => {
 
             process.env.INC_ENVIRONMENT_ID = 'envId';
 
-            await expect(createStorage({ apiKey: 'apiKey', encrypt: false })).not.to.be.rejectedWith(StorageError);
+            await expect(createStorage({ apiKey: 'apiKey', encrypt: false })).not.to.be.rejected;
           });
         });
 
@@ -140,11 +142,11 @@ describe('Storage', () => {
             it('should be provided via either options or environment variable', async () => {
               await Promise.all([{ ...baseOptions, oauth: {} }, { ...baseOptions, oauth: { clientId: undefined } }].map(async (options) => {
                 await expect(createStorage(options))
-                  .to.be.rejectedWith(StorageClientError, 'Please pass apiKey in options or set INC_API_KEY env var');
+                  .to.be.rejectedWith(StorageConfigValidationError, 'Please pass apiKey in options or set INC_API_KEY env var');
               }));
               process.env.INC_CLIENT_SECRET = 'clientSecret';
               await expect(createStorage(baseOptions))
-                .to.be.rejectedWith(StorageClientError, 'Please pass clientId in options or set INC_CLIENT_ID env var');
+                .to.be.rejectedWith(StorageConfigValidationError, 'Please pass clientId in options or set INC_CLIENT_ID env var');
               delete process.env.INC_CLIENT_SECRET;
 
               await expect(createStorage({ ...baseOptions, oauth: { clientId: 'clientId', clientSecret: 'clientSecret' } })).not.to.be.rejected;
@@ -157,11 +159,11 @@ describe('Storage', () => {
             it('should be provided via either options or environment variable', async () => {
               process.env.INC_CLIENT_ID = 'clientId';
               await expect(createStorage(baseOptions))
-                .to.be.rejectedWith(StorageClientError, 'Please pass clientSecret in options or set INC_CLIENT_SECRET env var');
+                .to.be.rejectedWith(StorageConfigValidationError, 'Please pass clientSecret in options or set INC_CLIENT_SECRET env var');
               delete process.env.INC_CLIENT_ID;
 
               await expect(createStorage({ ...baseOptions, oauth: { clientId: 'clientId', clientSecret: undefined } }))
-                .to.be.rejectedWith(StorageClientError, 'Please pass clientSecret in options or set INC_CLIENT_SECRET env var');
+                .to.be.rejectedWith(StorageConfigValidationError, 'Please pass clientSecret in options or set INC_CLIENT_SECRET env var');
               await expect(createStorage({ ...baseOptions, oauth: { clientId: 'clientId', clientSecret: 'clientSecret' } })).not.to.be.rejected;
               process.env.INC_CLIENT_SECRET = 'clientSecret';
               await expect(createStorage({ ...baseOptions, oauth: { clientId: 'clientId' } })).not.to.be.rejected;
@@ -185,16 +187,17 @@ describe('Storage', () => {
                   encrypt: false,
                   oauth: { clientId: 'clientId', clientSecret: 'clientSecret', authEndpoints },
                 };
-                const errorMsg = 'Storage.constructor() Validation Error: authEndpoints should be an object containing "default" key';
+                const errorMsg = errorMessageRegExp('Storage.constructor() Validation Error:', 'authEndpoints should be an object containing "default" key');
+
                 // @ts-ignore
                 await expect(createStorage(options))
-                  .to.be.rejectedWith(StorageClientError, errorMsg);
+                  .to.be.rejectedWith(StorageConfigValidationError, errorMsg);
               }));
             });
 
             it('should be an object with string values and the default key', async () => {
-              const errStringValue = 'Storage.constructor() Validation Error: authEndpoints values should be a string';
-              const errObjectFormat = 'Storage.constructor() Validation Error: authEndpoints should be an object containing "default" key';
+              const errStringValue = errorMessageRegExp('Storage.constructor() Validation Error:', 'authEndpoints values should be a string');
+              const errObjectFormat = errorMessageRegExp('Storage.constructor() Validation Error:', 'authEndpoints should be an object containing "default" key');
               const invalidAuthEndpoints = [
                 [{}, errObjectFormat],
                 [{ key: 'value' }, errObjectFormat],
@@ -212,9 +215,10 @@ describe('Storage', () => {
                   encrypt: false,
                   oauth: { clientId: 'clientId', clientSecret: 'clientSecret', authEndpoints },
                 };
+
                 // @ts-ignore
                 await expect(createStorage(options))
-                  .to.be.rejectedWith(StorageClientError, err);
+                  .to.be.rejectedWith(StorageConfigValidationError, err);
               }));
 
               await expect(createStorage({
@@ -243,7 +247,7 @@ describe('Storage', () => {
               environmentId: 'ENVIRONMENT_ID',
               endpoint: 'URL',
             },
-          )).to.be.rejectedWith(StorageError, 'Provide callback function for secretData');
+          )).to.be.rejectedWith(StorageConfigValidationError, 'Provide callback function for secretData');
         });
 
         it('should not throw an error if encryption is disabled and no secretKeyAccessor provided', async () => {
@@ -265,7 +269,7 @@ describe('Storage', () => {
               endpoint: 'URL',
               getSecrets: () => {},
             },
-          )).to.be.rejectedWith(StorageError, '<SecretsData> should be SecretsData but got undefined');
+          )).to.be.rejectedWith(SecretsValidationError, '<SecretsData> should be SecretsData but got undefined');
 
           await expect(createStorage(
             {
@@ -274,7 +278,7 @@ describe('Storage', () => {
               endpoint: 'URL',
               getSecrets: () => ({ secrets: [{ version: -1, secret: '' }], currentVersion: -1 }),
             },
-          )).to.be.rejectedWith(StorageError, '<SecretsData>.secrets.0.version should be NonNegativeInt but got -1');
+          )).to.be.rejectedWith(SecretsValidationError, '<SecretsData>.secrets.0.version should be NonNegativeInt but got -1');
 
           await expect(createStorage(
             {
@@ -283,7 +287,7 @@ describe('Storage', () => {
               endpoint: 'URL',
               getSecrets: () => ({ secrets: [{ version: 1, secret: true }], currentVersion: 1 }),
             },
-          )).to.be.rejectedWith(StorageError, '<SecretsData>.secrets.0.secret should be string but got true');
+          )).to.be.rejectedWith(SecretsValidationError, '<SecretsData>.secrets.0.secret should be string but got true');
         });
 
         it('should throw an error if not a getSecrets callback is provided', async () => {
@@ -295,7 +299,7 @@ describe('Storage', () => {
               // @ts-ignore
               getSecrets: {},
             },
-          )).to.be.rejectedWith(StorageError, 'getSecrets should be Function');
+          )).to.be.rejectedWith(StorageConfigValidationError, 'Storage.constructor() Validation Error: <StorageOptions>.getSecrets should be Function but got {}');
         });
       });
 
@@ -303,7 +307,7 @@ describe('Storage', () => {
         it('should throw an error if provided logger is not object or has no "write" method or is not a function', async () => {
           // @ts-ignore
           const expectStorageConstructorThrowsError = async (wrongLogger) => expect(createStorage({ encrypt: false, logger: wrongLogger }))
-            .to.be.rejectedWith(StorageError, 'logger');
+            .to.be.rejectedWith(StorageConfigValidationError, 'Storage.constructor() Validation Error: <StorageOptions>.logger');
 
 
           const wrongLoggers = [42, () => null, {}, { write: 'write' }, { write: {} }];
@@ -311,10 +315,26 @@ describe('Storage', () => {
         });
       });
 
+      describe('countriesCache', () => {
+        it('should throw an error if provided countriesCache is not object or is not instance of CountriesCache', async () => {
+          // @ts-ignore
+          const expectStorageConstructorThrowsError = async (wrongCache) => expect(createStorage({ encrypt: false, countriesCache: wrongCache }))
+            .to.be.rejectedWith(StorageConfigValidationError, 'Storage.constructor() Validation Error: <StorageOptions>.countriesCache should be CountriesCache');
+
+          const wrongCaches = [null, 'foo', 42, () => null, {}, { foo: 'bar' }, new SecretsValidationError('foo', 'bar')];
+          await Promise.all(wrongCaches.map((item) => expectStorageConstructorThrowsError(item)));
+        });
+
+        it('should not throw an error if provided countriesCache is instance of CountriesCache', async () => {
+          await expect(createStorage({ encrypt: false, countriesCache: new CountriesCache() }))
+            .to.be.not.rejected;
+        });
+      });
+
       describe('endpointMask', () => {
         it('should throw an error if provided endpointMask is not string', async () => {
           const expectStorageConstructorThrowsError = async (wrongMask: string) => expect(createStorage({ encrypt: false, endpointMask: wrongMask }))
-            .to.be.rejectedWith(StorageError, 'endpointMask');
+            .to.be.rejectedWith(StorageConfigValidationError, 'Storage.constructor() Validation Error: <StorageOptions>.endpointMask should be string but got');
 
 
           const wrongEndpointMasks = [42, () => null, {}, [], null];
@@ -326,8 +346,8 @@ describe('Storage', () => {
 
       describe('httpOptions', () => {
         it('should throw an error if provided httpOptions are not correct object', async () => {
-          const expectStorageConstructorThrowsError = async (wrongOptions: any) => expect(createStorage({ encrypt: false, httpOptions: wrongOptions }))
-            .to.be.rejectedWith(StorageError, 'httpOptions');
+          const expectStorageConstructorThrowsError = async (httpOptions: any) => expect(createStorage({ encrypt: false, httpOptions }))
+            .to.be.rejectedWith(StorageConfigValidationError, 'Storage.constructor() Validation Error: <StorageOptions>.httpOptions');
 
           const wrongOptions = [42, () => null, [], null, { timeout: '100' }, { timeout: -1 }];
           // @ts-ignore
@@ -335,8 +355,8 @@ describe('Storage', () => {
         });
 
         it('should not throw an error if  httpOptions are not provided', async () => {
-          const expectStorageConstructorNotThrowsError = async (wrongOptions: any) => expect(createStorage({ encrypt: false, httpOptions: wrongOptions }))
-            .to.not.be.rejectedWith(StorageError);
+          const expectStorageConstructorNotThrowsError = async (httpOptions: any) => expect(createStorage({ encrypt: false, httpOptions }))
+            .to.not.be.rejected;
 
           const wrongOptions = [undefined, {}];
           await Promise.all(wrongOptions.map((item) => expectStorageConstructorNotThrowsError(item)));
@@ -346,8 +366,8 @@ describe('Storage', () => {
       describe('countriesEndpoint', () => {
         it('should throw an error if provided countriesEndpoint is not string', async () => {
           // @ts-ignore
-          const expectStorageConstructorThrowsError = async (wrongCountriesEndpoint: string) => expect(createStorage({ encrypt: false, countriesEndpoint: wrongCountriesEndpoint }))
-            .to.be.rejectedWith(StorageError, 'countriesEndpoint');
+          const expectStorageConstructorThrowsError = async (countriesEndpoint: string) => expect(createStorage({ encrypt: false, countriesEndpoint }))
+            .to.be.rejectedWith(StorageConfigValidationError, 'Storage.constructor() Validation Error: <StorageOptions>.countriesEndpoint should be string but got');
 
 
           const wrongCountriesEndpoint = [42, () => null, {}, [], null];

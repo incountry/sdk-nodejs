@@ -8,9 +8,15 @@ import * as defaultLogger from './logger';
 import { CountriesCache } from './countries-cache';
 import { SecretKeyAccessor } from './secret-key-accessor';
 import { InCrypt } from './in-crypt';
-import { StorageClientError, StorageCryptoError, StorageServerError } from './errors';
 import {
-  isValid, toStorageClientError, optional, getErrorMessage,
+  InputValidationError,
+  StorageConfigValidationError,
+  StorageCryptoError,
+} from './errors';
+import {
+  isInvalid, optional,
+  toStorageConfigValidationError,
+  toStorageServerError,
 } from './validation/utils';
 import {
   StorageRecord,
@@ -20,7 +26,9 @@ import {
 } from './validation/storage-record';
 import { getStorageRecordDataArrayIO } from './validation/storage-record-data-array';
 import { CountryCodeIO } from './validation/country-code';
-import { FindOptionsIO, FindOptions } from './validation/api/find-options';
+import {
+  FindOptionsIO, FindOptions, SEARCH_KEYS, SearchKey,
+} from './validation/find-options';
 import {
   FindFilterIO, FindFilter, FilterStringValue, FilterStringQueryIO, FilterStringValueIO, filterFromStorageDataKeys,
 } from './validation/api/find-filter';
@@ -41,45 +49,23 @@ import { ApiRecordData, apiRecordDataFromStorageRecordData } from './validation/
 import { RequestOptionsIO, RequestOptions } from './validation/request-options';
 import { AttachmentWritableMeta, AttachmentWritableMetaIO } from './validation/attachment-writable-meta';
 import { AttachmentData, AttachmentDataIO } from './validation/api/attachment-data';
+import { findOptionsFromStorageDataKeys } from './validation/api/api-find-options';
 
 const FIND_LIMIT = 100;
 
-type SEARCH_KEY =
-  | 'key1'
-  | 'key2'
-  | 'key3'
-  | 'key4'
-  | 'key5'
-  | 'key6'
-  | 'key7'
-  | 'key8'
-  | 'key9'
-  | 'key10';
-
-const SEARCH_KEYS: SEARCH_KEY[] = [
-  'key1',
-  'key2',
-  'key3',
-  'key4',
-  'key5',
-  'key6',
-  'key7',
-  'key8',
-  'key9',
-  'key10',
-];
-
-type KEY_TO_HASH =
+type KeyToHash =
   | 'record_key'
   | 'service_key1'
   | 'service_key2'
-  | 'profile_key';
+  | 'profile_key'
+  | 'parent_key';
 
-const KEYS_TO_HASH: KEY_TO_HASH[] = [
+const KEYS_TO_HASH: KeyToHash[] = [
   'record_key',
   'service_key1',
   'service_key2',
   'profile_key',
+  'parent_key',
 ];
 
 type BodyForEncryption = {
@@ -150,8 +136,8 @@ class Storage {
 
   constructor(options: StorageOptions, customEncryptionConfigs?: CustomEncryptionConfig[]) {
     const validationResult = StorageOptionsIO.decode(options);
-    if (!isValid(validationResult)) {
-      throw toStorageClientError('Storage.constructor() Validation Error: ')(validationResult);
+    if (isInvalid(validationResult)) {
+      throw toStorageConfigValidationError('Storage.constructor() Validation Error: ')(validationResult);
     }
 
     this.setLogger(options.logger || defaultLogger.withBaseLogLevel('info'));
@@ -167,24 +153,24 @@ class Storage {
     }
     if (clientId || clientSecret) {
       if (!clientId) {
-        throw new StorageClientError('Please pass clientId in options or set INC_CLIENT_ID env var');
+        throw new StorageConfigValidationError('Please pass clientId in options or set INC_CLIENT_ID env var');
       }
 
       if (!clientSecret) {
-        throw new StorageClientError('Please pass clientSecret in options or set INC_CLIENT_SECRET env var');
+        throw new StorageConfigValidationError('Please pass clientSecret in options or set INC_CLIENT_SECRET env var');
       }
 
       this.authClient = new OAuthClient(clientId, clientSecret, authEndpoints);
     } else {
       if (!apiKey) {
-        throw new StorageClientError('Please pass apiKey in options or set INC_API_KEY env var');
+        throw new StorageConfigValidationError('Please pass apiKey in options or set INC_API_KEY env var');
       }
       this.authClient = getApiKeyAuthClient(apiKey);
     }
 
     const envId = options.environmentId || process.env.INC_ENVIRONMENT_ID;
     if (!envId) {
-      throw new StorageClientError('Please pass environmentId in options or set INC_ENVIRONMENT_ID env var');
+      throw new StorageConfigValidationError('Please pass environmentId in options or set INC_ENVIRONMENT_ID env var');
     }
     this.envId = envId;
 
@@ -192,7 +178,7 @@ class Storage {
 
     if (options.encrypt !== false) {
       if (options.getSecrets === undefined) {
-        throw new StorageClientError('Provide callback function for secretData');
+        throw new StorageConfigValidationError('Provide callback function for secretData');
       }
       this.encryptionEnabled = true;
       this.crypto = new InCrypt(new SecretKeyAccessor(options.getSecrets));
@@ -201,7 +187,7 @@ class Storage {
       }
     } else {
       if (customEncryptionConfigs !== undefined) {
-        throw new StorageClientError('Cannot use custom encryption when encryption is off');
+        throw new StorageConfigValidationError('Cannot use custom encryption when encryption is off');
       }
       this.encryptionEnabled = false;
       this.crypto = new InCrypt();
@@ -228,7 +214,7 @@ class Storage {
 
   setCountriesCache(countriesCache: CountriesCache): void {
     if (!(countriesCache instanceof CountriesCache)) {
-      throw new StorageClientError('You must pass an instance of CountriesCache');
+      throw new InputValidationError('You must pass an instance of CountriesCache');
     }
     this.countriesCache = countriesCache;
   }
@@ -282,7 +268,7 @@ class Storage {
 
     const data = {
       filter: this.hashFilterKeys(filterFromStorageDataKeys(filter), keysToHash),
-      options: { limit: FIND_LIMIT, offset: 0, ...options },
+      options: { limit: FIND_LIMIT, offset: 0, ...findOptionsFromStorageDataKeys(options) },
     };
 
     const responseData = await this.apiClient.find(countryCode, data, requestOptions);
@@ -343,7 +329,7 @@ class Storage {
     requestOptions: RequestOptions = {},
   ): Promise<MigrateResult> {
     if (!this.encryptionEnabled) {
-      throw new StorageClientError('Migration not supported when encryption is off');
+      throw new StorageConfigValidationError('Migration not supported when encryption is off');
     }
 
     const currentSecretVersion = await this.crypto.getCurrentSecretVersion();
@@ -464,8 +450,8 @@ class Storage {
     return this.normalizeKeys ? String(key).toLowerCase() : String(key);
   }
 
-  private getKeysToHash(): Array<KEY_TO_HASH | SEARCH_KEY> {
-    let keysToHash: Array<KEY_TO_HASH | SEARCH_KEY> = KEYS_TO_HASH;
+  private getKeysToHash(): Array<KeyToHash | SearchKey> {
+    let keysToHash: Array<KeyToHash | SearchKey> = KEYS_TO_HASH;
     if (this.hashSearchKeys) {
       keysToHash = keysToHash.concat(SEARCH_KEYS);
     }
@@ -484,7 +470,12 @@ class Storage {
     if (Array.isArray(filterKeyValue)) {
       return filterKeyValue.map((v) => this.createKeyHash(this.normalizeKey(v)));
     }
-    return this.createKeyHash(this.normalizeKey(filterKeyValue));
+
+    if (filterKeyValue !== null) {
+      return this.createKeyHash(this.normalizeKey(filterKeyValue));
+    }
+
+    return null;
   }
 
   private hashFilterKeys(filter: FindFilter, keys: Array<keyof FindFilter>): FindFilter {
@@ -557,8 +548,8 @@ class Storage {
     const decryptedBody = await this.crypto.decrypt(apiRecord.body, apiRecord.version);
 
     const bodyObj = ApiRecordBodyIO.decode(decryptedBody);
-    if (!isValid(bodyObj)) {
-      throw new StorageServerError(`Invalid record body: ${getErrorMessage(bodyObj)}`);
+    if (isInvalid(bodyObj)) {
+      throw toStorageServerError('Invalid record body: ')(bodyObj);
     }
     const { payload, meta } = bodyObj.right;
 
@@ -600,7 +591,7 @@ export {
   ReadResult,
   DeleteResult,
   Storage,
-  KEY_TO_HASH,
+  KeyToHash,
   KEYS_TO_HASH,
   createStorage,
   FIND_LIMIT,

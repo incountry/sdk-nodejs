@@ -16,12 +16,22 @@ const EXCLUDED_KEYS_WHEN_SEARCHING = [
   'key8',
   'key9',
   'key10',
+  'key11',
+  'key12',
+  'key13',
+  'key14',
+  'key15',
+  'key16',
+  'key17',
+  'key18',
+  'key19',
+  'key20',
 ];
 const SEARCH_FIELD_MIN_LENGTH = 3;
 const SEARCH_FIELD_MAX_LENGTH = 200;
 
-type FilterStringValue = string | string[];
-const FilterStringValueIO: t.Type<FilterStringValue> = t.union([t.string, t.array(t.string)]);
+type FilterStringValue = string | string[] | null;
+const FilterStringValueIO: t.Type<FilterStringValue> = t.union([t.string, t.array(t.string), t.null]);
 
 type FilterStringQuery = FilterStringValue | { $not?: FilterStringValue };
 const FilterStringQueryIO: t.Type<FilterStringQuery> = t.union([
@@ -29,8 +39,8 @@ const FilterStringQueryIO: t.Type<FilterStringQuery> = t.union([
   exact(t.partial({ $not: FilterStringValueIO })),
 ]);
 
-type FilterNumberValue = number | number[];
-const FilterNumberValueIO: t.Type<FilterNumberValue> = t.union([t.number, t.array(t.number)]);
+type FilterNumberValue = number | number[] | null;
+const FilterNumberValueIO: t.Type<FilterNumberValue> = t.union([t.number, t.array(t.number), t.null]);
 
 type FindFilterValue = FilterStringValue | FilterNumberValue;
 const FindFilterValueIO: t.Type<FindFilterValue> = t.union([FilterNumberValueIO, FilterStringValueIO]);
@@ -107,6 +117,17 @@ function filterFromStorageDataKeys(filter: FindFilter): FindFilter {
     key8: filter.key8,
     key9: filter.key9,
     key10: filter.key10,
+    key11: filter.key11,
+    key12: filter.key12,
+    key13: filter.key13,
+    key14: filter.key14,
+    key15: filter.key15,
+    key16: filter.key16,
+    key17: filter.key17,
+    key18: filter.key18,
+    key19: filter.key19,
+    key20: filter.key20,
+    parent_key: filter.parentKey,
     service_key1: filter.serviceKey1,
     service_key2: filter.serviceKey2,
     profile_key: filter.profileKey,

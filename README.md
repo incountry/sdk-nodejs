@@ -56,7 +56,7 @@ type StorageOptions = {
   getSecrets?: Function;    // Used to fetch an encryption secret
   normalizeKeys?: boolean;
   countriesCache?: CountriesCache;
-  hashSearchKeys?: boolean; // Set to false to enable partial match search among record's text fields `key1, key2, ..., key10`. Defaults to true.
+  hashSearchKeys?: boolean; // Set to false to enable partial match search among record's text fields `key1, key2, ..., key20`. Defaults to true.
 
   /**
    * Defines API base hostname part to use.
@@ -252,6 +252,7 @@ v3.0.0 release introduced a series of new fields available for data storage. Bel
 ##### String fields, hashed:
 ```typescript
 recordKey
+parentKey
 profileKey
 serviceKey1
 serviceKey2
@@ -270,6 +271,16 @@ key7
 key8
 key9
 key10
+key11
+key12
+key13
+key14
+key15
+key16
+key17
+key18
+key19
+key20
 ```
 
 ##### String fields, encrypted:
@@ -295,6 +306,7 @@ rangeKey10
 ```typescript
 type StorageRecordData = {
   recordKey: string;
+  parentKey?: string | null;
   profileKey?: string | null;
   key1?: string | null;  // If `hashSearchKeys` is set to `false` key1 has length limit 256
   key2?: string | null;  // If `hashSearchKeys` is set to `false` key2 has length limit 256
@@ -306,6 +318,16 @@ type StorageRecordData = {
   key8?: string | null;  // If `hashSearchKeys` is set to `false` key8 has length limit 256
   key9?: string | null;  // If `hashSearchKeys` is set to `false` key9 has length limit 256
   key10?: string | null; // If `hashSearchKeys` is set to `false` key10 has length limit 256
+  key11?: string | null; // If `hashSearchKeys` is set to `false` key11 has length limit 256
+  key12?: string | null; // If `hashSearchKeys` is set to `false` key12 has length limit 256
+  key13?: string | null; // If `hashSearchKeys` is set to `false` key13 has length limit 256
+  key14?: string | null; // If `hashSearchKeys` is set to `false` key14 has length limit 256
+  key15?: string | null; // If `hashSearchKeys` is set to `false` key15 has length limit 256
+  key16?: string | null; // If `hashSearchKeys` is set to `false` key16 has length limit 256
+  key17?: string | null; // If `hashSearchKeys` is set to `false` key17 has length limit 256
+  key18?: string | null; // If `hashSearchKeys` is set to `false` key18 has length limit 256
+  key19?: string | null; // If `hashSearchKeys` is set to `false` key19 has length limit 256
+  key20?: string | null; // If `hashSearchKeys` is set to `false` key20 has length limit 256
   serviceKey1?: string | null;
   serviceKey2?: string | null;
   body?: string | null;
@@ -386,6 +408,7 @@ You can use the `createdAt` and `updatedAt` fields to access date-related inform
 type StorageRecord = {
   recordKey: string;
   body: string | null;
+  parentKey: string | null;
   profileKey: string | null;
   precommitBody: string | null;
   key1?: string | null;  // If `hashSearchKeys` is set to `false` key1 has length limit 256
@@ -398,6 +421,16 @@ type StorageRecord = {
   key8?: string | null;  // If `hashSearchKeys` is set to `false` key8 has length limit 256
   key9?: string | null;  // If `hashSearchKeys` is set to `false` key9 has length limit 256
   key10?: string | null; // If `hashSearchKeys` is set to `false` key10 has length limit 256
+  key11?: string | null; // If `hashSearchKeys` is set to `false` key11 has length limit 256
+  key12?: string | null; // If `hashSearchKeys` is set to `false` key12 has length limit 256
+  key13?: string | null; // If `hashSearchKeys` is set to `false` key13 has length limit 256
+  key14?: string | null; // If `hashSearchKeys` is set to `false` key14 has length limit 256
+  key15?: string | null; // If `hashSearchKeys` is set to `false` key15 has length limit 256
+  key16?: string | null; // If `hashSearchKeys` is set to `false` key16 has length limit 256
+  key17?: string | null; // If `hashSearchKeys` is set to `false` key17 has length limit 256
+  key18?: string | null; // If `hashSearchKeys` is set to `false` key18 has length limit 256
+  key19?: string | null; // If `hashSearchKeys` is set to `false` key19 has length limit 256
+  key20?: string | null; // If `hashSearchKeys` is set to `false` key20 has length limit 256
   serviceKey1: string | null;
   serviceKey2: string | null;
   rangeKey1: t.Int | null;
@@ -442,13 +475,13 @@ You can look up for data records either by using exact match search operators or
 The following exact match search criteria are available:
 - single value:
 ```typescript
-// Matches all records where record.key1 = 'abc' AND record.rangeKey = 1
+// Matches all records where record.key1 = 'abc' AND record.rangeKey1 = 1
 { key1: 'abc', rangeKey1: 1 }
 ```
 
 - multiple values as an array:
 ```typescript
-// Matches all records where (record.key2 = 'def' OR record.key2 = 'jkl') AND (record.rangeKey = 1 OR record.rangeKey = 2)
+// Matches all records where (record.key2 = 'def' OR record.key2 = 'jkl') AND (record.rangeKey1 = 1 OR record.rangeKey1 = 2)
 { key2: ['def', 'jkl'], rangeKey1: [1, 2] }
 ```
 
@@ -466,23 +499,23 @@ The following exact match search criteria are available:
 
 - comparison operators for [Int fields](#int-fields-plain):
 ```typescript
-// Matches all records where record.rangeKey >= 5 AND record.rangeKey <= 100
+// Matches all records where record.rangeKey1 >= 5 AND record.rangeKey1 <= 100
 { rangeKey1: { $gte: 5, $lte: 100 } }
 ```
 
 ##### Partial text match search
 
 You can also look up for data records by partial match using the `searchKeys` operator which performs partial match
-search (similar to the `LIKE` SQL operator, without special characters) within records text fields `key1, key2, ..., key10`.
+search (similar to the `LIKE` SQL operator, without special characters) within records text fields `key1, key2, ..., key20`.
 ```typescript
-// Matches all records where record.key1 LIKE 'abc' OR record.key2 LIKE 'abc' OR ... OR record.key10 LIKE 'abc'
+// Matches all records where record.key1 LIKE 'abc' OR record.key2 LIKE 'abc' OR ... OR record.key20 LIKE 'abc'
 { searchKeys: 'abc' }
 ```
 
-**Please note:** The `searchKeys` operator cannot be used in combination with any of `key1, key2, ..., key10` keys and works only in combination with the non-hashing Storage mode (hashSearchKeys param for Storage).
+**Please note:** The `searchKeys` operator cannot be used in combination with any of `key1, key2, ..., key20` keys and works only in combination with the non-hashing Storage mode (hashSearchKeys param for Storage).
 
 ```typescript
-// Matches all records where (record.key1 LIKE 'abc' OR record.key2 LIKE 'abc' OR ... OR record.key10 LIKE 'abc') AND (record.rangeKey = 1 OR record.rangeKey = 2)
+// Matches all records where (record.key1 LIKE 'abc' OR record.key2 LIKE 'abc' OR ... OR record.key20 LIKE 'abc') AND (record.rangeKey1 = 1 OR record.rangeKey1 = 2)
 { searchKeys: 'abc', rangeKey1: [1, 2] }
 
 // Causes validation error (StorageClientError)
@@ -491,16 +524,58 @@ search (similar to the `LIKE` SQL operator, without special characters) within r
 
 #### Search options
 
-The `options` parameter defines the `limit` - number of records that are returned, and the `offset`- the starting index used for record pagination.
+The `options` parameter provides the following choices to manipulate the search results:
+- `limit` allows to limit the total number of records returned;
+- `offset` allows to specify the starting index used for records pagination;
+- `sort` allows to sort the returned records by one or multiple keys;
+
+**WARNING** To use `sort` in find() call for string keys `key1...key20` you need to set  `hashSearchKeys` option to `false`.
+
+##### Fields that records can be sorted by:
+```typescript
+type SortKey =
+  | 'createdAt'
+  | 'updatedAt'
+  | 'key1'
+  | 'key2'
+  | 'key3'
+  | 'key4'
+  | 'key5'
+  | 'key6'
+  | 'key7'
+  | 'key8'
+  | 'key9'
+  | 'key10'
+  | 'key11'
+  | 'key12'
+  | 'key13'
+  | 'key14'
+  | 'key15'
+  | 'key16'
+  | 'key17'
+  | 'key18'
+  | 'key19'
+  | 'key20'
+  | 'rangeKey1'
+  | 'rangeKey2'
+  | 'rangeKey3'
+  | 'rangeKey4'
+  | 'rangeKey5'
+  | 'rangeKey6'
+  | 'rangeKey7'
+  | 'rangeKey8'
+  | 'rangeKey9'
+  | 'rangeKey10';
+```
 
 Note: The SDK returns 100 records at most.
 
 
 ```typescript
-type FilterStringValue = string | string[];
+type FilterStringValue = string | string[] | null;
 type FilterStringQuery = FilterStringValue | { $not?: FilterStringValue };
 
-type FilterNumberValue = number | number[];
+type FilterNumberValue = number | number[] | null;
 type FilterNumberQuery =
   FilterNumberValue |
   {
@@ -513,9 +588,12 @@ type FilterNumberQuery =
 
 type FindFilter = Record<string, FilterStringQuery | FilterNumberQuery>;
 
+type SortItem = Partial<Record<SortKey, 'asc' | 'desc'>>; // each sort item should describe only one key!
+
 type FindOptions = {
   limit?: number;
   offset?: number;
+  sort?: NonEmptyArray<SortItem>;
 };
 
 type FindResult = {
@@ -544,6 +622,7 @@ async find(
 const filter = {
   key1: 'abc',
   key2: ['def', 'jkl'],
+  key3: { $not: null },
   profileKey: 'test2',
   rangeKey1: { $gte: 5, $lte: 100 },
   rangeKey2: { $not: [0, 1] },
@@ -552,6 +631,7 @@ const filter = {
 const options = {
   limit: 100,
   offset: 0,
+  sort: [{ createdAt: 'asc' }, { rangeKey1: 'desc' }],
 };
 
 const findResult = await storage.find(countryCode, filter, options);
@@ -569,6 +649,11 @@ The returned `findResult` object looks like the following:
     total: 24
   }
 }
+```
+
+with `findResult.records` sorted according to the following pseudo-sql:
+```sql
+SELECT * FROM record WHERE ...  ORDER BY createdAt asc, rangeKey1 desc
 ```
 
 #### Error handling
@@ -817,13 +902,34 @@ const migrateResult = await storage.migrate(countryCode);
 ```
 
 
+## AWS KMS integration
+
+InCountry NodeJS SDK supports usage of any 32-byte (256-bit) AES key, including ones produced by AWS KMS symmetric master key (CMK).
+
+The suggested use case assumes that AWS user already got his KMS encrypted data key (AES_256) generated. Afterwards the key gets decrypted using AWS Node.js client library (`aws-sdk/clients/kms`) and then provided to InCountry NodeJS SDK's `getSecrets()` function.
+
+For a detailed example of AWS KMS keys usage please see [examples/aws-kms.js](examples/aws-kms.js)
+
+
 ## Error Handling
 
-InCountry Node SDK throws following Exceptions:
+InCountry NodeJS SDK throws the following Exceptions:
 
-- **StorageClientError** - used for various input validation errors. Can be thrown by all public methods.
+- **StorageConfigValidationError** - used for Storage options validation errors. Can be thrown by any public method.
+
+- **SecretsProviderError** - can be thrown during the call of `getSecrets()` function. Wraps the original error which occurred in `getSecrets()`.
+
+- **SecretsValidationError** - can be thrown if `getSecrets()` function returned secrets in wrong format.
+
+- **InputValidationError** - used for input validation errors. Can be thrown by all public methods except Storage constructor.
+
+- **StorageAuthenticationError** - can be thrown if SDK failed to authenticate in InCountry system with the provided credentials.
+
+- **StorageClientError** - used for various errors related to Storage configuration. All of the errors classes `StorageConfigValidationError`, `SecretsProviderError`, `SecretsValidationError`, `InputValidationError`, `StorageAuthenticationError` are inherited from `StorageClientError`.
 
 - **StorageServerError** - thrown if SDK failed to communicate with InCountry servers or if server response validation failed.
+
+- **StorageNetworkError** - thrown if SDK failed to communicate with InCountry servers due to network issues, such as request timeout, unreachable `endpoint` etc. Inherited from `StorageServerError`.
 
 - **StorageCryptoError** - thrown during encryption/decryption procedures (both default and custom). This may be a sign of malformed/corrupt data or a wrong encryption key provided to the SDK.
 
@@ -837,8 +943,27 @@ try {
 } catch(e) {
   if (e instanceof StorageClientError) {
     // some input validation error
+
+    // if you need to handle configuration errors more precisely:
+    if (e instanceof StorageConfigValidationError) {
+      // something is wrong with Storage options
+    } else if (e instanceof SecretsProviderError) {
+      // something is wrong with `getSecrets()` function. The original error is available in `e.data`
+    } else if (e instanceof SecretsValidationError) {
+      // something is wrong with `getSecrets()` function result
+    } else if (e instanceof InputValidationError) {
+      // something is wrong with input data passed to Storage public method
+    } else if (e instanceof StorageAuthenticationError) {
+      // something is wrong with the credentials provided in Storage options
+    }
   } else if (e instanceof StorageServerError) {
     // some server error
+
+    if (e instanceof StorageNetworkError) {
+      // something is wrong with network connection
+    } else {
+      // server error or server response validation failed
+    }
   } else if (e instanceof StorageCryptoError) {
     // some encryption error
   } else {
@@ -900,10 +1025,13 @@ const getSecretsCallback = () => {
 }
 
 const options = {
-  apiKey: 'API_KEY',
   environmentId: 'ENVIRONMENT_ID',
+  oauth: {
+    clientId: '<client_id>',
+    clientSecret: '<client_secret>',
+  },
   getSecrets: getSecretsCallback,
-}};
+};
 
 const storage = await createStorage(options, [config]);
 
