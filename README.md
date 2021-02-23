@@ -272,6 +272,9 @@ parentKey
 profileKey
 serviceKey1
 serviceKey2
+serviceKey3
+serviceKey4
+serviceKey5
 ```
 ##### String fields, hashed if Storage options "hashSearchKeys" is set to true (by default it is):
 **WARNING** If the `hashSearchKeys` option is set to `false` the following string fields will have length limitation of 256 characters at most.
@@ -319,6 +322,14 @@ rangeKey9
 rangeKey10
 ```
 
+##### Date fields, plain:
+```typescript
+expiresAt
+```
+
+**WARNING** The data with `expiresAt` will be vanished when time comes ))).
+
+
 ```typescript
 type StorageRecordData = {
   recordKey: string;
@@ -346,6 +357,9 @@ type StorageRecordData = {
   key20?: string | null; // If `hashSearchKeys` is set to `false` key20 has length limit 256
   serviceKey1?: string | null;
   serviceKey2?: string | null;
+  serviceKey2?: string | null;
+  serviceKey4?: string | null;
+  serviceKey5?: string | null;
   body?: string | null;
   precommitBody?: string | null;
   rangeKey1?: t.Int | null;
@@ -358,6 +372,7 @@ type StorageRecordData = {
   rangeKey8?: t.Int | null;
   rangeKey9?: t.Int | null;
   rangeKey10?: t.Int | null;
+  expiresAt?: Date | null;
 };
 
 type WriteResult = {
@@ -449,6 +464,9 @@ type StorageRecord = {
   key20?: string | null; // If `hashSearchKeys` is set to `false` key20 has length limit 256
   serviceKey1: string | null;
   serviceKey2: string | null;
+  serviceKey3: string | null;
+  serviceKey4: string | null;
+  serviceKey5: string | null;
   rangeKey1: t.Int | null;
   rangeKey2: t.Int | null;
   rangeKey3: t.Int | null;
@@ -461,6 +479,7 @@ type StorageRecord = {
   rangeKey10: t.Int | null;
   createdAt: Date;
   updatedAt: Date;
+  expiresAt: Date | null;
   attachments: StorageRecordAttachment[];
 }
 
@@ -552,6 +571,7 @@ The `options` parameter provides the following choices to manipulate the search 
 type SortKey =
   | 'createdAt'
   | 'updatedAt'
+  | 'expiresAt'
   | 'key1'
   | 'key2'
   | 'key3'
@@ -601,6 +621,8 @@ type FilterNumberQuery =
     $lt?: number;
     $lte?: number;
   };
+
+// TODO FilterDateQuery
 
 type FindFilter = Record<string, FilterStringQuery | FilterNumberQuery>;
 

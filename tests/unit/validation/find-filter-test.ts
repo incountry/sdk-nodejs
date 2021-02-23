@@ -1,5 +1,5 @@
 import * as chai from 'chai';
-import { FindFilterIO, SEARCH_FIELD_MAX_LENGTH } from '../../../src/validation/api/find-filter';
+import { FindFilterIO, SEARCH_FIELD_MAX_LENGTH } from '../../../src/validation/find-filter';
 import { isValid } from '../../../src/validation/utils';
 
 const { expect } = chai;
@@ -30,6 +30,7 @@ const VALID_FIND_FILTER = [
   { recordKey: 'test', searchKeys: 'test' },
   { parentKey: 'test', searchKeys: 'test' },
   { serviceKey1: 'test', searchKeys: 'test' },
+  { serviceKey5: 'test', searchKeys: 'test' },
   { rangeKey1: 1, searchKeys: 'test' },
   { version: 1, searchKeys: 'test' },
   { key1: null },

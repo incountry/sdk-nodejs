@@ -10,7 +10,7 @@ import {
   COUNTRY,
   REQUEST_TIMEOUT_ERROR,
   getDefaultStorage,
-  EMPTY_API_ATTACHMENT_META,
+  EMPTY_API_RESPONSE_ATTACHMENT_META,
 } from './common';
 import { InputValidationError, StorageNetworkError } from '../../../src/errors';
 import { COUNTRY_CODE_ERROR_MESSAGE } from '../../../src/validation/country-code';
@@ -96,13 +96,13 @@ describe('Storage', () => {
           const storage = await getDefaultStorage();
           const encryptedPayload = await encStorage.encryptPayload({ recordKey });
 
-          nockPopApi(POPAPI_HOST).addAttachment(country, encryptedPayload.record_key).reply(200, EMPTY_API_ATTACHMENT_META);
+          nockPopApi(POPAPI_HOST).addAttachment(country, encryptedPayload.record_key).reply(200, EMPTY_API_RESPONSE_ATTACHMENT_META);
           await storage.addAttachment('uS', recordKey, attachment);
 
-          nockPopApi(POPAPI_HOST).addAttachment(country, encryptedPayload.record_key).reply(200, EMPTY_API_ATTACHMENT_META);
+          nockPopApi(POPAPI_HOST).addAttachment(country, encryptedPayload.record_key).reply(200, EMPTY_API_RESPONSE_ATTACHMENT_META);
           await storage.addAttachment('Us', recordKey, attachment);
 
-          nockPopApi(POPAPI_HOST).addAttachment(country, encryptedPayload.record_key).reply(200, EMPTY_API_ATTACHMENT_META);
+          nockPopApi(POPAPI_HOST).addAttachment(country, encryptedPayload.record_key).reply(200, EMPTY_API_RESPONSE_ATTACHMENT_META);
           await storage.addAttachment('US', recordKey, attachment);
         });
       });
@@ -118,7 +118,7 @@ describe('Storage', () => {
         it('should read file by path', async () => {
           const recordKey = '123';
           const encryptedPayload = await encStorage.encryptPayload({ recordKey });
-          const popAPI = nockPopApi(POPAPI_HOST).addAttachment(COUNTRY, encryptedPayload.record_key).reply(200, EMPTY_API_ATTACHMENT_META);
+          const popAPI = nockPopApi(POPAPI_HOST).addAttachment(COUNTRY, encryptedPayload.record_key).reply(200, EMPTY_API_RESPONSE_ATTACHMENT_META);
 
           const data = '1111111222222';
           const fileName = 'test123';
@@ -148,7 +148,7 @@ describe('Storage', () => {
         it('should read data from buffer', async () => {
           const recordKey = '123';
           const encryptedPayload = await encStorage.encryptPayload({ recordKey });
-          const popAPI = nockPopApi(POPAPI_HOST).addAttachment(COUNTRY, encryptedPayload.record_key).reply(200, EMPTY_API_ATTACHMENT_META);
+          const popAPI = nockPopApi(POPAPI_HOST).addAttachment(COUNTRY, encryptedPayload.record_key).reply(200, EMPTY_API_RESPONSE_ATTACHMENT_META);
 
           const data = '1111111';
           const fileName = 'test';
@@ -167,7 +167,7 @@ describe('Storage', () => {
         it('should read data from stream', async () => {
           const recordKey = '123';
           const encryptedPayload = await encStorage.encryptPayload({ recordKey });
-          const popAPI = nockPopApi(POPAPI_HOST).addAttachment(COUNTRY, encryptedPayload.record_key).reply(200, EMPTY_API_ATTACHMENT_META);
+          const popAPI = nockPopApi(POPAPI_HOST).addAttachment(COUNTRY, encryptedPayload.record_key).reply(200, EMPTY_API_RESPONSE_ATTACHMENT_META);
 
           const chunks = ['1111111', '2222222', '3333333'];
           const fileName = 'test';
@@ -195,7 +195,7 @@ describe('Storage', () => {
         it('should get file name from stream', async () => {
           const recordKey = '123';
           const encryptedPayload = await encStorage.encryptPayload({ recordKey });
-          const popAPI = nockPopApi(POPAPI_HOST).addAttachment(COUNTRY, encryptedPayload.record_key).reply(200, EMPTY_API_ATTACHMENT_META);
+          const popAPI = nockPopApi(POPAPI_HOST).addAttachment(COUNTRY, encryptedPayload.record_key).reply(200, EMPTY_API_RESPONSE_ATTACHMENT_META);
 
           const chunks = ['1111111', '2222222', '3333333'];
           const fileName = 'test.jpg';
@@ -222,7 +222,7 @@ describe('Storage', () => {
         it('should send provided mime-type', async () => {
           const recordKey = '123';
           const encryptedPayload = await encStorage.encryptPayload({ recordKey });
-          const popAPI = nockPopApi(POPAPI_HOST).addAttachment(COUNTRY, encryptedPayload.record_key).reply(200, EMPTY_API_ATTACHMENT_META);
+          const popAPI = nockPopApi(POPAPI_HOST).addAttachment(COUNTRY, encryptedPayload.record_key).reply(200, EMPTY_API_RESPONSE_ATTACHMENT_META);
 
           const data = '1111111';
           const fileName = 'test14';

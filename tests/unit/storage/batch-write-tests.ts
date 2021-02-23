@@ -3,7 +3,9 @@ import * as sinon from 'sinon';
 import nock from 'nock';
 import sinonChai from 'sinon-chai';
 import chaiAsPromised from 'chai-as-promised';
+import chaiDateTime from 'chai-datetime';
 import { v4 as uuid } from 'uuid';
+import * as _ from 'lodash';
 import { Storage } from '../../../src/storage';
 import {
   POPAPI_HOST,
@@ -14,17 +16,20 @@ import {
   getLoggerCallMeta,
   checkLoggerMeta,
   noop,
-  EMPTY_API_RECORD,
+  EMPTY_API_RESPONSE_RECORD,
   getDefaultStorage,
+  toApiRecord,
 } from './common';
 import { InputValidationError, StorageNetworkError } from '../../../src/errors';
 import { nockPopApi, getNockedRequestBodyObject } from '../../test-helpers/popapi-nock';
 import { COUNTRY_CODE_ERROR_MESSAGE } from '../../../src/validation/country-code';
 import { VALID_REQUEST_OPTIONS, INVALID_REQUEST_OPTIONS } from '../validation/request-options';
 import { errorMessageRegExp } from '../../test-helpers/utils';
+import { StorageRecord } from '../../../src/validation/storage-record';
 
 
 chai.use(chaiAsPromised);
+chai.use(chaiDateTime);
 chai.use(sinonChai);
 const { expect, assert } = chai;
 
@@ -156,8 +161,16 @@ describe('Storage', () => {
             it(`should batch write ${opt.testCaseName}`, async () => {
               const storage = opt.encrypted ? encStorage : noEncStorage;
               const [bodyObj] = await Promise.all<any>([getNockedRequestBodyObject(popAPI), storage.batchWrite(COUNTRY, TEST_RECORDS)]);
-              const decryptedRecords = await Promise.all(bodyObj.records.map((encRecord: any) => storage.decryptPayload({ ...EMPTY_API_RECORD, ...encRecord })));
-              decryptedRecords.forEach((record, index) => expect(record).to.own.include(TEST_RECORDS[index]));
+              const decryptedRecords = await Promise.all(bodyObj.records.map((encRecord: any) => storage.decryptPayload(toApiRecord({ ...EMPTY_API_RESPONSE_RECORD, ...encRecord }))));
+
+              (decryptedRecords as StorageRecord[]).forEach((record, index) => {
+                expect(record).to.include(_.omit(TEST_RECORDS[index], 'expiresAt'));
+                const originalExpiresAt = TEST_RECORDS[index].expiresAt;
+                if (originalExpiresAt) {
+                  expect(record.expiresAt).to.be.a('date');
+                  expect(record.expiresAt).to.equalDate(originalExpiresAt);
+                }
+              });
             });
 
             it('should set "is_encrypted"', async () => {

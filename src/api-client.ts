@@ -29,7 +29,7 @@ import { BatchWriteResponseIO, BatchWriteResponse } from './validation/api/batch
 import { DeleteResponseIO, DeleteResponse } from './validation/api/delete-response';
 import { AddAttachmentResponseIO, AddAttachmentResponse } from './validation/api/add-attachment-response';
 import { UpsertAttachmentResponse, UpsertAttachmentResponseIO } from './validation/api/upsert-attachment-response';
-import { FindFilter } from './validation/api/find-filter';
+import { FindFilter } from './validation/find-filter';
 import { ApiFindOptions } from './validation/api/api-find-options';
 import { ApiRecordData } from './validation/api/api-record-data';
 import { RequestOptions } from './validation/request-options';

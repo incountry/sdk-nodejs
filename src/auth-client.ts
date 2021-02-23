@@ -19,7 +19,7 @@ const DEFAULT_HEADERS = {
 const ERROR_RESPONSES: Record<string, string> = {
   invalid_request: 'The request is missing a required parameter, includes an invalid parameter value, includes a parameter more than once, or is otherwise malformed.',
   invalid_client: 'Client authentication failed (e.g., unknown client, no client authentication included, or unsupported authentication method).',
-  invalid_grant: 'The provided authorization grant (e.g., authorization code, resource owner credentials) or refresh token is invalid, expired, revoked, does not match the redirection URI used in the authorization request, or was issued to another client.',
+  invalid_grant: 'The provided authorization grant (e.g., authorization code, resource owner credentials) or refresh token is invalid, expires, revoked, does not match the redirection URI used in the authorization request, or was issued to another client.',
   unauthorized_client: 'The client is not authorized to request an authorization code using this method.',
   unsupported_grant_type: 'The authorization grant type is not supported by the authorization server.',
   access_denied: 'The resource owner or authorization server denied the request.',

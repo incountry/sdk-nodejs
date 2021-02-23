@@ -37,7 +37,12 @@ describe('Write data to Storage', () => {
       });
 
       it('Write data with optional keys and range value', async () => {
+        const expiresAt = new Date();
+        expiresAt.setMilliseconds(0);
+        expiresAt.setDate(expiresAt.getDate() + 2);
+
         data = {
+          expiresAt,
           recordKey: Math.random().toString(36).substr(2, 10),
           parentKey: Math.random().toString(36).substr(2, 10),
           body: JSON.stringify({ name: 'PersonName' }),
@@ -75,6 +80,9 @@ describe('Write data to Storage', () => {
           key20: 'optional key value 20',
           serviceKey1: 'optional service key value 1',
           serviceKey2: 'optional service key value 2',
+          serviceKey3: 'optional service key value 3',
+          serviceKey4: 'optional service key value 4',
+          serviceKey5: 'optional service key value 5',
         };
 
         await expect(storage.read(COUNTRY, data.recordKey)).to.be.rejected;
@@ -84,6 +92,10 @@ describe('Write data to Storage', () => {
         expect(record).to.deep.include(data);
         expect(record.createdAt).to.be.a('date');
         expect(record.updatedAt).to.be.a('date');
+        expect(record.expiresAt).to.be.a('date');
+        if (record.expiresAt) {
+          expect(record.expiresAt.valueOf()).to.equal(expiresAt.valueOf());
+        }
       });
 
       it('Write data with null body', async () => {

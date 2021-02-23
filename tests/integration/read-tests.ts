@@ -82,6 +82,9 @@ describe('Read data from Storage', () => {
           key20: 'optional key value 20',
           serviceKey1: 'optional service key value 1',
           serviceKey2: 'optional service key value 2',
+          serviceKey3: 'optional service key value 3',
+          serviceKey4: 'optional service key value 4',
+          serviceKey5: 'optional service key value 5',
         };
 
         await storage.write(COUNTRY, data);

@@ -85,6 +85,7 @@ const SortingDirection = t.keyof({
 const SortingKey = t.keyof({
   createdAt: null,
   updatedAt: null,
+  expiresAt: null,
   key1: null,
   key2: null,
   key3: null,

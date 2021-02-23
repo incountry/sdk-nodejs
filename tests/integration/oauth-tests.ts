@@ -25,6 +25,7 @@ const createRecord = (profileKey = 'profileKey') => ({
   rangeKey10: 41 as Int,
   key10: 'optional key value 10',
   serviceKey2: 'optional service key value 2',
+  serviceKey5: 'More integration test data',
 });
 
 describe('With OAuth authentication', () => {

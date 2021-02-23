@@ -16,7 +16,7 @@ import {
   getLoggerCallMeta,
   sdkVersionRegExp,
   checkLoggerMeta,
-  EMPTY_API_RECORD,
+  EMPTY_API_RESPONSE_RECORD,
 } from './common';
 import { VALID_REQUEST_OPTIONS, INVALID_REQUEST_OPTIONS } from '../validation/request-options';
 import { Storage, WriteResult } from '../../../src/storage';
@@ -282,7 +282,7 @@ describe('Storage', () => {
           const logger = { write: () => { throw new Error('blabla'); } };
 
           const storage = new Storage({ encrypt: true, getSecrets: () => secrets, logger });
-          await expect(storage.write(COUNTRY, { ...EMPTY_API_RECORD, recordKey })).to.be.rejectedWith(StorageError, 'Error during Storage.write() call: blabla');
+          await expect(storage.write(COUNTRY, { ...EMPTY_API_RESPONSE_RECORD, recordKey })).to.be.rejectedWith(StorageError, 'Error during Storage.write() call: blabla');
         });
       });
     });

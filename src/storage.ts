@@ -31,7 +31,7 @@ import {
 } from './validation/find-options';
 import {
   FindFilterIO, FindFilter, FilterStringValue, FilterStringQueryIO, FilterStringValueIO, filterFromStorageDataKeys,
-} from './validation/api/find-filter';
+} from './validation/find-filter';
 import { LimitIO } from './validation/limit';
 import { RecordKeyIO } from './validation/record-key';
 import {
@@ -57,6 +57,9 @@ type KeyToHash =
   | 'record_key'
   | 'service_key1'
   | 'service_key2'
+  | 'service_key3'
+  | 'service_key4'
+  | 'service_key5'
   | 'profile_key'
   | 'parent_key';
 
@@ -64,6 +67,9 @@ const KEYS_TO_HASH: KeyToHash[] = [
   'record_key',
   'service_key1',
   'service_key2',
+  'service_key3',
+  'service_key4',
+  'service_key5',
   'profile_key',
   'parent_key',
 ];

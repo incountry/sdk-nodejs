@@ -1,7 +1,8 @@
 import intersection from 'lodash.intersection';
 import * as t from 'io-ts';
-import { exact } from '../exact';
-import { omitUndefined } from '../../utils';
+import { exact } from './exact';
+import { omitUndefined } from '../utils';
+// import { DateIO } from './utils';
 
 const SEARCH_FIELD = 'searchKeys';
 const API_RECORD_SEARCH_FIELD = 'search_keys';
@@ -42,9 +43,6 @@ const FilterStringQueryIO: t.Type<FilterStringQuery> = t.union([
 type FilterNumberValue = number | number[] | null;
 const FilterNumberValueIO: t.Type<FilterNumberValue> = t.union([t.number, t.array(t.number), t.null]);
 
-type FindFilterValue = FilterStringValue | FilterNumberValue;
-const FindFilterValueIO: t.Type<FindFilterValue> = t.union([FilterNumberValueIO, FilterStringValueIO]);
-
 type FilterNumberQuery =
   FilterNumberValue |
   {
@@ -54,6 +52,23 @@ type FilterNumberQuery =
     $lt?: number;
     $lte?: number;
   };
+
+// type FilterDateValue = Date | Date[] | null;
+// const FilterDateValueIO: t.Type<FilterDateValue> = t.union([DateIO, t.array(DateIO), t.null]);
+
+// type FilterDateQuery =
+// FilterDateValue |
+//   {
+//     $not?: FilterDateValue;
+//     $gt?: Date;
+//     $gte?: Date;
+//     $lt?: Date;
+//     $lte?: Date;
+//   };
+
+
+type FindFilterValue = FilterStringValue | FilterNumberValue;
+const FindFilterValueIO: t.Type<FindFilterValue> = t.union([FilterNumberValueIO, FilterStringValueIO]);
 
 const FilterNumberQueryIO: t.Type<FilterNumberQuery> = t.union([
   FilterNumberValueIO,
@@ -130,6 +145,9 @@ function filterFromStorageDataKeys(filter: FindFilter): FindFilter {
     parent_key: filter.parentKey,
     service_key1: filter.serviceKey1,
     service_key2: filter.serviceKey2,
+    service_key3: filter.serviceKey3,
+    service_key4: filter.serviceKey4,
+    service_key5: filter.serviceKey5,
     profile_key: filter.profileKey,
     range_key1: filter.rangeKey1,
     range_key2: filter.rangeKey2,

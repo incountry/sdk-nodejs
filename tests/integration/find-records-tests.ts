@@ -25,6 +25,7 @@ const createRecordData = (data?: {}) => ({
   rangeKey1: Math.floor(Math.random() * 100) + 1 as Int,
   body: JSON.stringify({ name: 'PersonName' }),
   serviceKey2: 'NodeJS SDK integration test data for find() method',
+  serviceKey5: 'More integration test data',
   ...data,
 });
 

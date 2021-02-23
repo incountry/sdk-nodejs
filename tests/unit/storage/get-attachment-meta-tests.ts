@@ -7,7 +7,7 @@ import {
   COUNTRY,
   REQUEST_TIMEOUT_ERROR,
   getDefaultStorage,
-  EMPTY_API_ATTACHMENT_META,
+  EMPTY_API_RESPONSE_ATTACHMENT_META,
 } from './common';
 import { InputValidationError, StorageNetworkError } from '../../../src/errors';
 import { COUNTRY_CODE_ERROR_MESSAGE } from '../../../src/validation/country-code';
@@ -85,13 +85,13 @@ describe('Storage', () => {
           const storage = await getDefaultStorage();
           const { record_key: hashedKey } = await storage.encryptPayload({ recordKey });
 
-          nockPopApi(POPAPI_HOST).getAttachmentMeta(country, hashedKey, fileId).reply(200, EMPTY_API_ATTACHMENT_META);
+          nockPopApi(POPAPI_HOST).getAttachmentMeta(country, hashedKey, fileId).reply(200, EMPTY_API_RESPONSE_ATTACHMENT_META);
           await storage.getAttachmentMeta('uS', recordKey, fileId);
 
-          nockPopApi(POPAPI_HOST).getAttachmentMeta(country, hashedKey, fileId).reply(200, EMPTY_API_ATTACHMENT_META);
+          nockPopApi(POPAPI_HOST).getAttachmentMeta(country, hashedKey, fileId).reply(200, EMPTY_API_RESPONSE_ATTACHMENT_META);
           await storage.getAttachmentMeta('Us', recordKey, fileId);
 
-          nockPopApi(POPAPI_HOST).getAttachmentMeta(country, hashedKey, fileId).reply(200, EMPTY_API_ATTACHMENT_META);
+          nockPopApi(POPAPI_HOST).getAttachmentMeta(country, hashedKey, fileId).reply(200, EMPTY_API_RESPONSE_ATTACHMENT_META);
           await storage.getAttachmentMeta('US', recordKey, fileId);
         });
       });
