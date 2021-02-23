@@ -51,7 +51,10 @@ async function createDefaultStorage({
       logger: defaultLogger.withBaseLogLevel('warn'),
     };
     if (authEndpoint) {
-      storageOptions.oauth!.authEndpoints = { default: authEndpoint };
+      storageOptions.oauth = {
+        ...storageOptions.oauth,
+        authEndpoints: { default: authEndpoint },
+      };
     }
   }
 
