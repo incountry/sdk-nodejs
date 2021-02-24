@@ -358,7 +358,7 @@ describe('ApiClient', () => {
 
     describe('when wrong response received', () => {
       it('should throw validation error', async () => {
-        const filter = { key: ['test'] };
+        const filter = { key1: ['test'] };
         const wrongFindResponse = {
           meta: { total: 0, limit: 100, offset: 0 },
           data: [],
@@ -410,7 +410,7 @@ describe('ApiClient', () => {
 
       describe('find', () => {
         it('should not throw error with correct data', async () => {
-          const filter = { key: ['test'] };
+          const filter = { key1: ['test'] };
           const response = {
             meta: {
               total: 0, limit: 100, offset: 0, count: 0,

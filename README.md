@@ -505,6 +505,60 @@ const readResult = await storage.read(countryCode, recordKey);
 
 You can look up for data records either by using exact match search operators or partial text match operator in almost any combinations.
 
+```typescript
+type FilterDateQuery = Date | Date[] | null | { $not?: Date | Date[] | null; $gt?: Date; $gte?: Date; $lt?: Date; $lte?: Date; };
+type FilterStringQuery = string | string[] | null | { $not?: string | string[] | null };
+type FilterNumberQuery = number | number[] | null | { $not?: number | number[] | null; $gt?: number; $gte?: number; $lt?: number; $lte?: number; };
+
+type FindFilter = Partial<{
+  createdAt: FilterDateQuery;
+  updatedAt: FilterDateQuery;
+  expiresAt: FilterDateQuery;
+  recordKey: FilterStringQuery;
+  parentKey: FilterStringQuery;
+  key1: FilterStringQuery;
+  key2: FilterStringQuery;
+  key3: FilterStringQuery;
+  key4: FilterStringQuery;
+  key5: FilterStringQuery;
+  key6: FilterStringQuery;
+  key7: FilterStringQuery;
+  key8: FilterStringQuery;
+  key9: FilterStringQuery;
+  key10: FilterStringQuery;
+  key11: FilterStringQuery;
+  key12: FilterStringQuery;
+  key13: FilterStringQuery;
+  key14: FilterStringQuery;
+  key15: FilterStringQuery;
+  key16: FilterStringQuery;
+  key17: FilterStringQuery;
+  key18: FilterStringQuery;
+  key19: FilterStringQuery;
+  key20: FilterStringQuery;
+  profileKey: FilterStringQuery;
+  serviceKey1: FilterStringQuery;
+  serviceKey2: FilterStringQuery;
+  serviceKey3: FilterStringQuery;
+  serviceKey4: FilterStringQuery;
+  serviceKey5: FilterStringQuery;
+  rangeKey1: FilterNumberQuery;
+  rangeKey2: FilterNumberQuery;
+  rangeKey3: FilterNumberQuery;
+  rangeKey4: FilterNumberQuery;
+  rangeKey5: FilterNumberQuery;
+  rangeKey6: FilterNumberQuery;
+  rangeKey7: FilterNumberQuery;
+  rangeKey8: FilterNumberQuery;
+  rangeKey9: FilterNumberQuery;
+  rangeKey10: FilterNumberQuery;
+  version: FilterNumberQuery;
+  searchKeys: string;
+}>;
+
+```
+
+
 ##### Exact match search
 
 The following exact match search criteria are available:
@@ -608,24 +662,6 @@ Note: The SDK returns 100 records at most.
 
 
 ```typescript
-type FilterStringValue = string | string[] | null;
-type FilterStringQuery = FilterStringValue | { $not?: FilterStringValue };
-
-type FilterNumberValue = number | number[] | null;
-type FilterNumberQuery =
-  FilterNumberValue |
-  {
-    $not?: FilterNumberValue;
-    $gt?: number;
-    $gte?: number;
-    $lt?: number;
-    $lte?: number;
-  };
-
-// TODO FilterDateQuery
-
-type FindFilter = Record<string, FilterStringQuery | FilterNumberQuery>;
-
 type SortItem = Partial<Record<SortKey, 'asc' | 'desc'>>; // each sort item should describe only one key!
 
 type FindOptions = {

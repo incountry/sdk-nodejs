@@ -30,7 +30,7 @@ import {
   FindOptionsIO, FindOptions, SEARCH_KEYS, SearchKey,
 } from './validation/user-input/find-options';
 import {
-  FindFilterIO, FindFilter, FilterStringValue, FilterStringQueryIO, FilterStringValueIO, filterFromStorageDataKeys,
+  FindFilterIO, FindFilter, FilterStringValue, FilterStringQueryIO, FilterStringValueIO,
 } from './validation/user-input/find-filter';
 import { LimitIO } from './validation/user-input/limit';
 import { RecordKeyIO } from './validation/user-input/record-key';
@@ -50,6 +50,7 @@ import { RequestOptionsIO, RequestOptions } from './validation/user-input/reques
 import { AttachmentWritableMeta, AttachmentWritableMetaIO } from './validation/user-input/attachment-writable-meta';
 import { AttachmentData, AttachmentDataIO } from './validation/user-input/attachment-data';
 import { findOptionsFromStorageDataKeys } from './validation/api/api-find-options';
+import { filterFromStorageDataKeys, ApiFindFilter } from './validation/api/api-find-filter';
 
 const FIND_LIMIT = 100;
 
@@ -460,9 +461,9 @@ class Storage {
     return null;
   }
 
-  private hashFilterKeys(filter: FindFilter, keys: Array<keyof FindFilter>): FindFilter {
+  private hashFilterKeys(filter: ApiFindFilter, keys: Array<KeyToHash | SearchKey>): FindFilter {
     const hashedFilter = { ...filter };
-    keys.forEach((key: keyof FindFilter) => {
+    keys.forEach((key) => {
       const value = hashedFilter[key];
       if (FilterStringValueIO.is(value)) {
         hashedFilter[key] = this.hashFilterKey(value);

@@ -1,21 +1,22 @@
 import * as chai from 'chai';
-import { FindFilterIO, SEARCH_FIELD_MAX_LENGTH } from '../../../src/validation/user-input/find-filter';
+import { FindFilterIO, SEARCH_FIELD_MAX_LENGTH, FindFilter } from '../../../src/validation/user-input/find-filter';
 import { isValid } from '../../../src/validation/utils';
 
 const { expect } = chai;
 
 
-const VALID_FIND_FILTER = [
+const VALID_FIND_FILTER: FindFilter[] = [
   {},
-  { aa: 1 },
-  { aa: [] },
-  { aa: [1] },
-  { aa: { $not: 1 } },
-  { aa: { $not: [1] } },
-  { aa: { $gt: 1 } },
-  { aa: { $lt: 1 } },
-  { aa: '' },
-  { aa: [''] },
+  { rangeKey6: 1 },
+  { rangeKey6: [] },
+  { rangeKey6: [1] },
+  { rangeKey6: { $not: 1 } },
+  { rangeKey6: { $not: [1] } },
+  { rangeKey6: { $gt: 1 } },
+  { rangeKey6: { $lt: 1 } },
+  { key2: '' },
+  { key2: [''] },
+  { key2: { $not: [''] } },
   {
     key1: 'k', key2: 'k', key3: 'k', key4: 'k', key5: 'k', key6: 'k', key7: 'k', key8: 'k', key9: 'k', key10: 'k', key11: 'k', key12: 'k', key13: 'k', key14: 'k', key15: 'k', key16: 'k', key17: 'k', key18: 'k', key19: 'k', key20: 'k',
   },
@@ -23,10 +24,9 @@ const VALID_FIND_FILTER = [
   { searchKeys: 'tes' },
   { searchKeys: 't'.repeat(SEARCH_FIELD_MAX_LENGTH) },
   { searchKeys: "te$t 1234567±!@#$%^&*()_+[]{}|\\/.,<>-';" },
-  { aa: 1, searchKeys: 'test' },
-  { aa: { $not: 1 }, searchKeys: 'test' },
-  { aa: { $not: 'aa' }, searchKeys: 'test' },
-  { aa: { $not: [1] }, searchKeys: 'test' },
+  { rangeKey6: { $not: 1 }, searchKeys: 'test' },
+  { profileKey: { $not: 'aa' }, searchKeys: 'test' },
+  { rangeKey6: { $not: [1] }, searchKeys: 'test' },
   { recordKey: 'test', searchKeys: 'test' },
   { parentKey: 'test', searchKeys: 'test' },
   { serviceKey1: 'test', searchKeys: 'test' },
@@ -37,6 +37,11 @@ const VALID_FIND_FILTER = [
   { key1: { $not: null } },
   { rangeKey1: null },
   { rangeKey1: { $not: null } },
+  { createdAt: new Date() },
+  { updatedAt: new Date() },
+  { expiresAt: new Date() },
+  { expiresAt: [new Date()] },
+  { expiresAt: { $not: [new Date()] } },
 ];
 
 const INVALID_FIND_FILTER = [
@@ -45,6 +50,15 @@ const INVALID_FIND_FILTER = [
   1,
   [],
   () => 1,
+  { aa: 1 },
+  { aa: [] },
+  { aa: [1] },
+  { aa: { $not: 1 } },
+  { aa: { $not: [1] } },
+  { aa: { $gt: 1 } },
+  { aa: { $lt: 1 } },
+  { aa: '' },
+  { aa: [''] },
   { aa: true },
   { aa: () => 1 },
   { aaa1: { $not: () => 1 } },
@@ -83,6 +97,9 @@ const INVALID_FIND_FILTER = [
   { key18: 'k', searchKeys: 'test' },
   { key19: 'k', searchKeys: 'test' },
   { key20: 'k', searchKeys: 'test' },
+  { createdAt: '' },
+  { updatedAt: 11111111 },
+  { expiresAt: [111111111] },
 ];
 
 describe('Find Filter validation', () => {

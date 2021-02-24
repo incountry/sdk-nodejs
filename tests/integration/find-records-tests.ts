@@ -6,7 +6,7 @@ import { createStorage, COUNTRY, noop } from './common';
 import { Storage } from '../../src';
 import { Int } from '../../src/validation/utils';
 import { FindResponseMeta } from '../../src/validation/api/find-response';
-import { StorageRecordData } from '../../src/validation/storage-record-data';
+import { StorageRecordData } from '../../src/validation/user-input/storage-record-data';
 
 chai.use(chaiAsPromised);
 const { expect } = chai;

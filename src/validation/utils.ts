@@ -138,7 +138,7 @@ const chainValidate = <A, B, BO, I>(type: t.Type<B, BO, I>, validate: (u: B) => 
   name || type.name,
   (u): u is A => {
     try {
-      return isRight(validate(u as any));
+      return type.is(u) && isRight(validate(u as any));
     } catch (e) {
       return false;
     }
