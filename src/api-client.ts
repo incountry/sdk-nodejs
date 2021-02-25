@@ -69,6 +69,7 @@ type DetailedErrorDescription = {
 const DEFAULT_ENDPOINT_COUNTRY = 'us';
 const DEFAULT_ENDPOINT_SUFFIX = '-mt-01.api.incountry.io';
 const DEFAULT_HTTP_TIMEOUT = 30 * 1000;
+const DEFAULT_HTTP_MAX_BODY_LENGTH = 100 * 1024 * 1024;
 
 const PoPErrorArray = t.array(t.partial({
   title: t.string,
@@ -119,6 +120,7 @@ class ApiClient {
     readonly countriesProviderFn: (loggingMeta: {}) => Promise<Country[]>,
     readonly endpointMask?: string,
     readonly httpTimeout = DEFAULT_HTTP_TIMEOUT,
+    readonly httpMaxBodyLength = DEFAULT_HTTP_MAX_BODY_LENGTH,
   ) {
   }
 
@@ -212,6 +214,7 @@ class ApiClient {
         headers,
         data: requestOptions.data,
         timeout: this.httpTimeout,
+        maxBodyLength: this.httpMaxBodyLength,
         responseType: requestOptions.responseType,
       });
     } catch (err) {
