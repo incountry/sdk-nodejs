@@ -655,7 +655,12 @@ type SortKey =
   | 'rangeKey7'
   | 'rangeKey8'
   | 'rangeKey9'
-  | 'rangeKey10';
+  | 'rangeKey10'
+  | 'serviceKey1'
+  | 'serviceKey2'
+  | 'serviceKey3'
+  | 'serviceKey4'
+  | 'serviceKey5';
 ```
 
 Note: The SDK returns 100 records at most.
