@@ -37,9 +37,13 @@ const checkFindResponseMeta = (meta: FindResponseMeta, total: number, count = to
   expect(meta.limit).to.equal(limit);
 };
 
+const expiresAt = new Date();
+expiresAt.setMilliseconds(0);
+expiresAt.setDate(expiresAt.getDate() + 2);
+
 const dataRequest = createRecordData({ key12: 'a', rangeKey6: 3 });
 const dataRequest2 = createRecordData({ key12: 'b', rangeKey6: 2 });
-const dataRequest3 = createRecordData({ key12: 'c', rangeKey6: 1 });
+const dataRequest3 = createRecordData({ key12: 'c', rangeKey6: 1, expiresAt });
 
 const toRecordKey = (record: { recordKey: string }) => record.recordKey;
 
@@ -124,6 +128,23 @@ describe('Find records', () => {
         checkFindResponseMeta(meta, 1);
       });
 
+      it('Find records by expiresAt', async () => {
+        const { records, meta } = await storage.find(COUNTRY, { expiresAt }, {});
+
+        expect(records).to.have.lengthOf(1);
+        expect(records[0]).to.deep.include(dataRequest3);
+        checkFindResponseMeta(meta, 1);
+      });
+
+      it('Find records by filter with expiresAt set to null', async () => {
+        const { records: foundRecords } = await storage.find(COUNTRY, { expiresAt: null }, {});
+        const foundRecordKeys = foundRecords.map(toRecordKey);
+
+        expect(foundRecordKeys).to.include(dataRequest.recordKey);
+        expect(foundRecordKeys).to.include(dataRequest2.recordKey);
+        expect(foundRecordKeys).to.not.include(dataRequest3.recordKey);
+      });
+
       it('Find record list of keys', async () => {
         const recordsList = [dataRequest, dataRequest2];
         const key2List = recordsList.map((r) => r.key2);
@@ -162,17 +183,23 @@ describe('Find records', () => {
             expect(records.map((record) => record.recordKey)).to.deep.equal([dataRequest3, dataRequest2, dataRequest].map(toRecordKey));
           });
 
-          it('Find records with sorting by range_key', async () => {
+          it('Find records with sorting by rangeKey', async () => {
             const recordKeyList = [dataRequest, dataRequest2, dataRequest3].map(toRecordKey);
             const { records } = await storage.find(COUNTRY, { recordKey: recordKeyList }, { sort: [{ rangeKey6: 'asc' }] });
 
             expect(records.map((record) => record.recordKey)).to.deep.equal([dataRequest3, dataRequest2, dataRequest].map(toRecordKey));
           });
 
-
-          it('Find records with sorting by created_at', async () => {
+          it('Find records with sorting by createdAt', async () => {
             const recordKeyList = [dataRequest, dataRequest2, dataRequest3].map(toRecordKey);
             const { records } = await storage.find(COUNTRY, { recordKey: recordKeyList }, { sort: [{ createdAt: 'desc' }] });
+
+            expect(records.map((record) => record.recordKey)).to.deep.equal([dataRequest3, dataRequest2, dataRequest].map(toRecordKey));
+          });
+
+          it('Find records with sorting by expiresAt', async () => {
+            const recordKeyList = [dataRequest, dataRequest2, dataRequest3].map(toRecordKey);
+            const { records } = await storage.find(COUNTRY, { recordKey: recordKeyList }, { sort: [{ expiresAt: 'desc' }] });
 
             expect(records.map((record) => record.recordKey)).to.deep.equal([dataRequest3, dataRequest2, dataRequest].map(toRecordKey));
           });
