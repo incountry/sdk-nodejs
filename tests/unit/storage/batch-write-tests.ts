@@ -26,6 +26,7 @@ import { COUNTRY_CODE_ERROR_MESSAGE } from '../../../src/validation/user-input/c
 import { VALID_REQUEST_OPTIONS, INVALID_REQUEST_OPTIONS } from '../validation/request-options';
 import { errorMessageRegExp } from '../../test-helpers/utils';
 import { StorageRecord } from '../../../src/validation/storage-record';
+import { STORAGE_RECORD_DATA_ARRAY_EMPTY_ERROR, MAX_RECORDS_IN_BATCH, STORAGE_RECORD_DATA_ARRAY_TOO_BIG_ERROR } from '../../../src/validation/user-input/storage-record-data-array';
 
 
 chai.use(chaiAsPromised);
@@ -113,12 +114,12 @@ describe('Storage', () => {
         const errorCases = [{
           name: 'when the records has wrong type',
           arg: 'recordzzz',
-          error: ['batchWrite() Validation Error:', 'You must pass non-empty array of records'],
+          error: ['batchWrite() Validation Error:', '<RecordsArray> should be RecordsArray but got "recordzzz"'],
         },
         {
           name: 'when the records is empty array',
           arg: [],
-          error: ['batchWrite() Validation Error:', 'You must pass non-empty array of records'],
+          error: ['batchWrite() Validation Error:', STORAGE_RECORD_DATA_ARRAY_EMPTY_ERROR],
         },
         {
           name: 'when any record has no key field',
@@ -129,6 +130,11 @@ describe('Storage', () => {
           name: 'when any record from 4 has no key field',
           arg: [{ recordKey: '1' }, { recordKey: '1' }, { recordKey: '1' }, {}],
           error: 'batchWrite() Validation Error: <RecordsArray>.3.recordKey should be string but got undefined',
+        },
+        {
+          name: `when records more than ${MAX_RECORDS_IN_BATCH}`,
+          arg: Array(MAX_RECORDS_IN_BATCH + 1).fill(0),
+          error: ['batchWrite() Validation Error:', STORAGE_RECORD_DATA_ARRAY_TOO_BIG_ERROR],
         },
         {
           name: 'when any record has wrong format',
