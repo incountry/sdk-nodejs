@@ -1,5 +1,7 @@
 import * as t from 'io-ts';
-import { left, right, Either, either } from 'fp-ts/lib/Either';
+import {
+  left, right, Either, either,
+} from 'fp-ts/lib/Either';
 import { getStorageRecordDataIO, StorageRecordData } from './storage-record-data';
 import { Codec, chainValidate } from '../utils';
 
