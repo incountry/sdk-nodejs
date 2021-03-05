@@ -327,7 +327,7 @@ rangeKey10
 expiresAt
 ```
 
-**WARNING** The data with `expiresAt` will be vanished when time comes ))).
+**WARNING** Records with non-null `expiresAt` value will be automatically deleted upon reaching the specified date.
 
 
 ```typescript
