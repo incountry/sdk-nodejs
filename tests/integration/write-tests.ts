@@ -177,6 +177,34 @@ describe('Write data to Storage', () => {
           });
         });
       });
+
+      describe('expiresAt', () => {
+        it('should not be able to write record with expiresAt less or equal than now', async () => {
+          data = {
+            recordKey: Math.random().toString(36).substr(2, 10),
+            body: JSON.stringify({ name: 'PersonName' }),
+            expiresAt: new Date(),
+          };
+
+          await expect(storage.read(COUNTRY, data.recordKey)).to.be.rejected;
+          await expect(storage.write(COUNTRY, data)).to.be.rejected;
+        });
+
+        it('should be able to write record with expiresAt now + 1s but not read it', async () => {
+          const expiresAt = new Date();
+          expiresAt.setSeconds(expiresAt.getSeconds() + 1);
+
+          data = {
+            recordKey: Math.random().toString(36).substr(2, 10),
+            body: JSON.stringify({ name: 'PersonName' }),
+            expiresAt,
+          };
+
+          await expect(storage.read(COUNTRY, data.recordKey)).to.be.rejected;
+          await storage.write(COUNTRY, data);
+          await expect(storage.read(COUNTRY, data.recordKey)).to.be.rejected;
+        });
+      });
     });
   });
 });
