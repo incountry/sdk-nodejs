@@ -140,7 +140,7 @@ const sortItemValidate = (i: { [key: string]: unknown }): Either<string, Sorting
   }
 
   if (!SortingDirectionIO.is(Object.values(i)[0])) {
-    return left('Only "asc" and "desc" is allowed as sorting direction');
+    return left('Only "asc" and "desc" is allowed as sort order');
   }
 
   return right(i);

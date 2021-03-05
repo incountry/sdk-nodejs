@@ -191,17 +191,22 @@ describe('Write data to Storage', () => {
         });
 
         it('should be able to write record with expiresAt now + 1s but not read it', async () => {
+          const recordKey = Math.random().toString(36).substr(2, 10);
+          await expect(storage.read(COUNTRY, recordKey)).to.be.rejected;
+
           const expiresAt = new Date();
           expiresAt.setSeconds(expiresAt.getSeconds() + 1);
 
           data = {
-            recordKey: Math.random().toString(36).substr(2, 10),
+            recordKey,
             body: JSON.stringify({ name: 'PersonName' }),
             expiresAt,
           };
 
-          await expect(storage.read(COUNTRY, data.recordKey)).to.be.rejected;
           await storage.write(COUNTRY, data);
+
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+
           await expect(storage.read(COUNTRY, data.recordKey)).to.be.rejected;
         });
       });
