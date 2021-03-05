@@ -57,6 +57,9 @@ type ApiFindFilter = Partial<{
 
 function filterFromStorageDataKeys(filter: FindFilter): ApiFindFilter {
   return omitUndefined({
+    created_at: filter.createdAt,
+    updated_at: filter.updatedAt,
+    expires_at: filter.expiresAt,
     record_key: filter.recordKey,
     key1: filter.key1,
     key2: filter.key2,
