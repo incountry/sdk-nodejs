@@ -11,6 +11,7 @@ import {
   StorageAuthenticationError,
   StorageConfigValidationError,
   StorageServerError,
+  InputValidationError,
 } from './errors';
 import { Country } from './countries-cache';
 import { LogLevel } from './logger';
@@ -69,7 +70,7 @@ type DetailedErrorDescription = {
 const DEFAULT_ENDPOINT_COUNTRY = 'us';
 const DEFAULT_ENDPOINT_SUFFIX = '-mt-01.api.incountry.io';
 const DEFAULT_HTTP_TIMEOUT = 30 * 1000;
-const DEFAULT_HTTP_MAX_BODY_LENGTH = 100 * 1024 * 1024;
+const DEFAULT_HTTP_MAX_BODY_LENGTH = 100 * 1024 * 1024; // 100 Mb
 
 const PoPErrorArray = t.array(t.partial({
   title: t.string,
@@ -218,6 +219,10 @@ class ApiClient {
         responseType: requestOptions.responseType,
       });
     } catch (err) {
+      if (get(err, 'code') === 'ERR_FR_MAX_BODY_LENGTH_EXCEEDED') {
+        throw new InputValidationError(`File is too large. Max allowed file size is ${DEFAULT_HTTP_MAX_BODY_LENGTH} bytes`);
+      }
+
       if (get(err, 'response.status') === 401 && retry) {
         await this.authClient.getToken(audience, this.envId, region, true);
 
@@ -439,6 +444,7 @@ class ApiClient {
 
 export {
   ApiClient,
+  DEFAULT_HTTP_MAX_BODY_LENGTH,
   DEFAULT_HTTP_TIMEOUT,
   DEFAULT_FILE_NAME,
   GetAttachmentFileResponse,

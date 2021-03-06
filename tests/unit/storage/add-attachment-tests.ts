@@ -1,3 +1,4 @@
+/* eslint-disable max-classes-per-file */
 import * as chai from 'chai';
 import * as sinon from 'sinon';
 import sinonChai from 'sinon-chai';
@@ -15,6 +16,7 @@ import {
 import { InputValidationError, StorageNetworkError } from '../../../src/errors';
 import { COUNTRY_CODE_ERROR_MESSAGE } from '../../../src/validation/country-code';
 import { nockPopApi, getNockedRequestBodyRaw } from '../../test-helpers/popapi-nock';
+import { DEFAULT_HTTP_MAX_BODY_LENGTH } from '../../../src/api-client';
 import { Storage } from '../../../src/storage';
 import { errorMessageRegExp } from '../../test-helpers/utils';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -238,6 +240,74 @@ describe('Storage', () => {
           expect(bodyObj).to.include(data);
           expect(bodyObj).to.include(`filename="${fileName}"`);
           expect(bodyObj).to.include(`Content-Type: ${mimeType}`);
+        });
+
+        it('should throw InputValidationError when provided ReadableStream is too large', async () => {
+          const recordKey = '123';
+          const encryptedPayload = await encStorage.encryptPayload({ recordKey });
+          const popAPI = nockPopApi(POPAPI_HOST).addAttachment(COUNTRY, encryptedPayload.record_key).reply(200, EMPTY_API_ATTACHMENT_META);
+
+          const fileName = 'test123';
+          const filePath = 'test/test';
+
+          stub = sinon.stub(fs, 'createReadStream').callsFake(() => {
+            const data$ = new Readable({
+              objectMode: true,
+              read() {},
+            });
+
+            data$.push({ length: DEFAULT_HTTP_MAX_BODY_LENGTH });
+            data$.push(null);
+            return data$ as ReadStream;
+          });
+
+          await expect(encStorage.addAttachment(COUNTRY, recordKey, { fileName, file: filePath }))
+            .to.be.rejectedWith(
+              InputValidationError,
+              `File is too large. Max allowed file size is ${DEFAULT_HTTP_MAX_BODY_LENGTH} bytes`,
+            );
+
+          assert.equal(popAPI.isDone(), true);
+          expect(stub).calledWith(filePath);
+        });
+
+        it('should throw InputValidationError when provided Buffer is too large', async () => {
+          const makeFakeBuffer = (size: number) => {
+            class FixedLengthArray extends Uint8Array {
+              get length() {
+                return size;
+              }
+            }
+            return Buffer.from(new FixedLengthArray(0));
+          };
+
+          const recordKey = '123';
+          const encryptedPayload = await encStorage.encryptPayload({ recordKey });
+          const popAPI = nockPopApi(POPAPI_HOST).addAttachment(COUNTRY, encryptedPayload.record_key).thrice().reply(200, EMPTY_API_ATTACHMENT_META);
+
+          const fileName = 'test123';
+
+          let file = makeFakeBuffer(10 * DEFAULT_HTTP_MAX_BODY_LENGTH); // 1 Gb
+
+          await expect(encStorage.addAttachment(COUNTRY, recordKey, { fileName, file }))
+            .to.be.rejectedWith(
+              InputValidationError,
+              `File is too large. Max allowed file size is ${DEFAULT_HTTP_MAX_BODY_LENGTH} bytes`,
+            );
+
+          file = makeFakeBuffer(DEFAULT_HTTP_MAX_BODY_LENGTH); // 100 Mb
+
+          await expect(encStorage.addAttachment(COUNTRY, recordKey, { fileName, file }))
+            .to.be.rejectedWith(
+              InputValidationError,
+              `File is too large. Max allowed file size is ${DEFAULT_HTTP_MAX_BODY_LENGTH} bytes`,
+            );
+
+          file = makeFakeBuffer(DEFAULT_HTTP_MAX_BODY_LENGTH - 219); // 100 Mb - 219 bytes
+
+          await expect(encStorage.addAttachment(COUNTRY, recordKey, { fileName, file })).to.be.not.rejected;
+
+          assert.equal(popAPI.isDone(), true);
         });
       });
     });
