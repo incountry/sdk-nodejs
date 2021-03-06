@@ -1,4 +1,3 @@
-/* eslint-disable max-classes-per-file */
 import * as chai from 'chai';
 import * as sinon from 'sinon';
 import sinonChai from 'sinon-chai';
@@ -30,17 +29,7 @@ class ReadStreamMock extends ReadStream {
   open() {}
 }
 
-const makeFakeBuffer = (size: number) => {
-  class FixedLengthArray extends Uint8Array {
-    get length() {
-      return size;
-    }
-  }
-  return Buffer.from(new FixedLengthArray(0));
-};
-
 const recordKey = '123';
-
 
 describe('Storage', () => {
   let clientId: string | undefined;
@@ -275,11 +264,11 @@ describe('Storage', () => {
         context('file in large buffer', () => {
           const fileName = 'test123';
 
-          it('should throw InputValidationError when provided Buffer is too large (1 Gb)', async () => {
+          it('should throw InputValidationError when provided Buffer is too large (101 Mb)', async () => {
             const hashedRecordKey = encStorage.createKeyHash(recordKey);
             nockPopApi(POPAPI_HOST).addAttachment(COUNTRY, hashedRecordKey).reply(200, EMPTY_API_ATTACHMENT_META);
 
-            const file = makeFakeBuffer(10 * DEFAULT_HTTP_MAX_BODY_LENGTH); // 1 Gb
+            const file = Buffer.alloc(DEFAULT_HTTP_MAX_BODY_LENGTH + 1024 * 1024, '_'); // 101 Mb
 
             await expect(encStorage.addAttachment(COUNTRY, recordKey, { fileName, file }))
               .to.be.rejectedWith(
@@ -292,7 +281,7 @@ describe('Storage', () => {
             const hashedRecordKey = encStorage.createKeyHash(recordKey);
             nockPopApi(POPAPI_HOST).addAttachment(COUNTRY, hashedRecordKey).reply(200, EMPTY_API_ATTACHMENT_META);
 
-            const file = makeFakeBuffer(DEFAULT_HTTP_MAX_BODY_LENGTH); // 100 Mb
+            const file = Buffer.alloc(DEFAULT_HTTP_MAX_BODY_LENGTH, '_'); // 100 Mb
 
             await expect(encStorage.addAttachment(COUNTRY, recordKey, { fileName, file }))
               .to.be.rejectedWith(
@@ -301,11 +290,11 @@ describe('Storage', () => {
               );
           });
 
-          it('should not throw InputValidationError when provided Buffer is not too large (99805 Kb)', async () => {
+          it('should not throw InputValidationError when provided Buffer is not too large (99.9 Mb)', async () => {
             const hashedRecordKey = encStorage.createKeyHash(recordKey);
             nockPopApi(POPAPI_HOST).addAttachment(COUNTRY, hashedRecordKey).reply(200, EMPTY_API_ATTACHMENT_META);
 
-            const file = makeFakeBuffer(DEFAULT_HTTP_MAX_BODY_LENGTH - 219); // 100 Mb - 219 bytes
+            const file = Buffer.alloc(DEFAULT_HTTP_MAX_BODY_LENGTH - 219, '_'); // 100 Mb - 219 bytes
 
             await expect(encStorage.addAttachment(COUNTRY, recordKey, { fileName, file })).to.be.not.rejected;
           });
