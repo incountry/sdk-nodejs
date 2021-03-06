@@ -768,6 +768,8 @@ type StorageRecordAttachment = {
 The `addAttachment` method allows you to add or replace attachments.
 File data can be provided either as `Readable` stream, `Buffer` or `string` with a path to the file in the file system.
 
+Note: attaching file with size exceeding 100 Mb is not supported at the moment.
+
 ```typescript
 type AttachmentData = {
   file: Readable | Buffer | string;
@@ -801,7 +803,7 @@ await storage.addAttachment(COUNTRY, recordData.recordKey, { file });
 The `deleteAttachment` method allows you to delete attachment using its `fileId`.
 
 ```typescript
-deleteAttachment(
+async deleteAttachment(
   countryCode: string,
   recordKey: string,
   fileId: string,
