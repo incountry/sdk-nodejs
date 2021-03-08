@@ -30,7 +30,7 @@ const EXCLUDED_KEYS_WHEN_SEARCHING = [
 const SEARCH_FIELD_MIN_LENGTH = 3;
 const SEARCH_FIELD_MAX_LENGTH = 200;
 
-const SEARCH_FIELD_LENGTH_ERROR_MESSAGE = `filter.${SEARCH_FIELD} should be length should be between ${SEARCH_FIELD_MIN_LENGTH} and ${SEARCH_FIELD_MAX_LENGTH} chars`;
+const SEARCH_FIELD_LENGTH_ERROR_MESSAGE = `filter.${SEARCH_FIELD} length should be between ${SEARCH_FIELD_MIN_LENGTH} and ${SEARCH_FIELD_MAX_LENGTH} chars`;
 const FILTER_SEARCH_KEYS_ERROR_MESSAGE = 'The "searchKeys" operator cannot be used in combination with any of "key1, key2, ..., key20" keys';
 
 // filter string value
