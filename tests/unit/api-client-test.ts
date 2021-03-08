@@ -381,7 +381,6 @@ describe('ApiClient', () => {
           const popAPI = nockPopApi(POPAPI_HOST).read(COUNTRY, record_key).reply(200, record);
           const result = await apiClient.read(COUNTRY, record_key);
           expect(result).to.deep.equal(toApiRecord(record));
-          //
           assert.equal(popAPI.isDone(), true, 'Nock scope is done');
         });
       });

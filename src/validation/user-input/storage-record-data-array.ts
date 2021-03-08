@@ -7,7 +7,7 @@ import { Codec, chainValidate } from '../utils';
 
 const MAX_RECORDS_IN_BATCH = 100;
 const STORAGE_RECORD_DATA_ARRAY_EMPTY_ERROR = 'You must pass non-empty array of records';
-const STORAGE_RECORD_DATA_ARRAY_TOO_BIG_ERROR = `You mast pass an array not larger than ${MAX_RECORDS_IN_BATCH} records`;
+const STORAGE_RECORD_DATA_ARRAY_TOO_BIG_ERROR = `You must pass an array not larger than ${MAX_RECORDS_IN_BATCH} records`;
 
 const validateArray = <A>(records: A[]): Either<string, A[]> => {
   if (records.length === 0) {
