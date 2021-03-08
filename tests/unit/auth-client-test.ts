@@ -190,7 +190,7 @@ describe('AuthClient', () => {
         expect(accessToken).to.eq('access_token1');
       });
 
-      it('getToken() should request new access_token when it is expires', async () => {
+      it('getToken() should request new access_token when it is expired', async () => {
         let accessToken = await authClient.getToken(DEFAULT_POPAPI_HOST, ENV_ID, DEFAULT_REGION);
         expect(accessToken).to.eq('access_token1');
 
