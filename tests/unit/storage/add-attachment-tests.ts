@@ -15,7 +15,7 @@ import {
 import { InputValidationError, StorageNetworkError } from '../../../src/errors';
 import { COUNTRY_CODE_ERROR_MESSAGE } from '../../../src/validation/country-code';
 import { nockPopApi, getNockedRequestBodyRaw } from '../../test-helpers/popapi-nock';
-import { DEFAULT_HTTP_MAX_BODY_LENGTH } from '../../../src/api-client';
+import { ATTACHMENT_TOO_LARGE_ERROR_MESSAGE, DEFAULT_HTTP_MAX_BODY_LENGTH } from '../../../src/api-client';
 import { Storage } from '../../../src/storage';
 import { errorMessageRegExp } from '../../test-helpers/utils';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -257,7 +257,7 @@ describe('Storage', () => {
           await expect(encStorage.addAttachment(COUNTRY, recordKey, { fileName, file: filePath }))
             .to.be.rejectedWith(
               InputValidationError,
-              `File is too large. Max allowed file size is ${DEFAULT_HTTP_MAX_BODY_LENGTH} bytes`,
+              ATTACHMENT_TOO_LARGE_ERROR_MESSAGE,
             );
         });
 
@@ -273,7 +273,7 @@ describe('Storage', () => {
             await expect(encStorage.addAttachment(COUNTRY, recordKey, { fileName, file }))
               .to.be.rejectedWith(
                 InputValidationError,
-                `File is too large. Max allowed file size is ${DEFAULT_HTTP_MAX_BODY_LENGTH} bytes`,
+                ATTACHMENT_TOO_LARGE_ERROR_MESSAGE,
               );
           });
 
@@ -286,7 +286,7 @@ describe('Storage', () => {
             await expect(encStorage.addAttachment(COUNTRY, recordKey, { fileName, file }))
               .to.be.rejectedWith(
                 InputValidationError,
-                `File is too large. Max allowed file size is ${DEFAULT_HTTP_MAX_BODY_LENGTH} bytes`,
+                ATTACHMENT_TOO_LARGE_ERROR_MESSAGE,
               );
           });
 
