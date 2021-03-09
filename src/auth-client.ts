@@ -3,7 +3,7 @@ import * as Querystring from 'querystring';
 import * as t from 'io-ts';
 import { StorageAuthenticationError, StorageConfigValidationError } from './errors';
 import { toStorageAuthenticationError, toStorageServerError, isInvalid } from './validation/utils';
-import { OAuthEndpoints } from './validation/storage-options';
+import { OAuthEndpoints } from './validation/user-input/storage-options';
 
 const DEFAULT_REGIONAL_AUTH_ENDPOINTS: OAuthEndpoints = {
   apac: 'https://auth-apac.incountry.com/oauth2/token',

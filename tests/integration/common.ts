@@ -1,8 +1,8 @@
 import dotenv from 'dotenv';
 import * as defaultLogger from '../../src/logger';
 import { createStorage } from '../../src/storage';
-import { StorageOptions } from '../../src/validation/storage-options';
-import { CustomEncryptionConfig } from '../../src/validation/custom-encryption-configs';
+import { StorageOptions } from '../../src/validation/user-input/storage-options';
+import { CustomEncryptionConfig } from '../../src/validation/user-input/custom-encryption-configs';
 
 dotenv.config();
 

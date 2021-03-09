@@ -3,7 +3,7 @@ import * as fs from 'fs';
 import chaiAsPromised from 'chai-as-promised';
 import { createStorage, COUNTRY, noop } from './common';
 import { Storage } from '../../src';
-import { StorageRecordData } from '../../src/validation/storage-record-data';
+import { StorageRecordData } from '../../src/validation/user-input/storage-record-data';
 import { readStream } from '../test-helpers/utils';
 
 

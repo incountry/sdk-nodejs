@@ -1,7 +1,7 @@
 import * as chai from 'chai';
 import { Readable } from 'stream';
 import { isValid } from '../../../src/validation/utils';
-import { AttachmentDataIO, AttachmentData } from '../../../src/validation/api/attachment-data';
+import { AttachmentDataIO, AttachmentData } from '../../../src/validation/user-input/attachment-data';
 
 
 const { expect } = chai;

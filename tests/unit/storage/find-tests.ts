@@ -3,6 +3,7 @@ import chaiAsPromised from 'chai-as-promised';
 import * as sinon from 'sinon';
 import nock from 'nock';
 import { v4 as uuid } from 'uuid';
+import * as _ from 'lodash';
 import { Storage, InputValidationError } from '../../../src';
 import {
   getDefaultStorage,
@@ -12,17 +13,18 @@ import {
   checkLoggerMeta,
   popapiResponseHeaders,
   getDefaultFindResponse,
-  EMPTY_API_RECORD,
+  EMPTY_API_RESPONSE_RECORD,
   PORTAL_BACKEND_HOST,
   PORTAL_BACKEND_COUNTRIES_LIST_PATH,
   noop,
+  toApiRecord,
 } from './common';
 import { nockPopApi, getNockedRequestBodyObject } from '../../test-helpers/popapi-nock';
-import { LIMIT_ERROR_MESSAGE_MAX, LIMIT_ERROR_MESSAGE_INT, MAX_LIMIT } from '../../../src/validation/limit';
-import { filterFromStorageDataKeys } from '../../../src/validation/api/find-filter';
+import { LIMIT_ERROR_MESSAGE_MAX, LIMIT_ERROR_MESSAGE_INT, MAX_LIMIT } from '../../../src/validation/user-input/limit';
+import { filterFromStorageDataKeys } from '../../../src/validation/api/api-find-filter';
 import { VALID_REQUEST_OPTIONS, INVALID_REQUEST_OPTIONS } from '../validation/request-options';
 import { Int } from '../../../src/validation/utils';
-import { COUNTRY_CODE_ERROR_MESSAGE } from '../../../src/validation/country-code';
+import { COUNTRY_CODE_ERROR_MESSAGE } from '../../../src/validation/user-input/country-code';
 import { INVALID_FIND_FILTER, VALID_FIND_FILTER } from '../validation/find-filter-test';
 import { errorMessageRegExp } from '../../test-helpers/utils';
 
@@ -212,6 +214,9 @@ describe('Storage', () => {
           | 'key20'
           | 'serviceKey1'
           | 'serviceKey2'
+          | 'serviceKey3'
+          | 'serviceKey4'
+          | 'serviceKey5'
           | 'parentKey'
           | 'profileKey';
 
@@ -239,6 +244,9 @@ describe('Storage', () => {
           'key20',
           'serviceKey1',
           'serviceKey2',
+          'serviceKey3',
+          'serviceKey4',
+          'serviceKey5',
           'parentKey',
           'profileKey',
         ];
@@ -252,7 +260,7 @@ describe('Storage', () => {
             const resultRecords = TEST_RECORDS.filter((rec) => rec[key] === filter[key]);
             const encryptedRecords = await Promise.all(resultRecords.map((record) => encStorage.encryptPayload(record)));
             const apiRecords = encryptedRecords.map((record) => ({
-              ...EMPTY_API_RECORD,
+              ...EMPTY_API_RESPONSE_RECORD,
               ...record,
               body: record.body || '',
               is_encrypted: true,
@@ -267,9 +275,15 @@ describe('Storage', () => {
             const result = await encStorage.find(COUNTRY, filter, {});
 
             expect(result.records.map((record) => record.recordKey)).to.deep.equal(resultRecords.map((record) => record.recordKey));
+
             result.records.forEach((record) => {
               const resultRecord = resultRecords.find((resRecord) => resRecord.recordKey === record.recordKey);
-              expect(record).to.include(resultRecord);
+
+              expect(record).to.include(_.omit(resultRecord, 'expiresAt'));
+              if (resultRecord && resultRecord.expiresAt) {
+                expect(record.expiresAt).to.be.a('date');
+                expect(record.expiresAt).to.equalDate(resultRecord.expiresAt);
+              }
             });
 
             expect(requestedFilter).to.deep.equal(filterFromStorageDataKeys(hashedFilter));
@@ -279,7 +293,7 @@ describe('Storage', () => {
         it('should decode not encrypted records correctly', async () => {
           const storedData = await Promise.all(TEST_RECORDS.map((record) => noEncStorage.encryptPayload(record)));
           const apiRecords = storedData.map((record) => ({
-            ...EMPTY_API_RECORD,
+            ...EMPTY_API_RESPONSE_RECORD,
             ...record,
             body: record.body || '',
           }));
@@ -289,19 +303,27 @@ describe('Storage', () => {
 
           const { records } = await noEncStorage.find(COUNTRY, { recordKey: 'key1' });
 
-          records.forEach((record, index) => expect(record).to.own.include(TEST_RECORDS[index]));
+          records.forEach((record, index) => {
+            expect(record).to.include(_.omit(TEST_RECORDS[index], 'expiresAt'));
+
+            const { expiresAt: originalExpiresAt } = TEST_RECORDS[index];
+            if (originalExpiresAt) {
+              expect(record.expiresAt).to.be.a('date');
+              expect(record.expiresAt).to.equalDate(originalExpiresAt);
+            }
+          });
         });
 
         it('should not throw if some records cannot be decrypted', async () => {
           const encryptedData = await Promise.all(TEST_RECORDS.map((record) => encStorage.encryptPayload(record)));
           const apiRecords = encryptedData.map((record) => ({
-            ...EMPTY_API_RECORD,
+            ...EMPTY_API_RESPONSE_RECORD,
             ...record,
             body: record.body || '',
           }));
 
           const unsupportedData = {
-            ...EMPTY_API_RECORD,
+            ...EMPTY_API_RESPONSE_RECORD,
             country: 'us',
             record_key: 'somekey',
             body: '2:unsupported data',
@@ -318,12 +340,21 @@ describe('Storage', () => {
             count: TEST_RECORDS.length + 1, total: TEST_RECORDS.length + 1, limit: 100, offset: 0,
           });
 
-          result.records.forEach((record, index) => expect(record).to.own.include(TEST_RECORDS[index]));
+          result.records.forEach((record, index) => {
+            expect(record).to.include(_.omit(TEST_RECORDS[index], 'expiresAt'));
+
+            const { expiresAt: originalExpiresAt } = TEST_RECORDS[index];
+            if (originalExpiresAt) {
+              expect(record.expiresAt).to.be.a('date');
+              expect(record.expiresAt).to.equalDate(originalExpiresAt);
+            }
+          });
+
           if (result.errors === undefined) {
             throw assert.fail('FindResult should have errors array');
           }
           expect(result.errors[0].error.message).to.equal('Invalid IV length');
-          expect(result.errors[0].rawData).to.deep.equal(unsupportedData);
+          expect(result.errors[0].rawData).to.deep.equal(toApiRecord(unsupportedData));
         });
 
         it('find() in non-encrypted mode should not throw error if some records are encrypted', async () => {
@@ -331,13 +362,13 @@ describe('Storage', () => {
             TEST_RECORDS.map((record) => noEncStorage.encryptPayload(record)),
           );
           const apiRecords = nonEncryptedData.map((record) => ({
-            ...EMPTY_API_RECORD,
+            ...EMPTY_API_RESPONSE_RECORD,
             ...record,
             body: record.body || '',
           }));
 
           const unsupportedData = {
-            ...EMPTY_API_RECORD,
+            ...EMPTY_API_RESPONSE_RECORD,
             record_key: 'unsupported',
             body: '2:unsupported data',
           };
@@ -352,12 +383,22 @@ describe('Storage', () => {
           expect(result.meta).to.deep.equal({
             count: TEST_RECORDS.length + 1, total: TEST_RECORDS.length + 1, limit: 100, offset: 0,
           });
-          result.records.forEach((record, index) => expect(record).to.own.include(TEST_RECORDS[index]));
+
+          result.records.forEach((record, index) => {
+            expect(record).to.include(_.omit(TEST_RECORDS[index], 'expiresAt'));
+
+            const { expiresAt: originalExpiresAt } = TEST_RECORDS[index];
+            if (originalExpiresAt) {
+              expect(record.expiresAt).to.be.a('date');
+              expect(record.expiresAt).to.equalDate(originalExpiresAt);
+            }
+          });
+
           if (result.errors === undefined) {
             throw assert.fail('FindResult should have errors array');
           }
           expect(result.errors[0].error.message).to.equal('No secretKeyAccessor provided. Cannot decrypt encrypted data');
-          expect(result.errors[0].rawData).to.deep.equal(unsupportedData);
+          expect(result.errors[0].rawData).to.deep.equal(toApiRecord(unsupportedData));
         });
       });
 

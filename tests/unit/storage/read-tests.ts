@@ -2,13 +2,15 @@ import * as chai from 'chai';
 import * as sinon from 'sinon';
 import nock from 'nock';
 import { v4 as uuid } from 'uuid';
+import chaiDateTime from 'chai-datetime';
+import * as _ from 'lodash';
 import { Storage } from '../../../src/storage';
 import {
   getDefaultStorage,
   COUNTRY,
   TEST_RECORDS,
   POPAPI_HOST,
-  EMPTY_API_RECORD,
+  EMPTY_API_RESPONSE_RECORD,
   sdkVersionRegExp,
   getLoggerCallMeta,
   checkLoggerMeta,
@@ -18,11 +20,11 @@ import {
 import { VALID_REQUEST_OPTIONS, INVALID_REQUEST_OPTIONS } from '../validation/request-options';
 import { InputValidationError } from '../../../src/errors';
 import { nockPopApi, getNockedRequestHeaders } from '../../test-helpers/popapi-nock';
-import { COUNTRY_CODE_ERROR_MESSAGE } from '../../../src/validation/country-code';
-import { RECORD_KEY_ERROR_MESSAGE } from '../../../src/validation/record-key';
+import { COUNTRY_CODE_ERROR_MESSAGE } from '../../../src/validation/user-input/country-code';
+import { RECORD_KEY_ERROR_MESSAGE } from '../../../src/validation/user-input/record-key';
 import { errorMessageRegExp } from '../../test-helpers/utils';
 
-
+chai.use(chaiDateTime);
 const { expect, assert } = chai;
 
 
@@ -109,12 +111,17 @@ describe('Storage', () => {
               it('should read a record and decrypt it', async () => {
                 const encryptedPayload = await encStorage.encryptPayload(testCase);
                 nockPopApi(POPAPI_HOST).read(COUNTRY, encryptedPayload.record_key)
-                  .reply(200, { ...EMPTY_API_RECORD, ...encryptedPayload });
+                  .reply(200, { ...EMPTY_API_RESPONSE_RECORD, ...encryptedPayload });
 
                 const { record } = await encStorage.read(COUNTRY, testCase.recordKey);
-                expect(record).to.own.include(testCase);
+
+                expect(record).to.include(_.omit(testCase, 'expiresAt'));
                 expect(record.createdAt).to.be.a('date');
                 expect(record.updatedAt).to.be.a('date');
+                if (testCase.expiresAt) {
+                  expect(record.expiresAt).to.be.a('date');
+                  expect(record.expiresAt).to.equalDate(testCase.expiresAt);
+                }
               });
             });
           });
@@ -126,12 +133,17 @@ describe('Storage', () => {
             const encryptedPayload = await noEncStorage.encryptPayload(recordData);
             expect(encryptedPayload.body).to.match(/^pt:.+/);
             nockPopApi(POPAPI_HOST).read(COUNTRY, encryptedPayload.record_key)
-              .reply(200, { ...EMPTY_API_RECORD, ...encryptedPayload });
+              .reply(200, { ...EMPTY_API_RESPONSE_RECORD, ...encryptedPayload });
 
             const { record } = await noEncStorage.read(COUNTRY, recordData.recordKey);
-            expect(record).to.deep.include(recordData);
+
+            expect(record).to.deep.include(_.omit(recordData, 'expiresAt'));
             expect(record.createdAt).to.be.a('date');
             expect(record.updatedAt).to.be.a('date');
+            if (recordData.expiresAt) {
+              expect(record.expiresAt).to.be.a('date');
+              expect(record.expiresAt).to.equalDate(recordData.expiresAt);
+            }
           });
         });
       });
@@ -162,10 +174,17 @@ describe('Storage', () => {
 
               const encryptedPayload = await storage.encryptPayload(testCase);
               nockPopApi(POPAPI_HOST).read(COUNTRY, encryptedPayload.record_key)
-                .reply(200, { ...EMPTY_API_RECORD, ...encryptedPayload });
+                .reply(200, { ...EMPTY_API_RESPONSE_RECORD, ...encryptedPayload });
 
               const { record } = await storage.read(COUNTRY, testCase.recordKey);
-              expect(record).to.own.include(testCase);
+
+              expect(record).to.include(_.omit(testCase, 'expiresAt'));
+              expect(record.createdAt).to.be.a('date');
+              expect(record.updatedAt).to.be.a('date');
+              if (testCase.expiresAt) {
+                expect(record.expiresAt).to.be.a('date');
+                expect(record.expiresAt).to.equalDate(testCase.expiresAt);
+              }
             });
           });
         });
@@ -175,7 +194,7 @@ describe('Storage', () => {
         it('should set User-Agent', async () => {
           const encryptedPayload = await encStorage.encryptPayload(TEST_RECORDS[0]);
           const popAPI = nockPopApi(POPAPI_HOST).read(COUNTRY, encryptedPayload.record_key)
-            .reply(200, { ...EMPTY_API_RECORD, ...encryptedPayload });
+            .reply(200, { ...EMPTY_API_RESPONSE_RECORD, ...encryptedPayload });
 
           const [headers] = await Promise.all([getNockedRequestHeaders(popAPI), encStorage.read(COUNTRY, TEST_RECORDS[0].recordKey)]);
           const userAgent = headers['user-agent'];
@@ -190,7 +209,7 @@ describe('Storage', () => {
 
           const encryptedPayload = await encStorage.encryptPayload(TEST_RECORDS[0]);
           nockPopApi(POPAPI_HOST).read(COUNTRY, encryptedPayload.record_key)
-            .reply(200, { ...EMPTY_API_RECORD, ...encryptedPayload }, popapiResponseHeaders);
+            .reply(200, { ...EMPTY_API_RESPONSE_RECORD, ...encryptedPayload }, popapiResponseHeaders);
 
           await encStorage.read(COUNTRY, TEST_RECORDS[0].recordKey, { meta: callMeta });
           expect(spy.calledWith('info')).to.eq(true);
@@ -209,7 +228,7 @@ describe('Storage', () => {
             const encryptedPayload = await storage.encryptPayload({ recordKey });
 
             const popAPI = nockPopApi(POPAPI_HOST).read(COUNTRY, storage.createKeyHash(recordKeyNormalized))
-              .reply(200, { ...EMPTY_API_RECORD, ...encryptedPayload });
+              .reply(200, { ...EMPTY_API_RESPONSE_RECORD, ...encryptedPayload });
 
             await storage.read(COUNTRY, recordKey);
             assert.equal(popAPI.isDone(), true, 'Requested record using normalized key');
@@ -219,7 +238,7 @@ describe('Storage', () => {
             const storage = await getDefaultStorage(true, true);
             const encryptedPayload = await storage.encryptPayload({ recordKey });
             nockPopApi(POPAPI_HOST).read(COUNTRY, storage.createKeyHash(recordKeyNormalized))
-              .reply(200, { ...EMPTY_API_RECORD, ...encryptedPayload });
+              .reply(200, { ...EMPTY_API_RESPONSE_RECORD, ...encryptedPayload });
 
             const { record } = await storage.read(COUNTRY, recordKey);
             expect(record.recordKey).to.equal(recordKey);
@@ -233,7 +252,7 @@ describe('Storage', () => {
             expect(encryptedPayload.record_key).to.equal(storage.createKeyHash(recordKey));
 
             const popAPI = nockPopApi(POPAPI_HOST).read(COUNTRY, storage.createKeyHash(recordKey))
-              .reply(200, { ...EMPTY_API_RECORD, ...encryptedPayload });
+              .reply(200, { ...EMPTY_API_RESPONSE_RECORD, ...encryptedPayload });
 
             const { record } = await storage.read(COUNTRY, recordKey);
 
@@ -250,7 +269,7 @@ describe('Storage', () => {
           const recordKey = '123';
           const storage = await getDefaultStorage();
           const encryptedPayload = await storage.encryptPayload({ recordKey });
-          const response = { ...EMPTY_API_RECORD, ...encryptedPayload };
+          const response = { ...EMPTY_API_RESPONSE_RECORD, ...encryptedPayload };
 
           nockPopApi(POPAPI_HOST).read(country, storage.createKeyHash(recordKey))
             .reply(200, response);

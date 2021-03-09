@@ -1,5 +1,5 @@
 import * as chai from 'chai';
-import { SecretsDataIO } from '../../../src/validation/secrets-data';
+import { SecretsDataIO } from '../../../src/validation/user-input/secrets-data';
 import { isValid } from '../../../src/validation/utils';
 
 const { expect } = chai;

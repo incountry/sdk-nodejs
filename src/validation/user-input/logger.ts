@@ -1,5 +1,5 @@
 import * as t from 'io-ts';
-import { Override } from '../utils';
+import { Override } from '../../utils';
 
 type LogLevel = 'debug' | 'info' | 'log' | 'warn' | 'error';
 

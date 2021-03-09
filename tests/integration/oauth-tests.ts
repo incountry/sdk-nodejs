@@ -8,7 +8,7 @@ import {
 import { Storage } from '../../src';
 import { StorageAuthenticationError, StorageServerError } from '../../src/errors';
 import { Int } from '../../src/validation/utils';
-import { StorageRecordData } from '../../src/validation/storage-record-data';
+import { StorageRecordData } from '../../src/validation/user-input/storage-record-data';
 import { readStream } from '../test-helpers/utils';
 
 chai.use(chaiAsPromised);
@@ -25,6 +25,7 @@ const createRecord = (profileKey = 'profileKey') => ({
   rangeKey10: 41 as Int,
   key10: 'optional key value 10',
   serviceKey2: 'optional service key value 2',
+  serviceKey5: 'More integration test data',
 });
 
 describe('With OAuth authentication', () => {

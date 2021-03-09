@@ -6,7 +6,7 @@ import chaiAsPromised from 'chai-as-promised';
 import { Int } from 'io-ts';
 import { createStorage, noop, COUNTRY } from './common';
 import { Storage } from '../../src';
-import { StorageRecordData } from '../../src/validation/storage-record-data';
+import { StorageRecordData } from '../../src/validation/user-input/storage-record-data';
 
 chai.use(chaiAsPromised);
 const { expect } = chai;

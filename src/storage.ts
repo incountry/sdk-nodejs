@@ -24,32 +24,33 @@ import {
   StorageRecordAttachment,
   fromApiRecordAttachment,
 } from './validation/storage-record';
-import { getStorageRecordDataArrayIO } from './validation/storage-record-data-array';
-import { CountryCodeIO } from './validation/country-code';
+import { getStorageRecordDataArrayIO } from './validation/user-input/storage-record-data-array';
+import { CountryCodeIO } from './validation/user-input/country-code';
 import {
   FindOptionsIO, FindOptions, SEARCH_KEYS, SearchKey,
-} from './validation/find-options';
+} from './validation/user-input/find-options';
 import {
-  FindFilterIO, FindFilter, FilterStringValue, FilterStringQueryIO, FilterStringValueIO, filterFromStorageDataKeys,
-} from './validation/api/find-filter';
-import { LimitIO } from './validation/limit';
-import { RecordKeyIO } from './validation/record-key';
+  FindFilterIO, FindFilter, FilterStringValue, FilterStringQueryIO, FilterStringValueIO,
+} from './validation/user-input/find-filter';
+import { LimitIO } from './validation/user-input/limit';
+import { RecordKeyIO } from './validation/user-input/record-key';
 import {
   StorageOptionsIO, StorageOptions,
-} from './validation/storage-options';
-import { CustomEncryptionConfig } from './validation/custom-encryption-configs';
+} from './validation/user-input/storage-options';
+import { CustomEncryptionConfig } from './validation/user-input/custom-encryption-configs';
 import { validate } from './validation/validate-decorator';
-import { LoggerIO } from './validation/logger';
+import { LoggerIO } from './validation/user-input/logger';
 import { AuthClient, getStaticTokenAuthClient, OAuthClient } from './auth-client';
 import { normalizeErrors } from './normalize-errors-decorator';
 import { FindResponseMeta } from './validation/api/find-response';
 import { ApiRecord, ApiRecordBodyIO } from './validation/api/api-record';
-import { StorageRecordData, getStorageRecordDataIO } from './validation/storage-record-data';
+import { StorageRecordData, getStorageRecordDataIO } from './validation/user-input/storage-record-data';
 import { ApiRecordData, apiRecordDataFromStorageRecordData } from './validation/api/api-record-data';
-import { RequestOptionsIO, RequestOptions } from './validation/request-options';
-import { AttachmentWritableMeta, AttachmentWritableMetaIO } from './validation/attachment-writable-meta';
-import { AttachmentData, AttachmentDataIO } from './validation/api/attachment-data';
+import { RequestOptionsIO, RequestOptions } from './validation/user-input/request-options';
+import { AttachmentWritableMeta, AttachmentWritableMetaIO } from './validation/user-input/attachment-writable-meta';
+import { AttachmentData, AttachmentDataIO } from './validation/user-input/attachment-data';
 import { findOptionsFromStorageDataKeys } from './validation/api/api-find-options';
+import { filterFromStorageDataKeys, ApiFindFilter } from './validation/api/api-find-filter';
 
 const FIND_LIMIT = 100;
 
@@ -57,6 +58,9 @@ type KeyToHash =
   | 'record_key'
   | 'service_key1'
   | 'service_key2'
+  | 'service_key3'
+  | 'service_key4'
+  | 'service_key5'
   | 'profile_key'
   | 'parent_key';
 
@@ -64,6 +68,9 @@ const KEYS_TO_HASH: KeyToHash[] = [
   'record_key',
   'service_key1',
   'service_key2',
+  'service_key3',
+  'service_key4',
+  'service_key5',
   'profile_key',
   'parent_key',
 ];
@@ -454,9 +461,9 @@ class Storage {
     return null;
   }
 
-  private hashFilterKeys(filter: FindFilter, keys: Array<keyof FindFilter>): FindFilter {
+  private hashFilterKeys(filter: ApiFindFilter, keys: Array<KeyToHash | SearchKey>): FindFilter {
     const hashedFilter = { ...filter };
-    keys.forEach((key: keyof FindFilter) => {
+    keys.forEach((key) => {
       const value = hashedFilter[key];
       if (FilterStringValueIO.is(value)) {
         hashedFilter[key] = this.hashFilterKey(value);

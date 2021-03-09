@@ -9,7 +9,7 @@ import {
   POPAPI_HOST,
   getDefaultFindResponse,
   TEST_RECORDS,
-  EMPTY_API_RECORD,
+  EMPTY_API_RESPONSE_RECORD,
   noop,
 } from './common';
 import { VALID_REQUEST_OPTIONS, INVALID_REQUEST_OPTIONS } from '../validation/request-options';
@@ -137,10 +137,11 @@ describe('Storage', () => {
 
             const encryptedRecords = await Promise.all(resultRecords.map((record) => storage.encryptPayload(record)));
             const apiRecords = encryptedRecords.map((record) => ({
-              ...EMPTY_API_RECORD,
+              ...EMPTY_API_RESPONSE_RECORD,
               ...record,
               body: record.body || '',
             }));
+
 
             nockPopApi(POPAPI_HOST).find(COUNTRY)
               .reply(200, getDefaultFindResponse(apiRecords));

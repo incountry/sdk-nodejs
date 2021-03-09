@@ -16,12 +16,12 @@ import {
   getLoggerCallMeta,
   sdkVersionRegExp,
   checkLoggerMeta,
-  EMPTY_API_RECORD,
+  EMPTY_API_RESPONSE_RECORD,
 } from './common';
 import { VALID_REQUEST_OPTIONS, INVALID_REQUEST_OPTIONS } from '../validation/request-options';
 import { Storage, WriteResult } from '../../../src/storage';
 import { InputValidationError, StorageError } from '../../../src/errors';
-import { COUNTRY_CODE_ERROR_MESSAGE } from '../../../src/validation/country-code';
+import { COUNTRY_CODE_ERROR_MESSAGE } from '../../../src/validation/user-input/country-code';
 import { ApiRecordData } from '../../../src/validation/api/api-record-data';
 import { errorMessageRegExp } from '../../test-helpers/utils';
 
@@ -282,7 +282,7 @@ describe('Storage', () => {
           const logger = { write: () => { throw new Error('blabla'); } };
 
           const storage = new Storage({ encrypt: true, getSecrets: () => secrets, logger });
-          await expect(storage.write(COUNTRY, { ...EMPTY_API_RECORD, recordKey })).to.be.rejectedWith(StorageError, 'Error during Storage.write() call: blabla');
+          await expect(storage.write(COUNTRY, { ...EMPTY_API_RESPONSE_RECORD, recordKey })).to.be.rejectedWith(StorageError, 'Error during Storage.write() call: blabla');
         });
       });
     });

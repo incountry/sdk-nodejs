@@ -1,5 +1,5 @@
 import * as chai from 'chai';
-import { CustomEncryptionConfigsIO } from '../../../src/validation/custom-encryption-configs';
+import { CustomEncryptionConfigsIO } from '../../../src/validation/user-input/custom-encryption-configs';
 import { isValid } from '../../../src/validation/utils';
 
 const { expect } = chai;

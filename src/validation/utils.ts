@@ -104,15 +104,22 @@ const JSONIO = new t.Type<JSON, string, string>(
   String,
 );
 
+function codecFromValidate<A>(validate: (o: unknown) => o is A, name: string): t.Type<A, A, unknown> {
+  return new t.Type<A>(
+    name,
+    validate,
+    (o, c) => validate(o) ? t.success(o) : t.failure(o, c),
+    t.identity,
+  );
+}
+
 const isReadable = (o: unknown): o is Readable => o instanceof Readable;
 
-const ReadableIO = new t.Type<Readable>(
-  'File',
-  isReadable,
-  (o, c) => isReadable(o) ? t.success(o) : t.failure(o, c),
-  t.identity,
-);
+const ReadableIO = codecFromValidate(isReadable, 'File');
 
+const isDate = (o: unknown): o is Date => o instanceof Date;
+
+const DateIO = codecFromValidate(isDate, 'Date');
 
 type Codec<A> = t.Type<A, unknown>;
 type Int = t.Int;
@@ -131,7 +138,7 @@ const chainValidate = <A, B, BO, I>(type: t.Type<B, BO, I>, validate: (u: B) => 
   name || type.name,
   (u): u is A => {
     try {
-      return isRight(validate(u as any));
+      return type.is(u) && isRight(validate(u as any));
     } catch (e) {
       return false;
     }
@@ -162,6 +169,8 @@ export {
   PositiveInt,
   NonNegativeInt,
   ReadableIO,
+  isDate,
+  DateIO,
   optional,
   getErrorMessage,
   isLeft as isInvalid,

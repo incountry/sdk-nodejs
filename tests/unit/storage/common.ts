@@ -1,11 +1,15 @@
 import * as chai from 'chai';
 import { v4 as uuid } from 'uuid';
+import { isRight } from 'fp-ts/lib/Either';
 
-import { Int } from '../../../src/validation/utils';
-import { ApiRecord } from '../../../src/validation/api/api-record';
-import { FindResponse } from '../../../src/validation/api/find-response';
-import { CustomEncryptionConfig } from '../../../src/validation/custom-encryption-configs';
+import {
+  Int,
+  getErrorMessage,
+} from '../../../src/validation/utils';
+import { ApiRecordIO } from '../../../src/validation/api/api-record';
+import { CustomEncryptionConfig } from '../../../src/validation/user-input/custom-encryption-configs';
 import { createStorage } from '../../../src/storage';
+
 
 const { expect } = chai;
 
@@ -20,11 +24,24 @@ const REQUEST_TIMEOUT_ERROR = { code: 'ETIMEDOUT' };
 const sdkVersionRegExp = /^SDK-Node\.js\/\d+\.\d+\.\d+/;
 const popapiResponseHeaders = { 'x-inc-corr-id-resp': uuid(), alpha: 'beta', gamma: 'delta' };
 
-const EMPTY_API_RECORD = {
+const EMPTY_API_RESPONSE_ATTACHMENT_META = {
+  file_id: '',
+  filename: '',
+  hash: '',
+  mime_type: '',
+  size: 123,
+  created_at: (new Date()).toISOString(),
+  updated_at: (new Date()).toISOString(),
+  download_link: '',
+};
+
+const EMPTY_API_RESPONSE_RECORD = {
+  record_key: '',
   body: '',
-  version: 0 as Int,
-  created_at: new Date(),
-  updated_at: new Date(),
+  version: 0,
+  created_at: (new Date()).toISOString(),
+  updated_at: (new Date()).toISOString(),
+  expires_at: null,
   is_encrypted: false,
   precommit_body: null,
   parent_key: null,
@@ -50,6 +67,9 @@ const EMPTY_API_RECORD = {
   key20: null,
   service_key1: null,
   service_key2: null,
+  service_key3: null,
+  service_key4: null,
+  service_key5: null,
   profile_key: null,
   range_key1: null,
   range_key2: null,
@@ -64,16 +84,62 @@ const EMPTY_API_RECORD = {
   attachments: [],
 };
 
-const EMPTY_API_ATTACHMENT_META = {
-  file_id: '',
-  filename: '',
-  hash: '',
-  mime_type: '',
-  size: 123,
-  created_at: new Date(),
-  updated_at: new Date(),
-  download_link: '',
+type ApiResponseRecord = {
+  record_key: string;
+  body: string | null;
+  version: number;
+  created_at: string;
+  updated_at: string;
+  expires_at: string | null;
+  is_encrypted: boolean | null;
+  precommit_body: string | null;
+  parent_key: string | null;
+  key1: string | null;
+  key2: string | null;
+  key3: string | null;
+  key4: string | null;
+  key5: string | null;
+  key6: string | null;
+  key7: string | null;
+  key8: string | null;
+  key9: string | null;
+  key10: string | null;
+  key11: string | null;
+  key12: string | null;
+  key13: string | null;
+  key14: string | null;
+  key15: string | null;
+  key16: string | null;
+  key17: string | null;
+  key18: string | null;
+  key19: string | null;
+  key20: string | null;
+  service_key1: string | null;
+  service_key2: string | null;
+  service_key3: string | null;
+  service_key4: string | null;
+  service_key5: string | null;
+  profile_key: string | null;
+  range_key1: number | null;
+  range_key2: number | null;
+  range_key3: number | null;
+  range_key4: number | null;
+  range_key5: number | null;
+  range_key6: number | null;
+  range_key7: number | null;
+  range_key8: number | null;
+  range_key9: number | null;
+  range_key10: number | null;
+  attachments: Array<typeof EMPTY_API_RESPONSE_ATTACHMENT_META>;
 };
+
+const toApiRecord = (i: unknown) => {
+  const r = ApiRecordIO.decode(i);
+  if (isRight(r)) return r.right;
+  throw new Error(getErrorMessage(r));
+};
+
+const EMPTY_API_RECORD = toApiRecord(EMPTY_API_RESPONSE_RECORD);
 
 const TEST_RECORDS = [
   {
@@ -137,6 +203,9 @@ const TEST_RECORDS = [
     key20: 'key20',
     serviceKey1: 'serviceKey1',
     serviceKey2: 'serviceKey2',
+    serviceKey3: 'serviceKey3',
+    serviceKey4: 'serviceKey4',
+    serviceKey5: 'serviceKey5',
     profileKey: 'profile_key',
     parentKey: 'parent_key',
   },
@@ -178,6 +247,7 @@ const TEST_RECORDS = [
     serviceKey1: 'service_key1',
     rangeKey1: 1 as Int,
     precommitBody: 'test',
+    expiresAt: new Date(),
   },
 ];
 
@@ -185,7 +255,7 @@ const LOGGER_STUB = () => ({ write: (a: string, b: string, c: any) => [a, b, c] 
 
 const defaultGetSecretsCallback = () => SECRET_KEY;
 
-const getDefaultFindResponse = (data: ApiRecord[] = [], limit = 100, offset = 0): FindResponse => ({
+const getDefaultFindResponse = (data: ApiResponseRecord[] = [], limit = 100, offset = 0) => ({
   meta: {
     total: data.length, count: data.length, limit, offset,
   },
@@ -232,8 +302,11 @@ export {
   PORTAL_BACKEND_HOST,
   PORTAL_BACKEND_COUNTRIES_LIST_PATH,
   LOGGER_STUB,
+  EMPTY_API_RESPONSE_ATTACHMENT_META,
+  EMPTY_API_RESPONSE_RECORD,
   EMPTY_API_RECORD,
-  EMPTY_API_ATTACHMENT_META,
+  ApiResponseRecord,
+  toApiRecord,
   TEST_RECORDS,
   noop,
   sdkVersionRegExp,

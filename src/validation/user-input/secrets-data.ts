@@ -3,7 +3,7 @@ import {
   Either, left, right, isRight, either, fold,
 } from 'fp-ts/lib/Either';
 import { pipe } from 'fp-ts/lib/pipeable';
-import { NonNegativeInt } from './utils';
+import { NonNegativeInt } from '../utils';
 
 const KEY_SIZE = 32;
 

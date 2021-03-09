@@ -1,5 +1,5 @@
 import * as chai from 'chai';
-import { RequestOptionsIO, RequestOptions } from '../../../src/validation/request-options';
+import { RequestOptionsIO, RequestOptions } from '../../../src/validation/user-input/request-options';
 import { isValid } from '../../../src/validation/utils';
 
 const { expect } = chai;

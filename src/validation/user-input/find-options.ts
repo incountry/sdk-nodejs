@@ -1,7 +1,7 @@
 import * as t from 'io-ts';
 import { nonEmptyArray } from 'io-ts-types/lib/nonEmptyArray';
 import { Either, right, left } from 'fp-ts/lib/Either';
-import { NonNegativeInt, chainValidate } from './utils';
+import { NonNegativeInt, chainValidate } from '../utils';
 import { LimitIO } from './limit';
 
 
@@ -67,7 +67,14 @@ type RangeKey =
 | 'rangeKey9'
 | 'rangeKey10';
 
-type SortKey = SearchKey | RangeKey | 'createdAt' | 'updatedAt';
+type ServiceKey =
+| 'serviceKey1'
+| 'serviceKey2'
+| 'serviceKey3'
+| 'serviceKey4'
+| 'serviceKey5';
+
+type SortKey = SearchKey | RangeKey | ServiceKey | 'createdAt' | 'updatedAt' | 'expiresAt';
 
 type SortingItem = Partial<Record<SortKey, SortingDirection>>;
 
@@ -77,7 +84,7 @@ type FindOptions = {
   sort?: SortingItem[];
 };
 
-const SortingDirection = t.keyof({
+const SortingDirectionIO = t.keyof({
   [SORT_ASC]: null,
   [SORT_DESC]: null,
 });
@@ -85,6 +92,7 @@ const SortingDirection = t.keyof({
 const SortingKey = t.keyof({
   createdAt: null,
   updatedAt: null,
+  expiresAt: null,
   key1: null,
   key2: null,
   key3: null,
@@ -131,8 +139,8 @@ const sortItemValidate = (i: { [key: string]: unknown }): Either<string, Sorting
     return left(`"${Object.keys(i)[0]}" is not allowed for sorting. Check documentation https://github.com/incountry/sdk-nodejs#find-records`);
   }
 
-  if (!SortingDirection.is(Object.values(i)[0])) {
-    return left('Only "asc" and "desc" is allowed as sorting direction');
+  if (!SortingDirectionIO.is(Object.values(i)[0])) {
+    return left('Only "asc" and "desc" is allowed as sort order');
   }
 
   return right(i);

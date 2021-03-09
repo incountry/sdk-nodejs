@@ -2,7 +2,7 @@ import { omitUndefined } from '../../utils';
 import {
   SearchKey,
   FindOptions, SortingItem,
-} from '../find-options';
+} from '../user-input/find-options';
 
 const SORT_ASC = 'asc';
 const SORT_DESC = 'desc';
@@ -21,7 +21,7 @@ type RangeKey =
 | 'range_key9'
 | 'range_key10';
 
-type SortKey = SearchKey | RangeKey | 'created_at' | 'updated_at';
+type SortKey = SearchKey | RangeKey | 'created_at' | 'updated_at' | 'expires_at';
 
 type ApiSortingItem = Record<SortKey, SortingDirection>;
 
@@ -37,6 +37,7 @@ function findOptionsFromStorageDataKeys({ limit, offset, sort }: FindOptions): A
     findOptions.sort = sort.map((item: SortingItem) => omitUndefined({
       created_at: item.createdAt,
       updated_at: item.updatedAt,
+      expires_at: item.expiresAt,
       key1: item.key1,
       key2: item.key2,
       key3: item.key3,

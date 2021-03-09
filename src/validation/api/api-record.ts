@@ -22,6 +22,7 @@ type ApiRecord = {
   is_encrypted: null | boolean;
   created_at: Date;
   updated_at: Date;
+  expires_at: Date | null;
   profile_key: null | string;
   range_key1: null | t.Int;
   range_key2: null | t.Int;
@@ -35,6 +36,9 @@ type ApiRecord = {
   range_key10: null | t.Int;
   service_key1: null | string;
   service_key2: null | string;
+  service_key3: null | string;
+  service_key4: null | string;
+  service_key5: null | string;
   key1: null | string;
   key2: null | string;
   key3: null | string;
@@ -67,6 +71,7 @@ const ApiRecordIO: Codec<ApiRecord> = t.type({
   is_encrypted: t.union([t.null, t.boolean]),
   created_at: DateFromISOString,
   updated_at: DateFromISOString,
+  expires_at: t.union([t.null, DateFromISOString]),
   profile_key: t.union([t.null, t.string]),
   range_key1: t.union([t.null, t.Int]),
   range_key2: t.union([t.null, t.Int]),
@@ -80,6 +85,9 @@ const ApiRecordIO: Codec<ApiRecord> = t.type({
   range_key10: t.union([t.null, t.Int]),
   service_key1: t.union([t.null, t.string]),
   service_key2: t.union([t.null, t.string]),
+  service_key3: t.union([t.null, t.string]),
+  service_key4: t.union([t.null, t.string]),
+  service_key5: t.union([t.null, t.string]),
   key1: t.union([t.null, t.string]),
   key2: t.union([t.null, t.string]),
   key3: t.union([t.null, t.string]),

@@ -30,15 +30,15 @@ import { BatchWriteResponseIO, BatchWriteResponse } from './validation/api/batch
 import { DeleteResponseIO, DeleteResponse } from './validation/api/delete-response';
 import { AddAttachmentResponseIO, AddAttachmentResponse } from './validation/api/add-attachment-response';
 import { UpsertAttachmentResponse, UpsertAttachmentResponseIO } from './validation/api/upsert-attachment-response';
-import { FindFilter } from './validation/api/find-filter';
 import { ApiFindOptions } from './validation/api/api-find-options';
 import { ApiRecordData } from './validation/api/api-record-data';
-import { RequestOptions } from './validation/request-options';
-import { AttachmentWritableMeta } from './validation/attachment-writable-meta';
+import { RequestOptions } from './validation/user-input/request-options';
+import { AttachmentWritableMeta } from './validation/user-input/attachment-writable-meta';
 import { UpdateAttachmentMetaResponse, UpdateAttachmentMetaResponseIO } from './validation/api/update-attachment-meta-response';
 import { GetAttachmentMetaResponse, GetAttachmentMetaResponseIO } from './validation/api/get-attachment-meta-response';
 import { getFileNameFromHeaders } from './utils';
-import { AttachmentData } from './validation/api/attachment-data';
+import { AttachmentData } from './validation/user-input/attachment-data';
+import { ApiFindFilter } from './validation/api/api-find-filter';
 
 const pjson = require('../package.json');
 
@@ -292,7 +292,7 @@ class ApiClient {
 
   async find(
     countryCode: string,
-    data: { filter?: FindFilter; options?: ApiFindOptions },
+    data: { filter?: ApiFindFilter; options?: ApiFindOptions },
     { headers, meta }: RequestOptions = {},
   ): Promise<FindResponse> {
     const { data: responseData } = await this.request(

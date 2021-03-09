@@ -1,9 +1,9 @@
 import * as t from 'io-ts';
-import { Override } from '../utils';
-import { CountriesCache } from '../countries-cache';
+import { Override } from '../../utils';
+import { CountriesCache } from '../../countries-cache';
 import { Logger, LoggerIO } from './logger';
-import { NonNegativeInt, Codec } from './utils';
-import { exact } from './exact';
+import { NonNegativeInt, Codec } from '../utils';
+import { exact } from '../exact';
 
 const OAUTH_ENDPOINTS_ERROR_MESSAGE = 'authEndpoints should be an object containing "default" key';
 const OAUTH_ENDPOINTS_VALUES_ERROR_MESSAGE = 'authEndpoints values should be a string';
