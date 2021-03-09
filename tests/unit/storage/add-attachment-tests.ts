@@ -15,6 +15,7 @@ import {
 import { InputValidationError, StorageNetworkError } from '../../../src/errors';
 import { COUNTRY_CODE_ERROR_MESSAGE } from '../../../src/validation/country-code';
 import { nockPopApi, getNockedRequestBodyRaw } from '../../test-helpers/popapi-nock';
+import { ATTACHMENT_TOO_LARGE_ERROR_MESSAGE, DEFAULT_HTTP_MAX_BODY_LENGTH } from '../../../src/api-client';
 import { Storage } from '../../../src/storage';
 import { errorMessageRegExp } from '../../test-helpers/utils';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -27,6 +28,8 @@ const { expect, assert } = chai;
 class ReadStreamMock extends ReadStream {
   open() {}
 }
+
+const recordKey = '123';
 
 describe('Storage', () => {
   let clientId: string | undefined;
@@ -72,16 +75,15 @@ describe('Storage', () => {
 
       describe('in case of network error', () => {
         it('should throw an error', async () => {
-          const recordKey = '123';
-          const encryptedPayload = await encStorage.encryptPayload({ recordKey });
+          const hashedRecordKey = encStorage.createKeyHash(recordKey);
           const attachment = { file: Buffer.from(''), fileName: 'test' };
 
           nock.cleanAll();
-          const scope = nockPopApi(POPAPI_HOST).addAttachment(COUNTRY, encryptedPayload.record_key)
+          const scope = nockPopApi(POPAPI_HOST).addAttachment(COUNTRY, hashedRecordKey)
             .replyWithError(REQUEST_TIMEOUT_ERROR);
 
           await expect(encStorage.addAttachment(COUNTRY, recordKey, attachment))
-            .to.be.rejectedWith(StorageNetworkError, `POST ${POPAPI_HOST}/v2/storage/records/${COUNTRY}/${encryptedPayload.record_key}/attachments ${REQUEST_TIMEOUT_ERROR.code}`);
+            .to.be.rejectedWith(StorageNetworkError, `POST ${POPAPI_HOST}/v2/storage/records/${COUNTRY}/${hashedRecordKey}/attachments ${REQUEST_TIMEOUT_ERROR.code}`);
 
           assert.equal(scope.isDone(), true, 'Nock scope is done');
         });
@@ -90,19 +92,18 @@ describe('Storage', () => {
       describe('normalize country', () => {
         it('it should pass normalized country code', async () => {
           const country = 'us';
-          const recordKey = '123';
           const attachment = { file: Buffer.from(''), fileName: 'test' };
 
           const storage = await getDefaultStorage();
-          const encryptedPayload = await encStorage.encryptPayload({ recordKey });
+          const hashedRecordKey = encStorage.createKeyHash(recordKey);
 
-          nockPopApi(POPAPI_HOST).addAttachment(country, encryptedPayload.record_key).reply(200, EMPTY_API_ATTACHMENT_META);
+          nockPopApi(POPAPI_HOST).addAttachment(country, hashedRecordKey).reply(200, EMPTY_API_ATTACHMENT_META);
           await storage.addAttachment('uS', recordKey, attachment);
 
-          nockPopApi(POPAPI_HOST).addAttachment(country, encryptedPayload.record_key).reply(200, EMPTY_API_ATTACHMENT_META);
+          nockPopApi(POPAPI_HOST).addAttachment(country, hashedRecordKey).reply(200, EMPTY_API_ATTACHMENT_META);
           await storage.addAttachment('Us', recordKey, attachment);
 
-          nockPopApi(POPAPI_HOST).addAttachment(country, encryptedPayload.record_key).reply(200, EMPTY_API_ATTACHMENT_META);
+          nockPopApi(POPAPI_HOST).addAttachment(country, hashedRecordKey).reply(200, EMPTY_API_ATTACHMENT_META);
           await storage.addAttachment('US', recordKey, attachment);
         });
       });
@@ -116,9 +117,8 @@ describe('Storage', () => {
         });
 
         it('should read file by path', async () => {
-          const recordKey = '123';
-          const encryptedPayload = await encStorage.encryptPayload({ recordKey });
-          const popAPI = nockPopApi(POPAPI_HOST).addAttachment(COUNTRY, encryptedPayload.record_key).reply(200, EMPTY_API_ATTACHMENT_META);
+          const hashedRecordKey = encStorage.createKeyHash(recordKey);
+          const popAPI = nockPopApi(POPAPI_HOST).addAttachment(COUNTRY, hashedRecordKey).reply(200, EMPTY_API_ATTACHMENT_META);
 
           const data = '1111111222222';
           const fileName = 'test123';
@@ -146,9 +146,8 @@ describe('Storage', () => {
         });
 
         it('should read data from buffer', async () => {
-          const recordKey = '123';
-          const encryptedPayload = await encStorage.encryptPayload({ recordKey });
-          const popAPI = nockPopApi(POPAPI_HOST).addAttachment(COUNTRY, encryptedPayload.record_key).reply(200, EMPTY_API_ATTACHMENT_META);
+          const hashedRecordKey = encStorage.createKeyHash(recordKey);
+          const popAPI = nockPopApi(POPAPI_HOST).addAttachment(COUNTRY, hashedRecordKey).reply(200, EMPTY_API_ATTACHMENT_META);
 
           const data = '1111111';
           const fileName = 'test';
@@ -165,9 +164,8 @@ describe('Storage', () => {
         });
 
         it('should read data from stream', async () => {
-          const recordKey = '123';
-          const encryptedPayload = await encStorage.encryptPayload({ recordKey });
-          const popAPI = nockPopApi(POPAPI_HOST).addAttachment(COUNTRY, encryptedPayload.record_key).reply(200, EMPTY_API_ATTACHMENT_META);
+          const hashedRecordKey = encStorage.createKeyHash(recordKey);
+          const popAPI = nockPopApi(POPAPI_HOST).addAttachment(COUNTRY, hashedRecordKey).reply(200, EMPTY_API_ATTACHMENT_META);
 
           const chunks = ['1111111', '2222222', '3333333'];
           const fileName = 'test';
@@ -193,9 +191,8 @@ describe('Storage', () => {
         });
 
         it('should get file name from stream', async () => {
-          const recordKey = '123';
-          const encryptedPayload = await encStorage.encryptPayload({ recordKey });
-          const popAPI = nockPopApi(POPAPI_HOST).addAttachment(COUNTRY, encryptedPayload.record_key).reply(200, EMPTY_API_ATTACHMENT_META);
+          const hashedRecordKey = encStorage.createKeyHash(recordKey);
+          const popAPI = nockPopApi(POPAPI_HOST).addAttachment(COUNTRY, hashedRecordKey).reply(200, EMPTY_API_ATTACHMENT_META);
 
           const chunks = ['1111111', '2222222', '3333333'];
           const fileName = 'test.jpg';
@@ -220,9 +217,8 @@ describe('Storage', () => {
 
 
         it('should send provided mime-type', async () => {
-          const recordKey = '123';
-          const encryptedPayload = await encStorage.encryptPayload({ recordKey });
-          const popAPI = nockPopApi(POPAPI_HOST).addAttachment(COUNTRY, encryptedPayload.record_key).reply(200, EMPTY_API_ATTACHMENT_META);
+          const hashedRecordKey = encStorage.createKeyHash(recordKey);
+          const popAPI = nockPopApi(POPAPI_HOST).addAttachment(COUNTRY, hashedRecordKey).reply(200, EMPTY_API_ATTACHMENT_META);
 
           const data = '1111111';
           const fileName = 'test14';
@@ -238,6 +234,70 @@ describe('Storage', () => {
           expect(bodyObj).to.include(data);
           expect(bodyObj).to.include(`filename="${fileName}"`);
           expect(bodyObj).to.include(`Content-Type: ${mimeType}`);
+        });
+
+        it('should throw InputValidationError when provided ReadableStream is too large', async () => {
+          const hashedRecordKey = encStorage.createKeyHash(recordKey);
+          nockPopApi(POPAPI_HOST).addAttachment(COUNTRY, hashedRecordKey).reply(200, EMPTY_API_ATTACHMENT_META);
+
+          const fileName = 'test123';
+          const filePath = 'test/test';
+
+          stub = sinon.stub(fs, 'createReadStream').callsFake(() => {
+            const data$ = new Readable({
+              objectMode: true,
+              read() {},
+            });
+
+            data$.push({ length: DEFAULT_HTTP_MAX_BODY_LENGTH });
+            data$.push(null);
+            return data$ as ReadStream;
+          });
+
+          await expect(encStorage.addAttachment(COUNTRY, recordKey, { fileName, file: filePath }))
+            .to.be.rejectedWith(
+              InputValidationError,
+              ATTACHMENT_TOO_LARGE_ERROR_MESSAGE,
+            );
+        });
+
+        context('file in large buffer', () => {
+          const fileName = 'test123';
+
+          it('should throw InputValidationError when provided Buffer is too large (101 Mb)', async () => {
+            const hashedRecordKey = encStorage.createKeyHash(recordKey);
+            nockPopApi(POPAPI_HOST).addAttachment(COUNTRY, hashedRecordKey).reply(200, EMPTY_API_ATTACHMENT_META);
+
+            const file = Buffer.alloc(DEFAULT_HTTP_MAX_BODY_LENGTH + 1024 * 1024, '_'); // 101 Mb
+
+            await expect(encStorage.addAttachment(COUNTRY, recordKey, { fileName, file }))
+              .to.be.rejectedWith(
+                InputValidationError,
+                ATTACHMENT_TOO_LARGE_ERROR_MESSAGE,
+              );
+          });
+
+          it('should throw InputValidationError when provided Buffer is too large (100 Mb)', async () => {
+            const hashedRecordKey = encStorage.createKeyHash(recordKey);
+            nockPopApi(POPAPI_HOST).addAttachment(COUNTRY, hashedRecordKey).reply(200, EMPTY_API_ATTACHMENT_META);
+
+            const file = Buffer.alloc(DEFAULT_HTTP_MAX_BODY_LENGTH, '_'); // 100 Mb
+
+            await expect(encStorage.addAttachment(COUNTRY, recordKey, { fileName, file }))
+              .to.be.rejectedWith(
+                InputValidationError,
+                ATTACHMENT_TOO_LARGE_ERROR_MESSAGE,
+              );
+          });
+
+          it('should not throw InputValidationError when provided Buffer is not too large (99.9 Mb)', async () => {
+            const hashedRecordKey = encStorage.createKeyHash(recordKey);
+            nockPopApi(POPAPI_HOST).addAttachment(COUNTRY, hashedRecordKey).reply(200, EMPTY_API_ATTACHMENT_META);
+
+            const file = Buffer.alloc(DEFAULT_HTTP_MAX_BODY_LENGTH - 219, '_'); // 100 Mb - 219 bytes
+
+            await expect(encStorage.addAttachment(COUNTRY, recordKey, { fileName, file })).to.be.not.rejected;
+          });
         });
       });
     });
