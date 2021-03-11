@@ -190,6 +190,24 @@ describe('Storage', () => {
           assert.equal(popAPI.isDone(), true, 'nock is done');
         });
 
+        it('should accept "createdAt", "updatedAt", "expiresAt" as ISO8601', async () => {
+          const filter = {
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            expiresAt: new Date().toISOString(),
+          };
+
+          const popAPI = nockPopApi(POPAPI_HOST).find(COUNTRY)
+            .reply(200, getDefaultFindResponse());
+
+          const [bodyObj] = await Promise.all<any>([getNockedRequestBodyObject(popAPI), encStorage.find(COUNTRY, filter)]);
+          expect(bodyObj.filter).to.deep.equal({
+            created_at: filter.createdAt,
+            updated_at: filter.updatedAt,
+            expires_at: filter.expiresAt,
+          });
+        });
+
         type KEY =
           | 'recordKey'
           | 'key1'

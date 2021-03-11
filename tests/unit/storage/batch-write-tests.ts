@@ -186,6 +186,21 @@ describe('Storage', () => {
                 expect(r.is_encrypted).to.equal(opt.encrypted);
               });
             });
+
+            it('should parse "expiresAt" as ISO8601', async () => {
+              const storage = opt.encrypted ? encStorage : noEncStorage;
+              const testRecords = TEST_RECORDS.map((record) => ({
+                ...record,
+                expiresAt: record.expiresAt && record.expiresAt instanceof Date ? record.expiresAt.toISOString() : record.expiresAt,
+              }));
+              const [bodyObj] = await Promise.all<any>([getNockedRequestBodyObject(popAPI), storage.batchWrite(COUNTRY, testRecords)]);
+              (bodyObj.records as any[]).forEach((r, index) => {
+                const { expiresAt } = TEST_RECORDS[index];
+                if (r.expires_at && expiresAt) {
+                  expect(r.expires_at).to.equal(expiresAt.toISOString());
+                }
+              });
+            });
           });
         });
       });

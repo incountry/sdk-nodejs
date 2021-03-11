@@ -372,7 +372,7 @@ type StorageRecordData = {
   rangeKey8?: t.Int | null;
   rangeKey9?: t.Int | null;
   rangeKey10?: t.Int | null;
-  expiresAt?: Date | null;
+  expiresAt?: string | Date | null; // Accepts only ISO-8601 formatted strings, like '2021-03-11T17:23:05.941Z'
 };
 
 type WriteResult = {
@@ -506,7 +506,8 @@ const readResult = await storage.read(countryCode, recordKey);
 You can look up for data records either by using exact match search operators or partial text match operator in almost any combinations.
 
 ```typescript
-type FilterDateQuery = Date | Date[] | null | { $not?: Date | Date[] | null; $gt?: Date; $gte?: Date; $lt?: Date; $lte?: Date; };
+type DateOr8601 = string | Date; // Accepts only ISO-8601 formatted strings, like '2021-03-11T17:23:05.941Z'
+type FilterDateQuery = DateOr8601 | DateOr8601[] | null | { $not?: DateOr8601 | DateOr8601[] | null; $gt?: DateOr8601; $gte?: DateOr8601; $lt?: DateOr8601; $lte?: DateOr8601; };
 type FilterStringQuery = string | string[] | null | { $not?: string | string[] | null };
 type FilterNumberQuery = number | number[] | null | { $not?: number | number[] | null; $gt?: number; $gte?: number; $lt?: number; $lte?: number; };
 

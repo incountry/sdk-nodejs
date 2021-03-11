@@ -2,7 +2,7 @@ import intersection from 'lodash.intersection';
 import { left, right, Either } from 'fp-ts/lib/Either';
 import * as t from 'io-ts';
 import { exact } from '../exact';
-import { DateIO, chainValidate } from '../utils';
+import { DateIO, DateOr8601, chainValidate } from '../utils';
 
 const SEARCH_FIELD = 'searchKeys';
 const EXCLUDED_KEYS_WHEN_SEARCHING = [
@@ -69,17 +69,17 @@ const FilterNumberQueryIO: t.Type<FilterNumberQuery> = t.union([
 ]);
 
 // filter date value
-type FilterDateValue = Date | Date[] | null;
+type FilterDateValue = DateOr8601 | DateOr8601[] | null;
 const FilterDateValueIO: t.Type<FilterDateValue> = t.union([DateIO, t.array(DateIO), t.null]);
 
 type FilterDateQuery =
 FilterDateValue |
   {
     $not?: FilterDateValue;
-    $gt?: Date;
-    $gte?: Date;
-    $lt?: Date;
-    $lte?: Date;
+    $gt?: DateOr8601;
+    $gte?: DateOr8601;
+    $lt?: DateOr8601;
+    $lte?: DateOr8601;
   };
 
 const FilterDateQueryIO: t.Type<FilterDateQuery> = t.union([

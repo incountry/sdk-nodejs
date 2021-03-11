@@ -24,6 +24,8 @@ const VALID = [
   [KEYS.reduce((acc, key) => Object.assign(acc, { [key]: dummyString5000 }), { recordKey: '1' })],
 
   Array(MAX_RECORDS_IN_BATCH).fill('x').map(() => ({ recordKey: '1' })),
+  [{ recordKey: '1', expiresAt: new Date() }],
+  [{ recordKey: '1', expiresAt: new Date().toISOString() }],
 ];
 
 const INVALID = [
@@ -42,6 +44,7 @@ const INVALID = [
   [{ record_key: 1 }],
   [{ record_key: '', body: 1 }],
   Array(MAX_RECORDS_IN_BATCH + 1).fill('x').map(() => ({ recordKey: '1' })),
+  [{ recordKey: '1', expiresAt: 'test' }],
 ];
 
 const VALID_NOT_HASHED = [

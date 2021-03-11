@@ -90,7 +90,7 @@ function apiRecordDataFromStorageRecordData<A extends StorageRecordData>(recordD
     key19: recordData.key19,
     key20: recordData.key20,
     parent_key: recordData.parentKey,
-    expires_at: recordData.expiresAt ? recordData.expiresAt.toISOString() : recordData.expiresAt,
+    expires_at: recordData.expiresAt && recordData.expiresAt instanceof Date ? recordData.expiresAt.toISOString() : recordData.expiresAt,
   });
 }
 
