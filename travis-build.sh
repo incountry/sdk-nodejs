@@ -5,7 +5,6 @@ if [[ "${TRAVIS_BUILD_SCRIPT_DEBUG_ENABLED:-false}" == 'true' ]]; then
 fi
 
 set -e
-set -o pipefail
 
 RED="\033[31;1m"
 GREEN="\033[32;1m"
@@ -27,7 +26,7 @@ branch_matches() {
 npm install
 
 # SNYK dependency scan - runs for master and RC branches, but not for PRs
-if [[ "$TRAVIS_PULL_REQUEST" == 'false' ]] && branch_matches "^master$|^develop$|^SB_*|^RC_*"; then
+if [[ "$TRAVIS_PULL_REQUEST" == 'false' || "${BUILD_AND_SCAN_DOCKER_FOR_ANY_BRANCH}" == 'true' ]] && branch_matches "^master$|^develop$|^SB_*|^RC_*"; then
   npm install -g snyk
   snyk monitor --org=incountry --prune-repeated-subdependencies --remote-repo-url="${APP_NAME}" --project-name="${APP_NAME}:${TRAVIS_BRANCH}"
 else
