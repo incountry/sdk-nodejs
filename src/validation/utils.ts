@@ -5,6 +5,8 @@ import { pipe } from 'fp-ts/lib/pipeable';
 import {
   isLeft, isRight, Either, fold, either,
 } from 'fp-ts/lib/Either';
+import { DateFromISOString } from 'io-ts-types/lib/DateFromISOString';
+import { date } from 'io-ts-types/lib/date';
 import { getErrorMessage } from './get-error-message';
 import {
   StorageServerError,
@@ -117,9 +119,14 @@ const isReadable = (o: unknown): o is Readable => o instanceof Readable;
 
 const ReadableIO = codecFromValidate(isReadable, 'File');
 
-const isDate = (o: unknown): o is Date => o instanceof Date;
+type DateOr8601 = string | Date;
 
-const DateIO = codecFromValidate(isDate, 'Date');
+const DateIO = new t.Type<DateOr8601>(
+  'DateIO',
+  (u): u is DateOr8601 => u instanceof Date ? date.is(u) : isRight(DateFromISOString.decode(u)),
+  (i, c) => i instanceof Date ? date.validate(i, c) : DateFromISOString.validate(i, c),
+  t.identity,
+);
 
 type Codec<A> = t.Type<A, unknown>;
 type Int = t.Int;
@@ -169,7 +176,7 @@ export {
   PositiveInt,
   NonNegativeInt,
   ReadableIO,
-  isDate,
+  DateOr8601,
   DateIO,
   optional,
   getErrorMessage,

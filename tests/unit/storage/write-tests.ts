@@ -149,6 +149,21 @@ describe('Storage', () => {
                   const [bodyObj] = await Promise.all<any, WriteResult>([getNockedRequestBodyObject(popAPI), storage.write(COUNTRY, testCase)]);
                   expect(bodyObj.is_encrypted).to.equal(opt.encrypted);
                 });
+
+                if (testCase.expiresAt && testCase.expiresAt instanceof Date) {
+                  it('should parse "expiresAt" as ISO8601', async () => {
+                    const storage = opt.encrypted ? encStorage : noEncStorage;
+
+                    const data = {
+                      ...testCase,
+                      expiresAt: testCase.expiresAt.toISOString(),
+                    };
+                    const [bodyObj, writeRes] = await Promise.all<any, WriteResult>([getNockedRequestBodyObject(popAPI), storage.write(COUNTRY, data)]);
+                    expect(bodyObj.expires_at).to.equal(testCase.expiresAt.toISOString());
+                    expect(writeRes.record.expiresAt).to.be.a('date');
+                    expect(writeRes.record.expiresAt).to.equalDate(testCase.expiresAt);
+                  });
+                }
               });
             });
           });

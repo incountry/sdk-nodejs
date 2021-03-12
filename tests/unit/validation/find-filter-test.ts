@@ -38,8 +38,11 @@ const VALID_FIND_FILTER: FindFilter[] = [
   { rangeKey1: null },
   { rangeKey1: { $not: null } },
   { createdAt: new Date() },
+  { createdAt: new Date().toISOString() },
   { updatedAt: new Date() },
+  { updatedAt: new Date().toISOString() },
   { expiresAt: new Date() },
+  { expiresAt: new Date().toISOString() },
   { expiresAt: [new Date()] },
   { expiresAt: { $not: [new Date()] } },
 ];

@@ -1,5 +1,7 @@
 import * as t from 'io-ts';
-import { Codec, StringMax256, DateIO } from '../utils';
+import {
+  Codec, StringMax256, DateOr8601, DateIO,
+} from '../utils';
 
 type StorageRecordData = {
   recordKey: string;
@@ -42,7 +44,7 @@ type StorageRecordData = {
   rangeKey8?: t.Int | null;
   rangeKey9?: t.Int | null;
   rangeKey10?: t.Int | null;
-  expiresAt?: Date | null;
+  expiresAt?: DateOr8601 | null;
 };
 
 const getStorageRecordDataIO = (params: { hashSearchKeys: boolean }): Codec<StorageRecordData> => {
