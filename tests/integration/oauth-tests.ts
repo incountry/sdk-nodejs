@@ -5,10 +5,12 @@ import { v4 as uuid } from 'uuid';
 import {
   createStorage, COUNTRY, DEFAULT_SECRET, noop,
 } from './common';
-import { Storage } from '../../src';
+import { createStorage as createStorageOrig, Storage } from '../../src';
 import { StorageAuthenticationError, StorageServerError } from '../../src/errors';
+import * as defaultLogger from '../../src/logger';
 import { Int } from '../../src/validation/utils';
 import { StorageRecordData } from '../../src/validation/user-input/storage-record-data';
+import { StorageOptions } from '../../src/validation/user-input/storage-options';
 import { readStream } from '../test-helpers/utils';
 
 chai.use(chaiAsPromised);
@@ -266,6 +268,45 @@ describe('With OAuth authentication', () => {
         status_code: 400,
       });
       data = undefined as any;
+    });
+  });
+
+  describe('when OAuth token provided in options', () => {
+    const createStorageWithOAuthToken = (token: string) => {
+      const storageOptions: StorageOptions = {
+        environmentId: process.env.INT_INC_ENVIRONMENT_ID_OAUTH,
+        endpoint: process.env.INC_URL,
+        encrypt: true,
+        getSecrets: () => 'super!secret!',
+        countriesEndpoint: process.env.INT_COUNTRIES_LIST_ENDPOINT,
+        oauth: { token },
+        logger: defaultLogger.withBaseLogLevel('warn'),
+      };
+
+      return createStorageOrig(storageOptions);
+    };
+
+    it('should write and read data', async () => {
+      const host = process.env.INC_URL || '';
+      const environmentId = process.env.INT_INC_ENVIRONMENT_ID_OAUTH || '';
+
+      const token = await storage.authClient.getToken(host, environmentId, 'test');
+      const storageWithOAuthToken = await createStorageWithOAuthToken(token);
+
+      const token2 = await storageWithOAuthToken.authClient.getToken(host, environmentId, 'test');
+      expect(token2).to.eq(token);
+
+      const token3 = await storageWithOAuthToken.authClient.getToken(host, environmentId, 'test', true);
+      expect(token3).to.eq(token);
+
+      data = createRecord();
+
+      await storageWithOAuthToken.write(COUNTRY, data);
+      const { record } = await storageWithOAuthToken.read(COUNTRY, data.recordKey);
+
+      expect(record).to.deep.include(data);
+      expect(record.createdAt).to.be.a('date');
+      expect(record.updatedAt).to.be.a('date');
     });
   });
 });
