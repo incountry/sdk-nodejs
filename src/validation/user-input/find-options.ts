@@ -67,14 +67,7 @@ type RangeKey =
 | 'rangeKey9'
 | 'rangeKey10';
 
-type ServiceKey =
-| 'serviceKey1'
-| 'serviceKey2'
-| 'serviceKey3'
-| 'serviceKey4'
-| 'serviceKey5';
-
-type SortKey = SearchKey | RangeKey | ServiceKey | 'createdAt' | 'updatedAt' | 'expiresAt';
+type SortKey = SearchKey | RangeKey | 'createdAt' | 'updatedAt' | 'expiresAt';
 
 type SortingItem = Partial<Record<SortKey, SortingDirection>>;
 
