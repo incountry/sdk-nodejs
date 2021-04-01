@@ -619,7 +619,7 @@ The `options` parameter provides the following choices to manipulate the search 
 - `offset` allows to specify the starting index used for records pagination;
 - `sort` allows to sort the returned records by one or multiple keys;
 
-**WARNING** To use `sort` in find() call for string keys `key1...key20` you need to set  `hashSearchKeys` option to `false`.
+**WARNING** To use `sort` in find() call for string keys `key1...key20` you need to set `hashSearchKeys` option to `false`.
 
 ##### Fields that records can be sorted by:
 ```typescript
@@ -656,12 +656,7 @@ type SortKey =
   | 'rangeKey7'
   | 'rangeKey8'
   | 'rangeKey9'
-  | 'rangeKey10'
-  | 'serviceKey1'
-  | 'serviceKey2'
-  | 'serviceKey3'
-  | 'serviceKey4'
-  | 'serviceKey5';
+  | 'rangeKey10';
 ```
 
 Note: The SDK returns 100 records at most.
@@ -753,7 +748,7 @@ In such cases data returned by the find() method will be as follows:
 ### Find one record matching a filter
 
 If you need to find only one of the records matching a specific filter, you can use the `findOne` method.
-If a record is not found, it returns `null`.
+If a record is not found, it returns `{ record: null }`.
 
 ```typescript
 type FindOneResult = {
