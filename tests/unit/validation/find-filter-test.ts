@@ -39,8 +39,8 @@ const VALID_FIND_FILTER: FindFilter[] = [
   { rangeKey1: { $not: null } },
   { expiresAt: new Date() },
   { expiresAt: new Date().toISOString() },
-  { expiresAt: [new Date()] },
-  { expiresAt: { $not: [new Date()] } },
+  { expiresAt: { $not: new Date() } },
+  { expiresAt: { $lte: new Date().toISOString(), $gte: new Date() } },
 ];
 
 const INVALID_FIND_FILTER = [
