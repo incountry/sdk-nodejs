@@ -10,8 +10,6 @@ import {
 const API_RECORD_SEARCH_FIELD = 'search_keys';
 
 type ApiFindFilter = Partial<{
-  created_at: FilterDateQuery;
-  updated_at: FilterDateQuery;
   expires_at: FilterDateQuery;
   record_key: FilterStringQuery;
   parent_key: FilterStringQuery;
@@ -57,8 +55,6 @@ type ApiFindFilter = Partial<{
 
 function filterFromStorageDataKeys(filter: FindFilter): ApiFindFilter {
   return omitUndefined({
-    created_at: filter.createdAt,
-    updated_at: filter.updatedAt,
     expires_at: filter.expiresAt,
     record_key: filter.recordKey,
     key1: filter.key1,

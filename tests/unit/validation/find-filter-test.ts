@@ -37,14 +37,10 @@ const VALID_FIND_FILTER: FindFilter[] = [
   { key1: { $not: null } },
   { rangeKey1: null },
   { rangeKey1: { $not: null } },
-  { createdAt: new Date() },
-  { createdAt: new Date().toISOString() },
-  { updatedAt: new Date() },
-  { updatedAt: new Date().toISOString() },
   { expiresAt: new Date() },
   { expiresAt: new Date().toISOString() },
-  { expiresAt: [new Date()] },
-  { expiresAt: { $not: [new Date()] } },
+  { expiresAt: { $not: new Date() } },
+  { expiresAt: { $lte: new Date().toISOString(), $gte: new Date() } },
 ];
 
 const INVALID_FIND_FILTER = [

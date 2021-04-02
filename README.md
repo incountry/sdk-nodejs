@@ -507,13 +507,11 @@ You can look up for data records either by using exact match search operators or
 
 ```typescript
 type DateOr8601 = string | Date; // Accepts only ISO-8601 formatted strings, like '2021-03-11T17:23:05.941Z'
-type FilterDateQuery = DateOr8601 | DateOr8601[] | null | { $not?: DateOr8601 | DateOr8601[] | null; $gt?: DateOr8601; $gte?: DateOr8601; $lt?: DateOr8601; $lte?: DateOr8601; };
+type FilterDateQuery = DateOr8601 | null | { $not?: DateOr8601 | null; $gt?: DateOr8601; $gte?: DateOr8601; $lt?: DateOr8601; $lte?: DateOr8601; };
 type FilterStringQuery = string | string[] | null | { $not?: string | string[] | null };
 type FilterNumberQuery = number | number[] | null | { $not?: number | number[] | null; $gt?: number; $gte?: number; $lt?: number; $lte?: number; };
 
 type FindFilter = Partial<{
-  createdAt: FilterDateQuery;
-  updatedAt: FilterDateQuery;
   expiresAt: FilterDateQuery;
   recordKey: FilterStringQuery;
   parentKey: FilterStringQuery;
