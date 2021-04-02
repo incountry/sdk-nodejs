@@ -512,8 +512,6 @@ type FilterStringQuery = string | string[] | null | { $not?: string | string[] |
 type FilterNumberQuery = number | number[] | null | { $not?: number | number[] | null; $gt?: number; $gte?: number; $lt?: number; $lte?: number; };
 
 type FindFilter = Partial<{
-  createdAt: FilterDateQuery;
-  updatedAt: FilterDateQuery;
   expiresAt: FilterDateQuery;
   recordKey: FilterStringQuery;
   parentKey: FilterStringQuery;
