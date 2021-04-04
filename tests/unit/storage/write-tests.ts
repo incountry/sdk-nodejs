@@ -16,12 +16,12 @@ import {
   getLoggerCallMeta,
   sdkVersionRegExp,
   checkLoggerMeta,
-  EMPTY_API_RECORD,
+  EMPTY_API_RESPONSE_RECORD,
 } from './common';
 import { VALID_REQUEST_OPTIONS, INVALID_REQUEST_OPTIONS } from '../validation/request-options';
 import { Storage, WriteResult } from '../../../src/storage';
 import { InputValidationError, StorageError } from '../../../src/errors';
-import { COUNTRY_CODE_ERROR_MESSAGE } from '../../../src/validation/country-code';
+import { COUNTRY_CODE_ERROR_MESSAGE } from '../../../src/validation/user-input/country-code';
 import { ApiRecordData } from '../../../src/validation/api/api-record-data';
 import { errorMessageRegExp } from '../../test-helpers/utils';
 
@@ -149,6 +149,21 @@ describe('Storage', () => {
                   const [bodyObj] = await Promise.all<any, WriteResult>([getNockedRequestBodyObject(popAPI), storage.write(COUNTRY, testCase)]);
                   expect(bodyObj.is_encrypted).to.equal(opt.encrypted);
                 });
+
+                if (testCase.expiresAt && testCase.expiresAt instanceof Date) {
+                  it('should parse "expiresAt" as ISO8601', async () => {
+                    const storage = opt.encrypted ? encStorage : noEncStorage;
+
+                    const data = {
+                      ...testCase,
+                      expiresAt: testCase.expiresAt.toISOString(),
+                    };
+                    const [bodyObj, writeRes] = await Promise.all<any, WriteResult>([getNockedRequestBodyObject(popAPI), storage.write(COUNTRY, data)]);
+                    expect(bodyObj.expires_at).to.equal(testCase.expiresAt.toISOString());
+                    expect(writeRes.record.expiresAt).to.be.a('date');
+                    expect(writeRes.record.expiresAt).to.equalDate(testCase.expiresAt);
+                  });
+                }
               });
             });
           });
@@ -282,7 +297,7 @@ describe('Storage', () => {
           const logger = { write: () => { throw new Error('blabla'); } };
 
           const storage = new Storage({ encrypt: true, getSecrets: () => secrets, logger });
-          await expect(storage.write(COUNTRY, { ...EMPTY_API_RECORD, recordKey })).to.be.rejectedWith(StorageError, 'Error during Storage.write() call: blabla');
+          await expect(storage.write(COUNTRY, { ...EMPTY_API_RESPONSE_RECORD, recordKey })).to.be.rejectedWith(StorageError, 'Error during Storage.write() call: blabla');
         });
       });
     });

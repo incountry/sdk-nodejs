@@ -5,6 +5,8 @@ import { pipe } from 'fp-ts/lib/pipeable';
 import {
   isLeft, isRight, Either, fold, either,
 } from 'fp-ts/lib/Either';
+import { DateFromISOString } from 'io-ts-types/lib/DateFromISOString';
+import { date } from 'io-ts-types/lib/date';
 import { getErrorMessage } from './get-error-message';
 import {
   StorageServerError,
@@ -104,15 +106,27 @@ const JSONIO = new t.Type<JSON, string, string>(
   String,
 );
 
+function codecFromValidate<A>(validate: (o: unknown) => o is A, name: string): t.Type<A, A, unknown> {
+  return new t.Type<A>(
+    name,
+    validate,
+    (o, c) => validate(o) ? t.success(o) : t.failure(o, c),
+    t.identity,
+  );
+}
+
 const isReadable = (o: unknown): o is Readable => o instanceof Readable;
 
-const ReadableIO = new t.Type<Readable>(
-  'File',
-  isReadable,
-  (o, c) => isReadable(o) ? t.success(o) : t.failure(o, c),
+const ReadableIO = codecFromValidate(isReadable, 'File');
+
+type DateOr8601 = string | Date;
+
+const DateIO = new t.Type<DateOr8601>(
+  'DateIO',
+  (u): u is DateOr8601 => u instanceof Date ? date.is(u) : isRight(DateFromISOString.decode(u)),
+  (i, c) => i instanceof Date ? date.validate(i, c) : DateFromISOString.validate(i, c),
   t.identity,
 );
-
 
 type Codec<A> = t.Type<A, unknown>;
 type Int = t.Int;
@@ -131,7 +145,7 @@ const chainValidate = <A, B, BO, I>(type: t.Type<B, BO, I>, validate: (u: B) => 
   name || type.name,
   (u): u is A => {
     try {
-      return isRight(validate(u as any));
+      return type.is(u) && isRight(validate(u as any));
     } catch (e) {
       return false;
     }
@@ -162,6 +176,8 @@ export {
   PositiveInt,
   NonNegativeInt,
   ReadableIO,
+  DateOr8601,
+  DateIO,
   optional,
   getErrorMessage,
   isLeft as isInvalid,

@@ -1,5 +1,5 @@
 import * as chai from 'chai';
-import { getStorageRecordDataArrayIO } from '../../../src/validation/storage-record-data-array';
+import { getStorageRecordDataArrayIO, MAX_RECORDS_IN_BATCH } from '../../../src/validation/user-input/storage-record-data-array';
 import { isValid } from '../../../src/validation/utils';
 
 const { expect } = chai;
@@ -22,6 +22,10 @@ const VALID = [
     recordKey: '2', body: null, version: 0, precommitBody: null,
   }],
   [KEYS.reduce((acc, key) => Object.assign(acc, { [key]: dummyString5000 }), { recordKey: '1' })],
+
+  Array(MAX_RECORDS_IN_BATCH).fill('x').map(() => ({ recordKey: '1' })),
+  [{ recordKey: '1', expiresAt: new Date() }],
+  [{ recordKey: '1', expiresAt: new Date().toISOString() }],
 ];
 
 const INVALID = [
@@ -39,6 +43,8 @@ const INVALID = [
   [{ record_key: '' }],
   [{ record_key: 1 }],
   [{ record_key: '', body: 1 }],
+  Array(MAX_RECORDS_IN_BATCH + 1).fill('x').map(() => ({ recordKey: '1' })),
+  [{ recordKey: '1', expiresAt: 'test' }],
 ];
 
 const VALID_NOT_HASHED = [

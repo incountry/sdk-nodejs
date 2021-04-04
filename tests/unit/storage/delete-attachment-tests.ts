@@ -9,7 +9,7 @@ import {
   getDefaultStorage,
 } from './common';
 import { InputValidationError, StorageNetworkError } from '../../../src/errors';
-import { COUNTRY_CODE_ERROR_MESSAGE } from '../../../src/validation/country-code';
+import { COUNTRY_CODE_ERROR_MESSAGE } from '../../../src/validation/user-input/country-code';
 import { nockPopApi } from '../../test-helpers/popapi-nock';
 import { Storage } from '../../../src/storage';
 import { errorMessageRegExp } from '../../test-helpers/utils';

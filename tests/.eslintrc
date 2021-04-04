@@ -4,6 +4,7 @@
         "@typescript-eslint/ban-ts-comment": "warn",
         "@typescript-eslint/ban-ts-ignore": "warn",
         "@typescript-eslint/explicit-function-return-type": "off",
+        "@typescript-eslint/camelcase": "off",
         "no-unused-expressions": "off",
         "no-console": "off"
     }

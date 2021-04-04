@@ -1,8 +1,8 @@
 import dotenv from 'dotenv';
 import * as defaultLogger from '../../src/logger';
 import { createStorage } from '../../src/storage';
-import { StorageOptions } from '../../src/validation/storage-options';
-import { CustomEncryptionConfig } from '../../src/validation/custom-encryption-configs';
+import { StorageOptions } from '../../src/validation/user-input/storage-options';
+import { CustomEncryptionConfig } from '../../src/validation/user-input/custom-encryption-configs';
 
 dotenv.config();
 
@@ -51,7 +51,10 @@ async function createDefaultStorage({
       logger: defaultLogger.withBaseLogLevel('warn'),
     };
     if (authEndpoint) {
-      storageOptions.oauth!.authEndpoints = { default: authEndpoint };
+      storageOptions.oauth = {
+        ...storageOptions.oauth,
+        authEndpoints: { default: authEndpoint },
+      };
     }
   }
 

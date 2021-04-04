@@ -3,7 +3,7 @@ import * as Querystring from 'querystring';
 import * as t from 'io-ts';
 import { StorageAuthenticationError, StorageConfigValidationError } from './errors';
 import { toStorageAuthenticationError, toStorageServerError, isInvalid } from './validation/utils';
-import { OAuthEndpoints } from './validation/storage-options';
+import { OAuthEndpoints } from './validation/user-input/storage-options';
 
 const DEFAULT_REGIONAL_AUTH_ENDPOINTS: OAuthEndpoints = {
   apac: 'https://auth-apac.incountry.com/oauth2/token',
@@ -80,8 +80,8 @@ interface AuthClient {
   getToken: (audience: string, envId: string, region: string, forceRenew?: boolean) => Promise<string>;
 }
 
-const getApiKeyAuthClient = (apiKey: string): AuthClient => ({
-  getToken: () => Promise.resolve(apiKey),
+const getStaticTokenAuthClient = (token: string): AuthClient => ({
+  getToken: () => Promise.resolve(token),
 });
 
 class OAuthClient implements AuthClient {
@@ -154,6 +154,6 @@ class OAuthClient implements AuthClient {
 
 export {
   AuthClient,
-  getApiKeyAuthClient,
+  getStaticTokenAuthClient,
   OAuthClient,
 };

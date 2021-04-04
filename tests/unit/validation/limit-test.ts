@@ -1,5 +1,5 @@
 import * as chai from 'chai';
-import { LimitIO } from '../../../src/validation/limit';
+import { LimitIO } from '../../../src/validation/user-input/limit';
 import { isValid } from '../../../src/validation/utils';
 
 const { expect } = chai;

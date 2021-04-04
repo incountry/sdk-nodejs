@@ -10,9 +10,9 @@ import {
   CUSTOM_ENCRYPTION_ERROR_MESSAGE_ENC,
   CUSTOM_ENCRYPTION_ERROR_MESSAGE_DEC,
   CustomEncryptionConfig,
-} from './validation/custom-encryption-configs';
-import { validateCustomEncryption } from './validation/custom-encryption-configs-deep';
-import { SecretOrKey, isKey } from './validation/secrets-data';
+} from './validation/user-input/custom-encryption-configs';
+import { validateCustomEncryption } from './validation/user-input/custom-encryption-configs-deep';
+import { SecretOrKey, isKey } from './validation/user-input/secrets-data';
 
 const pbkdf2 = util.promisify(crypto.pbkdf2);
 

@@ -1,5 +1,5 @@
-import { StorageCryptoError } from '../errors';
-import { reflect, isRejected, Reflected } from '../utils';
+import { StorageCryptoError } from '../../errors';
+import { reflect, isRejected, Reflected } from '../../utils';
 import {
   CUSTOM_ENCRYPTION_ERROR_MESSAGE_ENC,
   CUSTOM_ENCRYPTION_ERROR_MESSAGE_DEC,

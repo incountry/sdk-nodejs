@@ -6,7 +6,7 @@ import {
   CUSTOM_ENCRYPTION_CONFIG_ERROR_MESSAGE_ARRAY,
   CUSTOM_ENCRYPTION_CONFIG_ERROR_MESSAGE_CURRENT,
   CUSTOM_ENCRYPTION_CONFIG_ERROR_MESSAGE_VERSIONS,
-} from '../../../src/validation/custom-encryption-configs';
+} from '../../../src/validation/user-input/custom-encryption-configs';
 import { createStorage } from '../../../src/storage';
 import { errorMessageRegExp } from '../../test-helpers/utils';
 

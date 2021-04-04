@@ -11,6 +11,7 @@ import {
   StorageAuthenticationError,
   StorageConfigValidationError,
   StorageServerError,
+  InputValidationError,
 } from './errors';
 import { Country } from './countries-cache';
 import { LogLevel } from './logger';
@@ -29,15 +30,15 @@ import { BatchWriteResponseIO, BatchWriteResponse } from './validation/api/batch
 import { DeleteResponseIO, DeleteResponse } from './validation/api/delete-response';
 import { AddAttachmentResponseIO, AddAttachmentResponse } from './validation/api/add-attachment-response';
 import { UpsertAttachmentResponse, UpsertAttachmentResponseIO } from './validation/api/upsert-attachment-response';
-import { FindFilter } from './validation/api/find-filter';
 import { ApiFindOptions } from './validation/api/api-find-options';
 import { ApiRecordData } from './validation/api/api-record-data';
-import { RequestOptions } from './validation/request-options';
-import { AttachmentWritableMeta } from './validation/attachment-writable-meta';
+import { RequestOptions } from './validation/user-input/request-options';
+import { AttachmentWritableMeta } from './validation/user-input/attachment-writable-meta';
 import { UpdateAttachmentMetaResponse, UpdateAttachmentMetaResponseIO } from './validation/api/update-attachment-meta-response';
 import { GetAttachmentMetaResponse, GetAttachmentMetaResponseIO } from './validation/api/get-attachment-meta-response';
 import { getFileNameFromHeaders } from './utils';
-import { AttachmentData } from './validation/api/attachment-data';
+import { AttachmentData } from './validation/user-input/attachment-data';
+import { ApiFindFilter } from './validation/api/api-find-filter';
 
 const pjson = require('../package.json');
 
@@ -69,7 +70,9 @@ type DetailedErrorDescription = {
 const DEFAULT_ENDPOINT_COUNTRY = 'us';
 const DEFAULT_ENDPOINT_SUFFIX = '-mt-01.api.incountry.io';
 const DEFAULT_HTTP_TIMEOUT = 30 * 1000;
-const DEFAULT_HTTP_MAX_BODY_LENGTH = 100 * 1024 * 1024;
+const DEFAULT_HTTP_MAX_BODY_LENGTH = 100 * 1024 * 1024; // 100 Mb
+
+const ATTACHMENT_TOO_LARGE_ERROR_MESSAGE = `Attachment is too large. Max allowed attachment size is ${DEFAULT_HTTP_MAX_BODY_LENGTH} bytes`;
 
 const PoPErrorArray = t.array(t.partial({
   title: t.string,
@@ -218,6 +221,10 @@ class ApiClient {
         responseType: requestOptions.responseType,
       });
     } catch (err) {
+      if (get(err, 'code') === 'ERR_FR_MAX_BODY_LENGTH_EXCEEDED') {
+        throw new InputValidationError(ATTACHMENT_TOO_LARGE_ERROR_MESSAGE);
+      }
+
       if (get(err, 'response.status') === 401 && retry) {
         await this.authClient.getToken(audience, this.envId, region, true);
 
@@ -285,7 +292,7 @@ class ApiClient {
 
   async find(
     countryCode: string,
-    data: { filter?: FindFilter; options?: ApiFindOptions },
+    data: { filter?: ApiFindFilter; options?: ApiFindOptions },
     { headers, meta }: RequestOptions = {},
   ): Promise<FindResponse> {
     const { data: responseData } = await this.request(
@@ -439,6 +446,8 @@ class ApiClient {
 
 export {
   ApiClient,
+  ATTACHMENT_TOO_LARGE_ERROR_MESSAGE,
+  DEFAULT_HTTP_MAX_BODY_LENGTH,
   DEFAULT_HTTP_TIMEOUT,
   DEFAULT_FILE_NAME,
   GetAttachmentFileResponse,

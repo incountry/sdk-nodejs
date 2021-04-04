@@ -47,6 +47,7 @@ type StorageOptions = {
       default: string;
       [key: string]: string;
     };
+    token?: string;         // Used when OAuth token is already acquired prior to Storage initialization. Mutually exclusive with clientId, clientSecret, authEndpoints
   };
 
   endpoint?: string;        // Defines API URL
@@ -121,6 +122,21 @@ const storage = new Storage({
       "apac": "<auth_endpoint_for_apac_region>",
       "amer": "<auth_endpoint_for_amer_region>",
     },
+  },
+});
+```
+
+
+The SDK also allows to use previously acquired oAuth tokens if needed. In this mode SDK is not responsible for oAuth token renewal and it should be done by SDK user himself.
+
+Below you can find the example of how to specify OAuth token while creating a Storage instance:
+```typescript
+const { Storage } = require('incountry');
+const storage = new Storage({
+  environmentId: '<environment_id>',
+  getSecrets: () => '<encryption_secret>',
+  oauth: {
+    token: '<token>',
   },
 });
 ```
@@ -256,6 +272,9 @@ parentKey
 profileKey
 serviceKey1
 serviceKey2
+serviceKey3
+serviceKey4
+serviceKey5
 ```
 ##### String fields, hashed if Storage options "hashSearchKeys" is set to true (by default it is):
 **WARNING** If the `hashSearchKeys` option is set to `false` the following string fields will have length limitation of 256 characters at most.
@@ -303,6 +322,14 @@ rangeKey9
 rangeKey10
 ```
 
+##### Date fields, plain:
+```typescript
+expiresAt
+```
+
+**WARNING** Records with non-null `expiresAt` value will be automatically deleted upon reaching the specified date.
+
+
 ```typescript
 type StorageRecordData = {
   recordKey: string;
@@ -330,6 +357,9 @@ type StorageRecordData = {
   key20?: string | null; // If `hashSearchKeys` is set to `false` key20 has length limit 256
   serviceKey1?: string | null;
   serviceKey2?: string | null;
+  serviceKey2?: string | null;
+  serviceKey4?: string | null;
+  serviceKey5?: string | null;
   body?: string | null;
   precommitBody?: string | null;
   rangeKey1?: t.Int | null;
@@ -342,6 +372,7 @@ type StorageRecordData = {
   rangeKey8?: t.Int | null;
   rangeKey9?: t.Int | null;
   rangeKey10?: t.Int | null;
+  expiresAt?: string | Date | null; // Accepts only ISO-8601 formatted strings, like '2021-03-11T17:23:05.941Z'
 };
 
 type WriteResult = {
@@ -433,6 +464,9 @@ type StorageRecord = {
   key20?: string | null; // If `hashSearchKeys` is set to `false` key20 has length limit 256
   serviceKey1: string | null;
   serviceKey2: string | null;
+  serviceKey3: string | null;
+  serviceKey4: string | null;
+  serviceKey5: string | null;
   rangeKey1: t.Int | null;
   rangeKey2: t.Int | null;
   rangeKey3: t.Int | null;
@@ -445,6 +479,7 @@ type StorageRecord = {
   rangeKey10: t.Int | null;
   createdAt: Date;
   updatedAt: Date;
+  expiresAt: Date | null;
   attachments: StorageRecordAttachment[];
 }
 
@@ -469,6 +504,59 @@ const readResult = await storage.read(countryCode, recordKey);
 ### Find records
 
 You can look up for data records either by using exact match search operators or partial text match operator in almost any combinations.
+
+```typescript
+type DateOr8601 = string | Date; // Accepts only ISO-8601 formatted strings, like '2021-03-11T17:23:05.941Z'
+type FilterDateQuery = DateOr8601 | null | { $not?: DateOr8601 | null; $gt?: DateOr8601; $gte?: DateOr8601; $lt?: DateOr8601; $lte?: DateOr8601; };
+type FilterStringQuery = string | string[] | null | { $not?: string | string[] | null };
+type FilterNumberQuery = number | number[] | null | { $not?: number | number[] | null; $gt?: number; $gte?: number; $lt?: number; $lte?: number; };
+
+type FindFilter = Partial<{
+  expiresAt: FilterDateQuery;
+  recordKey: FilterStringQuery;
+  parentKey: FilterStringQuery;
+  key1: FilterStringQuery;
+  key2: FilterStringQuery;
+  key3: FilterStringQuery;
+  key4: FilterStringQuery;
+  key5: FilterStringQuery;
+  key6: FilterStringQuery;
+  key7: FilterStringQuery;
+  key8: FilterStringQuery;
+  key9: FilterStringQuery;
+  key10: FilterStringQuery;
+  key11: FilterStringQuery;
+  key12: FilterStringQuery;
+  key13: FilterStringQuery;
+  key14: FilterStringQuery;
+  key15: FilterStringQuery;
+  key16: FilterStringQuery;
+  key17: FilterStringQuery;
+  key18: FilterStringQuery;
+  key19: FilterStringQuery;
+  key20: FilterStringQuery;
+  profileKey: FilterStringQuery;
+  serviceKey1: FilterStringQuery;
+  serviceKey2: FilterStringQuery;
+  serviceKey3: FilterStringQuery;
+  serviceKey4: FilterStringQuery;
+  serviceKey5: FilterStringQuery;
+  rangeKey1: FilterNumberQuery;
+  rangeKey2: FilterNumberQuery;
+  rangeKey3: FilterNumberQuery;
+  rangeKey4: FilterNumberQuery;
+  rangeKey5: FilterNumberQuery;
+  rangeKey6: FilterNumberQuery;
+  rangeKey7: FilterNumberQuery;
+  rangeKey8: FilterNumberQuery;
+  rangeKey9: FilterNumberQuery;
+  rangeKey10: FilterNumberQuery;
+  version: FilterNumberQuery;
+  searchKeys: string;
+}>;
+
+```
+
 
 ##### Exact match search
 
@@ -529,13 +617,14 @@ The `options` parameter provides the following choices to manipulate the search 
 - `offset` allows to specify the starting index used for records pagination;
 - `sort` allows to sort the returned records by one or multiple keys;
 
-**WARNING** To use `sort` in find() call for string keys `key1...key20` you need to set  `hashSearchKeys` option to `false`.
+**WARNING** To use `sort` in find() call for string keys `key1...key20` you need to set `hashSearchKeys` option to `false`.
 
 ##### Fields that records can be sorted by:
 ```typescript
 type SortKey =
   | 'createdAt'
   | 'updatedAt'
+  | 'expiresAt'
   | 'key1'
   | 'key2'
   | 'key3'
@@ -572,22 +661,6 @@ Note: The SDK returns 100 records at most.
 
 
 ```typescript
-type FilterStringValue = string | string[] | null;
-type FilterStringQuery = FilterStringValue | { $not?: FilterStringValue };
-
-type FilterNumberValue = number | number[] | null;
-type FilterNumberQuery =
-  FilterNumberValue |
-  {
-    $not?: FilterNumberValue;
-    $gt?: number;
-    $gte?: number;
-    $lt?: number;
-    $lte?: number;
-  };
-
-type FindFilter = Record<string, FilterStringQuery | FilterNumberQuery>;
-
 type SortItem = Partial<Record<SortKey, 'asc' | 'desc'>>; // each sort item should describe only one key!
 
 type FindOptions = {
@@ -673,7 +746,7 @@ In such cases data returned by the find() method will be as follows:
 ### Find one record matching a filter
 
 If you need to find only one of the records matching a specific filter, you can use the `findOne` method.
-If a record is not found, it returns `null`.
+If a record is not found, it returns `{ record: null }`.
 
 ```typescript
 type FindOneResult = {
@@ -752,6 +825,8 @@ type StorageRecordAttachment = {
 The `addAttachment` method allows you to add or replace attachments.
 File data can be provided either as `Readable` stream, `Buffer` or `string` with a path to the file in the file system.
 
+Note: attaching file with size exceeding 100 Mb is not supported at the moment.
+
 ```typescript
 type AttachmentData = {
   file: Readable | Buffer | string;
@@ -785,7 +860,7 @@ await storage.addAttachment(COUNTRY, recordData.recordKey, { file });
 The `deleteAttachment` method allows you to delete attachment using its `fileId`.
 
 ```typescript
-deleteAttachment(
+async deleteAttachment(
   countryCode: string,
   recordKey: string,
   fileId: string,

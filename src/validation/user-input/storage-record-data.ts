@@ -1,5 +1,7 @@
 import * as t from 'io-ts';
-import { Codec, StringMax256 } from './utils';
+import {
+  Codec, StringMax256, DateOr8601, DateIO,
+} from '../utils';
 
 type StorageRecordData = {
   recordKey: string;
@@ -29,6 +31,9 @@ type StorageRecordData = {
   parentKey?: string | null;
   serviceKey1?: string | null;
   serviceKey2?: string | null;
+  serviceKey3?: string | null;
+  serviceKey4?: string | null;
+  serviceKey5?: string | null;
   rangeKey1?: t.Int | null;
   rangeKey2?: t.Int | null;
   rangeKey3?: t.Int | null;
@@ -39,6 +44,7 @@ type StorageRecordData = {
   rangeKey8?: t.Int | null;
   rangeKey9?: t.Int | null;
   rangeKey10?: t.Int | null;
+  expiresAt?: DateOr8601 | null;
 };
 
 const getStorageRecordDataIO = (params: { hashSearchKeys: boolean }): Codec<StorageRecordData> => {
@@ -74,6 +80,9 @@ const getStorageRecordDataIO = (params: { hashSearchKeys: boolean }): Codec<Stor
       precommitBody: t.union([t.string, t.null]),
       serviceKey1: t.union([t.string, t.null]),
       serviceKey2: t.union([t.string, t.null]),
+      serviceKey3: t.union([t.string, t.null]),
+      serviceKey4: t.union([t.string, t.null]),
+      serviceKey5: t.union([t.string, t.null]),
       rangeKey1: t.union([t.Int, t.null]),
       rangeKey2: t.union([t.Int, t.null]),
       rangeKey3: t.union([t.Int, t.null]),
@@ -84,6 +93,7 @@ const getStorageRecordDataIO = (params: { hashSearchKeys: boolean }): Codec<Stor
       rangeKey8: t.union([t.Int, t.null]),
       rangeKey9: t.union([t.Int, t.null]),
       rangeKey10: t.union([t.Int, t.null]),
+      expiresAt: t.union([DateIO, t.null]),
     }),
   ], 'Record');
 };

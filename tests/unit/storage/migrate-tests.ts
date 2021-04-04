@@ -7,16 +7,17 @@ import { Storage, MigrateResult, FIND_LIMIT } from '../../../src/storage';
 import {
   COUNTRY,
   TEST_RECORDS,
-  EMPTY_API_RECORD,
+  EMPTY_API_RESPONSE_RECORD,
   POPAPI_HOST,
   getDefaultFindResponse,
   noop,
   SECRET_KEY,
   getDefaultStorage,
+  ApiResponseRecord,
+  toApiRecord,
 } from './common';
 import { InputValidationError, StorageConfigValidationError, StorageError } from '../../../src/errors';
 import { nockPopApi, getNockedRequestBodyObject } from '../../test-helpers/popapi-nock';
-import { ApiRecord } from '../../../src/validation/api/api-record';
 import { VALID_REQUEST_OPTIONS, INVALID_REQUEST_OPTIONS } from '../validation/request-options';
 
 
@@ -66,7 +67,7 @@ describe('Storage', () => {
         it('should migrate data from old secret to new', async () => {
           const encryptedRecords = await Promise.all(TEST_RECORDS.map((record) => encStorage.encryptPayload(record)));
           const apiRecords = encryptedRecords.map((record) => ({
-            ...EMPTY_API_RECORD,
+            ...EMPTY_API_RESPONSE_RECORD,
             ...record,
             body: record.body || '',
           }));
@@ -98,7 +99,7 @@ describe('Storage', () => {
       });
 
       it('should not throw error if no records found to migrate', async () => {
-        const apiRecords: ApiRecord[] = [];
+        const apiRecords: ApiResponseRecord[] = [];
 
         const oldSecret = { secret: SECRET_KEY, version: 1 };
         const newSecret = { secret: 'keykey', version: 2 };
@@ -118,13 +119,13 @@ describe('Storage', () => {
 
       it('should not throw error if cannot decrypt some record', async () => {
         const encryptedRecords = await Promise.all(TEST_RECORDS.map((record) => encStorage.encryptPayload(record)));
-        const apiRecords = encryptedRecords.map((record) => ({
-          ...EMPTY_API_RECORD,
+        const apiResponseRecords = encryptedRecords.map((record) => ({
+          ...EMPTY_API_RESPONSE_RECORD,
           ...record,
           body: record.body || '',
         }));
 
-        apiRecords[0].body = '1234578';
+        apiResponseRecords[0].body = '1234578';
 
         const oldSecret = { secret: SECRET_KEY, version: 0 };
         const newSecret = { secret: 'keykey', version: 2 };
@@ -134,15 +135,15 @@ describe('Storage', () => {
           currentVersion: newSecret.version,
         }));
 
-        const response = getDefaultFindResponse(apiRecords);
+        const response = getDefaultFindResponse(apiResponseRecords);
         nockPopApi(POPAPI_HOST).find(COUNTRY)
           .reply(200, response);
 
         nockPopApi(POPAPI_HOST).batchWrite(COUNTRY).reply(200, 'OK');
 
-        const result = await encStorage2.migrate(COUNTRY, apiRecords.length);
+        const result = await encStorage2.migrate(COUNTRY, apiResponseRecords.length);
         expect(result.meta.errors).to.have.length(1);
-        expect(result.meta.errors).to.have.deep.nested.property('[0].rawData', apiRecords[0]);
+        expect(result.meta.errors).to.have.deep.nested.property('[0].rawData', toApiRecord(apiResponseRecords[0]));
       });
 
       describe('arguments', () => {

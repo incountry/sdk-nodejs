@@ -1,8 +1,10 @@
 import * as chai from 'chai';
 import sinonChai from 'sinon-chai';
 import chaiAsPromised from 'chai-as-promised';
+import nock from 'nock';
 import { createStorage } from '../../../src/storage';
 import { CountriesCache } from '../../../src/countries-cache';
+import { OAuthClient } from '../../../src/auth-client';
 import { SecretsValidationError, StorageConfigValidationError } from '../../../src/errors';
 import { errorMessageRegExp } from '../../test-helpers/utils';
 
@@ -234,6 +236,60 @@ describe('Storage', () => {
                   },
                 },
               })).not.to.be.rejected;
+            });
+          });
+
+          describe('when oauth.token provided', () => {
+            let envApiKey: string | undefined;
+            const token = 'token';
+            const options = {
+              environmentId: 'envId',
+              encrypt: false,
+              oauth: { token },
+            };
+
+            beforeEach(() => {
+              envApiKey = process.env.INC_API_KEY;
+              delete process.env.INC_API_KEY;
+              nock.disableNetConnect();
+            });
+
+            afterEach(() => {
+              process.env.INC_API_KEY = envApiKey;
+              nock.cleanAll();
+              nock.enableNetConnect();
+            });
+
+            it('should ignore presence/absence of apiKey, clientId, clientSecret in environment variables', async () => {
+              await expect(createStorage(options)).not.to.be.rejected;
+
+              process.env.INC_API_KEY = envApiKey;
+              await expect(createStorage(options)).not.to.be.rejected;
+
+              process.env.INC_CLIENT_ID = 'clientId';
+              await expect(createStorage(options)).not.to.be.rejected;
+
+              process.env.INC_CLIENT_SECRET = 'clientSecret';
+              await expect(createStorage(options)).not.to.be.rejected;
+            });
+
+            it('should use StaticTokenAuthClient', async () => {
+              const storage = await createStorage(options);
+              expect(storage.authClient).not.to.be.instanceOf(OAuthClient);
+              const actualToken = await storage.authClient.getToken('', '', '');
+              expect(actualToken).to.eq(token);
+            });
+
+            it('should throw error when other OAuth options are present except token', async () => {
+              const invalidOAuthOptions = [
+                { token, clientId: 'clientId', clientSecret: 'clientSecret' },
+                { token, key: 'key' },
+              ];
+              await Promise.all(invalidOAuthOptions.map(async (oauth) => expect(createStorage({ ...options, oauth }))
+                .to.be.rejectedWith(
+                  StorageConfigValidationError,
+                  'Storage.constructor() Validation Error: <StorageOptions>.oauth should be OAuthOptions but got',
+                )));
             });
           });
         });

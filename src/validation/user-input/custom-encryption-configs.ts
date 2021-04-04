@@ -1,6 +1,6 @@
 import * as t from 'io-ts';
 import { either } from 'fp-ts/lib/Either';
-import { Override } from '../utils';
+import { Override } from '../../utils';
 
 const CUSTOM_ENCRYPTION_CONFIG_ERROR_MESSAGE_ARRAY = 'Custom encryption configs should be an array';
 const CUSTOM_ENCRYPTION_CONFIG_ERROR_MESSAGE_VERSIONS = 'Custom encryption configs should have unique versions';

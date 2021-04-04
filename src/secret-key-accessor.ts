@@ -1,5 +1,5 @@
 import { validationToPromise, toSecretsValidationError, NonNegativeInt } from './validation/utils';
-import { SecretsDataIO, SecretsData, SecretOrKey } from './validation/secrets-data';
+import { SecretsDataIO, SecretsData, SecretOrKey } from './validation/user-input/secrets-data';
 import { SecretsValidationError, SecretsProviderError } from './errors';
 
 const DEFAULT_VERSION = 0 as NonNegativeInt;

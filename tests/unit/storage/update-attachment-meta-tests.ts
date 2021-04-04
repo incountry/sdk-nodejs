@@ -7,13 +7,13 @@ import {
   COUNTRY,
   REQUEST_TIMEOUT_ERROR,
   getDefaultStorage,
-  EMPTY_API_ATTACHMENT_META,
+  EMPTY_API_RESPONSE_ATTACHMENT_META,
 } from './common';
 import { InputValidationError, StorageNetworkError } from '../../../src/errors';
-import { COUNTRY_CODE_ERROR_MESSAGE } from '../../../src/validation/country-code';
+import { COUNTRY_CODE_ERROR_MESSAGE } from '../../../src/validation/user-input/country-code';
 import { nockPopApi } from '../../test-helpers/popapi-nock';
 import { Storage } from '../../../src/storage';
-import { AttachmentWritableMeta } from '../../../src/validation/attachment-writable-meta';
+import { AttachmentWritableMeta } from '../../../src/validation/user-input/attachment-writable-meta';
 import { errorMessageRegExp } from '../../test-helpers/utils';
 
 chai.use(chaiAsPromised);
@@ -90,13 +90,13 @@ describe('Storage', () => {
           const storage = await getDefaultStorage();
           const { record_key: hashedKey } = await storage.encryptPayload({ recordKey });
 
-          nockPopApi(POPAPI_HOST).updateAttachmentMeta(country, hashedKey, fileId).reply(200, EMPTY_API_ATTACHMENT_META);
+          nockPopApi(POPAPI_HOST).updateAttachmentMeta(country, hashedKey, fileId).reply(200, EMPTY_API_RESPONSE_ATTACHMENT_META);
           await storage.updateAttachmentMeta('uS', recordKey, fileId, fileMeta);
 
-          nockPopApi(POPAPI_HOST).updateAttachmentMeta(country, hashedKey, fileId).reply(200, EMPTY_API_ATTACHMENT_META);
+          nockPopApi(POPAPI_HOST).updateAttachmentMeta(country, hashedKey, fileId).reply(200, EMPTY_API_RESPONSE_ATTACHMENT_META);
           await storage.updateAttachmentMeta('Us', recordKey, fileId, fileMeta);
 
-          nockPopApi(POPAPI_HOST).updateAttachmentMeta(country, hashedKey, fileId).reply(200, EMPTY_API_ATTACHMENT_META);
+          nockPopApi(POPAPI_HOST).updateAttachmentMeta(country, hashedKey, fileId).reply(200, EMPTY_API_RESPONSE_ATTACHMENT_META);
           await storage.updateAttachmentMeta('US', recordKey, fileId, fileMeta);
         });
       });

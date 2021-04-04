@@ -1,8 +1,9 @@
 import * as t from 'io-ts';
-import { Override } from '../utils';
-import { CountriesCache } from '../countries-cache';
+import { Override } from '../../utils';
+import { CountriesCache } from '../../countries-cache';
 import { Logger, LoggerIO } from './logger';
-import { NonNegativeInt, Codec } from './utils';
+import { NonNegativeInt, Codec } from '../utils';
+import { exact } from '../exact';
 
 const OAUTH_ENDPOINTS_ERROR_MESSAGE = 'authEndpoints should be an object containing "default" key';
 const OAUTH_ENDPOINTS_VALUES_ERROR_MESSAGE = 'authEndpoints values should be a string';
@@ -12,19 +13,25 @@ type OAuthEndpoints = {
   [key: string]: string;
 };
 
-type OAuthOptions = {
+type OAuthCredentials = {
   clientId?: string;
   clientSecret?: string;
   authEndpoints?: OAuthEndpoints;
 };
 
+type OAuthToken = {
+  token: string;
+};
+
+type OAuthOptions = OAuthCredentials | OAuthToken;
+
 const OAuthEndpointsIO: t.Type<OAuthEndpoints> = new t.Type(
   'OAuthEndpoints',
-  (u): u is OAuthEndpoints => t.object.is(u)
+  (u): u is OAuthEndpoints => t.UnknownRecord.is(u)
     && Object.keys(u).map((k) => k.toLowerCase()).includes('default')
     && Object.values(u).reduce((acc: boolean, v: unknown) => acc && t.string.is(v), true),
   (u, c) => {
-    if (!t.object.is(u)) {
+    if (!t.UnknownRecord.is(u)) {
       return t.failure(u, c, OAUTH_ENDPOINTS_ERROR_MESSAGE);
     }
 
@@ -49,11 +56,17 @@ const OAuthEndpointsIO: t.Type<OAuthEndpoints> = new t.Type(
   Object,
 );
 
-const OAuthOptionsIO: t.Type<OAuthOptions> = t.partial({
+const OAuthCredentialsIO: t.Type<OAuthCredentials> = exact(t.partial({
   clientId: t.string,
   clientSecret: t.string,
   authEndpoints: OAuthEndpointsIO,
-}, 'OAuthOptions');
+}, 'OAuthCredentials'));
+
+const OAuthTokenIO: t.Type<OAuthToken> = exact(t.type({
+  token: t.string,
+}, 'OAuthToken'));
+
+const OAuthOptionsIO: t.Type<OAuthOptions> = t.union([OAuthTokenIO, OAuthCredentialsIO], 'OAuthOptions');
 
 type StorageOptions = {
   endpoint?: string;
@@ -109,6 +122,7 @@ export {
   OAuthEndpoints,
   OAuthEndpointsIO,
   OAuthOptions,
+  OAuthOptionsIO,
   StorageOptions,
   StorageOptionsIO,
 };
