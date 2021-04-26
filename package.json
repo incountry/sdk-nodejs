@@ -47,7 +47,7 @@
     "prepublish": "npm run build",
     "postinstall": "[ ! -f ./lib/storage.js ] && npm i typescript@3.8.3 && npm run build || true"
   },
-  "version": "3.4.1",
+  "version": "3.5.0",
   "devDependencies": {
     "@istanbuljs/nyc-config-typescript": "1.0.1",
     "@types/chai": "4.2.11",
