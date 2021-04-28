@@ -12,7 +12,6 @@ const DEFAULT_SECRET = () => 'supersecret';
 
 type createDefaultStorageOptions = {
   encryption: boolean;
-  useOAuth?: boolean;
   normalizeKeys?: boolean;
   getSecrets?: StorageOptions['getSecrets'];
   hashSearchKeys?: boolean;
@@ -21,15 +20,18 @@ type createDefaultStorageOptions = {
 
 async function createDefaultStorage({
   encryption,
-  useOAuth = false,
   normalizeKeys = false,
   getSecrets = DEFAULT_SECRET,
   hashSearchKeys,
   customEncConfigs,
 }: createDefaultStorageOptions) {
-  let storageOptions: StorageOptions = {
-    apiKey: process.env.INC_API_KEY,
-    environmentId: process.env.INC_ENVIRONMENT_ID,
+  const storageOptions: StorageOptions = {
+    environmentId: process.env.INT_INC_ENVIRONMENT_ID_OAUTH,
+    oauth: {
+      clientId: process.env.INT_INC_CLIENT_ID,
+      clientSecret: process.env.INT_INC_CLIENT_SECRET,
+    },
+    logger: defaultLogger.withBaseLogLevel('warn'),
     endpoint: process.env.INC_URL,
     encrypt: encryption,
     normalizeKeys,
@@ -38,24 +40,12 @@ async function createDefaultStorage({
     hashSearchKeys,
   };
 
-  if (useOAuth) {
-    delete storageOptions.apiKey;
-    const authEndpoint = process.env.INT_INC_DEFAULT_AUTH_ENDPOINT;
-    storageOptions = {
-      ...storageOptions,
-      environmentId: process.env.INT_INC_ENVIRONMENT_ID_OAUTH,
-      oauth: {
-        clientId: process.env.INT_INC_CLIENT_ID,
-        clientSecret: process.env.INT_INC_CLIENT_SECRET,
-      },
-      logger: defaultLogger.withBaseLogLevel('warn'),
+  const authEndpoint = process.env.INT_INC_DEFAULT_AUTH_ENDPOINT;
+  if (authEndpoint) {
+    storageOptions.oauth = {
+      ...storageOptions.oauth,
+      authEndpoints: { default: authEndpoint },
     };
-    if (authEndpoint) {
-      storageOptions.oauth = {
-        ...storageOptions.oauth,
-        authEndpoints: { default: authEndpoint },
-      };
-    }
   }
 
   return createStorage(storageOptions, customEncConfigs);

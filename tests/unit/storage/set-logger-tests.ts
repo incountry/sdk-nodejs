@@ -11,8 +11,8 @@ describe('Storage', () => {
 
       beforeEach(async () => {
         storage = await createStorage({
-          apiKey: 'apiKey',
           environmentId: 'envId',
+          oauth: { clientId: 'clientId', clientSecret: 'clientSecret' },
           encrypt: false,
         });
       });

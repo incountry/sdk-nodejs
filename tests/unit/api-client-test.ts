@@ -82,11 +82,11 @@ function createFakeCountriesCache(countries: Country[]) {
   return countriesCache;
 }
 
-const getApiClient = (host?: string, cache?: CountriesCache, useApiKey = true, endpointMask?: string) => {
-  const apiKey = 'string';
+const getApiClient = (host?: string, cache?: CountriesCache, useStaticToken = false, endpointMask?: string) => {
+  const token = 'string';
   const environmentId = 'string';
   const loggerFn = (level: string, message: string, meta?: any) => [level, message, meta];
-  const authClient = useApiKey ? getStaticTokenAuthClient(apiKey) : new OAuthClient('clientId', 'clientSecret');
+  const authClient = useStaticToken ? getStaticTokenAuthClient(token) : new OAuthClient('clientId', 'clientSecret');
   const countryFn = cache ? cache.getCountries.bind(cache, undefined) : () => Promise.resolve([]);
 
   return new ApiClient(authClient, environmentId, host, loggerFn, countryFn, endpointMask);
@@ -291,7 +291,7 @@ describe('ApiClient', () => {
     let apiClient: ApiClient;
 
     beforeEach(() => {
-      apiClient = getApiClient(POPAPI_HOST);
+      apiClient = getApiClient(POPAPI_HOST, undefined, true);
     });
 
     describe('errors handling', () => {

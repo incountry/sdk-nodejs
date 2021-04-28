@@ -296,7 +296,12 @@ describe('Storage', () => {
 
           const logger = { write: () => { throw new Error('blabla'); } };
 
-          const storage = new Storage({ encrypt: true, getSecrets: () => secrets, logger });
+          const storage = new Storage({
+            encrypt: true,
+            getSecrets: () => secrets,
+            logger,
+            oauth: { token: 'token' },
+          });
           await expect(storage.write(COUNTRY, { ...EMPTY_API_RESPONSE_RECORD, recordKey })).to.be.rejectedWith(StorageError, 'Error during Storage.write() call: blabla');
         });
       });

@@ -37,7 +37,6 @@ Below you can find a full list of possible configuration options for creating a 
 
 ```typescript
 type StorageOptions = {
-  apiKey?: string;          // Required when using API key authorization, or as the INC_API_KEY environment variable
   environmentId?: string;   // Required to be passed in, or as the INC_ENVIRONMENT_ID environment variable
 
   oauth?: {
@@ -83,22 +82,6 @@ async function createStorage(
 ): Promise<Storage> {
   /* ... */
 }
-```
-
----
-**WARNING**
-
-API Key authorization is being deprecated. The backward compatibility is preserved for the `apiKey` parameter but you no longer can access API keys (neither old nor new) from your dashboard.
-
-Below you can find API Key authorization usage example:
-
-```typescript
-const { createStorage } = require('incountry');
-const storage = await createStorage({
-  apiKey: '<api_key>',
-  environmentId: '<environment_id>',
-  getSecrets: () => '<encryption_secret>',
-});
 ```
 
 ---
@@ -234,8 +217,8 @@ const customLogger = {
 };
 
 const storage = await createStorage({
-  apiKey: '',
   environmentId: '',
+  oauth: { clientId: 'clientId', clientSecret: 'clientSecret' },
   getSecrets: () => '',
   logger: customLogger
 });
