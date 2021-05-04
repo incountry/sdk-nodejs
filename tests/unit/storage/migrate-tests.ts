@@ -83,7 +83,7 @@ describe('Storage', () => {
 
           const popAPIFind = nockPopApi(POPAPI_HOST).find(COUNTRY)
             .reply(200, getDefaultFindResponse(apiRecords));
-          const popAPIBatchWrite = nockPopApi(POPAPI_HOST).batchWrite(COUNTRY).reply(200, 'OK');
+          const popAPIBatchWrite = nockPopApi(POPAPI_HOST).batchWrite(COUNTRY).reply(200, apiRecords);
 
           const [findBodyObj, , result] = await Promise.all<any, any, MigrateResult>([
             getNockedRequestBodyObject(popAPIFind),
@@ -139,7 +139,7 @@ describe('Storage', () => {
         nockPopApi(POPAPI_HOST).find(COUNTRY)
           .reply(200, response);
 
-        nockPopApi(POPAPI_HOST).batchWrite(COUNTRY).reply(200, 'OK');
+        nockPopApi(POPAPI_HOST).batchWrite(COUNTRY).reply(200, apiResponseRecords);
 
         const result = await encStorage2.migrate(COUNTRY, apiResponseRecords.length);
         expect(result.meta.errors).to.have.length(1);

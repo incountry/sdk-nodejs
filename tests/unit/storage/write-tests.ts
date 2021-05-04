@@ -65,7 +65,7 @@ describe('Storage', () => {
       let popAPI: nock.Scope;
 
       beforeEach(() => {
-        popAPI = nockPopApi(POPAPI_HOST).write(COUNTRY).reply(200, 'OK', popapiResponseHeaders);
+        popAPI = nockPopApi(POPAPI_HOST).write(COUNTRY).reply(200, EMPTY_API_RESPONSE_RECORD, popapiResponseHeaders);
       });
 
       describe('arguments validation', () => {
@@ -140,7 +140,8 @@ describe('Storage', () => {
                   const [bodyObj, result] = await Promise.all<any, WriteResult>([getNockedRequestBodyObject(popAPI), storage.write(COUNTRY, testCase)]);
                   expect(_.omit(bodyObj, ['body', 'precommit_body'])).to.deep.equal(_.omit(encrypted, ['body', 'precommit_body']));
                   expect(bodyObj.body).to.match(opt.bodyRegExp);
-                  expect(result.record).to.deep.equal(testCase);
+                  expect(result.record).to.deep.include(testCase);
+                  expect(result.record).to.contain.keys('createdAt', 'updatedAt');
                 });
 
                 it('should set "is_encrypted"', async () => {
@@ -211,7 +212,8 @@ describe('Storage', () => {
 
               const [bodyObj, result] = await Promise.all<any, WriteResult>([getNockedRequestBodyObject(popAPI), storage.write(COUNTRY, testCase)]);
               expect(bodyObj.body).to.equal(encryptedPayload.body);
-              expect(result.record).to.deep.equal(testCase);
+              expect(result.record).to.deep.include(testCase);
+              expect(result.record).to.contain.keys('createdAt', 'updatedAt');
             });
           });
         });
@@ -267,13 +269,13 @@ describe('Storage', () => {
 
           const storage = await getDefaultStorage();
 
-          nockPopApi(POPAPI_HOST).write(country).reply(200, 'OK');
+          nockPopApi(POPAPI_HOST).write(country).reply(200, EMPTY_API_RESPONSE_RECORD);
           await storage.write('uS', { recordKey: '123' });
 
-          nockPopApi(POPAPI_HOST).write(country).reply(200, 'OK');
+          nockPopApi(POPAPI_HOST).write(country).reply(200, EMPTY_API_RESPONSE_RECORD);
           await storage.write('Us', { recordKey: '123' });
 
-          nockPopApi(POPAPI_HOST).write(country).reply(200, 'OK');
+          nockPopApi(POPAPI_HOST).write(country).reply(200, EMPTY_API_RESPONSE_RECORD);
           await storage.write('US', { recordKey: '123' });
         });
       });

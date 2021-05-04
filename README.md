@@ -358,8 +358,13 @@ type StorageRecordData = {
   expiresAt?: string | Date | null; // Accepts only ISO-8601 formatted strings, like '2021-03-11T17:23:05.941Z'
 };
 
+interface StorageRecordWrittenData extends StorageRecordData {
+  createdAt?: Date | null;
+  updatedAt?: Date | null;
+}
+
 type WriteResult = {
-  record: StorageRecordData;
+  record: StorageRecordWrittenData;
 };
 
 async write(
@@ -392,7 +397,7 @@ You can use the `batchWrite` method to create/replace multiple records at once.
 
 ```typescript
 type BatchWriteResult = {
-  records: Array<StorageRecordData>;
+  records: Array<StorageRecordWrittenData>;
 };
 
 async batchWrite(

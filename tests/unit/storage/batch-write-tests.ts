@@ -69,7 +69,7 @@ describe('Storage', () => {
       let popAPI: nock.Scope;
 
       beforeEach(() => {
-        popAPI = nockPopApi(POPAPI_HOST).batchWrite(COUNTRY).reply(200, 'OK', popapiResponseHeaders);
+        popAPI = nockPopApi(POPAPI_HOST).batchWrite(COUNTRY).reply(200, [EMPTY_API_RESPONSE_RECORD], popapiResponseHeaders);
       });
 
       describe('arguments', () => {
@@ -249,13 +249,13 @@ describe('Storage', () => {
 
           const storage = await getDefaultStorage();
 
-          nockPopApi(POPAPI_HOST).batchWrite(country).reply(200, 'OK');
+          nockPopApi(POPAPI_HOST).batchWrite(country).reply(200, [EMPTY_API_RESPONSE_RECORD]);
           await storage.batchWrite('uS', [{ recordKey: '123' }]);
 
-          nockPopApi(POPAPI_HOST).batchWrite(country).reply(200, 'OK');
+          nockPopApi(POPAPI_HOST).batchWrite(country).reply(200, [EMPTY_API_RESPONSE_RECORD]);
           await storage.batchWrite('Us', [{ recordKey: '123' }]);
 
-          nockPopApi(POPAPI_HOST).batchWrite(country).reply(200, 'OK');
+          nockPopApi(POPAPI_HOST).batchWrite(country).reply(200, [EMPTY_API_RESPONSE_RECORD]);
           await storage.batchWrite('US', [{ recordKey: '123' }]);
         });
       });

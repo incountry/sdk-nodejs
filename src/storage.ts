@@ -44,7 +44,7 @@ import { AuthClient, getStaticTokenAuthClient, OAuthClient } from './auth-client
 import { normalizeErrors } from './normalize-errors-decorator';
 import { FindResponseMeta } from './validation/api/find-response';
 import { ApiRecord, ApiRecordBodyIO } from './validation/api/api-record';
-import { StorageRecordData, getStorageRecordDataIO } from './validation/user-input/storage-record-data';
+import { StorageRecordData, StorageRecordWrittenData, getStorageRecordDataIO } from './validation/user-input/storage-record-data';
 import { ApiRecordData, apiRecordDataFromStorageRecordData } from './validation/api/api-record-data';
 import { RequestOptionsIO, RequestOptions } from './validation/user-input/request-options';
 import { AttachmentWritableMeta, AttachmentWritableMetaIO } from './validation/user-input/attachment-writable-meta';
@@ -81,7 +81,7 @@ type BodyForEncryption = {
 };
 
 type WriteResult = {
-  record: StorageRecordData;
+  record: StorageRecordWrittenData;
 };
 
 type BatchWriteResult = {
@@ -223,8 +223,14 @@ class Storage {
     requestOptions: RequestOptions = {},
   ): Promise<WriteResult> {
     const data = await this.encryptPayload(recordData, requestOptions.meta);
-    await this.apiClient.write(countryCode, data, requestOptions);
-    return { record: recordData };
+    const responseData = await this.apiClient.write(countryCode, data, requestOptions);
+    return {
+      record: {
+        ...recordData,
+        createdAt: responseData.created_at,
+        updatedAt: responseData.updated_at,
+      },
+    };
   }
 
   @validate(CountryCodeIO, getStorageRecordDataArrayIO, optional(RequestOptionsIO))
@@ -235,8 +241,20 @@ class Storage {
     requestOptions: RequestOptions = {},
   ): Promise<BatchWriteResult> {
     const encryptedRecords = await Promise.all(records.map((r) => this.encryptPayload(r, requestOptions.meta)));
-    await this.apiClient.batchWrite(countryCode, { records: encryptedRecords }, requestOptions);
-    return { records };
+    const responseRecords = await this.apiClient.batchWrite(countryCode, { records: encryptedRecords }, requestOptions);
+    const recordsTimestamps = responseRecords.reduce((acc: Record<string, Partial<StorageRecord>>, rec) => ({
+      ...acc,
+      [rec.record_key]: {
+        createdAt: rec.created_at,
+        updatedAt: rec.updated_at,
+      },
+    }), {});
+    return {
+      records: records.map((rec) => ({
+        ...rec,
+        ...recordsTimestamps[this.createKeyHash(this.normalizeKey(rec.recordKey))],
+      })),
+    };
   }
 
   @validate(CountryCodeIO, optional(FindFilterIO), optional(FindOptionsIO), optional(RequestOptionsIO))

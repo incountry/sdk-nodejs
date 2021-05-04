@@ -269,7 +269,7 @@ class ApiClient {
   }
 
   async write(countryCode: string, data: ApiRecordData, { headers, meta }: RequestOptions = {}): Promise<WriteResponse> {
-    return this.request(
+    const { data: responseData } = await this.request(
       countryCode,
       `v2/storage/records/${countryCode}`,
       { headers, method: 'post', data },
@@ -277,6 +277,7 @@ class ApiClient {
       { key: data.record_key, operation: 'write', ...meta },
       true,
     );
+    return responseData;
   }
 
   async delete(countryCode: string, recordKey: string, { headers, meta }: RequestOptions = {}): Promise<DeleteResponse> {
@@ -311,7 +312,7 @@ class ApiClient {
     data: { records: ApiRecordData[] },
     { headers, meta }: RequestOptions = {},
   ): Promise<BatchWriteResponse> {
-    return this.request(
+    const { data: responseData } = await this.request(
       countryCode,
       `v2/storage/records/${countryCode}/batchWrite`,
       { headers, method: 'post', data },
@@ -319,6 +320,7 @@ class ApiClient {
       { operation: 'batchWrite', ...meta },
       true,
     );
+    return responseData;
   }
 
   async addAttachment(
