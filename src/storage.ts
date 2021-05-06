@@ -130,6 +130,10 @@ type GetAttachmentFileResult = {
   attachmentData: GetAttachmentFileResponse;
 }
 
+type HealthcheckResult = {
+  result: boolean;
+}
+
 class Storage {
   envId: string;
   encryptionEnabled: boolean;
@@ -423,6 +427,22 @@ class Storage {
     const key = this.createKeyHash(this.normalizeKey(recordKey));
     const attachment = await this.apiClient.getAttachmentMeta(countryCode, key, fileId, requestOptions);
     return { attachmentMeta: fromApiRecordAttachment(attachment) };
+  }
+
+  @validate(CountryCodeIO, optional(RequestOptionsIO))
+  @normalizeErrors()
+  async healthcheck(
+    countryCode: string,
+    requestOptions: RequestOptions = {},
+  ): Promise<HealthcheckResult> {
+    let result;
+    try {
+      await this.apiClient.healthcheck(countryCode, requestOptions);
+      result = true;
+    } catch (e) {
+      result = false;
+    }
+    return { result };
   }
 
   async validate(): Promise<void> {
