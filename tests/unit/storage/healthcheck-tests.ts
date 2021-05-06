@@ -1,6 +1,5 @@
 import * as chai from 'chai';
 import * as sinon from 'sinon';
-import * as _ from 'lodash';
 import { v4 as uuid } from 'uuid';
 import sinonChai from 'sinon-chai';
 import chaiAsPromised from 'chai-as-promised';
