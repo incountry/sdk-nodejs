@@ -10,8 +10,8 @@ describe('Storage', () => {
     describe('setCountriesCache', () => {
       it('should throw an error if not instance of CountriesCache was passed as argument', async () => {
         const storage = await createStorage({
-          apiKey: 'apiKey',
           environmentId: 'envId',
+          oauth: { clientId: 'clientId', clientSecret: 'clientSecret' },
           encrypt: false,
         });
         const wrongCountriesCaches = [null, undefined, false, {}, storage];

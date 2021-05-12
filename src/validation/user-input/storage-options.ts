@@ -71,7 +71,6 @@ const OAuthOptionsIO: t.Type<OAuthOptions> = t.union([OAuthTokenIO, OAuthCredent
 type StorageOptions = {
   endpoint?: string;
   logger?: Logger;
-  apiKey?: string;
   environmentId?: string;
   encrypt?: boolean;
   getSecrets?: Function;
@@ -102,7 +101,6 @@ const CountriesCacheIO = new t.Type<CountriesCache>(
 
 const StorageOptionsIO: Codec<StorageOptionsValidated> = t.partial({
   endpoint: t.string,
-  apiKey: t.string,
   environmentId: t.string,
   encrypt: t.boolean,
   normalizeKeys: t.boolean,

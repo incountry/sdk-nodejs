@@ -1,7 +1,8 @@
 const { createStorage } = require('incountry');
 
 const COUNTRY_CODE = 'us';
-const API_KEY = 'API_KEY';
+const CLIENT_ID = 'CLIENT_ID';
+const CLIENT_SECRET = 'CLIENT_SECRET';
 const ENVIRONMENT_ID = 'ENVIRONMENT_ID';
 const LIMIT = 50;
 
@@ -15,8 +16,11 @@ const getSecrets = () => ({
 
 async function migrate() {
   const storage = await createStorage({
-    apiKey: API_KEY,
     environmentId: ENVIRONMENT_ID,
+    oauth: {
+      clientId: CLIENT_ID,
+      clientSecret: CLIENT_SECRET,
+    },
     getSecrets,
   });
 

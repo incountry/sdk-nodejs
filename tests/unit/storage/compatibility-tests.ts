@@ -280,8 +280,8 @@ describe('Storage', () => {
 
     beforeEach(async () => {
       storage = await createStorage({
-        apiKey: 'string',
         environmentId: 'InCountry',
+        oauth: { clientId: 'clientId', clientSecret: 'clientSecret' },
         endpoint: POPAPI_HOST,
         encrypt: true,
         normalizeKeys: false,
@@ -319,8 +319,8 @@ describe('Storage', () => {
     context('with different envs', () => {
       it('should encrypt differently', async () => {
         const storage1 = await createStorage({
-          apiKey: 'string',
           environmentId: 'env1',
+          oauth: { clientId: 'clientId', clientSecret: 'clientSecret' },
           endpoint: POPAPI_HOST,
           encrypt: true,
           normalizeKeys: false,
@@ -329,8 +329,8 @@ describe('Storage', () => {
         });
 
         const storage2 = await createStorage({
-          apiKey: 'string',
           environmentId: 'env2',
+          oauth: { clientId: 'clientId', clientSecret: 'clientSecret' },
           endpoint: POPAPI_HOST,
           encrypt: true,
           normalizeKeys: false,

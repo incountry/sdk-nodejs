@@ -285,8 +285,8 @@ const getDefaultStorage = async (
   getSecrets: Function = defaultGetSecretsCallback,
   customEncConfigs?: CustomEncryptionConfig[],
 ) => createStorage({
-  apiKey: 'string',
   environmentId: 'string',
+  oauth: { token: 'token' },
   endpoint: POPAPI_HOST,
   encrypt,
   normalizeKeys,

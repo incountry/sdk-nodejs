@@ -17,8 +17,8 @@ describe('Storage', () => {
     describe('initialize', () => {
       it('should throw an error when setting custom encryption configs with disabled encryption', async () => {
         const options = {
-          apiKey: 'string',
           environmentId: 'string',
+          oauth: { clientId: 'clientId', clientSecret: 'clientSecret' },
           endpoint: POPAPI_HOST,
           encrypt: false,
           logger: LOGGER_STUB(),
@@ -34,8 +34,8 @@ describe('Storage', () => {
       it('should throw an error if configs object is malformed', () => Promise.all(['', {}, () => { }]
         .map(async (configs) => {
           const options = {
-            apiKey: 'string',
             environmentId: 'string',
+            oauth: { clientId: 'clientId', clientSecret: 'clientSecret' },
             endpoint: POPAPI_HOST,
             logger: LOGGER_STUB(),
             getSecrets: () => '',
@@ -54,8 +54,8 @@ describe('Storage', () => {
         }];
 
         const options = {
-          apiKey: 'string',
           environmentId: 'string',
+          oauth: { clientId: 'clientId', clientSecret: 'clientSecret' },
           endpoint: POPAPI_HOST,
           logger: LOGGER_STUB(),
           getSecrets: () => '',
@@ -74,8 +74,8 @@ describe('Storage', () => {
         }];
 
         const options = {
-          apiKey: 'string',
           environmentId: 'string',
+          oauth: { clientId: 'clientId', clientSecret: 'clientSecret' },
           endpoint: POPAPI_HOST,
           logger: LOGGER_STUB(),
           getSecrets: () => '',

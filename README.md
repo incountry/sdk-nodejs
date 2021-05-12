@@ -37,7 +37,6 @@ Below you can find a full list of possible configuration options for creating a 
 
 ```typescript
 type StorageOptions = {
-  apiKey?: string;          // Required when using API key authorization, or as the INC_API_KEY environment variable
   environmentId?: string;   // Required to be passed in, or as the INC_ENVIRONMENT_ID environment variable
 
   oauth?: {
@@ -83,22 +82,6 @@ async function createStorage(
 ): Promise<Storage> {
   /* ... */
 }
-```
-
----
-**WARNING**
-
-API Key authorization is being deprecated. The backward compatibility is preserved for the `apiKey` parameter but you no longer can access API keys (neither old nor new) from your dashboard.
-
-Below you can find API Key authorization usage example:
-
-```typescript
-const { createStorage } = require('incountry');
-const storage = await createStorage({
-  apiKey: '<api_key>',
-  environmentId: '<environment_id>',
-  getSecrets: () => '<encryption_secret>',
-});
 ```
 
 ---
@@ -234,8 +217,8 @@ const customLogger = {
 };
 
 const storage = await createStorage({
-  apiKey: '',
   environmentId: '',
+  oauth: { clientId: 'clientId', clientSecret: 'clientSecret' },
   getSecrets: () => '',
   logger: customLogger
 });
@@ -507,13 +490,11 @@ You can look up for data records either by using exact match search operators or
 
 ```typescript
 type DateOr8601 = string | Date; // Accepts only ISO-8601 formatted strings, like '2021-03-11T17:23:05.941Z'
-type FilterDateQuery = DateOr8601 | DateOr8601[] | null | { $not?: DateOr8601 | DateOr8601[] | null; $gt?: DateOr8601; $gte?: DateOr8601; $lt?: DateOr8601; $lte?: DateOr8601; };
+type FilterDateQuery = DateOr8601 | null | { $not?: DateOr8601 | null; $gt?: DateOr8601; $gte?: DateOr8601; $lt?: DateOr8601; $lte?: DateOr8601; };
 type FilterStringQuery = string | string[] | null | { $not?: string | string[] | null };
 type FilterNumberQuery = number | number[] | null | { $not?: number | number[] | null; $gt?: number; $gte?: number; $lt?: number; $lte?: number; };
 
 type FindFilter = Partial<{
-  createdAt: FilterDateQuery;
-  updatedAt: FilterDateQuery;
   expiresAt: FilterDateQuery;
   recordKey: FilterStringQuery;
   parentKey: FilterStringQuery;
