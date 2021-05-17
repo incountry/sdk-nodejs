@@ -12,6 +12,8 @@ import {
   InputValidationError,
   StorageConfigValidationError,
   StorageCryptoError,
+  StorageServerError,
+  StorageNetworkError,
 } from './errors';
 import {
   isInvalid, optional,
@@ -440,6 +442,9 @@ class Storage {
       await this.apiClient.healthcheck(countryCode, requestOptions);
       result = true;
     } catch (e) {
+      if (e instanceof StorageNetworkError || !(e instanceof StorageServerError)) {
+        throw e;
+      }
       result = false;
     }
     return { result };
