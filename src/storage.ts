@@ -12,6 +12,7 @@ import {
   InputValidationError,
   StorageConfigValidationError,
   StorageCryptoError,
+  StorageServerError,
 } from './errors';
 import {
   isInvalid, optional,
@@ -225,7 +226,7 @@ class Storage {
     const data = await this.encryptPayload(recordData, requestOptions.meta);
     const responseData = await this.apiClient.write(countryCode, data, requestOptions);
     if (!this.recordEqualsWritten(data, responseData)) {
-      throw new StorageCryptoError('POPAPI responded with corrupted body');
+      throw new StorageServerError('POPAPI response corrupted');
     }
     return {
       record: {
@@ -256,7 +257,7 @@ class Storage {
     encryptedRecords.forEach((encRecord) => {
       const writtenRecord = responseRecords.find((rec) => rec.record_key === encRecord.record_key);
       if (!writtenRecord || !this.recordEqualsWritten(encRecord, writtenRecord)) {
-        throw new StorageCryptoError('POPAPI responded with corrupted body');
+        throw new StorageServerError('POPAPI response corrupted');
       }
     });
     return {
@@ -633,8 +634,14 @@ class Storage {
       .map((key: keyof ApiRecordData) => !Object.prototype.hasOwnProperty.apply(encRecord, [key]) || encRecord[key] === writtenRecord[key])
       .reduce((acc, val) => acc && val, true);
 
-    const expiresAtEqual = true;
-    // Here we need to check equality of expiresAt fields with specified precision
+    let expiresAtEqual = true;
+    if (Object.prototype.hasOwnProperty.apply(encRecord, ['expires_at']) && encRecord.expires_at) {
+      if (!writtenRecord.expires_at) {
+        expiresAtEqual = false;
+      } else {
+        expiresAtEqual = new Date(encRecord.expires_at).valueOf() === writtenRecord.expires_at.valueOf();
+      }
+    }
     return fieldsEquality && expiresAtEqual;
   }
 }

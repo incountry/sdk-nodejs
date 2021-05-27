@@ -20,7 +20,7 @@ import {
   getDefaultStorage,
   toApiRecord,
 } from './common';
-import { InputValidationError, StorageNetworkError } from '../../../src/errors';
+import { InputValidationError, StorageNetworkError, StorageServerError } from '../../../src/errors';
 import { nockPopApi, getNockedRequestBodyObject } from '../../test-helpers/popapi-nock';
 import { COUNTRY_CODE_ERROR_MESSAGE } from '../../../src/validation/user-input/country-code';
 import { VALID_REQUEST_OPTIONS, INVALID_REQUEST_OPTIONS } from '../validation/request-options';
@@ -273,6 +273,36 @@ describe('Storage', () => {
           expect(spy.calledWith('info')).to.eq(true);
           const actualMeta = getLoggerCallMeta(spy);
           checkLoggerMeta(actualMeta, callMeta, 'batchWrite');
+        });
+      });
+
+      describe('response validation', () => {
+        beforeEach(() => {
+          nock.cleanAll();
+        });
+
+        it('should validate equality of source and written records', async () => {
+          popAPI = nockPopApi(POPAPI_HOST).batchWrite(COUNTRY).reply(200, (__, body: any) => {
+            const { records } = body as any;
+            const fullRecords = records.map((r: any) => ({ ...EMPTY_API_RESPONSE_RECORD, ...r }));
+            fullRecords[0].record_key = uuid();
+            return fullRecords;
+          }, popapiResponseHeaders);
+
+          await expect(encStorage.batchWrite(COUNTRY, TEST_RECORDS))
+            .to.be.rejectedWith(StorageServerError, 'POPAPI response corrupted');
+        });
+
+        it('should validate equality of source and written records expires_at', async () => {
+          popAPI = nockPopApi(POPAPI_HOST).batchWrite(COUNTRY).reply(200, (__, body) => {
+            const { records } = body as any;
+            const fullRecords = records.map((r: any) => ({ ...EMPTY_API_RESPONSE_RECORD, ...r }));
+            fullRecords[fullRecords.length - 1].expires_at = fullRecords[fullRecords.length - 1].expires_at.replace('Z', '99999Z');
+            return fullRecords;
+          }, popapiResponseHeaders);
+
+          await expect(encStorage.batchWrite(COUNTRY, TEST_RECORDS))
+            .not.to.be.rejected;
         });
       });
     });
