@@ -224,6 +224,9 @@ class Storage {
   ): Promise<WriteResult> {
     const data = await this.encryptPayload(recordData, requestOptions.meta);
     const responseData = await this.apiClient.write(countryCode, data, requestOptions);
+    if (!this.recordEqualsWritten(data, responseData)) {
+      throw new StorageCryptoError('POPAPI responded with corrupted body');
+    }
     return {
       record: {
         ...recordData,
@@ -249,6 +252,13 @@ class Storage {
         updatedAt: rec.updated_at,
       },
     }), {});
+
+    encryptedRecords.forEach((encRecord) => {
+      const writtenRecord = responseRecords.find((rec) => rec.record_key === encRecord.record_key);
+      if (!writtenRecord || !this.recordEqualsWritten(encRecord, writtenRecord)) {
+        throw new StorageCryptoError('POPAPI responded with corrupted body');
+      }
+    });
     return {
       records: records.map((rec) => ({
         ...rec,
@@ -598,6 +608,34 @@ class Storage {
     }
 
     return new OAuthClient(clientId, clientSecret, authEndpoints);
+  }
+
+  private recordEqualsWritten(encRecord: ApiRecordData, writtenRecord: ApiRecord): boolean {
+    const keysToCheck: (keyof ApiRecordData)[] = [
+      'body',
+      'precommit_body',
+      ...KEYS_TO_HASH,
+      ...SEARCH_KEYS,
+      'range_key1',
+      'range_key2',
+      'range_key3',
+      'range_key4',
+      'range_key5',
+      'range_key6',
+      'range_key7',
+      'range_key8',
+      'range_key9',
+      'range_key10',
+      'version',
+    ];
+
+    const fieldsEquality = keysToCheck
+      .map((key: keyof ApiRecordData) => !Object.prototype.hasOwnProperty.apply(encRecord, [key]) || encRecord[key] === writtenRecord[key])
+      .reduce((acc, val) => acc && val, true);
+
+    const expiresAtEqual = true;
+    // Here we need to check equality of expiresAt fields with specified precision
+    return fieldsEquality && expiresAtEqual;
   }
 }
 

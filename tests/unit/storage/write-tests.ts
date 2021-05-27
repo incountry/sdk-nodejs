@@ -64,8 +64,15 @@ describe('Storage', () => {
     describe('write', () => {
       let popAPI: nock.Scope;
 
+      const nockPopApiWriteResponse = () => {
+        popAPI = nockPopApi(POPAPI_HOST).write(COUNTRY).reply(200, (__, body: any) => ({
+          ...EMPTY_API_RESPONSE_RECORD,
+          ...body,
+        }), popapiResponseHeaders);
+      };
+
       beforeEach(() => {
-        popAPI = nockPopApi(POPAPI_HOST).write(COUNTRY).reply(200, EMPTY_API_RESPONSE_RECORD, popapiResponseHeaders);
+        nockPopApiWriteResponse();
       });
 
       describe('arguments validation', () => {
@@ -265,17 +272,14 @@ describe('Storage', () => {
 
       describe('normalize country', () => {
         it('it should pass normalized country code', async () => {
-          const country = 'us';
-
           const storage = await getDefaultStorage();
 
-          nockPopApi(POPAPI_HOST).write(country).reply(200, EMPTY_API_RESPONSE_RECORD);
           await storage.write('uS', { recordKey: '123' });
 
-          nockPopApi(POPAPI_HOST).write(country).reply(200, EMPTY_API_RESPONSE_RECORD);
+          nockPopApiWriteResponse();
           await storage.write('Us', { recordKey: '123' });
 
-          nockPopApi(POPAPI_HOST).write(country).reply(200, EMPTY_API_RESPONSE_RECORD);
+          nockPopApiWriteResponse();
           await storage.write('US', { recordKey: '123' });
         });
       });
