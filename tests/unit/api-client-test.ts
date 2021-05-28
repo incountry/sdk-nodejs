@@ -562,6 +562,14 @@ describe('ApiClient', () => {
           assert.equal(popAPI.isDone(), true, 'Nock scope is done');
         });
       });
+
+      describe('healthcheck', () => {
+        it('should not throw error when POPAPI is healthy', async () => {
+          const popAPI = nockPopApi(POPAPI_HOST).healthcheck().reply(200);
+          await apiClient.healthcheck(COUNTRY);
+          assert.equal(popAPI.isDone(), true, 'Nock scope is done');
+        });
+      });
     });
   });
 

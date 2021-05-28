@@ -442,6 +442,17 @@ class ApiClient {
 
     return responseData;
   }
+
+  async healthcheck(countryCode: string, { headers, meta }: RequestOptions = {}): Promise<unknown> {
+    return this.request(
+      countryCode,
+      'healthcheck',
+      { headers, method: 'get' },
+      t.unknown,
+      { operation: 'healthcheck', ...meta },
+      false,
+    );
+  }
 }
 
 export {

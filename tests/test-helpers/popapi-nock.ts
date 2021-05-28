@@ -41,6 +41,8 @@ const nockPopApi = (host: string) => ({
   updateAttachmentMeta: (countryCode: string, recordKey: string, fileId: string) => nock(host).patch(`/v2/storage/records/${countryCode}/${recordKey}/attachments/${fileId}/meta`),
 
   getAttachmentFile: (countryCode: string, recordKey: string, fileId: string) => nock(host).get(`/v2/storage/records/${countryCode}/${recordKey}/attachments/${fileId}`),
+
+  healthcheck: () => nock(host).get('/healthcheck'),
 });
 
 export {

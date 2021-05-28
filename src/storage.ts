@@ -12,6 +12,8 @@ import {
   InputValidationError,
   StorageConfigValidationError,
   StorageCryptoError,
+  StorageServerError,
+  StorageNetworkError,
 } from './errors';
 import {
   isInvalid, optional,
@@ -128,6 +130,10 @@ type UpdateAttachmentMetaResult = {
 
 type GetAttachmentFileResult = {
   attachmentData: GetAttachmentFileResponse;
+}
+
+type HealthcheckResult = {
+  result: boolean;
 }
 
 class Storage {
@@ -423,6 +429,25 @@ class Storage {
     const key = this.createKeyHash(this.normalizeKey(recordKey));
     const attachment = await this.apiClient.getAttachmentMeta(countryCode, key, fileId, requestOptions);
     return { attachmentMeta: fromApiRecordAttachment(attachment) };
+  }
+
+  @validate(CountryCodeIO, optional(RequestOptionsIO))
+  @normalizeErrors()
+  async healthcheck(
+    countryCode: string,
+    requestOptions: RequestOptions = {},
+  ): Promise<HealthcheckResult> {
+    let result;
+    try {
+      await this.apiClient.healthcheck(countryCode, requestOptions);
+      result = true;
+    } catch (e) {
+      if (e instanceof StorageNetworkError || !(e instanceof StorageServerError)) {
+        throw e;
+      }
+      result = false;
+    }
+    return { result };
   }
 
   async validate(): Promise<void> {

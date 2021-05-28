@@ -927,6 +927,31 @@ await storage.updateAttachmentMeta(COUNTRY, data.recordKey, attachmentMeta.fileI
 ```
 
 
+## Health Check
+
+The `healthcheck` method of `Storage` allows you to check availability of a remote storage service by country code.
+
+
+```typescript
+type HealthcheckResult = {
+  result: boolean;
+};
+
+async healthcheck(
+  countryCode: string,
+  requestOptions: RequestOptions = {},
+): Promise<HealthcheckResult> {
+  /* ... */
+}
+```
+
+
+Example of usage:
+```typescript
+const { result } = await storage.healthcheck(COUNTRY);
+```
+
+
 ## Data Migration and Key Rotation support
 
 Using `getSecrets` storage config options that provides `SecretsData` object enables key rotation and data migration support.
