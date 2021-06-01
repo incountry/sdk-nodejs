@@ -392,7 +392,7 @@ describe('ApiClient', () => {
             ...EMPTY_RECORD,
             record_key,
           };
-          const popAPI = nockPopApi(POPAPI_HOST).write(COUNTRY).reply(200);
+          const popAPI = nockPopApi(POPAPI_HOST).write(COUNTRY).reply(200, EMPTY_API_RESPONSE_RECORD);
           await apiClient.write(COUNTRY, record);
           assert.equal(popAPI.isDone(), true, 'Nock scope is done');
         });
@@ -429,7 +429,7 @@ describe('ApiClient', () => {
             ...EMPTY_RECORD,
             record_key,
           };
-          const popAPI = nockPopApi(POPAPI_HOST).batchWrite(COUNTRY).reply(200);
+          const popAPI = nockPopApi(POPAPI_HOST).batchWrite(COUNTRY).reply(200, [EMPTY_API_RESPONSE_RECORD]);
           await apiClient.batchWrite(COUNTRY, { records: [record] });
           assert.equal(popAPI.isDone(), true, 'Nock scope is done');
         });
@@ -582,7 +582,7 @@ describe('ApiClient', () => {
     });
 
     it('should send access_token in Authorization header', async () => {
-      const popAPI = nockPopApi(POPAPI_HOST).write(COUNTRY).reply(200, 'OK');
+      const popAPI = nockPopApi(POPAPI_HOST).write(COUNTRY).reply(200, EMPTY_API_RESPONSE_RECORD);
       const [headers] = await Promise.all<Record<string, string>, unknown>([getNockedRequestHeaders(popAPI), apiClient.write(COUNTRY, { record_key: '123' })]);
       const { authorization } = headers;
       expect(authorization).to.eq('Bearer access_token');
@@ -598,7 +598,7 @@ describe('ApiClient', () => {
     });
 
     it('should send token in Authorization header', async () => {
-      const popAPI = nockPopApi(POPAPI_HOST).write(COUNTRY).reply(200, 'OK');
+      const popAPI = nockPopApi(POPAPI_HOST).write(COUNTRY).reply(200, EMPTY_API_RESPONSE_RECORD);
       const [headers] = await Promise.all<Record<string, string>, unknown>([getNockedRequestHeaders(popAPI), apiClient.write(COUNTRY, { record_key: '123' })]);
       const { authorization } = headers;
       expect(authorization).to.eq('Bearer string');
@@ -626,7 +626,7 @@ describe('ApiClient', () => {
         .post(writePath)
         .reply(401)
         .post(writePath)
-        .reply(200, 'OK');
+        .reply(200, EMPTY_API_RESPONSE_RECORD);
 
       collectAuthHeaders(popAPI);
 

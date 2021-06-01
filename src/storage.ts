@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import crypto from 'crypto';
 import * as t from 'io-ts';
+import { isRight } from 'fp-ts/lib/Either';
 import { createReadStream, ReadStream } from 'fs';
 import { basename } from 'path';
 import { ApiClient, GetAttachmentFileResponse } from './api-client';
@@ -45,7 +46,7 @@ import { LoggerIO } from './validation/user-input/logger';
 import { AuthClient, getStaticTokenAuthClient, OAuthClient } from './auth-client';
 import { normalizeErrors } from './normalize-errors-decorator';
 import { FindResponseMeta } from './validation/api/find-response';
-import { ApiRecord, ApiRecordBodyIO } from './validation/api/api-record';
+import { ApiRecord, ApiRecordBodyIO, ApiRecordIO } from './validation/api/api-record';
 import { StorageRecordData, getStorageRecordDataIO } from './validation/user-input/storage-record-data';
 import { ApiRecordData, apiRecordDataFromStorageRecordData } from './validation/api/api-record-data';
 import { RequestOptionsIO, RequestOptions } from './validation/user-input/request-options';
@@ -83,11 +84,11 @@ type BodyForEncryption = {
 };
 
 type WriteResult = {
-  record: StorageRecordData;
+  record: StorageRecordData | StorageRecord;
 };
 
 type BatchWriteResult = {
-  records: Array<StorageRecordData>;
+  records: Array<StorageRecordData | StorageRecord>;
 };
 
 type MigrateResult = {
@@ -229,8 +230,15 @@ class Storage {
     requestOptions: RequestOptions = {},
   ): Promise<WriteResult> {
     const data = await this.encryptPayload(recordData, requestOptions.meta);
-    await this.apiClient.write(countryCode, data, requestOptions);
-    return { record: recordData };
+    const responseData = await this.apiClient.write(countryCode, data, requestOptions);
+
+    let record = recordData;
+    const decodedRecord = ApiRecordIO.decode(responseData);
+    if (isRight(decodedRecord)) {
+      record = await this.decryptPayload(decodedRecord.right, requestOptions.meta);
+    }
+
+    return { record };
   }
 
   @validate(CountryCodeIO, getStorageRecordDataArrayIO, optional(RequestOptionsIO))
@@ -241,7 +249,16 @@ class Storage {
     requestOptions: RequestOptions = {},
   ): Promise<BatchWriteResult> {
     const encryptedRecords = await Promise.all(records.map((r) => this.encryptPayload(r, requestOptions.meta)));
-    await this.apiClient.batchWrite(countryCode, { records: encryptedRecords }, requestOptions);
+    const responseRecords = await this.apiClient.batchWrite(countryCode, { records: encryptedRecords }, requestOptions);
+
+    const decodedRecords = t.array(ApiRecordIO).decode(responseRecords);
+    if (isRight(decodedRecords)) {
+      const decryptedRecords = await Promise.all(
+        decodedRecords.right.map((item) => this.decryptPayload(item, requestOptions.meta)),
+      );
+      return { records: decryptedRecords };
+    }
+
     return { records };
   }
 

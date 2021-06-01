@@ -291,22 +291,20 @@ describe('AuthClient', () => {
         const invalidClientErr = {
           error: 'invalid_client',
           error_description: 'Client authentication failed (e.g., unknown client, no client authentication included, or unsupported authentication method).',
-          error_hint: 'Invalid audience',
           status_code: 401,
         };
         nockDefaultAuth().reply(401, invalidClientErr);
-        await expect(authClient.getToken(DEFAULT_POPAPI_HOST, ENV_ID, DEFAULT_REGION)).to.be.rejectedWith(StorageAuthenticationError, `${invalidClientErr.error_description} ${invalidClientErr.error_hint}`);
+        await expect(authClient.getToken(DEFAULT_POPAPI_HOST, ENV_ID, DEFAULT_REGION)).to.be.rejectedWith(StorageAuthenticationError, invalidClientErr.error_description);
       });
 
       it('unknown OAuth error', async () => {
         const unknownOAuthError = {
           error: 'unknown',
           error_description: '',
-          error_hint: 'Unknown error',
           status_code: 418,
         };
         nockDefaultAuth().reply(400, unknownOAuthError);
-        await expect(authClient.getToken(DEFAULT_POPAPI_HOST, ENV_ID, DEFAULT_REGION)).to.be.rejectedWith(StorageAuthenticationError, `${unknownOAuthError.error} ${unknownOAuthError.error_hint}`);
+        await expect(authClient.getToken(DEFAULT_POPAPI_HOST, ENV_ID, DEFAULT_REGION)).to.be.rejectedWith(StorageAuthenticationError, unknownOAuthError.error);
       });
 
       it('unknown OAuth error without error hint', async () => {

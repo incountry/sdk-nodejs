@@ -68,8 +68,15 @@ describe('Storage', () => {
     describe('batchWrite', () => {
       let popAPI: nock.Scope;
 
+      const nockPopApiBatchWriteResponse = () => {
+        popAPI = nockPopApi(POPAPI_HOST).batchWrite(COUNTRY).reply(200, (__, body) => {
+          const { records } = body as any;
+          return records.map((r: any) => ({ ...EMPTY_API_RESPONSE_RECORD, ...r }));
+        }, popapiResponseHeaders);
+      };
+
       beforeEach(() => {
-        popAPI = nockPopApi(POPAPI_HOST).batchWrite(COUNTRY).reply(200, 'OK', popapiResponseHeaders);
+        nockPopApiBatchWriteResponse();
       });
 
       describe('arguments', () => {
@@ -245,17 +252,14 @@ describe('Storage', () => {
 
       describe('normalize country', () => {
         it('it should pass normalized country code', async () => {
-          const country = 'us';
-
           const storage = await getDefaultStorage();
 
-          nockPopApi(POPAPI_HOST).batchWrite(country).reply(200, 'OK');
           await storage.batchWrite('uS', [{ recordKey: '123' }]);
 
-          nockPopApi(POPAPI_HOST).batchWrite(country).reply(200, 'OK');
+          nockPopApiBatchWriteResponse();
           await storage.batchWrite('Us', [{ recordKey: '123' }]);
 
-          nockPopApi(POPAPI_HOST).batchWrite(country).reply(200, 'OK');
+          nockPopApiBatchWriteResponse();
           await storage.batchWrite('US', [{ recordKey: '123' }]);
         });
       });
@@ -269,6 +273,37 @@ describe('Storage', () => {
           expect(spy.calledWith('info')).to.eq(true);
           const actualMeta = getLoggerCallMeta(spy);
           checkLoggerMeta(actualMeta, callMeta, 'batchWrite');
+        });
+      });
+
+      describe('response validation', () => {
+        beforeEach(() => {
+          nock.cleanAll();
+        });
+
+        it('should return StorageRecordData[] when POPAPI responded with not a records', async () => {
+          popAPI = nockPopApi(POPAPI_HOST).batchWrite(COUNTRY).reply(200, {
+            success: true,
+          }, popapiResponseHeaders);
+
+          const res = await encStorage.batchWrite(COUNTRY, TEST_RECORDS);
+          res.records.forEach((record, i) => {
+            expect(record).to.deep.equal(TEST_RECORDS[i]);
+            expect(record).to.not.have.keys(['createdAt', 'updatedAt']);
+          });
+        });
+
+        it('should return StorageRecord[] when POPAPI responded with a correct records', async () => {
+          popAPI = nockPopApi(POPAPI_HOST).batchWrite(COUNTRY).reply(200, (__, body) => {
+            const { records } = body as any;
+            return records.map((r: any) => ({ ...EMPTY_API_RESPONSE_RECORD, ...r }));
+          }, popapiResponseHeaders);
+
+          const res = await encStorage.batchWrite(COUNTRY, TEST_RECORDS);
+          res.records.forEach((record, i) => {
+            expect(record).to.deep.include(TEST_RECORDS[i]);
+            expect(record).to.contain.keys(['createdAt', 'updatedAt']);
+          });
         });
       });
     });

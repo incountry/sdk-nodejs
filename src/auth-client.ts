@@ -36,7 +36,6 @@ const AuthErrorIO = t.intersection([
     error_description: t.string,
   }),
   t.partial({
-    error_hint: t.string,
     status_code: t.number,
   }),
 ]);
@@ -47,9 +46,8 @@ function getAuthError(body: unknown): StorageAuthenticationError | null {
     return null;
   }
 
-  const { error, error_description, error_hint } = decodedBody.right;
-  let message = ERROR_RESPONSES[error] || error_description || error;
-  message = error_hint ? `${message} ${error_hint}` : message;
+  const { error, error_description } = decodedBody.right;
+  const message = ERROR_RESPONSES[error] || error_description || error;
   return message ? new StorageAuthenticationError(message, body) : null;
 }
 

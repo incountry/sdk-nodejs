@@ -359,7 +359,7 @@ type StorageRecordData = {
 };
 
 type WriteResult = {
-  record: StorageRecordData;
+  record: StorageRecord;
 };
 
 async write(
@@ -392,7 +392,7 @@ You can use the `batchWrite` method to create/replace multiple records at once.
 
 ```typescript
 type BatchWriteResult = {
-  records: Array<StorageRecordData>;
+  records: Array<StorageRecord>;
 };
 
 async batchWrite(

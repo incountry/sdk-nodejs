@@ -64,8 +64,15 @@ describe('Storage', () => {
     describe('write', () => {
       let popAPI: nock.Scope;
 
+      const nockPopApiWriteResponse = () => {
+        popAPI = nockPopApi(POPAPI_HOST).write(COUNTRY).reply(200, (__, body: any) => ({
+          ...EMPTY_API_RESPONSE_RECORD,
+          ...body,
+        }), popapiResponseHeaders);
+      };
+
       beforeEach(() => {
-        popAPI = nockPopApi(POPAPI_HOST).write(COUNTRY).reply(200, 'OK', popapiResponseHeaders);
+        nockPopApiWriteResponse();
       });
 
       describe('arguments validation', () => {
@@ -140,7 +147,8 @@ describe('Storage', () => {
                   const [bodyObj, result] = await Promise.all<any, WriteResult>([getNockedRequestBodyObject(popAPI), storage.write(COUNTRY, testCase)]);
                   expect(_.omit(bodyObj, ['body', 'precommit_body'])).to.deep.equal(_.omit(encrypted, ['body', 'precommit_body']));
                   expect(bodyObj.body).to.match(opt.bodyRegExp);
-                  expect(result.record).to.deep.equal(testCase);
+                  expect(result.record).to.deep.include(testCase);
+                  expect(result.record).to.contain.keys('createdAt', 'updatedAt');
                 });
 
                 it('should set "is_encrypted"', async () => {
@@ -211,7 +219,8 @@ describe('Storage', () => {
 
               const [bodyObj, result] = await Promise.all<any, WriteResult>([getNockedRequestBodyObject(popAPI), storage.write(COUNTRY, testCase)]);
               expect(bodyObj.body).to.equal(encryptedPayload.body);
-              expect(result.record).to.deep.equal(testCase);
+              expect(result.record).to.deep.include(testCase);
+              expect(result.record).to.contain.keys('createdAt', 'updatedAt');
             });
           });
         });
@@ -263,17 +272,14 @@ describe('Storage', () => {
 
       describe('normalize country', () => {
         it('it should pass normalized country code', async () => {
-          const country = 'us';
-
           const storage = await getDefaultStorage();
 
-          nockPopApi(POPAPI_HOST).write(country).reply(200, 'OK');
           await storage.write('uS', { recordKey: '123' });
 
-          nockPopApi(POPAPI_HOST).write(country).reply(200, 'OK');
+          nockPopApiWriteResponse();
           await storage.write('Us', { recordKey: '123' });
 
-          nockPopApi(POPAPI_HOST).write(country).reply(200, 'OK');
+          nockPopApiWriteResponse();
           await storage.write('US', { recordKey: '123' });
         });
       });
@@ -303,6 +309,33 @@ describe('Storage', () => {
             oauth: { token: 'token' },
           });
           await expect(storage.write(COUNTRY, { ...EMPTY_API_RESPONSE_RECORD, recordKey })).to.be.rejectedWith(StorageError, 'Error during Storage.write() call: blabla');
+        });
+      });
+
+      describe('response validation', () => {
+        beforeEach(() => {
+          nock.cleanAll();
+        });
+
+        it('should return StorageRecordData when POPAPI responded with not a record', async () => {
+          popAPI = nockPopApi(POPAPI_HOST).write(COUNTRY).reply(200, {
+            success: true,
+          }, popapiResponseHeaders);
+
+          const res = await encStorage.write(COUNTRY, TEST_RECORDS[0]);
+          expect(res).to.deep.equal({ record: TEST_RECORDS[0] });
+          expect(res).to.not.have.keys(['createdAt', 'updatedAt']);
+        });
+
+        it('should return StorageRecord when POPAPI responded with a correct record', async () => {
+          popAPI = nockPopApi(POPAPI_HOST).write(COUNTRY).reply(200, (__, body: any) => ({
+            ...EMPTY_API_RESPONSE_RECORD,
+            ...body,
+          }), popapiResponseHeaders);
+
+          const res = await encStorage.write(COUNTRY, TEST_RECORDS[TEST_RECORDS.length - 1]);
+          expect(res.record).to.deep.include(TEST_RECORDS[TEST_RECORDS.length - 1]);
+          expect(res.record).to.contain.keys(['createdAt', 'updatedAt']);
         });
       });
     });
