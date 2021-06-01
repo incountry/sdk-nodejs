@@ -47,11 +47,6 @@ type StorageRecordData = {
   expiresAt?: DateOr8601 | null;
 };
 
-interface StorageRecordWrittenData extends StorageRecordData {
-  createdAt?: DateOr8601 | null;
-  updatedAt?: DateOr8601 | null;
-}
-
 const getStorageRecordDataIO = (params: { hashSearchKeys: boolean }): Codec<StorageRecordData> => {
   const keyStringIO = params.hashSearchKeys ? t.string : StringMax256;
   return t.intersection([
@@ -105,6 +100,5 @@ const getStorageRecordDataIO = (params: { hashSearchKeys: boolean }): Codec<Stor
 
 export {
   StorageRecordData,
-  StorageRecordWrittenData,
   getStorageRecordDataIO,
 };

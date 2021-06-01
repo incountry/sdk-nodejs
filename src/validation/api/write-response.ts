@@ -1,7 +1,6 @@
 import * as t from 'io-ts';
-import { ApiRecordIO } from './api-record';
 
-const WriteResponseIO = ApiRecordIO;
+const WriteResponseIO = t.unknown;
 type WriteResponse = t.TypeOf<typeof WriteResponseIO>;
 
 export {

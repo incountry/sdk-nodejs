@@ -20,7 +20,7 @@ import {
 } from './common';
 import { VALID_REQUEST_OPTIONS, INVALID_REQUEST_OPTIONS } from '../validation/request-options';
 import { Storage, WriteResult } from '../../../src/storage';
-import { InputValidationError, StorageError, StorageServerError } from '../../../src/errors';
+import { InputValidationError, StorageError } from '../../../src/errors';
 import { COUNTRY_CODE_ERROR_MESSAGE } from '../../../src/validation/user-input/country-code';
 import { ApiRecordData } from '../../../src/validation/api/api-record-data';
 import { errorMessageRegExp } from '../../test-helpers/utils';
@@ -317,37 +317,25 @@ describe('Storage', () => {
           nock.cleanAll();
         });
 
-        it('should validate equality of source and written record', async () => {
-          popAPI = nockPopApi(POPAPI_HOST).write(COUNTRY).reply(200, (__, body: any) => ({
-            ...EMPTY_API_RESPONSE_RECORD,
-            ...body,
-            record_key: uuid(),
-          }), popapiResponseHeaders);
+        it('should return StorageRecordData when POPAPI responded with not a record', async () => {
+          popAPI = nockPopApi(POPAPI_HOST).write(COUNTRY).reply(200, {
+            success: true,
+          }, popapiResponseHeaders);
 
-          await expect(encStorage.write(COUNTRY, TEST_RECORDS[0]))
-            .to.be.rejectedWith(StorageServerError, 'POPAPI response corrupted');
+          const res = await encStorage.write(COUNTRY, TEST_RECORDS[0]);
+          expect(res).to.deep.equal({ record: TEST_RECORDS[0] });
+          expect(res).to.not.have.keys(['createdAt', 'updatedAt']);
         });
 
-        it('should validate equality of source and written record expires_at', async () => {
+        it('should return StorageRecord when POPAPI responded with a correct record', async () => {
           popAPI = nockPopApi(POPAPI_HOST).write(COUNTRY).reply(200, (__, body: any) => ({
             ...EMPTY_API_RESPONSE_RECORD,
             ...body,
-            expires_at: body.expires_at.replace('Z', '99999Z'),
           }), popapiResponseHeaders);
 
-          await expect(encStorage.write(COUNTRY, TEST_RECORDS[TEST_RECORDS.length - 1]))
-            .not.to.be.rejected;
-        });
-
-        it('should fail when written record has no expires_at field', async () => {
-          popAPI = nockPopApi(POPAPI_HOST).write(COUNTRY).reply(200, (__, body: any) => ({
-            ...EMPTY_API_RESPONSE_RECORD,
-            ...body,
-            expires_at: null,
-          }), popapiResponseHeaders);
-
-          await expect(encStorage.write(COUNTRY, TEST_RECORDS[TEST_RECORDS.length - 1]))
-            .to.be.rejectedWith(StorageServerError, 'POPAPI response corrupted');
+          const res = await encStorage.write(COUNTRY, TEST_RECORDS[TEST_RECORDS.length - 1]);
+          expect(res.record).to.deep.include(TEST_RECORDS[TEST_RECORDS.length - 1]);
+          expect(res.record).to.contain.keys(['createdAt', 'updatedAt']);
         });
       });
     });

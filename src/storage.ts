@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import crypto from 'crypto';
 import * as t from 'io-ts';
+import { isRight } from 'fp-ts/lib/Either';
 import { createReadStream, ReadStream } from 'fs';
 import { basename } from 'path';
 import { ApiClient, GetAttachmentFileResponse } from './api-client';
@@ -12,7 +13,6 @@ import {
   InputValidationError,
   StorageConfigValidationError,
   StorageCryptoError,
-  StorageServerError,
 } from './errors';
 import {
   isInvalid, optional,
@@ -44,8 +44,8 @@ import { LoggerIO } from './validation/user-input/logger';
 import { AuthClient, getStaticTokenAuthClient, OAuthClient } from './auth-client';
 import { normalizeErrors } from './normalize-errors-decorator';
 import { FindResponseMeta } from './validation/api/find-response';
-import { ApiRecord, ApiRecordBodyIO } from './validation/api/api-record';
-import { StorageRecordData, StorageRecordWrittenData, getStorageRecordDataIO } from './validation/user-input/storage-record-data';
+import { ApiRecord, ApiRecordBodyIO, ApiRecordIO } from './validation/api/api-record';
+import { StorageRecordData, getStorageRecordDataIO } from './validation/user-input/storage-record-data';
 import { ApiRecordData, apiRecordDataFromStorageRecordData } from './validation/api/api-record-data';
 import { RequestOptionsIO, RequestOptions } from './validation/user-input/request-options';
 import { AttachmentWritableMeta, AttachmentWritableMetaIO } from './validation/user-input/attachment-writable-meta';
@@ -82,11 +82,11 @@ type BodyForEncryption = {
 };
 
 type WriteResult = {
-  record: StorageRecordWrittenData;
+  record: StorageRecordData | StorageRecord;
 };
 
 type BatchWriteResult = {
-  records: Array<StorageRecordData>;
+  records: Array<StorageRecordData | StorageRecord>;
 };
 
 type MigrateResult = {
@@ -225,16 +225,14 @@ class Storage {
   ): Promise<WriteResult> {
     const data = await this.encryptPayload(recordData, requestOptions.meta);
     const responseData = await this.apiClient.write(countryCode, data, requestOptions);
-    if (!this.recordEqualsWritten(data, responseData)) {
-      throw new StorageServerError('POPAPI response corrupted');
+
+    let record = recordData;
+    const decodedRecord = ApiRecordIO.decode(responseData);
+    if (isRight(decodedRecord)) {
+      record = await this.decryptPayload(decodedRecord.right, requestOptions.meta);
     }
-    return {
-      record: {
-        ...recordData,
-        createdAt: responseData.created_at,
-        updatedAt: responseData.updated_at,
-      },
-    };
+
+    return { record };
   }
 
   @validate(CountryCodeIO, getStorageRecordDataArrayIO, optional(RequestOptionsIO))
@@ -246,26 +244,16 @@ class Storage {
   ): Promise<BatchWriteResult> {
     const encryptedRecords = await Promise.all(records.map((r) => this.encryptPayload(r, requestOptions.meta)));
     const responseRecords = await this.apiClient.batchWrite(countryCode, { records: encryptedRecords }, requestOptions);
-    const recordsTimestamps = responseRecords.reduce((acc: Record<string, Partial<StorageRecord>>, rec) => ({
-      ...acc,
-      [rec.record_key]: {
-        createdAt: rec.created_at,
-        updatedAt: rec.updated_at,
-      },
-    }), {});
 
-    encryptedRecords.forEach((encRecord) => {
-      const writtenRecord = responseRecords.find((rec) => rec.record_key === encRecord.record_key);
-      if (!writtenRecord || !this.recordEqualsWritten(encRecord, writtenRecord)) {
-        throw new StorageServerError('POPAPI response corrupted');
-      }
-    });
-    return {
-      records: records.map((rec) => ({
-        ...rec,
-        ...recordsTimestamps[this.createKeyHash(this.normalizeKey(rec.recordKey))],
-      })),
-    };
+    const decodedRecords = t.array(ApiRecordIO).decode(responseRecords);
+    if (isRight(decodedRecords)) {
+      const decryptedRecords = await Promise.all(
+        decodedRecords.right.map((item) => this.decryptPayload(item, requestOptions.meta)),
+      );
+      return { records: decryptedRecords };
+    }
+
+    return { records };
   }
 
   @validate(CountryCodeIO, optional(FindFilterIO), optional(FindOptionsIO), optional(RequestOptionsIO))
@@ -609,40 +597,6 @@ class Storage {
     }
 
     return new OAuthClient(clientId, clientSecret, authEndpoints);
-  }
-
-  private recordEqualsWritten(encRecord: ApiRecordData, writtenRecord: ApiRecord): boolean {
-    const keysToCheck: (keyof ApiRecordData)[] = [
-      'body',
-      'precommit_body',
-      ...KEYS_TO_HASH,
-      ...SEARCH_KEYS,
-      'range_key1',
-      'range_key2',
-      'range_key3',
-      'range_key4',
-      'range_key5',
-      'range_key6',
-      'range_key7',
-      'range_key8',
-      'range_key9',
-      'range_key10',
-      'version',
-    ];
-
-    const fieldsEquality = keysToCheck
-      .map((key: keyof ApiRecordData) => !Object.prototype.hasOwnProperty.apply(encRecord, [key]) || encRecord[key] === writtenRecord[key])
-      .reduce((acc, val) => acc && val, true);
-
-    let expiresAtEqual = true;
-    if (Object.prototype.hasOwnProperty.apply(encRecord, ['expires_at']) && encRecord.expires_at) {
-      if (!writtenRecord.expires_at) {
-        expiresAtEqual = false;
-      } else {
-        expiresAtEqual = new Date(encRecord.expires_at).valueOf() === writtenRecord.expires_at.valueOf();
-      }
-    }
-    return fieldsEquality && expiresAtEqual;
   }
 }
 
