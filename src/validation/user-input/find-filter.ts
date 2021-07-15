@@ -94,6 +94,8 @@ const FilterDateQueryIO: t.Type<FilterDateQuery> = t.union([
 ]);
 
 type FindFilter = Partial<{
+  createdAt: FilterDateQuery;
+  updatedAt: FilterDateQuery;
   expiresAt: FilterDateQuery;
   recordKey: FilterStringQuery;
   parentKey: FilterStringQuery;
@@ -144,6 +146,8 @@ const isSearchFieldValue = (s: string): Either<string, string> => s.length < SEA
 const SearchFieldIO = chainValidate(t.string, isSearchFieldValue, 'SearchFieldIO');
 
 const FindFilterBasicIO: t.Type<FindFilter> = exact(t.partial({
+  createdAt: FilterDateQueryIO,
+  updatedAt: FilterDateQueryIO,
   expiresAt: FilterDateQueryIO,
   recordKey: FilterStringQueryIO,
   parentKey: FilterStringQueryIO,
